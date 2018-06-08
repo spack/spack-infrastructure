@@ -1,0 +1,42 @@
+version: '3.3'
+services:
+  gitlab:
+    image: "gitlab/gitlab-ce"
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url '${WEB_PROTO}://${HOST_IP}:${WEB_PORT}'
+        gitlab_rails['gitlab_shell_ssh_port'] = ${SSH_PORT}
+    ports:
+      - '${WEB_PORT}:${WEB_PORT}'
+      - '${SSH_PORT}:22'
+    volumes:
+      - './volumes/config:/etc/gitlab'
+      - './volumes/logs:/var/log/gitlab'
+      - './volumes/data:/var/opt/gitlab'
+
+  docker:
+    image: 'docker:dind'
+    privileged: true
+
+  runner:
+    image: "gitlab/gitlab-runner"
+    volumes:
+      - './volumes/runner:/etc/gitlab-runner'
+    depends_on:
+      - docker
+    links:
+      - docker
+    environment:
+      DOCKER_HOST: 'tcp://docker:2375'
+      DOCKER_IMAGE: 'ubuntu:latest'
+      RUNNER_NAME: 'runner'
+      CI_SERVER_URL: '${WEB_PROTO}://${HOST_IP}:${WEB_PORT}'
+      REGISTRATION_TOKEN: "${RUNNER_TOKEN}"
+      RUNNER_EXECUTOR: docker
+      REGISTER_NON_INTERACTIVE: 'true'
+    entrypoint: ["bash"]
+    command:
+      - "-c"
+      - >-
+        if [ '!' -f /etc/gitlab-runner/config.toml ] ; then
+        gitlab-runner register ; fi ; gitlab-runner run
