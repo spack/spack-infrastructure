@@ -1,0 +1,68 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  type: ClusterIP
+  ports:
+  - name: database
+    port: 3306
+    targetPort: 3306
+  selector:
+    app: cdash
+    srv: db
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: cdash
+      srv: db
+  replicas: 1
+  serviceName: mysql
+  template:
+    metadata:
+      labels:
+        app: cdash
+        srv: db
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: mysql
+        image: "mysql/mysql-server:5.5"
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: mysql-vol
+        ports:
+        - containerPort: 3306
+          name: database
+        env:
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-name
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-login
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-pass
+  volumeClaimTemplates:
+  - metadata:
+      name: mysql-vol
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
