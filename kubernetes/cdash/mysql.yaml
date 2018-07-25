@@ -12,6 +12,7 @@ spec:
   selector:
     app: cdash
     srv: db
+
 ---
 apiVersion: apps/v1
 kind: StatefulSet

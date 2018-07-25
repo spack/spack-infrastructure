@@ -7,6 +7,7 @@ metadata:
   name: kubernetes-dashboard-certs
   namespace: kube-system
 type: Opaque
+
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -15,6 +16,7 @@ metadata:
     k8s-app: kubernetes-dashboard
   name: kubernetes-dashboard
   namespace: kube-system
+
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -50,6 +52,7 @@ rules:
   resources: ["services/proxy"]
   resourceNames: ["heapster", "http:heapster:", "https:heapster:"]
   verbs: ["get"]
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -64,6 +67,7 @@ subjects:
 - kind: ServiceAccount
   name: kubernetes-dashboard
   namespace: kube-system
+
 ---
 kind: Deployment
 apiVersion: apps/v1beta2
@@ -87,25 +91,22 @@ spec:
       - name: kubernetes-dashboard
         image: k8s.gcr.io/kubernetes-dashboard-amd64:v1.8.3
         ports:
-        - containerPort: 8443
+        - containerPort: 9090
           protocol: TCP
         args:
-          - --auto-generate-certificates
-          # Uncomment the following line to manually specify Kubernetes API server Host
-          # If not specified, Dashboard will attempt to auto discover the API server and connect
-          # to it. Uncomment only if the default does not work.
-          # - --apiserver-host=http://my-address:port
+          - --enable-insecure-login
+          - --insecure-port=9090
         volumeMounts:
         - name: kubernetes-dashboard-certs
           mountPath: /certs
           # Create on-disk volume to store exec logs
-        - mountPath: /tmp
-          name: tmp-volume
+        - name: tmp-volume
+          mountPath: /tmp
         livenessProbe:
           httpGet:
-            scheme: HTTPS
+            scheme: HTTP
             path: /
-            port: 8443
+            port: 9090
           initialDelaySeconds: 30
           timeoutSeconds: 30
       volumes:
@@ -115,10 +116,10 @@ spec:
       - name: tmp-volume
         emptyDir: {}
       serviceAccountName: kubernetes-dashboard
-      # Comment the following tolerations if Dashboard must not be deployed on master
       tolerations:
       - key: node-role.kubernetes.io/master
         effect: NoSchedule
+
 ---
 kind: Service
 apiVersion: v1
@@ -128,9 +129,24 @@ metadata:
   name: kubernetes-dashboard
   namespace: kube-system
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
-    - port: 443
-      targetPort: 8443
+    - port: 80
+      targetPort: 9090
   selector:
     k8s-app: kubernetes-dashboard
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: dashboard-ingress
+  namespace: kube-system
+spec:
+  rules:
+  - host: k8s.sp0ck.io
+    http:
+      paths:
+      - backend:
+          serviceName: kubernetes-dashboard
+          servicePort: 80

@@ -12,6 +12,7 @@ spec:
   selector:
     app: gitlab
     srv: db
+
 ---
 apiVersion: apps/v1
 kind: StatefulSet

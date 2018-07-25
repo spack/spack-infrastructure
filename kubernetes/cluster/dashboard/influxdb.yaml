@@ -14,13 +14,14 @@ spec:
     spec:
       containers:
       - name: influxdb
-        image: k8s.gcr.io/heapster-influxdb-amd64:v1.5.2
+        image: k8s.gcr.io/heapster-influxdb-amd64:v1.3.3
         volumeMounts:
         - mountPath: /data
           name: influxdb-storage
       volumes:
       - name: influxdb-storage
         emptyDir: {}
+
 ---
 apiVersion: v1
 kind: Service
