@@ -1,0 +1,31 @@
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: spack-tls-staging
+  namespace: spack
+spec:
+  secretName: spack-tls-staging
+  issuerRef:
+    name: staging
+    namespace: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+  - spack.io
+  - "*.spack.io"
+
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: spack-tls
+  namespace: spack
+spec:
+  secretName: spack-tls
+  issuerRef:
+    name: production
+    namespace: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+  - spack.io
+  - "*.spack.io"

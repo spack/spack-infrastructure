@@ -1,0 +1,11 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: k8s
+  namespace: spack
+spec:
+  type: ExternalName
+  externalName: kubernetes-dashboard.kube-system.svc.cluster.local
+  ports:
+  - port: 80

@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: gitlab
+  namespace: spack
+spec:
+  tls:
+  - secretName: spack-tls-current
+  rules:
+  - host: gitlab.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: gitlab
+          servicePort: 80

@@ -1,0 +1,26 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: spack-io
+  namespace: spack
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    certmanager.k8s.io/cluster-issuer: letsencrypt-staging
+    kubernetes.io/tls-acme: "true"
+spec:
+  tls:
+  - secretName: spack-tls-current
+  rules:
+  - host: spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: spack-io
+          servicePort: 80
+  - host: www.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: spack-io
+          servicePort: 80

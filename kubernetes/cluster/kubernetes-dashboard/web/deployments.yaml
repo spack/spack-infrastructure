@@ -1,0 +1,51 @@
+---
+kind: Deployment
+apiVersion: apps/v1beta2
+metadata:
+  name: kubernetes-dashboard
+  namespace: kube-system
+  labels:
+    k8s-app: kubernetes-dashboard
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: kubernetes-dashboard
+  template:
+    metadata:
+      labels:
+        k8s-app: kubernetes-dashboard
+    spec:
+      containers:
+      - name: kubernetes-dashboard
+        image: k8s.gcr.io/kubernetes-dashboard-amd64:v1.8.3
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+        args:
+          - --enable-insecure-login
+          - --insecure-port=9090
+        volumeMounts:
+        - name: kubernetes-dashboard-certs
+          mountPath: /certs
+          # Create on-disk volume to store exec logs
+        - name: tmp-volume
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /
+            port: 9090
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+      volumes:
+      - name: kubernetes-dashboard-certs
+        secret:
+          secretName: kubernetes-dashboard-certs
+      - name: tmp-volume
+        emptyDir: {}
+      serviceAccountName: kubernetes-dashboard
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule

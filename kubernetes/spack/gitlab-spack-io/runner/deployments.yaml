@@ -1,0 +1,59 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-runner
+  namespace: spack
+  labels:
+    app: gitlab
+    srv: runner
+spec:
+  selector:
+    matchLabels:
+      app: gitlab
+      srv: runner
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gitlab
+        srv: runner
+    spec:
+      serviceAccountName: gitlab-runner
+      containers:
+      - name: runner
+        image: "gitlab/gitlab-runner:latest"
+        imagePullPolicy: Always
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - "/bin/bash"
+              - "-c"
+              - >
+                export RUNNER_NAME="$( hostname )" ;
+                gitlab-runner register \
+                    --kubernetes-service-account gitlab-runner
+
+          preStop:
+            exec:
+              command: ["gitlab-runner", "unregister"]
+
+        env:
+        - name: DOCKER_IMAGE
+          value: "ubuntu:latest"
+
+        - name: CI_SERVER_URL
+          value: "http://gitlab"
+
+        - name: REGISTRATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-secrets
+              key: gitlab-runner-token
+
+        - name: RUNNER_EXECUTOR
+          value: kubernetes
+
+        - name: REGISTER_NON_INTERACTIVE
+          value: "true"

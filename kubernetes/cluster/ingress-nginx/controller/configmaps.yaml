@@ -1,0 +1,33 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: nginx-configuration
+  namespace: ingress-nginx
+  labels:
+    app: ingress-nginx
+data:
+  client-body-buffer-size: 32M
+  hsts: "true"
+  proxy-body-size: 1G
+  proxy-buffering: "off"
+  proxy-read-timeout: "600"
+  proxy-send-timeout: "600"
+  server-tokens: "false"
+  ssl-redirect: "true"
+  upstream-keepalive-connections: "50"
+  use-proxy-protocol: "true"
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: tcp-services
+  namespace: ingress-nginx
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: udp-services
+  namespace: ingress-nginx

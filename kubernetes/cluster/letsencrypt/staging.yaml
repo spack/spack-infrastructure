@@ -1,0 +1,22 @@
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: staging
+  namespace: letsencrypt
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: tgamblin@llnl.gov
+    privateKeySecretRef:
+      name: staging
+    dns01:
+      providers:
+      - name: aws-route53
+        route53:
+          accessKeyIDSecretRef:
+            name: spack-aws-secret
+            key: access-key
+          secretAccessKeySecretRef:
+            name: spack-aws-secret
+            key: secret-key

@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: k8s
+  namespace: spack
+spec:
+  tls:
+  - secretName: spack-tls-current
+  rules:
+  - host: k8s.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: k8s
+          servicePort: 80
