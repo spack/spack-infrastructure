@@ -16,3 +16,22 @@ spec:
   selector:
     app: spack-io
     srv: web
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spack-io-redirect
+  namespace: spack
+  labels:
+    app: spack-io
+    srv: web-redirect
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app: spack-io
+    srv: web-redirect

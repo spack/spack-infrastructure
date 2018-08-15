@@ -1,0 +1,19 @@
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: tls-k8s
+  namespace: spack
+spec:
+  secretName: tls-k8s
+  issuerRef:
+    name: letsencrypt
+    kind: Issuer
+  dnsNames:
+  - k8s.spack.io
+  acme:
+    config:
+    - http01:
+        ingressClass: nginx
+      domains:
+      - k8s.spack.io

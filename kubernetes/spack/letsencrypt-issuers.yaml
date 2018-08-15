@@ -1,0 +1,27 @@
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Issuer
+metadata:
+  name: letsencrypt-staging
+  namespace: spack
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: tgamblin@llnl.gov
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    http01: {}
+
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Issuer
+metadata:
+  name: letsencrypt
+  namespace: spack
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: tgamblin@llnl.gov
+    privateKeySecretRef:
+      name: letsencrypt
+    http01: {}

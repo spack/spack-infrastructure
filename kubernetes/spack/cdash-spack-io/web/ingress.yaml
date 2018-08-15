@@ -6,7 +6,7 @@ metadata:
   namespace: spack
 spec:
   tls:
-  - secretName: spack-tls-current
+  - secretName: tls-cdash
   rules:
   - host: cdash.spack.io
     http:

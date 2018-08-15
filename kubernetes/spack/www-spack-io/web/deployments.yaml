@@ -26,3 +26,35 @@ spec:
         ports:
         - name: http
           containerPort: 80
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spack-io-redirect
+  namespace: spack
+  labels:
+    app: spack-io
+    srv: web-redirect
+spec:
+  selector:
+    matchLabels:
+      app: spack-io
+      srv: web-redirect
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: spack-io
+        srv: web-redirect
+    spec:
+      containers:
+      - name: web
+        image: "schmunk42/nginx-redirect"
+        imagePullPolicy: Always
+        env:
+        - name: SERVER_REDIRECT
+          value: www.spack.io
+        ports:
+        - name: http
+          containerPort: 80

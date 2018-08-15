@@ -9,3 +9,4 @@ spec:
   externalName: kubernetes-dashboard.kube-system.svc.cluster.local
   ports:
   - port: 80
+
