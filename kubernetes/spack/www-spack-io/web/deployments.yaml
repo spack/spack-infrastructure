@@ -54,7 +54,7 @@ spec:
         imagePullPolicy: Always
         env:
         - name: SERVER_REDIRECT
-          value: www.spack.io
+          value: spack.io
         ports:
         - name: http
           containerPort: 80

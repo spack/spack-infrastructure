@@ -8,13 +8,13 @@ spec:
   tls:
   - secretName: tls-www
   rules:
-  - host: spack.io
+  - host: www.spack.io
     http:
       paths:
       - backend:
           serviceName: spack-io-redirect
           servicePort: 80
-  - host: www.spack.io
+  - host: spack.io
     http:
       paths:
       - backend:
