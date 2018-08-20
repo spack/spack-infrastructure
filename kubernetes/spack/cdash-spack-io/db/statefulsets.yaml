@@ -21,13 +21,21 @@ spec:
         srv: db
     spec:
       restartPolicy: Always
+      initContainers:
+      - name: clear-lost-and-found
+        image: busybox
+        imagePullPolicy: Always
+        command: ["rm", "-rf", "/mysql/lost+found/"]
+        volumeMounts:
+        - mountPath: /mysql
+          name: mysql-vol-data
       containers:
       - name: mysql
-        image: "mysql/mysql-server:5.5"
+        image: "mariadb"
         imagePullPolicy: Always
         volumeMounts:
         - mountPath: /var/lib/mysql
-          name: mysql-vol
+          name: mysql-vol-data
         ports:
         - containerPort: 3306
           name: database
@@ -47,9 +55,11 @@ spec:
             secretKeyRef:
               name: cdash-secrets
               key: cdash-db-pass
+        - name: MYSQL_RANDOM_ROOT_PASSWORD
+          value: "yes"
   volumeClaimTemplates:
   - metadata:
-      name: mysql-vol
+      name: mysql-vol-data
     spec:
       accessModes:
         - ReadWriteOnce
