@@ -28,7 +28,7 @@ spec:
             eval 'CDASH_CONFIG="$(CDASH_CONFIG_TEMPLATE)"' ;
             export CDASH_CONFIG ;
             exec /bin/bash /docker-entrypoint.sh
-        image: "kitware/cdash:2813"
+        image: "kitware/cdash"
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80

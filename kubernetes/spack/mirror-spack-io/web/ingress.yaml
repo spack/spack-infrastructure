@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: mirror-spack-io
+  namespace: spack
+spec:
+  tls:
+  - secretName: tls-mirror
+  rules:
+  - host: mirror.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: mirror-spack-io-redirect
+          servicePort: 80

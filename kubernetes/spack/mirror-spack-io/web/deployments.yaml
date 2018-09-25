@@ -1,0 +1,31 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mirror-spack-io-redirect
+  namespace: spack
+  labels:
+    app: mirror-spack-io
+    srv: web-redirect
+spec:
+  selector:
+    matchLabels:
+      app: mirror-spack-io
+      srv: web-redirect
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: mirror-spack-io
+        srv: web-redirect
+    spec:
+      containers:
+      - name: web
+        image: "schmunk42/nginx-redirect"
+        imagePullPolicy: Always
+        env:
+        - name: SERVER_REDIRECT
+          value: "spack-public.s3-website.us-east-2.amazonaws.com/mirror"
+        ports:
+        - name: http
+          containerPort: 80

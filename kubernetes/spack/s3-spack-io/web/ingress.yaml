@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: s3-spack-io
+  namespace: spack
+spec:
+  tls:
+  - secretName: tls-s3
+  rules:
+  - host: s3.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: s3-spack-io-redirect
+          servicePort: 80
