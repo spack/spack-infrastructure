@@ -54,6 +54,8 @@ spec:
         ports:
         - name: redis
           containerPort: 6379
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"
 
 ---
 apiVersion: extensions/v1beta1
@@ -97,3 +99,5 @@ spec:
         ports:
         - name: metrics
           containerPort: 9121
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"

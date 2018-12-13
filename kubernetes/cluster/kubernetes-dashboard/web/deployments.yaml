@@ -49,3 +49,5 @@ spec:
       tolerations:
       - key: node-role.kubernetes.io/master
         effect: NoSchedule
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"

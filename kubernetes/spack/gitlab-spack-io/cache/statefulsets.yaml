@@ -60,6 +60,8 @@ spec:
         volumeMounts:
         - name: redis-vol-data
           mountPath: /bitnami/redis/data
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"
   volumeClaimTemplates:
     - metadata:
         name: redis-vol-data

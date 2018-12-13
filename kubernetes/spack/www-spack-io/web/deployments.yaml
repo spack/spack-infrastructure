@@ -26,6 +26,8 @@ spec:
         ports:
         - name: http
           containerPort: 80
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"
 
 ---
 apiVersion: apps/v1
@@ -58,3 +60,5 @@ spec:
         ports:
         - name: http
           containerPort: 80
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"

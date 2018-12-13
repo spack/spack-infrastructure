@@ -131,13 +131,15 @@ spec:
           mountPath: /gitlab-data
         - name: gitlab-vol-repo
           mountPath: /var/opt/gitlab/git-data/repositories
-        resources:
-          requests:
-            memory: 8Gi
-            cpu: 1
-          limits:
-            memory: 12Gi
-            cpu: 2
+        # resources:
+        #   requests:
+        #     memory: 8Gi
+        #     cpu: 1
+        #   limits:
+        #     memory: 12Gi
+        #     cpu: 2
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "m4.large"
   volumeClaimTemplates:
   - metadata:
       name: gitlab-vol-data

@@ -71,6 +71,8 @@ spec:
         - name: postgresql-vol-data
           mountPath: /var/lib/postgresql/data/pgdata
           subPath: postgresql-db
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"
   volumeClaimTemplates:
   - metadata:
       name: postgresql-vol-data

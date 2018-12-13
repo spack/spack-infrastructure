@@ -21,3 +21,5 @@ spec:
       volumes:
       - name: influxdb-storage
         emptyDir: {}
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"

@@ -57,6 +57,8 @@ spec:
               key: cdash-db-pass
         - name: MYSQL_RANDOM_ROOT_PASSWORD
           value: "yes"
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"
   volumeClaimTemplates:
   - metadata:
       name: mysql-vol-data
