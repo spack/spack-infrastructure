@@ -21,13 +21,23 @@ spec:
     spec:
       containers:
       - name: web
-        image: "schmunk42/nginx-redirect"
+        image: "opadron/s3-tree-proxy"
         imagePullPolicy: Always
         env:
-        - name: SERVER_REDIRECT
-          value: "spack-public.s3-website.us-east-2.amazonaws.com/mirror"
+        - name: MOUNT_PATH
+          value: "/mirror"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: spack-aws-credentials
+              key: aws_access_key_id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-aws-credentials
+              key: aws_secret_access_key
         ports:
         - name: http
-          containerPort: 80
+          containerPort: 8080
       nodeSelector:
         "beta.kubernetes.io/instance-type": "t2.medium"
