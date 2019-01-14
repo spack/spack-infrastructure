@@ -6,9 +6,10 @@ metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: kubernetes.io/aws-ebs
-volumeBindingMode: WaitForFirstConsumer
+# volumeBindingMode: WaitForFirstConsumer
 parameters:
   type: gp2
+  zone: us-east-1a
 reclaimPolicy: Retain
 mountOptions:
   - debug
