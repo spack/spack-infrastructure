@@ -6,7 +6,7 @@ metadata:
   namespace: spack
   labels:
     app: gitlab
-    srv: cache
+    svc: cache
     mode: slave
 spec:
   type: ClusterIP
@@ -16,7 +16,7 @@ spec:
     targetPort: redis
   selector:
     app: gitlab
-    srv: cache
+    svc: cache
     mode: slave
 
 ---
@@ -27,7 +27,7 @@ metadata:
   namespace: spack
   labels:
     app: gitlab
-    srv: cache
+    svc: cache
     mode: metrics
 spec:
   type: ClusterIP
@@ -37,7 +37,7 @@ spec:
     targetPort: metrics
   selector:
     app: gitlab
-    srv: cache
+    svc: cache
     mode: metrics
 
 ---
@@ -48,7 +48,7 @@ metadata:
   namespace: spack
   labels:
     app: gitlab
-    srv: cache
+    svc: cache
     mode: master
 spec:
   type: ClusterIP
@@ -58,5 +58,5 @@ spec:
     targetPort: redis
   selector:
     app: gitlab
-    srv: cache
+    svc: cache
     mode: master

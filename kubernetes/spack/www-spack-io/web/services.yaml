@@ -6,7 +6,7 @@ metadata:
   namespace: spack
   labels:
     app: spack-io
-    srv: web
+    svc: web
 spec:
   type: ClusterIP
   ports:
@@ -15,7 +15,7 @@ spec:
     targetPort: http
   selector:
     app: spack-io
-    srv: web
+    svc: web
 
 ---
 apiVersion: v1
@@ -25,7 +25,7 @@ metadata:
   namespace: spack
   labels:
     app: spack-io
-    srv: web-redirect
+    svc: web-redirect
 spec:
   type: ClusterIP
   ports:
@@ -34,4 +34,4 @@ spec:
     targetPort: http
   selector:
     app: spack-io
-    srv: web-redirect
+    svc: web-redirect

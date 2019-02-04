@@ -6,7 +6,7 @@ metadata:
   namespace: spack
   labels:
     app: cdash
-    srv: db
+    svc: db
 spec:
   type: ClusterIP
   ports:
@@ -15,4 +15,4 @@ spec:
     targetPort: 3306
   selector:
     app: cdash
-    srv: db
+    svc: db

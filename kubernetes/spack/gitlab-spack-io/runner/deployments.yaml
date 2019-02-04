@@ -6,18 +6,18 @@ metadata:
   namespace: spack
   labels:
     app: gitlab
-    srv: runner
+    svc: runner
 spec:
   selector:
     matchLabels:
       app: gitlab
-      srv: runner
+      svc: runner
   replicas: 4
   template:
     metadata:
       labels:
         app: gitlab
-        srv: runner
+        svc: runner
     spec:
       serviceAccountName: gitlab-runner
       containers:
@@ -33,7 +33,7 @@ spec:
               - >
                 export RUNNER_NAME="$( hostname )" ;
                 gitlab-runner unregister --name "$( hostname )" ;
-                gitlab-runner register # --kubernetes-node-selector '"beta.kubernetes.io/instance-type"="m4.xlarge"'
+                gitlab-runner register
 
           preStop:
             exec:
@@ -58,9 +58,6 @@ spec:
 
         - name: RUNNER_EXECUTOR
           value: kubernetes
-
-          # - name: KUBERNETES_CPU_LIMIT
-          # - name: KUBERNETES_MEMORY_LIMIT
 
         - name: KUBERNETES_CPU_REQUEST
           value: "3"

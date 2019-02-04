@@ -6,18 +6,18 @@ metadata:
   namespace: spack
   labels:
     app: cdash
-    srv: web
+    svc: web
 spec:
   selector:
     matchLabels:
       app: cdash
-      srv: web
+      svc: web
   replicas: 1
   template:
     metadata:
       labels:
         app: cdash
-        srv: web
+        svc: web
     spec:
       restartPolicy: Always
       containers:
@@ -29,7 +29,7 @@ spec:
             export CDASH_CONFIG ;
             exec /bin/bash /docker-entrypoint.sh
         image: "kitware/cdash"
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
           name: web

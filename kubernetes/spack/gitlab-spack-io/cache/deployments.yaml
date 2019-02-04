@@ -2,24 +2,93 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: redis-master
+  namespace: spack
+  labels:
+    app: gitlab
+    svc: cache
+    mode: master
+spec:
+  selector:
+    matchLabels:
+      app: gitlab
+      svc: cache
+      mode: master
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gitlab
+        svc: cache
+        mode: master
+    spec:
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      containers:
+      - name: redis
+        image: "bitnami/redis:4.0.10"
+        imagePullPolicy: IfNotPresent
+        args: []
+        env:
+        - name: REDIS_REPLICATION_MODE
+          value: master
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-secrets
+              key: gitlab-cache-password
+        ports:
+        - name: redis
+          containerPort: 6379
+        livenessProbe:
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command: ["redis-cli", "ping"]
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 5
+          exec:
+            command: ["redis-cli", "ping"]
+        volumeMounts:
+        - name: data
+          mountPath: /bitnami/redis/data
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: redis-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: redis-slave
   namespace: spack
   labels:
     app: gitlab
-    srv: cache
+    svc: cache
     mode: slave
 spec:
   selector:
     matchLabels:
       app: gitlab
-      srv: cache
+      svc: cache
       mode: slave
   replicas: 3
   template:
     metadata:
       labels:
         app: gitlab
-        srv: cache
+        svc: cache
         mode: slave
     spec:
       restartPolicy: Always
@@ -65,19 +134,19 @@ metadata:
   namespace: spack
   labels:
     app: gitlab
-    srv: cache
+    svc: cache
     mode: metrics
 spec:
   selector:
     matchLabels:
       app: gitlab
-      srv: cache
+      svc: cache
       mode: metrics
   template:
     metadata:
       labels:
         app: gitlab
-        srv: cache
+        svc: cache
         mode: metrics
     spec:
       containers:

@@ -6,7 +6,7 @@ metadata:
   namespace: spack
   labels:
     app: gitlab
-    srv: web
+    svc: web
 spec:
   type: ClusterIP
   ports:
@@ -15,4 +15,4 @@ spec:
     targetPort: http
   selector:
     app: gitlab
-    srv: web
+    svc: web

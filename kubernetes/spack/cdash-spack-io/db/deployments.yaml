@@ -1,24 +1,23 @@
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: mysql
   namespace: spack
   labels:
     app: cdash
-    srv: db
+    svc: db
 spec:
   selector:
     matchLabels:
       app: cdash
-      srv: db
+      svc: db
   replicas: 1
-  serviceName: mysql
   template:
     metadata:
       labels:
         app: cdash
-        srv: db
+        svc: db
     spec:
       restartPolicy: Always
       initContainers:
@@ -27,15 +26,15 @@ spec:
         imagePullPolicy: Always
         command: ["rm", "-rf", "/mysql/lost+found/"]
         volumeMounts:
-        - mountPath: /mysql
-          name: mysql-vol-data
+        - name: data
+          mountPath: /mysql
       containers:
       - name: mysql
         image: "mariadb"
         imagePullPolicy: Always
         volumeMounts:
-        - mountPath: /var/lib/mysql
-          name: mysql-vol-data
+        - name: data
+          mountPath: /var/lib/mysql
         ports:
         - containerPort: 3306
           name: database
@@ -59,12 +58,7 @@ spec:
           value: "yes"
       nodeSelector:
         "beta.kubernetes.io/instance-type": "t2.medium"
-  volumeClaimTemplates:
-  - metadata:
-      name: mysql-vol-data
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: 100Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mysql-data

@@ -2,12 +2,14 @@
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: gp2
+  name: us-east-1a
   annotations:
-    storageclass.kubernetes.io/is-default-class: "false"
+    storageclass.kubernetes.io/is-default-class: "true"
 provisioner: kubernetes.io/aws-ebs
+# volumeBindingMode: WaitForFirstConsumer
 parameters:
   type: gp2
+  zone: us-east-1a
 reclaimPolicy: Retain
 mountOptions:
   - debug

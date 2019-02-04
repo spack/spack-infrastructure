@@ -1,23 +1,22 @@
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: postgresql
   namespace: spack
   labels:
     app: gitlab
-    srv: db
+    svc: db
 spec:
   selector:
     matchLabels:
       app: gitlab
-      srv: db
-  serviceName: postgresql
+      svc: db
   template:
     metadata:
       labels:
         app: gitlab
-        srv: db
+        svc: db
     spec:
       containers:
       - name: postgresql
@@ -68,17 +67,11 @@ spec:
             memory: 256Mi
             cpu: 100m
         volumeMounts:
-        - name: postgresql-vol-data
+        - name: data
           mountPath: /var/lib/postgresql/data/pgdata
-          subPath: postgresql-db
       nodeSelector:
         "beta.kubernetes.io/instance-type": "t2.medium"
-  volumeClaimTemplates:
-  - metadata:
-      name: postgresql-vol-data
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: 200Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgresql-data

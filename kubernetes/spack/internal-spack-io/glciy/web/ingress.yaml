@@ -1,0 +1,19 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: glciy
+  namespace: spack
+  annotations:
+    "nginx.ingress.kubernetes.io/rewrite-target": "/"
+spec:
+  tls:
+  - secretName: tls-glciy
+  rules:
+  - host: internal.spack.io
+    http:
+      paths:
+      - path: /glciy
+        backend:
+          serviceName: glciy
+          servicePort: 80

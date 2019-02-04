@@ -6,18 +6,18 @@ metadata:
   namespace: spack
   labels:
     app: s3-spack-io
-    srv: web-redirect
+    svc: web-redirect
 spec:
   selector:
     matchLabels:
       app: s3-spack-io
-      srv: web-redirect
+      svc: web-redirect
   replicas: 2
   template:
     metadata:
       labels:
         app: s3-spack-io
-        srv: web-redirect
+        svc: web-redirect
     spec:
       containers:
       - name: web

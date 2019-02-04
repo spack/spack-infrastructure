@@ -6,7 +6,7 @@ metadata:
   namespace: spack
   labels:
     app: s3-spack-io
-    srv: web-redirect
+    svc: web-redirect
 spec:
   type: ClusterIP
   ports:
@@ -15,4 +15,4 @@ spec:
     targetPort: http
   selector:
     app: s3-spack-io
-    srv: web-redirect
+    svc: web-redirect
