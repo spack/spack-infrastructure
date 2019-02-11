@@ -48,8 +48,7 @@ spec:
             gitlab_rails['db_database'] = ENV['DB_DATABASE'];
 
             require 'socket'
-            gitlab_rails['auto_migrate'] = (
-              Socket.gethostname.split('-')[-1] == '0')
+            gitlab_rails['auto_migrate'] = false;
 
             redis['enable'] = false;
             gitlab_rails['redis_host'] = ENV['REDIS_HOST'];

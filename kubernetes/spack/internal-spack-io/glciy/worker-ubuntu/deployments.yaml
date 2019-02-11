@@ -30,10 +30,11 @@ spec:
         image: "opadron/glciy-worker-ubuntu"
         imagePullPolicy: Always
         args: [
-          "--queue-dir" , "/queue",
-          "--cache-dir" , "/cache",
-          "--remote"    , "git://github.com/scottwittenburg/spack",
-          "--notify-url", "http://glciy-worker-ubuntu"]
+          "--queue-dir"    , "/queue",
+          "--cache-dir"    , "/cache",
+          "--remote"       , "git://github.com/scottwittenburg/spack",
+          "--notify-url"   , "http://glciy-worker-ubuntu",
+          "--poll-interval", "5" ]
         volumeMounts:
         - name: glciy
           mountPath: /queue
@@ -75,15 +76,6 @@ spec:
         component: web
         variant: ubuntu
     spec:
-      initContainers:
-        - name: setup
-          image: busybox
-          imagePullPolicy: Always
-          command: ["mkdir", "-p"]
-          args: ["/import/dummy"]
-          volumeMounts:
-          - name: glciy
-            mountPath: /import
       containers:
       - name: web
         image: "opadron/dws"
@@ -107,6 +99,7 @@ spec:
         image: "opadron/scm"
         imagePullPolicy: Always
         args: [
+          "5",
           "--ttl", "300", "--size-limit",   "1M", "/queue",
           "--ttl", "900", "--size-limit", "900M", "/cache",
           "--node-limit", "1", "/dummy"]
@@ -117,17 +110,6 @@ spec:
         - name: glciy
           mountPath: /cache
           subPath: cache
-        - name: glciy
-          mountPath: /dummy
-          subPath: dummy
-      # NOTE(opadron): Ensure that the cache manager sleeps
-      #                for no longer than five minutes.
-      - name: clock
-        image: "busybox"
-        imagePullPolicy: Always
-        command: ["sh", "-c"]
-        args: ["while sleep 300 ; do mktemp -p /dummy ; done"]
-        volumeMounts:
         - name: glciy
           mountPath: /dummy
           subPath: dummy
