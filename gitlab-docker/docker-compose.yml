@@ -1,42 +1,78 @@
-version: '3.3'
+version: '3.7'
 services:
   gitlab:
     image: "gitlab/gitlab-ce"
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url '${WEB_PROTO}://${HOST_IP}:${WEB_PORT}'
-        gitlab_rails['gitlab_shell_ssh_port'] = ${SSH_PORT}
+        external_url 'http://gitlab:${GITLAB_INTERNAL_WEB_PORT}'
+        root_pass = ENV['GITLAB_ROOT_PASSWORD']
+        gitlab_rails['root_password'] = (
+            root_pass unless root_pass.to_s == '');
+        prometheus_monitoring['enable'] = false;
+        gitlab_rails['auto_migrate'] = (
+          !File.exist?('/meta/initial_db_migrate'));
+        require 'fileutils'
+        FileUtils.touch('/meta/initial_db_migrate');
+        prometheus_monitoring['enable'] = false;
+      GITLAB_ROOT_PASSWORD: ${GITLAB_ROOT_PASSWORD}
     ports:
-      - '${WEB_PORT}:${WEB_PORT}'
-      - '${SSH_PORT}:22'
+      - '${GITLAB_WEB_PORT}:${GITLAB_INTERNAL_WEB_PORT}'
     volumes:
-      - './volumes/config:/etc/gitlab'
+      - './volumes/meta:/meta'
+      - './volumes/etc:/etc/gitlab'
       - './volumes/logs:/var/log/gitlab'
-      - './volumes/data:/var/opt/gitlab'
+      - './volumes/opt:/var/opt/gitlab'
 
-  docker:
-    image: 'docker:dind'
-    privileged: true
-
-  runner:
+  rshell:
     image: "gitlab/gitlab-runner"
     volumes:
-      - './volumes/runner:/etc/gitlab-runner'
-    depends_on:
-      - docker
-    links:
-      - docker
-    environment:
-      DOCKER_HOST: 'tcp://docker:2375'
-      DOCKER_IMAGE: 'ubuntu:latest'
-      RUNNER_NAME: 'runner'
-      CI_SERVER_URL: '${WEB_PROTO}://${HOST_IP}:${WEB_PORT}'
-      REGISTRATION_TOKEN: "${RUNNER_TOKEN}"
-      RUNNER_EXECUTOR: docker
-      REGISTER_NON_INTERACTIVE: 'true'
+      - "./files:/files"
+      - "./volumes/rshell/builds:/home/gitlab-runner/builds"
+      - "./volumes/rshell/cache:/home/gitlab-runner/cache"
+    init: true
     entrypoint: ["bash"]
-    command:
-      - "-c"
-      - >-
-        if [ '!' -f /etc/gitlab-runner/config.toml ] ; then
-        gitlab-runner register ; fi ; gitlab-runner run
+    command: ["/files/runner.bash"]
+    environment:
+      CI_SERVER_URL: 'http://gitlab:${GITLAB_INTERNAL_WEB_PORT}'
+      REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
+      RUNNER_EXECUTOR: shell
+      REGISTER_NON_INTERACTIVE: 'true'
+      RUNNER_TAG_LIST: "shell"
+
+  sync:
+    image: "gitlab/gitlab-runner"
+    volumes:
+      - "./files:/files"
+    entrypoint: ["bash"]
+    command: ["/files/sync.bash"]
+    environment:
+      UPSTREAM_REPO: "${UPSTREAM_REPO}"
+      DOWNSTREAM_CI_REPO: "${DOWNSTREAM_CI_REPO}"
+      UPSTREAM_REF: "${UPSTREAM_REF}"
+      CDASH_INTERNAL_WEB_PORT: "${CDASH_INTERNAL_WEB_PORT}"
+
+  cdash:
+    image: "kitware/cdash:spack_deploy"
+    depends_on:
+      - mysql
+    links:
+      - mysql
+    ports:
+     - "${CDASH_WEB_PORT}:${CDASH_INTERNAL_WEB_PORT}"
+    environment:
+      CDASH_ROOT_ADMIN_PASS: ${CDASH_ROOT_PASSWORD}
+
+      CDASH_CONFIG: |
+        $$CDASH_DB_HOST = 'mysql';
+        $$CDASH_DB_NAME = 'cdash';
+        $$CDASH_DB_TYPE = 'mysql';
+
+  mysql:
+    image: "mysql/mysql-server:5.5"
+    volumes:
+      - "./volumes/mysql:/var/lib/mysql"
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_ROOT_PASSWORD: ''
+      MYSQL_DATABASE: 'cdash'
+      MYSQL_ROOT_HOST: '%'

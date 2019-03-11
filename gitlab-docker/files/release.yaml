@@ -1,0 +1,10 @@
+spec-set:
+  include: []
+  exclude: []
+  matrix:
+    - packages:
+        python:
+          versions: [2.7]
+    - compilers:
+        gcc:
+          versions: [5.4]

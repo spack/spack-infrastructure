@@ -1,0 +1,15 @@
+containers:
+  linux-ubuntu16.04-x86_64:
+    image: scottwittenburg/spack_builder_ubuntu_18.04
+    compilers:
+      - name: gcc@5.4
+  linux-ubuntu18.04-x86_64:
+    image: scottwittenburg/spack_builder_ubuntu_18.04
+    compilers:
+      - name: gcc@5.5.0
+      - name: clang@6.0.0-1ubuntu2
+  linux-centos7-x86_64:
+    image: scottwittenburg/spack_builder_centos_7
+    compilers:
+      - name: gcc@5.5.0
+      - name: clang@6.0.0
