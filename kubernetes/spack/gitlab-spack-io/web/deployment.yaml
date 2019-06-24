@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: gitlab
-        image: "gitlab/gitlab-ee:11.2.1-ee.0"
+        image: "gitlab/gitlab-ee:11.7.5-ee.0"
         imagePullPolicy: IfNotPresent
         env:
         - name: GITLAB_OMNIBUS_CONFIG
@@ -34,9 +34,25 @@ spec:
 
             gitlab_rails['gitlab_shell_ssh_port'] = 22;
 
-            runner_token = ENV['GITLAB_RUNNER_TOKEN'];
-            gitlab_rails['initial_shared_runners_registration_token'] = (
-                runner_token unless runner_token.to_s == '');
+            # NOTE(opadron): While setting the shared runner registration token
+            # is possible, it only works when initially creating and seeding the
+            # database.  Even though this token is required to register shared
+            # runners, it is automatically changed on a regular basis and the
+            # only way to view the value of the token is by manually visiting an
+            # admin page.
+            #
+            # So, automatically creating and managing shared runners is simply
+            # NOT SUPPORTED by Gitlab, since they require a secret that changes
+            # without human intervention, but for which there is no supported
+            # way to automatically query its value.
+            #
+            # https://gitlab.com/gitlab-org/gitlab-ce/issues/3703
+            # https://gitlab.com/gitlab-org/gitlab-ce/issues/24030
+            # https://gitlab.com/gitlab-org/gitlab-runner/issues/1727
+            #
+            # runner_token = ENV['GITLAB_RUNNER_TOKEN'];
+            # gitlab_rails['initial_shared_runners_registration_token'] = (
+            #     runner_token unless runner_token.to_s == '');
 
             prometheus_monitoring['enable'] = false
             postgresql['enable'] = false;

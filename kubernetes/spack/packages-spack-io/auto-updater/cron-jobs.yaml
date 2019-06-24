@@ -1,0 +1,43 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: spack-packages-updater
+  namespace: spack
+  labels:
+    app: spack-packages
+    svc: updater
+spec:
+  schedule: "0 4 * * *"
+  jobTemplate:
+    metadata:
+      labels:
+        app: spack-packages
+        svc: updater
+    spec:
+      template:
+        metadata:
+          labels:
+            app: spack-packages
+            svc: updater
+        spec:
+          serviceAccountName: auto-updater
+          restartPolicy: OnFailure
+          containers:
+          - name: updater
+            image: "busybox"
+            imagePullPolicy: IfNotPresent
+            args:
+              - /bin/sh
+              - -c
+              - >
+                date
+                && echo
+                && url="https://dl.k8s.io"
+                && url="$url/v1.15.0"
+                && url="$url/kubernetes-client-linux-amd64.tar.gz"
+                && wget -O - "$url" | tar xzf -
+                && kubernetes/client/bin/kubectl rollout restart -n spack \
+                       deployments/spack-packages
+          nodeSelector:
+            "beta.kubernetes.io/instance-type": "t2.medium"

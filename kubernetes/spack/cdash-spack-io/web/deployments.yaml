@@ -28,7 +28,7 @@ spec:
             eval 'CDASH_CONFIG="$(CDASH_CONFIG_TEMPLATE)"' ;
             export CDASH_CONFIG ;
             exec /bin/bash /docker-entrypoint.sh
-        image: "kitware/cdash"
+        image: "kitware/cdash:spack_deploy"
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -78,5 +78,8 @@ spec:
             \$CDASH_DB_PORT = '\'$CDASH_DB_PORT\'';
             \$CDASH_DB_PASS = '\'$CDASH_DB_PASS\'';
             \$CDASH_DB_CONNECTION_TYPE = '\'host\'';
+            \$CDASH_AUTOREMOVE_BUILDS = '\'1\'';
+            \$CDASH_DEFAULT_PROJECT = '\'Spack\'';
+            \$CDASH_ACTIVE_PROJECT_DAYS = '\'0\'';
       nodeSelector:
         "beta.kubernetes.io/instance-type": "t2.medium"
