@@ -33,7 +33,8 @@ watch 'docker-compose ps'
 
  - browse to `localhost:8081`. (CDash instance)
  - login with name `root@docker.container` and cdash password
- - create a new project called "spack"
+ - create a new project called "spack". Make sure to check the "Public Dashboard" box.
+ - click on "My CDash" and generate an authentication token.
 
  - browse to `localhost:8080`. (Gitlab instance)
  - login with name `root` and gitlab password
