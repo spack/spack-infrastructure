@@ -16,7 +16,7 @@ spec:
       svc: worker
       component: worker
       variant: centos
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:

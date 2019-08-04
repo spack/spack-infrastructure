@@ -10,5 +10,5 @@ spec:
   volumeMode: Filesystem
   resources:
     requests:
-      storage: 50Gi
+      storage: 1Gi
   storageClassName: us-east-1a

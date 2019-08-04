@@ -6,4 +6,4 @@ metadata:
 provisioner: spack.io/nfs
 mountOptions:
   - vers=4.1
-reclaimPolicy: Retain
+reclaimPolicy: Delete

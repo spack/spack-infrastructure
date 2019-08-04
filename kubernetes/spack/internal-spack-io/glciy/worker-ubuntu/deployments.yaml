@@ -16,7 +16,7 @@ spec:
       svc: worker
       component: worker
       variant: ubuntu
-  replicas: 3
+  replicas: 2
   template:
     metadata:
       labels:

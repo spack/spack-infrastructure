@@ -1,20 +1,36 @@
 version: '3.7'
 services:
   gitlab:
-    image: "gitlab/gitlab-ce"
+    image: "gitlab/gitlab-ee:12.1.0-ee.0"
+    depends_on:
+      - psql
+    links:
+      - psql
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'http://gitlab:${GITLAB_INTERNAL_WEB_PORT}'
-        root_pass = ENV['GITLAB_ROOT_PASSWORD']
-        gitlab_rails['root_password'] = (
+        root_pass = ENV['GITLAB_ROOT_PASS']
+        gitlab_rails['initial_root_password'] = (
             root_pass unless root_pass.to_s == '');
-        prometheus_monitoring['enable'] = false;
         gitlab_rails['auto_migrate'] = (
           !File.exist?('/meta/initial_db_migrate'));
+        prometheus_monitoring['enable'] = false;
+
+        postgresql['enable'] = false;
+        gitlab_rails['db_adapter'] = 'postgresql';
+        gitlab_rails['db_encoding'] = 'utf8';
+        gitlab_rails['db_host'] = ENV['DB_HOST'];
+        gitlab_rails['db_password'] = ENV['DB_PASS'];
+        gitlab_rails['db_username'] = ENV['DB_USER'];
+        gitlab_rails['db_database'] = ENV['DB_DATABASE'];
+
         require 'fileutils'
         FileUtils.touch('/meta/initial_db_migrate');
-        prometheus_monitoring['enable'] = false;
-      GITLAB_ROOT_PASSWORD: ${GITLAB_ROOT_PASSWORD}
+      GITLAB_ROOT_PASS: ${GITLAB_ROOT_PASS}
+      DB_HOST: psql
+      DB_PASS: ${GITLAB_DB_PASS}
+      DB_USER: ${GITLAB_DB_USER}
+      DB_DATABASE: ${GITLAB_DB_NAME}
     ports:
       - '${GITLAB_WEB_PORT}:${GITLAB_INTERNAL_WEB_PORT}'
     volumes:
@@ -23,34 +39,6 @@ services:
       - './volumes/logs:/var/log/gitlab'
       - './volumes/opt:/var/opt/gitlab'
 
-  rshell:
-    image: "gitlab/gitlab-runner"
-    volumes:
-      - "./files:/files"
-      - "./volumes/rshell/builds:/home/gitlab-runner/builds"
-      - "./volumes/rshell/cache:/home/gitlab-runner/cache"
-    init: true
-    entrypoint: ["bash"]
-    command: ["/files/runner.bash"]
-    environment:
-      CI_SERVER_URL: 'http://gitlab:${GITLAB_INTERNAL_WEB_PORT}'
-      REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
-      RUNNER_EXECUTOR: shell
-      REGISTER_NON_INTERACTIVE: 'true'
-      RUNNER_TAG_LIST: "shell"
-
-  sync:
-    image: "gitlab/gitlab-runner"
-    volumes:
-      - "./files:/files"
-    entrypoint: ["bash"]
-    command: ["/files/sync.bash"]
-    environment:
-      UPSTREAM_REPO: "${UPSTREAM_REPO}"
-      DOWNSTREAM_CI_REPO: "${DOWNSTREAM_CI_REPO}"
-      UPSTREAM_REF: "${UPSTREAM_REF}"
-      CDASH_INTERNAL_WEB_PORT: "${CDASH_INTERNAL_WEB_PORT}"
-
   cdash:
     image: "kitware/cdash:spack_deploy"
     depends_on:
@@ -58,14 +46,94 @@ services:
     links:
       - mysql
     ports:
-     - "${CDASH_WEB_PORT}:${CDASH_INTERNAL_WEB_PORT}"
+      - "${CDASH_WEB_PORT}:${CDASH_INTERNAL_WEB_PORT}"
     environment:
-      CDASH_ROOT_ADMIN_PASS: ${CDASH_ROOT_PASSWORD}
-
+      CDASH_ROOT_ADMIN_PASS: ${CDASH_ROOT_PASS}
       CDASH_CONFIG: |
         $$CDASH_DB_HOST = 'mysql';
         $$CDASH_DB_NAME = 'cdash';
         $$CDASH_DB_TYPE = 'mysql';
+
+  docker:
+    image: docker:dind
+    privileged: true
+    volumes:
+      - "./files:/files"
+      - "./volumes:/volumes"
+    ports:
+      - "${NGINX_WEB_PORT}:80"
+    environment:
+      DOCKER_TLS_CERTDIR: "" # disable TLS
+
+  rshell:
+    image: "gitlab/gitlab-runner"
+    volumes:
+      - "./files:/files"
+    init: true
+    entrypoint: ["bash"]
+    command: ["/files/runner.bash"]
+    depends_on:
+      - gitlab
+    links:
+      - gitlab
+    environment:
+      CI_SERVER_URL: 'http://gitlab:${GITLAB_INTERNAL_WEB_PORT}'
+      REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
+      RUNNER_EXECUTOR: shell
+      REGISTER_NON_INTERACTIVE: 'true'
+      RUNNER_TAG_LIST: "shell,spack-pre-ci"
+
+  rdocker:
+    image: gitlab/gitlab-runner
+    volumes:
+      - "./files:/files"
+    init: true
+    entrypoint: ["bash"]
+    command: ["/files/runner.bash"]
+    depends_on:
+      - docker
+      - gitlab
+    links:
+      - docker
+      - gitlab
+    environment:
+      DOCKER_HOST: "tcp://docker:2375"
+      DOCKER_NETWORK_MODE: "host"
+      DOCKER_IMAGE: "scottwittenburg/spack_ci_generator_alpine"
+      DOCKER_VOLUMES: "mirror:/mirror"
+      CI_SERVER_URL: 'http://gitlab:${GITLAB_INTERNAL_WEB_PORT}'
+      REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
+      RUNNER_EXECUTOR: docker
+      REGISTER_NON_INTERACTIVE: 'true'
+      RUNNER_TAG_LIST: "docker, spack-post-ci"
+
+  nginx:
+    image: docker
+    command: [
+      "run", "--rm",
+      "--name", "nginx",
+      "-v", "mirror:/mirror:ro",
+      "-v", "/files/nginx.conf:/etc/nginx/conf.d/default.conf",
+      "--net", "host",
+      "nginx",
+      "nginx", "-g", "user root;", "-g daemon off;"]
+    environment:
+      DOCKER_HOST: "tcp://docker:2375"
+    depends_on:
+      - docker
+    links:
+      - docker
+
+  psql:
+    image: "postgres:9.6.2"
+    environment:
+      POSTGRES_USER: ${GITLAB_DB_USER}
+      PGUSER: ${GITLAB_DB_USER}
+      POSTGRES_DB: ${GITLAB_DB_NAME}
+      POSTGRES_PASSWORD: ${GITLAB_DB_PASS}
+      PGDATA: /pgdata
+    volumes:
+      - './volumes/psql:/pgdata'
 
   mysql:
     image: "mysql/mysql-server:5.5"
@@ -76,3 +144,31 @@ services:
       MYSQL_ROOT_PASSWORD: ''
       MYSQL_DATABASE: 'cdash'
       MYSQL_ROOT_HOST: '%'
+
+  gen-key:
+    image: alpine
+    entrypoint: ["sh"]
+    command: ["/files/gen-key"]
+    volumes:
+      - "./files:/files:ro"
+      - "./volumes:/gpg"
+
+  spack-install-demo:
+    image: docker
+    command: [
+      "run", "--rm",
+      "--name", "spack-install-demo",
+      "-v", "mirror:/mirror:ro",
+      "-v", "/files:/files:ro",
+      "-v", "/volumes:/volumes:ro",
+      "--net", "host",
+      "--entrypoint", "bash",
+    "spack/centos:7",
+      "/files/spack-install-demo.bash"]
+    environment:
+      DOCKER_HOST: "tcp://docker:2375"
+    depends_on:
+      - docker
+    links:
+      - docker
+

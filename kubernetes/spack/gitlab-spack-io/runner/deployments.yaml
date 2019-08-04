@@ -96,4 +96,4 @@ spec:
             memory: 100Mi
             cpu: 100m
       nodeSelector:
-        "beta.kubernetes.io/instance-type": "t2.medium"
+        "beta.kubernetes.io/instance-type": "t3.medium"

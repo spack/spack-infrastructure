@@ -61,25 +61,6 @@ while sleep 5 ; do
 
     # Modify HEAD here
     (
-        # (
-        #     echo 'hello:'
-        #     echo '  script:'
-        #     echo '    - "./run-this-script.sh"'
-        #     echo '  tags:'
-        #     echo '    - "shell"'
-        #     echo '  variables:'
-        #     echo '    SHA: '"$upstream_sha"
-        # ) | tee .gitlab-ci.yml
-
-        # (
-        #     echo '#! /usr/bin/env sh'
-        #     echo ''
-        #     echo 'echo "Upstream SHA: $SHA"'
-        #     echo 'echo "Hello, from custom CI!"'
-        # ) | tee ./run-this-script.sh
-        #
-        # chmod +x ./run-this-script.sh
-
         cdash_host="http://cdash:${CDASH_INTERNAL_WEB_PORT}"
         cdash_submit_url="${cdash_host}/cdash/submit.php?project=spack"
 

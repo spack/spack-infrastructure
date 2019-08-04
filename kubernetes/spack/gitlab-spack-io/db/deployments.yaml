@@ -18,6 +18,26 @@ spec:
         app: gitlab
         svc: db
     spec:
+      initContainers:
+      # - name: nuke-it-all
+      #   image: busybox
+      #   imagePullPolicy: IfNotPresent
+      #   command: [
+      #     "find", "/data",
+      #       "-mindepth", "1",
+      #       "-maxdepth", "1",
+      #       "-exec", "rm", "-rf", "{}", "+"]
+      #   volumeMounts:
+      #   - name: data
+      #     mountPath: /data
+
+      - name: clear-lost-and-found
+        image: busybox
+        imagePullPolicy: Always
+        command: ["rm", "-rf", "/pgdata/lost+found/"]
+        volumeMounts:
+        - name: data
+          mountPath: /pgdata
       containers:
       - name: postgresql
         image: "postgres:9.6.2"
