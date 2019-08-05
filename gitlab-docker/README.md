@@ -1,78 +1,240 @@
+### Setup
 
- - setup
+#### Prepare settings
 
 ```
-cp vars vars2
-
-# set gitlab and cdash passwords
-# Make sure that they are each at least 8 characters long
-#
-# Also, if you want to mirror your own spack fork and/or
-# a different branch, set UPSTREAM_REPO and/or UPSTREAM_REF
-$EDITOR vars2
-
-source vars2
+cp vars.sh my-vars.sh
+$EDITOR my-vars.sh # OPTIONAL
+source my-vars.sh
 ```
+
+#### Generate a key for signing packages.
+```
+docker-compose run --rm gen-key
+ls data/package-signing-key
+```
+
+#### Deploy CDash (OPTIONAL)
+
+Start the CDash database and wait for it to report as "healthy".
 
 ```
 docker-compose up -d mysql
 watch 'docker-compose ps'
 ```
 
- - wait until all services report as "up" and "healthy", then ctrl-c the
-   `watch`.
+Once "healthy", ctrl-c the `watch`.
+
+Initialize the CDash database.
 
 ```
 docker-compose run --rm cdash install configure
-docker-compose up -d cdash gitlab
+```
+
+Start the CDash service.
+
+```
+docker-compose up -d cdash
 watch 'docker-compose ps'
 ```
 
- - wait until all services report as "up" and "healthy", then ctrl-c the
-   `watch`.
+Once "healthy", ctrl-c the `watch`.
 
- - browse to `localhost:8081`. (CDash instance)
+Generate a CDash token and Create a CDash project.
+
+ - browse to `localhost:8081/user.php`. (CDash instance)
  - login with name `root@docker.container` and cdash password
- - create a new project called "spack"
+ - Under "Authentication Tokens", add a description and click
+   "Generate Token".
+ - Copy and save the token contents.  You will need it later.
+ - Create a new project called "spack"
+   - Ensure that "Public Dashboard" is checked and "Authenticate
+     Submissions" is unchecked.
+     ([Known Issues](#issue-private-cdash))
+   - The rest of the project settings can be left at default values.
 
- - browse to `localhost:8080`. (Gitlab instance)
+#### Deploy Gitlab and Gitlab Runners
+
+Start the Gitlab database and Gitlab services.
+
+```
+docker-compose up -d gitlab
+watch 'docker-compose ps'
+```
+
+Once the Gitlab service reports as "healthy", ctrl-c the `watch`.
+This may take a few minutes.
+
+Set the generated runner registration token.
+ - browse to `localhost:8080/admin/runners`.
  - login with name `root` and gitlab password
- - browse to `localhost:8080/admin/runners`
- - Take note of the registration token under "Set up a shared Runner manually".
+ - Take note of the registration token under "Set up a shared
+   Runner manually".
 
 ```
-$EDITOR vars2 # set RUNNER_REGISTRATION_TOKEN
-source vars2
+$EDITOR my-vars.sh # set RUNNER_REGISTRATION_TOKEN
+source my-vars.sh
 
-docker-compose up -d rshell
+docker-compose up -d rshell rdocker
 ```
 
- - Refresh the runners browser page.  A new runner should appear in the table
-   below (sometimes, it takes a few minutes to appear).
+ - After a few minutes and upon refreshing the page, two new runners
+   should appear in the table below.
 
- - browse to `localhost:8080/projects/new`
- - create a new project called "spack-ci".  Make sure that you initialize the
-   repository with a README.
+#### Create Gitlab Projects
+
+spack-mirror
+
+ - Browse to `localhost:8080/projects/new`
+ - Create a new project called "spack-mirror".
+   - Ensure that the repository is initialized with a README.
+ - Browse to `localhost:8080/root/spack-mirror/edit`
+ - Under "Visibility, project features, permissions"
+   - Disable issues
+   - Disable merge requests
+   - Disable git large file storage
+   - Disable wiki
+   - Disable snippets
+   - Ensure that pipelines are *enabled*
+   - Click "Save Changes"
+ - Browse to `localhost:8080/root/spack-mirror/-/settings/repository`
+ - Under "Protected Branches"
+   - Click the "Unprotect" button for the "master" branch and
+     confirm.
+ - Browse to `localhost:8080/root/spack-mirror/-/settings/ci_cd`
+ - Under "General pipelines"
+   - Ensure that the "git fetch" strategy is selected.
+   - Set the "Git shallow clone" value to 1.
+   - Disable "Public pipelines" access.
+   - Click "Save Changes"
+ - Under "Variables"
+   - Add the following variables.  Ensure that none are masked or protected.
+     Replace any instances of `<PASS>` with your Gitlab password.
+   - `CDASH_AUTH_TOKEN`: set to the contents of the CDash token you
+      generated earlier.  If you're not using CDash, leave the value
+      empty.
+   - `DOWNSTREAM_CI_REPO`:
+     `http://root:<PASS>@gitlab:10080/root/spack-build.git`
+   - `SPACK_RELEASE_ENVIRONMENT_REPO`:
+      `http://root:<PASS>@gitlab:10080/root/spack-env.git
+   - `SPACK_RELEASE_ENVIRONMENT_PATH`: `example`, or if different,
+     the directory under your environment repo that contains the
+     `spack.yaml` file.
+
+
+spack-build
+
+ - Browse to `localhost:8080/projects/new`
+ - Create a new project called "spack-build".
+   - Ensure that the repository is initialized with a README.
+ - Browse to `localhost:8080/root/spack-build/edit`
+ - Under "Visibility, project features, permissions"
+   - Disable issues
+   - Disable merge requests
+   - Disable git large file storage
+   - Disable wiki
+   - Disable snippets
+   - Ensure that pipelines are *enabled*
+   - Click "Save Changes"
+ - Browse to `localhost:8080/root/spack-build/-/settings/repository`
+ - Under "Protected Branches"
+   - Click the "Unprotect" button for the "master" branch and
+     confirm.
+ - Browse to `localhost:8080/root/spack-mirror/-/settings/ci_cd`
+ - Under "Variables"
+   - Add the following variables.  Ensure that none are masked or protected.
+   - `SPACK_SIGNING_KEY`: set to the base64-encoded contents of the
+     signing key you generated earlier.
+
+spack-env
+
+ - Browse to `localhost:8080/projects/new`
+ - Create a new project called "spack-env".
+
+#### Prepare a spack environment
 
 ```
-docker-compose up -d sync
+# replace <PASS> with your gitlab password
+git clone http://root:<PASS>@localhost:8080/root/spack-env.git
+cd spack-env
+mkdir example
+$EDITOR example/spack.yaml
+git add .
+git commit -m 'add example environment'
+git push -u origin master
 ```
 
- - browse to `localhost:8080/root/spack-ci/pipelines`
+See [https://github.com/opadron/spack-env](https://github.com/opadron/spack-env)
+for `spack.yaml` examples.
 
- - If a first pipeline is already present, it is likely one generated
-   automatically by auto-devops.  It can be ignored.  After a few minutes, a new
-   pipeline should be generated.  This is an instance of the spack
-   package-building pipeline.
+#### Push a branch to the Spack Mirror Project
 
- - To shutdown:
+```
+git clone git://github.com/opadron/spack.git
+cd spack
+# replace <PASS> with your gitlab password
+git remote add gitlab \
+    http://root:<PASS>@localhost:8080/root/spack-mirror.git
+git checkout ecp-testing
+git push gitlab ecp-testing
+```
 
+#### Observe the Spack Pre-CI Pipeline
+
+ - Browse to `localhost:8080/root/spack-mirror/pipelines`
+ - There should be a new pipeline with a single job.  The job should complete
+ - Browse to `localhost:8080/root/spack-build/pipelines`
+ - There should be a new pipeline with several build jobs.
+   These jobs should build their respective packages, and upload them to a
+   binary mirror on the runners' local filesystem.
+
+#### Browse the contents of the binary mirror
+
+```
+docker-compose up -d nginx
+```
+
+ - Browse to `localhost:8082`
+ - You should be able to browse the contents of the binary mirror.
+
+#### Review build results on CDash
+
+ - Browse to `http://localhost:8081/index.php?project=spack`
+ - You should be able to browse the results of the various build jobs.
+
+#### Run the spack install demo
+
+```
+docker-compose run --rm spack-install-demo
+```
+
+The demo will install readline twice: first from source, and then from the
+binary mirror.  The installation from the binary mirror should be significantly
+faster.
+
+
+#### Other Notes
+
+To shutdown:
 ```
 docker-compose down
 ```
 
- - To delete persistent data
+To delete persistent data
+```
+docker-compose down --volumes
+rm -rf data
+```
 
-```
-rm -rf volumes
-```
+Known Issues
+
+ - <a name="issue-private-cdash"></a>
+   The pre-ci phase cannot report build group information to a private CDash
+   project.
+ - Build jobs in the primary build phase cannot submit authenticated CDash
+   reports.
+ - Installing packages from a binary mirror may fail if the fetched
+   binary needs to be relocated.
+ - Under certain conditions, the pre-ci phase may fail to clone a spack
+   environment repo and/or fail to push to the downstream repo.
+

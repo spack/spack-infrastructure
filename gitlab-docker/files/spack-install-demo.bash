@@ -5,7 +5,6 @@ cd /builds/root/spack-build
 git checkout ecp-testing
 source share/spack/setup-env.sh
 spack spec readline
-spack install patchelf
 spack clean -a
 
 echo
@@ -20,6 +19,9 @@ echo
 sleep 10
 
 time spack install readline
+echo
+echo
+echo
 sleep 10
 
 spack uninstall --all -y
@@ -27,6 +29,7 @@ spack mirror add mirror /mirror
 base64 -d /volumes/package-signing-key > key
 spack gpg trust key
 rm key
+spack install patchelf
 
 echo
 echo
@@ -40,5 +43,8 @@ echo
 sleep 10
 
 time spack install readline
+echo
+echo
+echo
 sleep 10
 
