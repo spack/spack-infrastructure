@@ -116,7 +116,7 @@ spack-mirror
    - `DOWNSTREAM_CI_REPO`:
      `http://root:<PASS>@gitlab:10080/root/spack-build.git`
    - `SPACK_RELEASE_ENVIRONMENT_REPO`:
-      `http://root:<PASS>@gitlab:10080/root/spack-env.git
+      `http://root:<PASS>@gitlab:10080/root/spack-env.git`
    - `SPACK_RELEASE_ENVIRONMENT_PATH`: `example`, or if different,
      the directory under your environment repo that contains the
      `spack.yaml` file.
@@ -140,7 +140,7 @@ spack-build
  - Under "Protected Branches"
    - Click the "Unprotect" button for the "master" branch and
      confirm.
- - Browse to `localhost:8080/root/spack-mirror/-/settings/ci_cd`
+ - Browse to `localhost:8080/root/spack-build/-/settings/ci_cd`
  - Under "Variables"
    - Add the following variables.  Ensure that none are masked or protected.
    - `SPACK_SIGNING_KEY`: set to the base64-encoded contents of the
