@@ -31,6 +31,8 @@ services:
         gitlab_rails['db_username'] = ENV['DB_USER'];
         gitlab_rails['db_database'] = ENV['DB_DATABASE'];
 
+        nginx['client_max_body_size'] = '6000m'
+
         require 'fileutils'
         FileUtils.touch('/meta/initial_db_migrate');
       GITLAB_ROOT_PASS: ${GITLAB_ROOT_PASS}
