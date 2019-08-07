@@ -21,25 +21,21 @@ Expire-Date: 0
 ```
 
 ```bash
-email="key@spack.demo"
-
 gpg --batch                                  \
     --gen-key                                \
     --pinentry-mode=loopback --passphrase "" \
     ./gpg-script.txt
 
-awk='/^ +[A-F0-9]+$/{key=$1}'
-awk="${awk}/$email/{print key}"
-keyid="$( gpg --list-keys | awk "$awk" )"
-
 (
-    gpg --export --armor "$keyid" \
- && gpg --export-secret-keys --armor "$keyid"
+    gpg --export --armor spack \
+ && gpg --export-secret-keys --armor spack
 ) | base64 | tr -d '\n' > ./package-signing-key
 ```
 
 #### CDash Instance
  - Authentication Token
+ - Spack Project
+     - Must have public dashboard and no authenticated submissions
 
 #### Gitlab Instance
  - Gitlab Runners
