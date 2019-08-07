@@ -111,8 +111,8 @@ spack-mirror
    - Add the following variables.  Ensure that none are masked or protected.
      Replace any instances of `<PASS>` with your Gitlab password.
    - `CDASH_AUTH_TOKEN`: set to the contents of the CDash token you
-      generated earlier.  If you're not using CDash, leave the value
-      empty.
+      generated earlier.  If you're not using CDash, set this to any
+      arbitrary, non-empty value.
    - `DOWNSTREAM_CI_REPO`:
      `http://root:<PASS>@gitlab:10080/root/spack-build.git`
    - `SPACK_RELEASE_ENVIRONMENT_REPO`:
