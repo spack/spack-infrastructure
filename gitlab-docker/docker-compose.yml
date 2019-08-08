@@ -172,7 +172,7 @@ services:
       "-v", "/volumes:/volumes:ro",
       "--net", "host",
       "--entrypoint", "bash",
-    "spack/centos:7",
+    "spack/centos7",
       "/files/spack-install-demo.bash"]
     environment:
       DOCKER_HOST: "tcp://docker:2375"
