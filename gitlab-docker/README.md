@@ -62,6 +62,9 @@ docker-compose up -d gitlab
 watch 'docker-compose ps'
 ```
 
+FTW: I had to ``` docker exec -it spack-ci_gitlab_1 update-permissions``` and 
+```docker exec -it spack-ci_gitlab_1 gitlab-ctl reconfigure``` before gitlab would come up healthy.
+
 Once the Gitlab service reports as "healthy", ctrl-c the `watch`.
 This may take a few minutes.
 
