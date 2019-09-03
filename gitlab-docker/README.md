@@ -151,6 +151,20 @@ spack-env
  - Browse to `localhost:8080/projects/new`
  - Create a new project called "spack-env".
 
+#### Bring up S3-compatible storage server (optional)
+
+```
+docker-compose up -d minio
+watch 'docker-compose ps'
+```
+
+Once "healthy", ctrl-c the `watch`.
+
+Navigate to "http://localhost:8083/" and log in with the name and password in
+the `my-vars.sh` file.
+
+Use the `+` button at the bottom right to create a new bucket called `spack-public`.
+
 #### Prepare a spack environment
 
 ```

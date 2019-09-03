@@ -6,6 +6,7 @@ volumes:
   opt: {}
   psql: {}
   mysql: {}
+  s3data: {}
 services:
   gitlab:
     image: "gitlab/gitlab-ee:12.1.0-ee.0"
@@ -90,7 +91,7 @@ services:
       REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
       RUNNER_EXECUTOR: shell
       REGISTER_NON_INTERACTIVE: 'true'
-      RUNNER_TAG_LIST: "shell,spack-pre-ci"
+      RUNNER_TAG_LIST: "shell,spack-pre-ci,spack-k8s"
 
   rdocker:
     image: gitlab/gitlab-runner
@@ -114,7 +115,7 @@ services:
       REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
       RUNNER_EXECUTOR: docker
       REGISTER_NON_INTERACTIVE: 'true'
-      RUNNER_TAG_LIST: "docker, spack-post-ci"
+      RUNNER_TAG_LIST: "docker,spack-post-ci,spack-k8s"
 
   nginx:
     image: docker
@@ -180,4 +181,15 @@ services:
       - docker
     links:
       - docker
+
+  minio:
+    image: minio/minio:RELEASE.2019-08-07T01-59-21Z
+    volumes:
+     - s3data:/mirror
+    ports:
+     - "${MINIO_WEB_PORT}:${MINIO_INTERNAL_WEB_PORT}"
+    environment:
+     MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+     MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+    command: server /mirror
 

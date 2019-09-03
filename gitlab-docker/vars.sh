@@ -25,7 +25,9 @@ export RUNNER_REGISTRATION_TOKEN="REQUIRED"
 ### Login name is "root@docker.container"
 # export CDASH_ROOT_PASS=cdash-secret
 
-
+### MinIO information
+# export MINIO_ACCESS_KEY=minio
+# export MINIO_SECRET_KEY=minio123
 
 ################################################
 ### OPTIONAL SETTINGS
@@ -37,6 +39,8 @@ export RUNNER_REGISTRATION_TOKEN="REQUIRED"
 # export CDASH_WEB_PORT=8081
 # export CDASH_INTERNAL_WEB_PORT=80
 # export NGINX_WEB_PORT=8082
+# export MINIO_WEB_PORT=8083
+# export MINIO_INTERNAL_WEB_PORT=10083
 
 # export GITLAB_DB_USER=gitlab-db-user
 # export GITLAB_DB_NAME=gitlab-db
