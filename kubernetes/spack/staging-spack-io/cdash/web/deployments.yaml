@@ -1,0 +1,85 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cdash-staging
+  namespace: spack
+  labels:
+    app: cdash-staging
+    svc: web
+spec:
+  selector:
+    matchLabels:
+      app: cdash-staging
+      svc: web
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cdash-staging
+        svc: web
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: cdash-staging
+        command: ["/bin/bash", "-c"]
+        args:
+          - >
+            eval 'CDASH_CONFIG="$(CDASH_CONFIG_TEMPLATE)"' ;
+            export CDASH_CONFIG ;
+            exec /bin/bash /docker-entrypoint.sh
+        image: "kitware/cdash:spack_deploy"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: web
+        env:
+        - name: CDASH_ROOT_ADMIN_PASS
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-root-password
+        - name: CDASH_DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-staging-db-host
+        - name: CDASH_DB_TYPE
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-type
+        - name: CDASH_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-name
+        - name: CDASH_DB_LOGIN
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-login
+        - name: CDASH_DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-port
+        - name: CDASH_DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-pass
+        - name: CDASH_CONFIG_TEMPLATE
+          value: |
+            \$CDASH_DB_HOST = '\'$CDASH_DB_HOST\'';
+            \$CDASH_DB_NAME = '\'$CDASH_DB_NAME\'';
+            \$CDASH_DB_TYPE = '\'$CDASH_DB_TYPE\'';
+            \$CDASH_DB_LOGIN = '\'$CDASH_DB_LOGIN\'';
+            \$CDASH_DB_PORT = '\'$CDASH_DB_PORT\'';
+            \$CDASH_DB_PASS = '\'$CDASH_DB_PASS\'';
+            \$CDASH_DB_CONNECTION_TYPE = '\'host\'';
+            \$CDASH_AUTOREMOVE_BUILDS = '\'1\'';
+            \$CDASH_DEFAULT_PROJECT = '\'Spack\'';
+            \$CDASH_ACTIVE_PROJECT_DAYS = '\'0\'';
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"

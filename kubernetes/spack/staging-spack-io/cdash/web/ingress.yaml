@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cdash-staging
+  namespace: spack
+spec:
+  tls:
+  - secretName: tls-cdash-staging
+  rules:
+  - host: cdash.staging.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: cdash-staging
+          servicePort: 80
