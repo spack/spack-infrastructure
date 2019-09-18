@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: spack-postgresql
+spec:
+  storageClassName: ""
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  persistentVolumeReclaimPolicy: Retain
+  awsElasticBlockStore:
+    fsType: ext4
+    volumeID: aws://us-east-1a/vol-0d3fbeb87e6a55b6c
