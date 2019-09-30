@@ -191,5 +191,9 @@ services:
     environment:
      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-    command: server /mirror
+    command:
+      - server
+      - --address
+      - "0.0.0.0:${MINIO_INTERNAL_WEB_PORT}"
+      - /mirror
 
