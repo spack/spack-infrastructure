@@ -12,7 +12,7 @@ spec:
     matchLabels:
       app: gitlab
       svc: runner
-  replicas: 4
+  replicas: 1
   template:
     metadata:
       labels:
@@ -87,7 +87,7 @@ spec:
           value: "32"
 
         - name: RUNNER_TAG_LIST
-          value: "spack-k8s"
+          value: "spack-kube"
         resources:
           requests:
             memory: 20Mi
