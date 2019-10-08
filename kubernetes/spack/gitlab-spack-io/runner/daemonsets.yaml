@@ -1,6 +1,6 @@
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: gitlab-runner
   namespace: spack
@@ -12,7 +12,6 @@ spec:
     matchLabels:
       app: gitlab
       svc: runner
-  replicas: 1
   template:
     metadata:
       labels:
@@ -96,4 +95,4 @@ spec:
             memory: 100Mi
             cpu: 100m
       nodeSelector:
-        "beta.kubernetes.io/instance-type": "t3.medium"
+        "type": "gitlab-runner"
