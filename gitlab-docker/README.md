@@ -191,11 +191,12 @@ AWS_SECRET_ACCESS_KEY=minio123
 
 Substitute whatever values you provided for `MINIO_ACCESS_KEY` and `MINIO_SECRET_KEY`
 in the `docker-compose.yml` file.  Additionally, since this is not an AWS S3 service,
-the `boto3` module requires that you specify an endpoint url in your environment.  In
-this case, your build jobs will need another environment variable to provide it:
+the way spack does S3 url handling requires that you specify an endpoint url in your
+environment.  In this case, your build jobs will need another environment variable
+to provide it:
 
 ```
-AWS_ENDPOINT_URL="http://minio:9000"
+S3_ENDPOINT_URL="http://minio:9000"
 ```
 
 #### Prepare a spack environment
