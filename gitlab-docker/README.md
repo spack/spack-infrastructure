@@ -151,6 +151,54 @@ spack-env
  - Browse to `localhost:8080/projects/new`
  - Create a new project called "spack-env".
 
+#### Bring up S3-compatible storage server (optional)
+
+This section assumes you want to test out using S3-compatible storage for
+hosting your binaries.  This can safely be ignored if you prefer to use the
+file system mirror described elsewhere in this document.
+
+First bring up the service:
+
+```
+docker-compose up -d minio
+watch 'docker-compose ps'
+```
+
+Once "healthy", ctrl-c the `watch`.
+
+Navigate to "http://localhost:8083/" and log in with the name and password in
+the `my-vars.sh` file.
+
+Use the `+` button at the bottom right to create a new bucket called `spack-public`.
+To use this service as a binary mirror in your build pipelines, the mirror url
+you should set will depend on the bucket name you chose.  If using `spack-public`
+as the bucket name, then configure the mirror in your release environment as
+follows:
+
+```
+  mirrors: { "mirror": "s3://spack-public/mirror" }
+```
+
+Use of S3 for binary mirror requires access credentials, which should be supplied
+via environment variables available to your build jobs.  Navigate to
+`localhost:8080/root/spack-build/-/settings/ci_cd`, and under "Variables", set
+up the following:
+
+```
+AWS_ACCESS_KEY_ID=minio
+AWS_SECRET_ACCESS_KEY=minio123
+```
+
+Substitute whatever values you provided for `MINIO_ACCESS_KEY` and `MINIO_SECRET_KEY`
+in the `docker-compose.yml` file.  Additionally, since this is not an AWS S3 service,
+the way spack does S3 url handling requires that you specify an endpoint url in your
+environment.  In this case, your build jobs will need another environment variable
+to provide it:
+
+```
+S3_ENDPOINT_URL="http://minio:9000"
+```
+
 #### Prepare a spack environment
 
 ```
