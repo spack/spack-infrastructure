@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cdash-staging
+  namespace: spack
+  labels:
+    app: cdash-staging
+    svc: web
+spec:
+  type: ClusterIP
+  ports:
+  - name: web
+    port: 80
+    targetPort: 80
+  selector:
+    app: cdash-staging
+    svc: web

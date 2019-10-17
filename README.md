@@ -7,6 +7,15 @@ services, including:
 * CDash: [cdash.spack.io](https://cdash.spack.io)
 * GitLab: [gitlab.spack.io](https://gitlab.spack.io)
 
+## Restoring from Backup
+
+- Delete the persistent volume (PV) and persistent volume claim (PVC) for the old volume that's being replaced.
+   - `kubectl delete -f pv.yaml -f pvc.yaml`
+- Create a new volume from a snapshot in the [AWS web console](https://console.aws.amazon.com)
+- Update `pv.yaml` to reference the newly created volumeId.
+- Recreate the PV and PVC
+   - `kubectl apply -f pv.yaml -f pvc.yaml`
+
 License
 ----------------
 

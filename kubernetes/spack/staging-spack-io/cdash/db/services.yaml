@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-staging
+  namespace: spack
+  labels:
+    app: cdash-staging
+    svc: db
+spec:
+  type: ClusterIP
+  ports:
+  - name: database
+    port: 3306
+    targetPort: 3306
+  selector:
+    app: cdash-staging
+    svc: db

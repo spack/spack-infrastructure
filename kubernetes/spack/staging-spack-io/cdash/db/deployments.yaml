@@ -1,0 +1,64 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-staging
+  namespace: spack
+  labels:
+    app: cdash-staging
+    svc: db
+spec:
+  selector:
+    matchLabels:
+      app: cdash-staging
+      svc: db
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cdash-staging
+        svc: db
+    spec:
+      restartPolicy: Always
+      initContainers:
+      - name: clear-lost-and-found
+        image: busybox
+        imagePullPolicy: Always
+        command: ["rm", "-rf", "/mysql/lost+found/"]
+        volumeMounts:
+        - name: data
+          mountPath: /mysql
+      containers:
+      - name: mysql-staging
+        image: "mariadb"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+        ports:
+        - containerPort: 3306
+          name: database
+        env:
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-name
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-login
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cdash-secrets
+              key: cdash-db-pass
+        - name: MYSQL_RANDOM_ROOT_PASSWORD
+          value: "yes"
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mysql-data-staging
