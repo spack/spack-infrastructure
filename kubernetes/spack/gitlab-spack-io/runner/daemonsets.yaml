@@ -58,14 +58,11 @@ spec:
         - name: RUNNER_EXECUTOR
           value: kubernetes
 
-        - name: KUBERNETES_CPU_REQUEST
-          value: "3"
-
-        - name: KUBERNETES_MEMORY_REQUEST
-          value: "12000Mi"
+        - name: KUBERNETES_NODE_SELECTOR
+          value: "type:gitlab-runner"
 
         - name: KUBERNETES_PULL_POLICY
-          value: "Always"
+          value: "always"
 
         - name: KUBERNETES_POLL_TIMEOUT
           value: "3600" # one hour
