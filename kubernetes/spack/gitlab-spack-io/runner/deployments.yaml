@@ -33,8 +33,7 @@ spec:
               - >
                 export RUNNER_NAME="$( hostname )" ;
                 gitlab-runner unregister --name "$( hostname )" ;
-                gitlab-runner register
-
+                gitlab-runner register --kubernetes-pod-annotations "cluster-autoscaler.kubernetes.io/safe-to-evict:false"
           preStop:
             exec:
               command:
