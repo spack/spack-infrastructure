@@ -1,6 +1,6 @@
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: gitlab-runner
   namespace: spack
@@ -12,6 +12,7 @@ spec:
     matchLabels:
       app: gitlab
       svc: runner
+  replicas: 10
   template:
     metadata:
       labels:
@@ -58,6 +59,9 @@ spec:
         - name: RUNNER_EXECUTOR
           value: kubernetes
 
+        - name: KUBERNETES_CPU_REQUEST
+          value: "1.7" # prevent more than one job from running on a t3.medium
+
         - name: KUBERNETES_NODE_SELECTOR
           value: "type:gitlab-runner"
 
@@ -92,4 +96,4 @@ spec:
             memory: 100Mi
             cpu: 100m
       nodeSelector:
-        "type": "gitlab-runner"
+        "beta.kubernetes.io/instance-type": "m4.large"
