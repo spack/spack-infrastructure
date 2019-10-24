@@ -1,8 +1,9 @@
+# t3.medium gitlab runners
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gitlab-runner
+  name: gitlab-runner-medium
   namespace: spack
   labels:
     app: gitlab
@@ -12,7 +13,7 @@ spec:
     matchLabels:
       app: gitlab
       svc: runner
-  replicas: 10
+  replicas: 10 # Up to 10 at a time
   template:
     metadata:
       labels:
@@ -33,7 +34,10 @@ spec:
               - >
                 export RUNNER_NAME="$( hostname )" ;
                 gitlab-runner unregister --name "$( hostname )" ;
-                gitlab-runner register --kubernetes-pod-annotations "cluster-autoscaler.kubernetes.io/safe-to-evict:false"
+                gitlab-runner register \
+                  --kubernetes-pod-annotations "cluster-autoscaler.kubernetes.io/safe-to-evict:false" \
+                  --kubernetes-node-selector "type:gitlab-runner" \
+                  --kubernetes-node-selector "beta.kubernetes.io/instance-type:t3.medium"
           preStop:
             exec:
               command:
@@ -61,9 +65,6 @@ spec:
         - name: KUBERNETES_CPU_REQUEST
           value: "1.7" # prevent more than one job from running on a t3.medium
 
-        - name: KUBERNETES_NODE_SELECTOR
-          value: "type:gitlab-runner"
-
         - name: KUBERNETES_PULL_POLICY
           value: "always"
 
@@ -86,7 +87,7 @@ spec:
           value: "32"
 
         - name: RUNNER_TAG_LIST
-          value: "spack-kube"
+          value: "spack-kube,medium"
         resources:
           requests:
             memory: 20Mi
@@ -96,3 +97,4 @@ spec:
             cpu: 100m
       nodeSelector:
         "beta.kubernetes.io/instance-type": "m4.large"
+

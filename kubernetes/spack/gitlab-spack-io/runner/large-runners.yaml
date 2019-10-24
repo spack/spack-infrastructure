@@ -1,0 +1,99 @@
+# t3.large gitlab runner(s)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-runner-large
+  namespace: spack
+  labels:
+    app: gitlab
+    svc: runner
+spec:
+  selector:
+    matchLabels:
+      app: gitlab
+      svc: runner
+  replicas: 1 # One at a time
+  template:
+    metadata:
+      labels:
+        app: gitlab
+        svc: runner
+    spec:
+      serviceAccountName: gitlab-runner
+      containers:
+      - name: runner
+        image: "gitlab/gitlab-runner:latest"
+        imagePullPolicy: Always
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - "/bin/bash"
+              - "-c"
+              - >
+                export RUNNER_NAME="$( hostname )" ;
+                gitlab-runner unregister --name "$( hostname )" ;
+                gitlab-runner register \
+                  --kubernetes-pod-annotations "cluster-autoscaler.kubernetes.io/safe-to-evict:false" \
+                  --kubernetes-node-selector "type:gitlab-runner" \
+                  --kubernetes-node-selector "beta.kubernetes.io/instance-type:t3.large"
+          preStop:
+            exec:
+              command:
+              - "/bin/bash"
+              - "-c"
+              - >
+                gitlab-runner unregister --name "$( hostname )"
+
+        env:
+        - name: DOCKER_IMAGE
+          value: "ubuntu:latest"
+
+        - name: CI_SERVER_URL
+          value: "http://gitlab"
+
+        - name: REGISTRATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-secrets
+              key: gitlab-runner-token
+
+        - name: RUNNER_EXECUTOR
+          value: kubernetes
+
+        - name: KUBERNETES_CPU_REQUEST
+          value: "1.7" # prevent more than one job from running on a t3.large
+
+        - name: KUBERNETES_PULL_POLICY
+          value: "always"
+
+        - name: KUBERNETES_POLL_TIMEOUT
+          value: "3600" # one hour
+
+        - name: KUBERNETES_SERVICE_ACCOUNT
+          value: "gitlab-runner"
+
+        - name: KUBERNETES_NAMESPACE
+          value: "spack"
+
+        - name: REGISTER_NON_INTERACTIVE
+          value: "true"
+
+        - name: RUNNER_REQUEST_CONCURRENCY
+          value: "32"
+
+        - name: RUNNER_LIMIT
+          value: "32"
+
+        - name: RUNNER_TAG_LIST
+          value: "spack-kube,large"
+        resources:
+          requests:
+            memory: 20Mi
+            cpu: 1m
+          limits:
+            memory: 100Mi
+            cpu: 100m
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "m4.large"
