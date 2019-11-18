@@ -115,7 +115,7 @@ services:
       REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
       RUNNER_EXECUTOR: docker
       REGISTER_NON_INTERACTIVE: 'true'
-      RUNNER_TAG_LIST: "docker,spack-post-ci,spack-k8s"
+      RUNNER_TAG_LIST: "docker,spack-pre-ci,spack-post-ci,spack-k8s"
 
   nginx:
     image: docker
