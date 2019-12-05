@@ -10,6 +10,8 @@ spec:
     name: letsencrypt
     kind: Issuer
   commonName: s3.spack.io
+  dnsNames:
+  - s3.spack.io
   acme:
     config:
     - http01:

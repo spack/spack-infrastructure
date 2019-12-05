@@ -11,6 +11,7 @@ spec:
     kind: Issuer
   commonName: spack.io
   dnsNames:
+  - spack.io
   - www.spack.io
   acme:
     config:

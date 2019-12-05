@@ -10,8 +10,8 @@ spec:
     email: tgamblin@llnl.gov
     privateKeySecretRef:
       name: letsencrypt-staging
-    http01: {}
-
+    solvers:
+      - http01: {"ingress": {"class": "nginx"}}
 ---
 apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
@@ -24,4 +24,5 @@ spec:
     email: tgamblin@llnl.gov
     privateKeySecretRef:
       name: letsencrypt
-    http01: {}
+    solvers:
+      - http01: {"ingress": {"class": "nginx"}}
