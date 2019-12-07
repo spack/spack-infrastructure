@@ -1,5 +1,5 @@
 ---
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: letsencrypt-staging
@@ -10,10 +10,10 @@ spec:
     email: tgamblin@llnl.gov
     privateKeySecretRef:
       name: letsencrypt-staging
-    http01: {}
-
+    solvers:
+      - http01: {"ingress": {"class": "nginx"}}
 ---
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: letsencrypt
@@ -24,4 +24,5 @@ spec:
     email: tgamblin@llnl.gov
     privateKeySecretRef:
       name: letsencrypt
-    http01: {}
+    solvers:
+      - http01: {"ingress": {"class": "nginx"}}

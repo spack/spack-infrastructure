@@ -1,5 +1,5 @@
 ---
-apiVersion: certmanager.k8s.io/v1alpha1
+apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: tls-s3
@@ -10,6 +10,8 @@ spec:
     name: letsencrypt
     kind: Issuer
   commonName: s3.spack.io
+  dnsNames:
+  - s3.spack.io
   acme:
     config:
     - http01:
