@@ -138,6 +138,7 @@ spec:
 
             (
               echo 'Feature.disable(:ci_dag_limit_needs);'
+              echo 'Feature.disable(:ci_yaml_limit_size);'
               echo 'exit'
             ) | gitlab-rails console
 
