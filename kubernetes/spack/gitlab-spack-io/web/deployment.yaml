@@ -13,6 +13,8 @@ spec:
       app: gitlab
       svc: web
   replicas: 1
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
