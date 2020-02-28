@@ -33,7 +33,7 @@ spec:
       #     mountPath: /data
 
       - name: update-permissions
-        image: "gitlab/gitlab-ee:12.1.0-ee.0"
+        image: "gitlab/gitlab-ee:12.8.1-ee.0"
         imagePullPolicy: IfNotPresent
         args: ["update-permissions"]
         volumeMounts:
@@ -65,14 +65,12 @@ spec:
 
       containers:
       - name: gitlab
-        image: "gitlab/gitlab-ee:12.1.0-ee.0"
+        image: "gitlab/gitlab-ee:12.8.1-ee.0"
         imagePullPolicy: IfNotPresent
-        # command: ["bash", "-c"]
-        # args: ["echo WAITING ; sleep 360000"]
         env:
         - name: GITLAB_OMNIBUS_CONFIG
           value: |
-            external_url 'http://gitlab'
+            external_url 'http://gitlab.spack.io'
 
             root_pass = ENV['GITLAB_ROOT_PASSWORD'];
             gitlab_rails['initial_root_password'] = (
@@ -129,6 +127,22 @@ spec:
             secretKeyRef:
               name: gitlab-secrets
               key: gitlab-runner-token
+        - name: GITLAB_POST_RECONFIGURE_SCRIPT
+          value: >
+            src_file='/opt/gitlab/embedded/service/gitlab-rails/lib/gitlab'
+            src_file="$src_file/ci/pipeline/seed/build.rb"
+
+            sed -i -e 's/LOW_NEEDS_LIMIT = [0-9]\+/LOW_NEEDS_LIMIT = 150/g'   \
+                   -e 's/HARD_NEEDS_LIMIT = [1-9]\+/HARD_NEEDS_LIMIT = 200/g' \
+                "$src_file"
+
+            (
+              echo 'Feature.disable(:ci_dag_limit_needs);'
+              echo 'Feature.disable(:ci_yaml_limit_size);'
+              echo 'exit'
+            ) | gitlab-rails console
+
+            gitlab-ctl restart
         - name: DB_HOST
           valueFrom:
             secretKeyRef:
