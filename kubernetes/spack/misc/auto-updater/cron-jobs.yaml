@@ -1,0 +1,37 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: spack-updater
+  namespace: spack
+  labels:
+    svc: updater
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    metadata:
+      labels:
+        svc: updater
+    spec:
+      template:
+        metadata:
+          labels:
+            svc: updater
+        spec:
+          serviceAccountName: auto-updater
+          restartPolicy: OnFailure
+          containers:
+          - name: updater
+            image: "busybox"
+            imagePullPolicy: IfNotPresent
+            args: ["/spack-update/script"]
+            volumeMounts:
+              - name: updater-script
+                mountPath: "/spack-update"
+          volumes:
+            - name: updater-script
+              configMap:
+                name: updater-script
+                defaultMode: 0700
+          nodeSelector:
+            "beta.kubernetes.io/instance-type": "t2.medium"
