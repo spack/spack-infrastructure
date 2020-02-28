@@ -1,24 +1,27 @@
-# t3.large gitlab runner(s)
+# t3.nano gitlab runner(s)
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gitlab-runner-large
+  name: gitlab-runner-t3.nano
   namespace: spack
   labels:
     app: gitlab
     svc: runner
+    size: t3.nano
 spec:
   selector:
     matchLabels:
       app: gitlab
       svc: runner
-  replicas: 1 # One at a time
+      size: t3.nano
+  replicas: 0
   template:
     metadata:
       labels:
         app: gitlab
         svc: runner
+        size: t3.nano
     spec:
       serviceAccountName: gitlab-runner
       containers:
@@ -35,9 +38,11 @@ spec:
                 export RUNNER_NAME="$( hostname )" ;
                 gitlab-runner unregister --name "$( hostname )" ;
                 gitlab-runner register \
-                  --kubernetes-pod-annotations "cluster-autoscaler.kubernetes.io/safe-to-evict:false" \
+                  --kubernetes-pod-annotations \
+                    "cluster-autoscaler.kubernetes.io/safe-to-evict:false" \
                   --kubernetes-node-selector "type:gitlab-runner" \
-                  --kubernetes-node-selector "beta.kubernetes.io/instance-type:t3.large"
+                  --kubernetes-node-selector \
+                    "beta.kubernetes.io/instance-type:t3.nano"
           preStop:
             exec:
               command:
@@ -63,7 +68,7 @@ spec:
           value: kubernetes
 
         - name: KUBERNETES_CPU_REQUEST
-          value: "1.7" # prevent more than one job from running on a t3.large
+          value: "1.7" # prevent more than one job from running on a t3.nano
 
         - name: KUBERNETES_PULL_POLICY
           value: "always"
@@ -87,7 +92,7 @@ spec:
           value: "32"
 
         - name: RUNNER_TAG_LIST
-          value: "spack-kube,large"
+          value: "spack-kube,t3.nano"
         resources:
           requests:
             memory: 20Mi
@@ -96,4 +101,4 @@ spec:
             memory: 100Mi
             cpu: 100m
       nodeSelector:
-        "beta.kubernetes.io/instance-type": "m4.large"
+        "beta.kubernetes.io/instance-type": "t2.medium"
