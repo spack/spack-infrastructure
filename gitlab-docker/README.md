@@ -53,6 +53,15 @@ Generate a CDash token and Create a CDash project.
      ([Known Issues](#issue-private-cdash))
    - The rest of the project settings can be left at default values.
 
+When you go to configure your spack environment for reporting jobs to this
+CDash instance, set the CDash url as follows:
+
+```
+cdash:
+  ...
+  url: http://cdash
+```
+
 #### Deploy Gitlab and Gitlab Runners
 
 Start the Gitlab database and Gitlab services.
@@ -153,7 +162,7 @@ Additionally, since this is not an AWS S3 service, you must specify an endpoint
 url in your environment:
 
 ```
-S3_ENDPOINT_URL="http://minio:10080"
+S3_ENDPOINT_URL="http://minio:10083"
 ```
 
 #### Prepare a spack environment
@@ -169,8 +178,11 @@ git commit -m 'add example environment'
 git push -u origin master
 ```
 
-See [this repository](https://github.com/scottwittenburg/sc2019-tutorial-pipeline)
-for an example environment repo.
+See [this repository](https://github.com/spack/spack-tutorial-container)
+for an example environment repo, including more documentation on how a
+custom workflow could be implemented using the spack pipelines feature.
+There is also documentation on pipelines
+[here](https://spack.readthedocs.io/en/latest/pipelines.html).
 
 #### Observe the Spack Pre-CI Pipeline
 
