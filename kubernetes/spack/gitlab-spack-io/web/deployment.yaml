@@ -100,7 +100,11 @@ spec:
             # gitlab_rails['initial_shared_runners_registration_token'] = (
             #     runner_token unless runner_token.to_s == '');
 
-            prometheus_monitoring['enable'] = false
+            prometheus_monitoring['enable'] = true;
+            prometheus['listen_address'] = 'localhost:9090';
+            grafana['disable_login_form'] = false;
+            grafana['admin_password'] = ENV['GITLAB_ROOT_PASSWORD'];
+
             postgresql['enable'] = false;
             gitlab_rails['db_adapter'] = 'postgresql';
             gitlab_rails['db_encoding'] = 'utf8';
@@ -212,7 +216,7 @@ spec:
           mountPath: /meta
           subPath: meta
       nodeSelector:
-        "beta.kubernetes.io/instance-type": "m4.large"
+        "beta.kubernetes.io/instance-type": "r5.xlarge"
       volumes:
         - name: data
           persistentVolumeClaim:
