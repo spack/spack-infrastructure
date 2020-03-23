@@ -66,13 +66,30 @@ spec:
           subPath: repo
 
       containers:
+      - name: watchdog
+        image: alpine
+        command:
+          - sh
+          - -c
+          - "apk add bash && /watchdog /gitlab-data"
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: watchdog-script
+          mountPath: /watchdog
+          subPath: script
+        - name: data
+          readOnly: true
+          mountPath: /gitlab-data
       - name: gitlab
         image: "gitlab/gitlab-ee:12.8.1-ee.0"
         imagePullPolicy: IfNotPresent
         env:
         - name: GITLAB_OMNIBUS_CONFIG
           value: |
-            external_url 'http://gitlab.spack.io'
+            external_url 'https://gitlab.spack.io'
+
+            nginx['listen_port'] = 80;
+            nginx['listen_https'] = false;
 
             root_pass = ENV['GITLAB_ROOT_PASSWORD'];
             gitlab_rails['initial_root_password'] = (
@@ -212,8 +229,12 @@ spec:
           mountPath: /meta
           subPath: meta
       nodeSelector:
-        "beta.kubernetes.io/instance-type": "m4.large"
+        "beta.kubernetes.io/instance-type": "r5.xlarge"
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: gitlab-data
+        - name: watchdog-script
+          configMap:
+            name: watchdog-script
+            defaultMode: 0700
