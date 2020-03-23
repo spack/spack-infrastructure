@@ -9,10 +9,11 @@ metadata:
 data:
   client-body-buffer-size: 32M
   hsts: "true"
-  proxy-body-size: 1G
+  proxy-body-size: 1024M
   proxy-buffering: "off"
   proxy-read-timeout: "600"
   proxy-send-timeout: "600"
+  worker-shutdown-timeout: "900"
   server-tokens: "false"
   ssl-redirect: "true"
   upstream-keepalive-connections: "50"

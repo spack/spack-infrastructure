@@ -3,12 +3,12 @@ kind: PersistentVolume
 metadata:
   name: spack-gitlab
 spec:
-  storageClassName: ""
+  storageClassName: us-east-1a
   accessModes:
   - ReadWriteOnce
   capacity:
-    storage: 20Gi
+    storage: 100Gi
   persistentVolumeReclaimPolicy: Retain
   awsElasticBlockStore:
     fsType: ext4
-    volumeID: aws://us-east-1a/vol-0ca5b4fedeba968cc
+    volumeID: aws://us-east-1a/vol-0b55fcd82511f36b5

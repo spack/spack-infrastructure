@@ -45,6 +45,7 @@ spec:
       - name: postgresql
         image: "postgres:9.6.2"
         imagePullPolicy: IfNotPresent
+        args: ["-c", "shared_buffers=256MB", "-c", "max_connections=1000"]
         env:
         - name: POSTGRES_USER
           valueFrom:
