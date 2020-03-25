@@ -90,6 +90,7 @@ spec:
 
             nginx['listen_port'] = 80;
             nginx['listen_https'] = false;
+            # nginx['max_client_body_size'] = ...;
 
             root_pass = ENV['GITLAB_ROOT_PASSWORD'];
             gitlab_rails['initial_root_password'] = (
@@ -119,8 +120,21 @@ spec:
 
             prometheus_monitoring['enable'] = true;
             prometheus['listen_address'] = 'localhost:9090';
+
+            node_exporter['enable'] = true;
+            gitlab_exporter['enable'] = true;
+
             grafana['disable_login_form'] = false;
             grafana['admin_password'] = ENV['GITLAB_ROOT_PASSWORD'];
+
+            postgres_exporter['dbname'] = 'pgbouncer';
+            postgres_exporter['user'] = ENV['DB_USER'];
+            postgres_exporter['password'] = ENV['DB_PASSWORD'];
+            postgres_exporter['host'] = ENV['DB_HOST'];
+            postgres_exporter['port'] = 5432;
+            postgres_exporter['sslmode'] = 'disable';
+            postgres_exporter['fallback_application_name'] = '';
+            postgres_exporter['connect_timeout'] = '';
 
             postgresql['enable'] = false;
             gitlab_rails['db_adapter'] = 'postgresql';
@@ -200,19 +214,20 @@ spec:
             path: /help
             port: 80
           initialDelaySeconds: 180
-          timeoutSeconds: 1
+          timeoutSeconds: 30
           periodSeconds: 10
           successThreshold: 1
           failureThreshold: 10
-        readinessProbe:
-          httpGet:
-            path: /help
-            port: 80
-          initialDelaySeconds: 30
-          timeoutSeconds: 1
-          periodSeconds: 10
-          successThreshold: 1
-          failureThreshold: 3
+        # NOTE(opadron): turn on this startupProbe once k8s server is upgraded
+        #                to 1.17+
+        # startupProbe:
+        #   httpGet:
+        #     path: /help
+        #     port: 80
+        #   timeoutSeconds: 10
+        #   periodSeconds: 30
+        #   successThreshold: 1
+        #   failureThreshold: 20
         volumeMounts:
         - name: data
           mountPath: /etc/gitlab
@@ -234,6 +249,7 @@ spec:
           subPath: meta
       nodeSelector:
         "beta.kubernetes.io/instance-type": "r5.xlarge"
+      serviceAccount: gitlab
       volumes:
         - name: data
           persistentVolumeClaim:

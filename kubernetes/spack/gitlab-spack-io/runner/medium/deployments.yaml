@@ -59,6 +59,7 @@ spec:
 
         - name: CI_SERVER_URL
           value: "http://gitlab"
+          # value: "https://gitlab.spack.io"
 
         - name: REGISTRATION_TOKEN
           valueFrom:
