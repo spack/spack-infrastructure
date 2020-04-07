@@ -4,8 +4,6 @@ kind: Ingress
 metadata:
   name: gitlab
   namespace: spack
-  #   annotations:
-  #     nginx.ingress.kubernetes.io/proxy-body-size: 6144M
 spec:
   tls:
   - secretName: tls-gitlab

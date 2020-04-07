@@ -90,7 +90,6 @@ spec:
 
             nginx['listen_port'] = 80;
             nginx['listen_https'] = false;
-            # nginx['max_client_body_size'] = ...;
 
             root_pass = ENV['GITLAB_ROOT_PASSWORD'];
             gitlab_rails['initial_root_password'] = (
