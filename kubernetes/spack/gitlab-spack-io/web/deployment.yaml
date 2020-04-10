@@ -81,7 +81,7 @@ spec:
           readOnly: true
           mountPath: /gitlab-data
       - name: gitlab
-        image: "gitlab/gitlab-ee:12.8.1-ee.0"
+        image: "gitlab/gitlab-ee:12.9.2-ee.0"
         imagePullPolicy: IfNotPresent
         env:
         - name: GITLAB_OMNIBUS_CONFIG
