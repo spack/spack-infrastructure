@@ -1,0 +1,14 @@
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: us-east-1a-scratch
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+  zone: us-east-1a
+reclaimPolicy: Delete
+mountOptions:
+  - debug
