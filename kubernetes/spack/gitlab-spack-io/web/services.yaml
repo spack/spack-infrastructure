@@ -16,11 +16,29 @@ spec:
   - name: http
     port: 80
     targetPort: http
-    # BUG(opadron): Any TCP protocol like ssh-, over k8s-, through AWS ELB-, is
-    #               broken if the same load balancer also needs to handle web
-    #               traffic.
-    #
-    # https://github.com/kubernetes/kubernetes/issues/40244
+
+---
+# BUG(opadron): Any TCP protocol like ssh-, over k8s-, through AWS ELB-, is
+#               broken if the same load balancer also needs to handle web
+#               traffic.  So, we need to set up ssh access using another AWS ELB
+#               created just for this purpose.  This is done below using another
+#               Service object of type "LoadBalancer".
+#
+# https://github.com/kubernetes/kubernetes/issues/40244
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-ssh
+  namespace: spack
+  labels:
+    app: gitlab
+    svc: web
+spec:
+  type: LoadBalancer
+  selector:
+    app: gitlab
+    svc: web
+  ports:
   - name: ssh
     port: 22
     targetPort: 22
