@@ -10,6 +10,6 @@ spec:
   volumeMode: Filesystem
   resources:
     requests:
-      storage: 100Gi
+      storage: 1024Gi
   storageClassName: us-east-1a
   volumeName: spack-gitlab

@@ -7,8 +7,8 @@ spec:
   accessModes:
   - ReadWriteOnce
   capacity:
-    storage: 100Gi
+    storage: 1024Gi
   persistentVolumeReclaimPolicy: Retain
   awsElasticBlockStore:
     fsType: ext4
-    volumeID: aws://us-east-1a/vol-0b55fcd82511f36b5
+    volumeID: aws://us-east-1a/vol-0f4bb6f3ff3d89749
