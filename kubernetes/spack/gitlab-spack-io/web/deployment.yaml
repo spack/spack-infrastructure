@@ -35,7 +35,7 @@ spec:
       #     mountPath: /data
 
       - name: update-permissions
-        image: "gitlab/gitlab-ee:12.8.1-ee.0"
+        image: "gitlab/gitlab-ee:12.9.2-ee.0"
         imagePullPolicy: IfNotPresent
         args: ["update-permissions"]
         volumeMounts:
