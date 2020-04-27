@@ -3,12 +3,12 @@ kind: PersistentVolume
 metadata:
   name: spack-mysql
 spec:
-  storageClassName: ""
+  storageClassName: us-east-1a
   accessModes:
   - ReadWriteOnce
   capacity:
-    storage: 10Gi
+    storage: 100Gi
   persistentVolumeReclaimPolicy: Retain
   awsElasticBlockStore:
     fsType: ext4
-    volumeID: aws://us-east-1a/vol-03b3519480ff46092
+    volumeID: aws://us-east-1a/vol-09f639c87f3def4bd
