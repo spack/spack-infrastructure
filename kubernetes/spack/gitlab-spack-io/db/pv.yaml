@@ -3,12 +3,12 @@ kind: PersistentVolume
 metadata:
   name: spack-postgresql
 spec:
-  storageClassName: ""
+  storageClassName: us-east-1a
   accessModes:
   - ReadWriteOnce
   capacity:
-    storage: 1Gi
+    storage: 20Gi
   persistentVolumeReclaimPolicy: Retain
   awsElasticBlockStore:
     fsType: ext4
-    volumeID: aws://us-east-1a/vol-0d3fbeb87e6a55b6c
+    volumeID: aws://us-east-1a/vol-0c93a1d75e1221bdd

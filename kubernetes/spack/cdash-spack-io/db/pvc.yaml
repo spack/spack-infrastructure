@@ -10,6 +10,6 @@ spec:
   volumeMode: Filesystem
   resources:
     requests:
-      storage: 10Gi
-  storageClassName: ""
+      storage: 100Gi
+  storageClassName: us-east-1a
   volumeName: spack-mysql
