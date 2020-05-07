@@ -1,0 +1,45 @@
+# Adapted from
+# https://gist.githubusercontent.com/HagaiBarel/ec2bbe68938f93198d3c73b0e423e4ee/raw/99bb18bfe4265d03d08038324e643c2b3c182eb5/curator-cronjob.yaml
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: curator
+  namespace: spack
+  labels:
+    app: curator
+spec:
+  schedule: "* 4 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - image: bobrik/curator:5.8.1
+            name: curator
+            env:
+              # X-Pack Authentication
+              # =====================
+              - name: CURATOR_ELASTICSEARCH_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: elastic-search-es-elastic-user
+                    key: elastic
+              - name: HTTP_AUTH
+                value: elastic:$(CURATOR_ELASTICSEARCH_PASSWORD)
+            args: ["--config", "/etc/config/config.yml", "/etc/config/action_file.yml"]
+            volumeMounts:
+            - name: config
+              mountPath: /etc/config
+
+          volumes:
+          - name: config
+            configMap:
+              name: curator-config
+          restartPolicy: OnFailure
+          nodeSelector:
+            "beta.kubernetes.io/instance-type": "t2.medium"
