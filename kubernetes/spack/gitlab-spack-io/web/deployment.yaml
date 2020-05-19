@@ -179,6 +179,8 @@ spec:
               echo 'exit'
             ) | gitlab-rails console
 
+            gitlab-rake gitlab:elastic:create_empty_index
+
             gitlab-ctl restart
         - name: DB_HOST
           valueFrom:
