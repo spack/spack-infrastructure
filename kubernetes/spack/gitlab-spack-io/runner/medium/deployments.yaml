@@ -28,8 +28,6 @@ spec:
       - name: runner
         image: "gitlab/gitlab-runner:latest"
         imagePullPolicy: Always
-        args: [--debug, --log-level=debug, run, --user=gitlab-runner,
-                --working-directory=/home/gitlab-runner]
         lifecycle:
           postStart:
             exec:
