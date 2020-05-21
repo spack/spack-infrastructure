@@ -1,0 +1,248 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-runner-scripts
+  namespace: spack
+  labels:
+    app: gitlab
+    svc: runner
+data:
+  generate-pre-build: |
+    cat << EOF
+    timestamp="\$( date '+@%s' )"
+    index="spack-pre-build-\$( date --date "\$timestamp" '+%Y.%m.%d' )"
+    datetime="\$( date --date "\$timestamp" '+%Y-%m-%dT%H:%M:%S.%N%z' )"
+
+    (
+      cat << __PYTHON_EOF
+    $( cat generate-payload )
+    __PYTHON_EOF
+    ) > /generate-payload
+
+    if   which python3 ; then py=python3
+    elif which python  ; then py=python
+    else                      py=python2
+    fi &> /dev/null
+
+    export datetime
+
+    rm -f ./index.json ./payload.json
+    "\$py" /generate-payload
+    payload_index="\$( cat ./index.json )"
+    payload="\$( cat ./payload.json )"
+
+    curl -XPUT \
+      --output /dev/null \
+      -u "${ELASTIC_SEARCH_USER}:${ELASTIC_SEARCH_PASS}" \
+      "${ELASTIC_SEARCH_URL}/\${index}" \
+       -H 'Content-Type: application/json' \
+       -d"\$payload_index" &> /dev/null
+
+    curl -XPOST \
+      --output /dev/null \
+      -u "${ELASTIC_SEARCH_USER}:${ELASTIC_SEARCH_PASS}" \
+      "${ELASTIC_SEARCH_URL}/\${index}/_doc" \
+       -H 'Content-Type: application/json' \
+       -d"\$payload" &> /dev/null
+    EOF
+
+  generate-post-build: |
+    cat << EOF
+    result="\$?"
+    export result
+
+    end_timestamp="\$( date '+@%s' )"
+    index="spack-post-build-\$( date --date "\$timestamp" '+%Y.%m.%d' )"
+    end_datetime="\$( date --date "\$end_timestamp" '+%Y-%m-%dT%H:%M:%S.%N%z' )"
+
+    (
+      cat << __PYTHON_EOF
+    $( cat generate-payload )
+    __PYTHON_EOF
+    ) > /generate-payload
+
+    if   which python3 ; then py=python3
+    elif which python  ; then py=python
+    else                      py=python2
+    fi &> /dev/null
+
+    export end_datetime
+
+    rm -f ./index.json ./payload.json
+    "\$py" /generate-payload
+    payload_index="\$( cat ./index.json )"
+    payload="\$( cat ./payload.json )"
+
+    curl -XPUT \
+      --output /dev/null \
+      -u "${ELASTIC_SEARCH_USER}:${ELASTIC_SEARCH_PASS}" \
+      "${ELASTIC_SEARCH_URL}/\${index}" \
+       -H 'Content-Type: application/json' \
+       -d"\$payload_index" &> /dev/null
+
+    curl -XPOST \
+      --output /dev/null \
+      -u "${ELASTIC_SEARCH_USER}:${ELASTIC_SEARCH_PASS}" \
+      "${ELASTIC_SEARCH_URL}/\${index}/_doc" \
+       -H 'Content-Type: application/json' \
+       -d"\$payload" &> /dev/null
+    EOF
+
+  generate-payload: |
+    import json
+    import os
+    import sys
+
+    def e(key, default='', *args, **kwargs):
+        return os.environ.get(key, default, *args, **kwargs)
+
+    payload = {
+      '@timestamp' : e('datetime'),
+      'ci' : e('CI'),
+      'node_total' : e('CI_NODE_TOTAL'),
+      'pages_domain' : e('CI_PAGES_DOMAIN'),
+      'config_path' : e('CI_CONFIG_PATH'),
+      'default_branch' : e('CI_DEFAULT_BRANCH'),
+      'disposable_environment' : e('CI_DISPOSABLE_ENVIRONMENT'),
+      'gitlab_ci' : e('GITLAB_CI'),
+      'hostname' : e('HOSTNAME'),
+
+      'gitlab_features' : [
+        token.strip() for token in e('GITLAB_FEATURES').split(',')],
+
+      'build': {
+        'dir' : e('CI_BUILDS_DIR'),
+        'before_sha' : e('CI_BUILD_BEFORE_SHA'),
+        'id' : e('CI_BUILD_ID'),
+        'name' : e('CI_BUILD_NAME'),
+        'stage' : e('CI_BUILD_STAGE'),
+
+        'ref' : {
+          'value' : e('CI_BUILD_REF'),
+          'name'  : e('CI_BUILD_REF_NAME'),
+          'slug'  : e('CI_BUILD_REF_SLUG')
+        }
+      },
+
+      'commit': {
+        'branch': e('CI_COMMIT_BRANCH'),
+        'description': e('CI_COMMIT_DESCRIPTION'),
+        'message': e('CI_COMMIT_MESSAGE'),
+        'title': e('CI_COMMIT_TITLE'),
+
+        'ref': {
+          'name': e('CI_COMMIT_REF_NAME'),
+          'protected': e('CI_COMMIT_REF_PROTECTED'),
+          'slug': e('CI_COMMIT_REF_SLUG')
+        },
+
+        'sha': {
+          'before': e('CI_COMMIT_BEFORE_SHA'),
+          'full': e('CI_COMMIT_SHA'),
+          'short': e('CI_COMMIT_SHORT_SHA')
+        }
+      },
+
+      'job': {
+        'concurrent_id': e('CI_CONCURRENT_ID'),
+        'concurrent_project_id': e('CI_CONCURRENT_PROJECT_ID'),
+        'id': e('CI_JOB_ID'),
+        'image': e('CI_JOB_IMAGE'),
+        'name': e('CI_JOB_NAME'),
+        'stage': e('CI_JOB_STAGE'),
+        'url': e('CI_JOB_URL')
+      },
+
+      'pipeline': {
+        'id': e('CI_PIPELINE_ID'),
+        'iid': e('CI_PIPELINE_IID'),
+        'source': e('CI_PIPELINE_SOURCE'),
+        'url': e('CI_PIPELINE_URL')
+      },
+
+      'project': {
+        'dir': e('CI_PROJECT_DIR'),
+        'id': e('CI_PROJECT_ID'),
+        'name': e('CI_PROJECT_NAME'),
+        'namespace': e('CI_PROJECT_NAMESPACE'),
+        'path': e('CI_PROJECT_PATH'),
+        'path_slug': e('CI_PROJECT_PATH_SLUG'),
+        'title': e('CI_PROJECT_TITLE'),
+        'url': e('CI_PROJECT_URL'),
+        'visibility': e('CI_PROJECT_VISIBILITY'),
+
+        'repository_languages': [
+          token.strip() for token in
+          e('CI_PROJECT_REPOSITORY_LANGUAGES').split(',')]
+      },
+
+      'runner': {
+        'description': e('CI_RUNNER_DESCRIPTION'),
+        'executable_arch': e('CI_RUNNER_EXECUTABLE_ARCH'),
+        'id': e('CI_RUNNER_ID'),
+        'revision': e('CI_RUNNER_REVISION'),
+        'version': e('CI_RUNNER_VERSION'),
+
+        'tags': [
+          token.strip() for token in e('CI_RUNNER_TAGS').split(',')]
+      },
+
+      'server': {
+        'value': e('CI_SERVER'),
+        'host': e('CI_SERVER_HOST'),
+        'name': e('CI_SERVER_NAME'),
+        'port': e('CI_SERVER_PORT'),
+        'protocol': e('CI_SERVER_PROTOCOL'),
+        'revision': e('CI_SERVER_REVISION'),
+        'url': e('CI_SERVER_URL'),
+
+        'version': {
+          'value': e('CI_SERVER_VERSION'),
+          'major': e('CI_SERVER_VERSION_MAJOR'),
+          'minor': e('CI_SERVER_VERSION_MINOR'),
+          'patch': e('CI_SERVER_VERSION_PATCH')
+        }
+      },
+
+      'gitlab_user': {
+        'email': e('GITLAB_USER_EMAIL'),
+        'id': e('GITLAB_USER_ID'),
+        'login': e('GITLAB_USER_LOGIN'),
+        'name': e('GITLAB_USER_NAME')
+      },
+
+      'spack': {
+        'root_spec': e('SPACK_ROOT_SPEC'),
+        'spec_pkg_name': e('SPACK_JOB_SPEC_PKG_NAME'),
+        'compiler_action': e('SPACK_COMPILER_ACTION'),
+        'is_pr_pipeline': e('SPACK_IS_PR_PIPELINE')
+      }
+    }
+
+    payload_index = {
+      'mappings': {
+        'properties': {
+          '@timestamp': { 'type': 'date' }
+        }
+      }
+    }
+
+    build_end_time = e('end_datetime')
+    if build_end_time:
+        payload['@timestamp'], payload['build_start_time'] = (
+          build_end_time, payload['@timestamp'])
+        payload_index['mappings']['properties']['build_start_time'] = {
+          'type': 'date'
+        }
+
+    result = e('result')
+    if result:
+        payload['result'] = result
+
+    with open('./payload.json', 'w') as f:
+      json.dump(payload, f)
+
+    with open('./index.json', 'w') as f:
+      json.dump(payload_index, f)
+
