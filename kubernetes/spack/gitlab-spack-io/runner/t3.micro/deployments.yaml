@@ -1,27 +1,27 @@
-# t3.medium gitlab runners
+# t3.micro gitlab runner(s)
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gitlab-runner-medium
+  name: gitlab-runner-t3.micro
   namespace: spack
   labels:
     app: gitlab
     svc: runner
-    size: medium
+    size: t3.micro
 spec:
   selector:
     matchLabels:
       app: gitlab
       svc: runner
-      size: medium
-  replicas: 10 # Up to 10 at a time
+      size: t3.micro
+  replicas: 5
   template:
     metadata:
       labels:
         app: gitlab
         svc: runner
-        size: medium
+        size: t3.micro
     spec:
       serviceAccountName: gitlab-runner
       containers:
@@ -37,12 +37,18 @@ spec:
               - >
                 export RUNNER_NAME="$( hostname )" ;
                 gitlab-runner unregister --name "$( hostname )" ;
+                pushd /runner-scripts ;
+                RUNNER_PRE_BUILD_SCRIPT="$( bash generate-pre-build )" ;
+                RUNNER_POST_BUILD_SCRIPT="$( bash generate-post-build )" ;
+                popd ;
+                export RUNNER_PRE_BUILD_SCRIPT ;
+                export RUNNER_POST_BUILD_SCRIPT ;
                 gitlab-runner register \
                   --kubernetes-pod-annotations \
                     "cluster-autoscaler.kubernetes.io/safe-to-evict:false" \
                   --kubernetes-node-selector "type:gitlab-runner" \
                   --kubernetes-node-selector \
-                    "beta.kubernetes.io/instance-type:t3.medium"
+                    "beta.kubernetes.io/instance-type:t3.micro" \
           preStop:
             exec:
               command:
@@ -64,11 +70,23 @@ spec:
               name: gitlab-secrets
               key: gitlab-runner-token
 
+        - name: ELASTIC_SEARCH_URL
+          value: "http://elastic-search-es-http.spack.svc:9200"
+
+        - name: ELASTIC_SEARCH_USER
+          value: elastic
+
+        - name: ELASTIC_SEARCH_PASS
+          valueFrom:
+            secretKeyRef:
+              name: elastic-search-es-elastic-user
+              key: elastic
+
         - name: RUNNER_EXECUTOR
           value: kubernetes
 
         - name: KUBERNETES_CPU_REQUEST
-          value: "1.7" # prevent more than one job from running on a t3.medium
+          value: "1.7" # prevent more than one job from running on a t3.micro
 
         - name: KUBERNETES_PULL_POLICY
           value: "always"
@@ -92,7 +110,7 @@ spec:
           value: "32"
 
         - name: RUNNER_TAG_LIST
-          value: "spack-kube,medium"
+          value: "spack-kube,t3.micro"
         resources:
           requests:
             memory: 20Mi
@@ -100,5 +118,13 @@ spec:
           limits:
             memory: 100Mi
             cpu: 100m
+        volumeMounts:
+        - name: runner-scripts
+          mountPath: /runner-scripts
+      volumes:
+        - name: runner-scripts
+          configMap:
+            name: gitlab-runner-scripts
+            defaultMode: 0700
       nodeSelector:
         "beta.kubernetes.io/instance-type": "t2.medium"
