@@ -37,6 +37,12 @@ spec:
               - >
                 export RUNNER_NAME="$( hostname )" ;
                 gitlab-runner unregister --name "$( hostname )" ;
+                pushd /runner-scripts ;
+                RUNNER_PRE_BUILD_SCRIPT="$( bash generate-pre-build )" ;
+                RUNNER_POST_BUILD_SCRIPT="$( bash generate-post-build )" ;
+                popd ;
+                export RUNNER_PRE_BUILD_SCRIPT ;
+                export RUNNER_POST_BUILD_SCRIPT ;
                 gitlab-runner register \
                   --kubernetes-pod-annotations \
                     "cluster-autoscaler.kubernetes.io/safe-to-evict:false" \
@@ -63,6 +69,18 @@ spec:
             secretKeyRef:
               name: gitlab-secrets
               key: gitlab-runner-token
+
+        - name: ELASTIC_SEARCH_URL
+          value: "http://elastic-search-es-http.spack.svc:9200"
+
+        - name: ELASTIC_SEARCH_USER
+          value: elastic
+
+        - name: ELASTIC_SEARCH_PASS
+          valueFrom:
+            secretKeyRef:
+              name: elastic-search-es-elastic-user
+              key: elastic
 
         - name: RUNNER_EXECUTOR
           value: kubernetes
@@ -100,5 +118,13 @@ spec:
           limits:
             memory: 100Mi
             cpu: 100m
+        volumeMounts:
+        - name: runner-scripts
+          mountPath: /runner-scripts
+      volumes:
+        - name: runner-scripts
+          configMap:
+            name: gitlab-runner-scripts
+            defaultMode: 0700
       nodeSelector:
         "beta.kubernetes.io/instance-type": "t2.medium"
