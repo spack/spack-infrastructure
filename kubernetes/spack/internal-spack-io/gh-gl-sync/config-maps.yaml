@@ -126,7 +126,7 @@ data:
     git remote add gitlab ${GITLAB_URL}
 
     # Retrieve open PRs
-    OPEN_PR_BRANCHES="$(python3 ${BASEDIR}/github-list-prs.py -o ${GITHUB_REPO} --token ${GITHUB_TOKEN} | awk '{print "pr"$1"_"$2}' | sort -r)"
+    OPEN_PR_BRANCHES="$(python3 ${BASEDIR}/github-list-prs.py -o --token ${GITHUB_TOKEN} ${GITHUB_REPO} | awk '{print "pr"$1"_"$2}' | sort -r)"
     echo "Open PRs:"
     for PR in ${OPEN_PR_BRANCHES}
     do
@@ -185,7 +185,7 @@ data:
       done
     fi
 
-    # Sync open PRs to OLCF
+    # Sync open GitHub PRs to Gitlab
     if [ -n "${OPEN_PR_BRANCHES}" ]
     then
       FETCH_REFSPECS=""
