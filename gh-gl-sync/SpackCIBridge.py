@@ -15,7 +15,6 @@ import urllib.request
 class SpackCIBridge(object):
 
     def __init__(self):
-        self.token = None
         self.gitlab_url = ""
         self.github_url = ""
 
@@ -64,8 +63,8 @@ class SpackCIBridge(object):
         try:
             request = urllib.request.Request(
                     "https://api.github.com/repos/%s/pulls?state=%s" % (self.github_repo, state))
-            if self.token:
-                request.add_header("Authorization", "token %s" % args.token)
+            if "GITHUB_TOKEN" in os.environ:
+                request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
             response = urllib.request.urlopen(request)
         except OSError:
             return
@@ -145,8 +144,6 @@ class SpackCIBridge(object):
         self.gitlab_url = "git@{0}:{1}.git".format(args.gitlab_host, args.gitlab_repo)
         self.github_url = "https://github.com/{0}.git".format(args.github_repo)
         self.github_repo = args.github_repo
-        if args.token:
-            self.token = args.token
 
         # Work inside a temporary directory that will be deleted when this script terminates.
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -180,7 +177,6 @@ class SpackCIBridge(object):
 if __name__ == "__main__":
     # Parse command-line arguments.
     parser = argparse.ArgumentParser(description="Sync GitHub PRs to GitLab")
-    parser.add_argument("-t", "--token", help="GitHub access token")
     parser.add_argument("github_repo", help="GitHub repo (org/repo or user/repo)")
     parser.add_argument("gitlab_host", help="URL to GitLab server")
     parser.add_argument("gitlab_repo", help="GitLab repo (org/repo or user/repo)")
