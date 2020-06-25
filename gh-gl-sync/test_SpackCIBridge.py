@@ -1,8 +1,8 @@
 import SpackCIBridge
 
 
-# Test the list_github_prs method.
 def test_list_github_prs(capfd):
+    """Test the list_github_prs method."""
     bridge = SpackCIBridge.SpackCIBridge()
     bridge.get_prs_from_github_api = lambda *args: None
     bridge.github_pr_responses = [
@@ -24,8 +24,8 @@ def test_list_github_prs(capfd):
     assert out == "Open PRs:\n    pr1_improve_docs\n    pr2_fix_test\n"
 
 
-# Test the get_synced_prs method.
 def test_get_synced_prs(capfd):
+    """Test the get_synced_prs method."""
     bridge = SpackCIBridge.SpackCIBridge()
     bridge.fetch_gitlab_prs = lambda *args: None
     bridge.gitlab_pr_output = b"""
@@ -37,8 +37,8 @@ bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	refs/heads/github/pr2_another_try
     assert out == "Synced PRs:\n    pr1_example\n    pr2_another_try\n"
 
 
-# Test the get_prs_to_delete method.
 def test_get_prs_to_delete(capfd):
+    """Test the get_prs_to_delete method."""
     open_prs = ["pr3_try_this", "pr4_new_stuff"]
     synced_prs = ["pr1_first_try", "pr2_different_approach", "pr3_try_this"]
     bridge = SpackCIBridge.SpackCIBridge()
@@ -48,8 +48,8 @@ def test_get_prs_to_delete(capfd):
     assert out == "Synced Closed PRs:\n    pr1_first_try\n    pr2_different_approach\n"
 
 
-# Test the get_open_refspecs method.
 def test_get_open_refspecs():
+    """Test the get_open_refspecs method."""
     open_prs = ["pr1_this", "pr2_that"]
     bridge = SpackCIBridge.SpackCIBridge()
     open_refspecs, fetch_refspecs = bridge.get_open_refspecs(open_prs)
@@ -63,12 +63,12 @@ def test_get_open_refspecs():
     ]
 
 
-# Test starting & stopping ssh-agent.
 def test_ssh_agent():
+    """Test starting & stopping ssh-agent."""
     import os
 
-    # Local function to check if a PID is running or not.
     def check_pid(pid):
+        """Local function to check if a PID is running or not."""
         try:
             os.kill(pid, 0)
         except OSError:
