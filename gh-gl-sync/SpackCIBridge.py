@@ -31,9 +31,13 @@ class SpackCIBridge(object):
         output = subprocess.run(["ssh-agent", "-s"], check=True, stdout=subprocess.PIPE).stdout
         pid_regexp = re.compile(r"SSH_AGENT_PID=([0-9]+)")
         match = pid_regexp.search(output.decode("utf-8"))
-        pid = match.group(1)
-        os.environ["SSH_AGENT_PID"] = pid
-        self.cleanup_ssh_agent = True
+        if match is None:
+            print("WARNING: could not detect ssh-agent PID.")
+            print("ssh-agent will not be killed upon program termination")
+        else:
+            pid = match.group(1)
+            os.environ["SSH_AGENT_PID"] = pid
+            self.cleanup_ssh_agent = True
 
         # Add the key.
         ssh_key = base64.b64decode(ssh_key_base64)
@@ -127,6 +131,8 @@ class SpackCIBridge(object):
         fetch_refspecs = []
         for open_pr in open_prs:
             match = pr_number_regexp.search(open_pr)
+            if match is None:
+                continue
             pr_num = match.group(1)
             fetch_refspecs.append("+refs/pull/{0}/head:refs/remotes/github/{1}".format(pr_num, open_pr))
             open_refspecs.append("github/{0}:github/{0}".format(open_pr))
