@@ -20,12 +20,13 @@ class SpackCIBridge(object):
 
     @atexit.register
     def cleanup():
+        """Shutdown ssh-agent upon program termination."""
         if "SSH_AGENT_PID" in os.environ:
             print("    Shutting down ssh-agent({0})".format(os.environ["SSH_AGENT_PID"]))
             subprocess.run(["ssh-agent", "-k"], check=True)
 
     def setup_ssh(self, ssh_key_base64):
-        # Start the ssh agent.
+        """Start the ssh agent."""
         print("Starting ssh-agent")
         output = subprocess.run(["ssh-agent", "-s"], check=True, capture_output=subprocess.PIPE).stdout
         pid_regexp = re.compile(r"SSH_AGENT_PID=([0-9]+)")
@@ -42,9 +43,10 @@ class SpackCIBridge(object):
             fp.seek(0)
             subprocess.run(["ssh-add", fp.name], check=True)
 
-    # Return a list of strings in the format: "pr<PR#>_<headref>"
-    # for GitHub PRs with a given state: open, closed, or all.
     def list_github_prs(self, state):
+        """ Return a list of strings in the format: "pr<PR#>_<headref>"
+        for GitHub PRs with a given state: open, closed, or all.
+        """
         pr_strings = []
         self.get_prs_from_github_api(state)
         for self.github_pr_response in self.github_pr_responses:
@@ -56,9 +58,10 @@ class SpackCIBridge(object):
             print("    {0}".format(pr_string))
         return pr_strings
 
-    # Query the GitHub API for PRs with a given state: open, closed, or all.
-    # Store this retrieved data in self.github_pr_responses.
     def get_prs_from_github_api(self, state):
+        """Query the GitHub API for PRs with a given state: open, closed, or all.
+        Store this retrieved data in self.github_pr_responses.
+        """
         self.github_pr_responses = []
         try:
             request = urllib.request.Request(
@@ -70,22 +73,24 @@ class SpackCIBridge(object):
             return
         self.github_pr_responses = json.loads(response.read())
 
-    # Initialize a bare git repository with two remotes:
-    # one for GitHub and one for GitLab.
     def setup_git_repo(self):
+        """Initialize a bare git repository with two remotes:
+        one for GitHub and one for GitLab.
+        """
         subprocess.run(["git", "init"], check=True)
         subprocess.run(["git", "remote", "add", "github", self.github_url], check=True)
         subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_url], check=True)
 
-    # Query GitLab for branches that have already been copied over from GitHub PRs.
-    # Return the string output of `git ls-remote`.
     def fetch_gitlab_prs(self):
+        """Query GitLab for branches that have already been copied over from GitHub PRs.
+        Return the string output of `git ls-remote`.
+        """
         ls_remote_args = ["git", "ls-remote", "gitlab", "github/pr*"]
         self.gitlab_pr_output = \
             subprocess.run(ls_remote_args, check=True, capture_output=subprocess.PIPE).stdout
 
-    # Return a list of PRs that have already been synchronized to GitLab.
     def get_synced_prs(self):
+        """Return a list of PRs that have already been synchronized to GitLab."""
         self.fetch_gitlab_prs()
         synced_prs = []
         for line in self.gitlab_pr_output.split(b"\n"):
@@ -99,10 +104,11 @@ class SpackCIBridge(object):
             print("    {0}".format(pr))
         return synced_prs
 
-    # Find PRs that have already been synchronized to GitLab that are no longer open on GitHub.
-    # Return a list of strings in the format of ":github/<branch_name" that will be used
-    # to delete these branches from GitLab.
     def get_prs_to_delete(self, open_prs, synced_prs):
+        """Find PRs that have already been synchronized to GitLab that are no longer open on GitHub.
+        Return a list of strings in the format of ":github/<branch_name" that will be used
+        to delete these branches from GitLab.
+        """
         prs_to_delete = []
         for synced_pr in synced_prs:
             if synced_pr not in open_prs:
@@ -114,8 +120,8 @@ class SpackCIBridge(object):
             closed_refspecs.append(":github/{0}".format(pr))
         return closed_refspecs
 
-    # Return lists of refspecs for fetch and push given a list of open PRs.
     def get_open_refspecs(self, open_prs):
+        """Return lists of refspecs for fetch and push given a list of open PRs."""
         pr_number_regexp = re.compile(r"pr([0-9]+)")
         open_refspecs = []
         fetch_refspecs = []
@@ -127,18 +133,20 @@ class SpackCIBridge(object):
         return open_refspecs, fetch_refspecs
 
     def fetch_github_prs(self, fetch_refspecs):
+        """Perform `git fetch` for a given list of refspecs."""
         print("Fetching GitHub refs for open PRs")
         fetch_args = ["git", "fetch", "-q", "github"] + fetch_refspecs
         subprocess.run(fetch_args, check=True)
 
     def build_local_branches(self, open_prs):
+        """Create local branches for a list of open PRs."""
         print("Building local branches for open PRs")
         for open_pr in open_prs:
             branch_name = "github/{0}".format(open_pr)
             subprocess.run(["git", "branch", "-q", branch_name, branch_name], check=True)
 
-    # "main" function: Synchronize pull requests from GitHub as branches on GitLab.
     def sync(self, args):
+        """Synchronize pull requests from GitHub as branches on GitLab."""
         # Handle input arguments for connecting to GitHub and GitLab.
         os.environ["GIT_SSH_COMMAND"] = "ssh -F /dev/null -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
         self.gitlab_url = "git@{0}:{1}.git".format(args.gitlab_host, args.gitlab_repo)
