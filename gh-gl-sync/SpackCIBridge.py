@@ -28,7 +28,7 @@ class SpackCIBridge(object):
     def setup_ssh(self, ssh_key_base64):
         """Start the ssh agent."""
         print("Starting ssh-agent")
-        output = subprocess.run(["ssh-agent", "-s"], check=True, capture_output=subprocess.PIPE).stdout
+        output = subprocess.run(["ssh-agent", "-s"], check=True, stdout=subprocess.PIPE).stdout
         pid_regexp = re.compile(r"SSH_AGENT_PID=([0-9]+)")
         match = pid_regexp.search(output.decode("utf-8"))
         pid = match.group(1)
@@ -87,7 +87,7 @@ class SpackCIBridge(object):
         """
         ls_remote_args = ["git", "ls-remote", "gitlab", "github/pr*"]
         self.gitlab_pr_output = \
-            subprocess.run(ls_remote_args, check=True, capture_output=subprocess.PIPE).stdout
+            subprocess.run(ls_remote_args, check=True, stdout=subprocess.PIPE).stdout
 
     def get_synced_prs(self):
         """Return a list of PRs that have already been synchronized to GitLab."""
