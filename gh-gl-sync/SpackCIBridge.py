@@ -199,8 +199,7 @@ if __name__ == "__main__":
 
     ssh_key_base64 = os.getenv("GITLAB_SSH_KEY_BASE64")
     if ssh_key_base64 is None:
-        print("Error: GITLAB_SSH_KEY_BASE64 is empty")
-        sys.exit(1)
+        raise Exception("GITLAB_SSH_KEY_BASE64 environment is not set")
 
     bridge = SpackCIBridge()
     bridge.setup_ssh(ssh_key_base64)
