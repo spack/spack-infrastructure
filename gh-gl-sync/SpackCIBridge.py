@@ -32,8 +32,8 @@ class SpackCIBridge(object):
         pid_regexp = re.compile(r"SSH_AGENT_PID=([0-9]+)")
         match = pid_regexp.search(output.decode("utf-8"))
         if match is None:
-            print("WARNING: could not detect ssh-agent PID.")
-            print("ssh-agent will not be killed upon program termination")
+            print("WARNING: could not detect ssh-agent PID.", file=sys.stderr)
+            print("ssh-agent will not be killed upon program termination", file=sys.stderr)
         else:
             pid = match.group(1)
             os.environ["SSH_AGENT_PID"] = pid
