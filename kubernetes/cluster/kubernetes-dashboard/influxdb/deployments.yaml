@@ -1,16 +1,23 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: monitoring-influxdb
   namespace: kube-system
+  labels:
+    app: k8s-dashboard
+    svc: influxdb
 spec:
+  selector:
+    matchLabels:
+      app: k8s-dashboard
+      svc: influxdb
   replicas: 1
   template:
     metadata:
       labels:
-        task: monitoring
-        k8s-app: influxdb
+        app: k8s-dashboard
+        svc: influxdb
     spec:
       containers:
       - name: influxdb

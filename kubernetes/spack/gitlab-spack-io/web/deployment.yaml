@@ -252,7 +252,7 @@ spec:
           mountPath: /meta
           subPath: meta
       nodeSelector:
-        "beta.kubernetes.io/instance-type": "r5.xlarge"
+        "beta.kubernetes.io/instance-type": "r5.4xlarge"
       serviceAccount: gitlab
       volumes:
         - name: data

@@ -1,16 +1,23 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: heapster
   namespace: kube-system
+  labels:
+    app: k8s-dashboard
+    svc: heapster
 spec:
+  selector:
+    matchLabels:
+      app: k8s-dashboard
+      svc: heapster
   replicas: 1
   template:
     metadata:
       labels:
-        task: monitoring
-        k8s-app: heapster
+        app: k8s-dashboard
+        svc: heapster
     spec:
       serviceAccountName: heapster
       containers:
