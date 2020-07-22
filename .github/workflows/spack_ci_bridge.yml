@@ -1,0 +1,22 @@
+name: spack_ci_bridge
+
+on: [push, pull_request]
+
+jobs:
+  spack_ci_bridge:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends                        \
+          build-essential                                                      \
+          cmake                                                                \
+          git                                                                  \
+          openssh-client                                                       \
+          python3-pip
+        sudo pip3 install -r gh-gl-sync/requirements.txt
+    - name: test
+      run: |
+        ctest -VV -S .github/spack_ci_bridge.cmake

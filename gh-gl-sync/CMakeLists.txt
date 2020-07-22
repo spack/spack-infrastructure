@@ -9,5 +9,5 @@ add_test(
 
 add_test(
   NAME pytest
-  COMMAND pytest
+  COMMAND pytest --cov=SpackCIBridge --cov-report=xml:bin/coverage.xml
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
