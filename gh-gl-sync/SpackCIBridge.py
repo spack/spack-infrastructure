@@ -29,6 +29,8 @@ class SpackCIBridge(object):
         """Start the ssh agent."""
         print("Starting ssh-agent")
         output = subprocess.run(["ssh-agent", "-s"], check=True, stdout=subprocess.PIPE).stdout
+
+        # Search for PID in output.
         pid_regexp = re.compile(r"SSH_AGENT_PID=([0-9]+)")
         match = pid_regexp.search(output.decode("utf-8"))
         if match is None:
@@ -38,6 +40,16 @@ class SpackCIBridge(object):
             pid = match.group(1)
             os.environ["SSH_AGENT_PID"] = pid
             self.cleanup_ssh_agent = True
+
+        # Search for socket in output.
+        socket_regexp = re.compile(r"SSH_AUTH_SOCK=([^;]+);")
+        match = socket_regexp.search(output.decode("utf-8"))
+        if match is None:
+            print("WARNING: could not detect ssh-agent socket.", file=sys.stderr)
+            print("Key will be added to caller's ssh-agent (if any)", file=sys.stderr)
+        else:
+            socket = match.group(1)
+            os.environ["SSH_AUTH_SOCK"] = socket
 
         # Add the key.
         ssh_key = base64.b64decode(ssh_key_base64)
