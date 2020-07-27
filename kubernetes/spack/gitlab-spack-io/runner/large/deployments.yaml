@@ -15,7 +15,7 @@ spec:
       app: gitlab
       svc: runner
       size: large
-  replicas: 3 # Three at a time
+  replicas: 5 # Five at a time
   template:
     metadata:
       labels:

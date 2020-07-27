@@ -129,7 +129,7 @@ spec:
         "beta.kubernetes.io/instance-type": "t2.medium"
 
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis-metrics
