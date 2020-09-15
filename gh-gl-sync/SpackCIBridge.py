@@ -17,8 +17,8 @@ import urllib.request
 class SpackCIBridge(object):
 
     def __init__(self):
-        self.gitlab_url = ""
-        self.github_url = ""
+        self.gitlab_repo = ""
+        self.github_repo = ""
 
     @atexit.register
     def cleanup():
@@ -83,7 +83,7 @@ class SpackCIBridge(object):
         self.github_pr_responses = []
         try:
             request = urllib.request.Request(
-                    "https://api.github.com/repos/%s/pulls?state=%s" % (self.github_repo, state))
+                    "https://api.github.com/repos/%s/pulls?state=%s" % (self.github_project, state))
             request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
             response = urllib.request.urlopen(request)
         except OSError:
@@ -95,8 +95,8 @@ class SpackCIBridge(object):
         one for GitHub and one for GitLab.
         """
         subprocess.run(["git", "init"], check=True)
-        subprocess.run(["git", "remote", "add", "github", self.github_url], check=True)
-        subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_url], check=True)
+        subprocess.run(["git", "remote", "add", "github", self.github_repo], check=True)
+        subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_repo], check=True)
 
     def fetch_gitlab_prs(self):
         """Query GitLab for branches that have already been copied over from GitHub PRs.
@@ -236,10 +236,10 @@ class SpackCIBridge(object):
                     pipelines[sha] = response
         return pipelines
 
-    def get_pipeline_api_template(self, gitlab_host, gitlab_repo):
-        template = gitlab_host.replace("ssh.", "https://")
+    def get_pipeline_api_template(self, gitlab_host, gitlab_project):
+        template = gitlab_host
         template += "/api/v4/projects/"
-        template += urllib.parse.quote_plus(gitlab_repo)
+        template += urllib.parse.quote_plus(gitlab_project)
         template += "/pipelines?ref={0}"
         return template
 
@@ -262,7 +262,7 @@ class SpackCIBridge(object):
                 print("Posting status for {0} / {1}".format(open_pr, sha))
                 post_data = self.make_status_for_pipeline(pipeline)
                 post_request = urllib.request.Request(
-                        "https://api.github.com/repos/{0}/statuses/{1}".format(self.github_repo, sha),
+                        "https://api.github.com/repos/{0}/statuses/{1}".format(self.github_project, sha),
                         data=post_data)
                 post_request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
                 post_request.add_header("Accept", "application/vnd.github.v3+json")
@@ -274,9 +274,9 @@ class SpackCIBridge(object):
         """Synchronize pull requests from GitHub as branches on GitLab."""
         # Handle input arguments for connecting to GitHub and GitLab.
         os.environ["GIT_SSH_COMMAND"] = "ssh -F /dev/null -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-        self.gitlab_url = "git@{0}:{1}.git".format(args.gitlab_host, args.gitlab_repo)
-        self.github_url = "https://github.com/{0}.git".format(args.github_repo)
-        self.github_repo = args.github_repo
+        self.gitlab_repo = args.gitlab_repo
+        self.github_repo = "https://github.com/{0}.git".format(args.github_project)
+        self.github_project = args.github_project
 
         # Work inside a temporary directory that will be deleted when this script terminates.
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -307,16 +307,17 @@ class SpackCIBridge(object):
                 subprocess.run(push_args, check=True)
 
             # Post pipeline status to GitHub for each open PR.
-            pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_repo)
+            pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
             self.post_pipeline_status(open_prs, pipeline_api_template)
 
 
 if __name__ == "__main__":
     # Parse command-line arguments.
     parser = argparse.ArgumentParser(description="Sync GitHub PRs to GitLab")
-    parser.add_argument("github_repo", help="GitHub repo (org/repo or user/repo)")
-    parser.add_argument("gitlab_host", help="URL to GitLab server")
-    parser.add_argument("gitlab_repo", help="GitLab repo (org/repo or user/repo)")
+    parser.add_argument("github_project", help="GitHub project (org/repo or user/repo)")
+    parser.add_argument("gitlab_repo", help="Full clone URL for GitLab")
+    parser.add_argument("gitlab_host", help="GitLab web host")
+    parser.add_argument("gitlab_project", help="GitLab project (org/repo or user/repo)")
 
     args = parser.parse_args()
 

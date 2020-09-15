@@ -111,7 +111,7 @@ def test_ssh_agent():
 def test_get_pipeline_api_template():
     """Test the get_pipeline_api_template method."""
     bridge = SpackCIBridge.SpackCIBridge()
-    template = bridge.get_pipeline_api_template("ssh.gitlab.spack.io", "zack/my_test_proj")
+    template = bridge.get_pipeline_api_template("https://gitlab.spack.io", "zack/my_test_proj")
     assert template == "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
 
 
@@ -261,7 +261,7 @@ def test_post_pipeline_status(capfd):
     open_prs = ["pr1_readme"]
     template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
     bridge = SpackCIBridge.SpackCIBridge()
-    bridge.github_repo = "zack/my_test_proj"
+    bridge.github_project = "zack/my_test_proj"
     os.environ["GITHUB_TOKEN"] = "my_github_token"
     mock_data = b'''[
         {
