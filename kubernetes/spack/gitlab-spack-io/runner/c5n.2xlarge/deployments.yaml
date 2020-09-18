@@ -1,27 +1,27 @@
-# c5n.xlarge gitlab runner(s)
+# c5n.2xlarge gitlab runner(s)
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gitlab-runner-c5n.xlarge
+  name: gitlab-runner-c5n.2xlarge
   namespace: spack
   labels:
     app: gitlab
     svc: runner
-    size: c5n.xlarge
+    size: c5n.2xlarge
 spec:
   selector:
     matchLabels:
       app: gitlab
       svc: runner
-      size: c5n.xlarge
-  replicas: 4 # Four at a time
+      size: c5n.2xlarge
+  replicas: 2 # 2 at a time
   template:
     metadata:
       labels:
         app: gitlab
         svc: runner
-        size: c5n.xlarge
+        size: c5n.2xlarge
     spec:
       serviceAccountName: gitlab-runner
       containers:
@@ -48,7 +48,7 @@ spec:
                     "cluster-autoscaler.kubernetes.io/safe-to-evict:false" \
                   --kubernetes-node-selector "type:gitlab-runner" \
                   --kubernetes-node-selector \
-                    "beta.kubernetes.io/instance-type:c5n.xlarge"
+                    "beta.kubernetes.io/instance-type:c5n.2xlarge"
           preStop:
             exec:
               command:
@@ -86,7 +86,7 @@ spec:
           value: kubernetes
 
         - name: KUBERNETES_CPU_REQUEST
-          value: "3.7" # prevent more than one job from running on a c5n.xlarge
+          value: "7.7" # prevent more than one job from running on a c5n.2xlarge
 
         - name: KUBERNETES_PULL_POLICY
           value: "always"
@@ -110,7 +110,7 @@ spec:
           value: "32"
 
         - name: RUNNER_TAG_LIST
-          value: "spack-kube,c5n.xlarge"
+          value: "spack-kube,c5n.2xlarge"
         resources:
           requests:
             memory: 20Mi
