@@ -29,16 +29,6 @@ Parameters:
     Default: 192.168.13.0/24
     Description: CidrBlock for public subnet 04 within the VPC
 
-  PublicSubnet05Block:
-    Type: String
-    Default: 192.168.14.0/24
-    Description: CidrBlock for public subnet 05 within the VPC
-
-  PublicSubnet06Block:
-    Type: String
-    Default: 192.168.15.0/24
-    Description: CidrBlock for public subnet 06 within the VPC
-
   PrivateSubnet01Block:
     Type: String
     Default: 192.168.100.0/24
@@ -59,16 +49,6 @@ Parameters:
     Default: 192.168.103.0/24
     Description: CidrBlock for private subnet 04 within the VPC
 
-  PrivateSubnet05Block:
-    Type: String
-    Default: 192.168.104.0/24
-    Description: CidrBlock for private subnet 05 within the VPC
-
-  PrivateSubnet06Block:
-    Type: String
-    Default: 192.168.105.0/24
-    Description: CidrBlock for private subnet 06 within the VPC
-
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -81,14 +61,10 @@ Metadata:
           - PublicSubnet02Block
           - PublicSubnet03Block
           - PublicSubnet04Block
-          - PublicSubnet05Block
-          - PublicSubnet06Block
           - PrivateSubnet01Block
           - PrivateSubnet02Block
           - PrivateSubnet03Block
           - PrivateSubnet04Block
-          - PrivateSubnet05Block
-          - PrivateSubnet06Block
 
 Resources:
   VPC:
@@ -160,26 +136,6 @@ Resources:
       - Key: Network
         Value: Private04
 
-  PrivateRouteTable05:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-      - Key: Name
-        Value: Private Subnet AZ5
-      - Key: Network
-        Value: Private05
-
-  PrivateRouteTable06:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-      - Key: Name
-        Value: Private Subnet AZ6
-      - Key: Network
-        Value: Private06
-
   PublicRoute:
     DependsOn: VPCGatewayAttachment
     Type: AWS::EC2::Route
@@ -227,26 +183,6 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable04
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGateway04
-
-  PrivateRoute05:
-    DependsOn:
-    - VPCGatewayAttachment
-    - NatGateway05
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable05
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway05
-
-  PrivateRoute06:
-    DependsOn:
-    - VPCGatewayAttachment
-    - NatGateway06
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable06
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway06
 
   NatGateway01:
     DependsOn:
@@ -300,32 +236,6 @@ Resources:
       - Key: Name
         Value: !Sub '${AWS::StackName}-NatGatewayAZ4'
 
-  NatGateway05:
-    DependsOn:
-    - NatGatewayEIP5
-    - PublicSubnet05
-    - VPCGatewayAttachment
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt 'NatGatewayEIP5.AllocationId'
-      SubnetId: !Ref PublicSubnet05
-      Tags:
-      - Key: Name
-        Value: !Sub '${AWS::StackName}-NatGatewayAZ5'
-
-  NatGateway06:
-    DependsOn:
-    - NatGatewayEIP6
-    - PublicSubnet06
-    - VPCGatewayAttachment
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt 'NatGatewayEIP6.AllocationId'
-      SubnetId: !Ref PublicSubnet06
-      Tags:
-      - Key: Name
-        Value: !Sub '${AWS::StackName}-NatGatewayAZ6'
-
   NatGatewayEIP1:
     DependsOn:
     - VPCGatewayAttachment
@@ -347,23 +257,7 @@ Resources:
     Properties:
       Domain: vpc
 
-
   NatGatewayEIP4:
-    DependsOn:
-    - VPCGatewayAttachment
-    Type: 'AWS::EC2::EIP'
-    Properties:
-      Domain: vpc
-
-
-  NatGatewayEIP5:
-    DependsOn:
-    - VPCGatewayAttachment
-    Type: 'AWS::EC2::EIP'
-    Properties:
-      Domain: vpc
-
-  NatGatewayEIP6:
     DependsOn:
     - VPCGatewayAttachment
     Type: 'AWS::EC2::EIP'
@@ -454,48 +348,6 @@ Resources:
       - Key: kubernetes.io/role/elb
         Value: 1
 
-  PublicSubnet05:
-    Type: AWS::EC2::Subnet
-    Metadata:
-      Comment: Subnet 05
-    Properties:
-      MapPublicIpOnLaunch: true
-      AvailabilityZone:
-        Fn::Select:
-        - '4'
-        - Fn::GetAZs:
-            Ref: AWS::Region
-      CidrBlock:
-        Ref: PublicSubnet05Block
-      VpcId:
-        Ref: VPC
-      Tags:
-      - Key: Name
-        Value: !Sub "${AWS::StackName}-PublicSubnet05"
-      - Key: kubernetes.io/role/elb
-        Value: 1
-
-  PublicSubnet06:
-    Type: AWS::EC2::Subnet
-    Metadata:
-      Comment: Subnet 06
-    Properties:
-      MapPublicIpOnLaunch: true
-      AvailabilityZone:
-        Fn::Select:
-        - '5'
-        - Fn::GetAZs:
-            Ref: AWS::Region
-      CidrBlock:
-        Ref: PublicSubnet06Block
-      VpcId:
-        Ref: VPC
-      Tags:
-      - Key: Name
-        Value: !Sub "${AWS::StackName}-PublicSubnet06"
-      - Key: kubernetes.io/role/elb
-        Value: 1
-
   PrivateSubnet01:
     Type: AWS::EC2::Subnet
     Metadata:
@@ -576,46 +428,6 @@ Resources:
       - Key: kubernetes.io/role/internal-elb
         Value: 1
 
-  PrivateSubnet05:
-    Type: AWS::EC2::Subnet
-    Metadata:
-      Comment: Private Subnet 05
-    Properties:
-      AvailabilityZone:
-        Fn::Select:
-        - '4'
-        - Fn::GetAZs:
-            Ref: AWS::Region
-      CidrBlock:
-        Ref: PrivateSubnet05Block
-      VpcId:
-        Ref: VPC
-      Tags:
-      - Key: Name
-        Value: !Sub "${AWS::StackName}-PrivateSubnet05"
-      - Key: kubernetes.io/role/internal-elb
-        Value: 1
-
-  PrivateSubnet06:
-    Type: AWS::EC2::Subnet
-    Metadata:
-      Comment: Private Subnet 06
-    Properties:
-      AvailabilityZone:
-        Fn::Select:
-        - '5'
-        - Fn::GetAZs:
-            Ref: AWS::Region
-      CidrBlock:
-        Ref: PrivateSubnet06Block
-      VpcId:
-        Ref: VPC
-      Tags:
-      - Key: Name
-        Value: !Sub "${AWS::StackName}-PrivateSubnet06"
-      - Key: kubernetes.io/role/internal-elb
-        Value: 1
-
   PublicSubnet01RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -638,18 +450,6 @@ Resources:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet04
-      RouteTableId: !Ref PublicRouteTable
-
-  PublicSubnet05RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PublicSubnet05
-      RouteTableId: !Ref PublicRouteTable
-
-  PublicSubnet06RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PublicSubnet06
       RouteTableId: !Ref PublicRouteTable
 
   PrivateSubnet01RouteTableAssociation:
@@ -676,18 +476,6 @@ Resources:
       SubnetId: !Ref PrivateSubnet04
       RouteTableId: !Ref PrivateRouteTable04
 
-  PrivateSubnet05RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnet05
-      RouteTableId: !Ref PrivateRouteTable05
-
-  PrivateSubnet06RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnet06
-      RouteTableId: !Ref PrivateRouteTable06
-
   ControlPlaneSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -698,11 +486,11 @@ Outputs:
 
   PrivateSubnetIds:
     Description: Subnets IDs in the VPC
-    Value: !Join [ ",", [ !Ref PublicSubnet01, !Ref PublicSubnet02, !Ref PublicSubnet03, !Ref PublicSubnet04, !Ref PublicSubnet05, !Ref PublicSubnet06 ] ]
+    Value: !Join [ ",", [ !Ref PublicSubnet01, !Ref PublicSubnet02, !Ref PublicSubnet03, !Ref PublicSubnet04 ] ]
 
   PublicSubnetIds:
     Description: Subnets IDs in the VPC
-    Value: !Join [ ",", [ !Ref PrivateSubnet01, !Ref PrivateSubnet02, !Ref PrivateSubnet03, !Ref PrivateSubnet04, !Ref PrivateSubnet05, !Ref PrivateSubnet06 ] ]
+    Value: !Join [ ",", [ !Ref PrivateSubnet01, !Ref PrivateSubnet02, !Ref PrivateSubnet03, !Ref PrivateSubnet04 ] ]
 
   SecurityGroups:
     Description: Security group for the cluster control plane communication with worker nodes
