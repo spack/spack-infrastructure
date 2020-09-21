@@ -11,62 +11,62 @@ Parameters:
 
   PublicSubnet01Block:
     Type: String
-    Default: 192.168.0.0/18
+    Default: 192.168.10.0/24
     Description: CidrBlock for public subnet 01 within the VPC
 
   PublicSubnet02Block:
     Type: String
-    Default: 192.169.0.0/18
+    Default: 192.168.11.0/24
     Description: CidrBlock for public subnet 02 within the VPC
 
   PublicSubnet03Block:
     Type: String
-    Default: 192.170.0.0/18
+    Default: 192.168.12.0/24
     Description: CidrBlock for public subnet 03 within the VPC
 
   PublicSubnet04Block:
     Type: String
-    Default: 192.171.0.0/18
+    Default: 192.168.13.0/24
     Description: CidrBlock for public subnet 04 within the VPC
 
   PublicSubnet05Block:
     Type: String
-    Default: 192.172.0.0/18
+    Default: 192.168.14.0/24
     Description: CidrBlock for public subnet 05 within the VPC
 
   PublicSubnet06Block:
     Type: String
-    Default: 192.173.0.0/18
+    Default: 192.168.15.0/24
     Description: CidrBlock for public subnet 06 within the VPC
 
   PrivateSubnet01Block:
     Type: String
-    Default: 192.168.128.0/18
+    Default: 192.168.100.0/24
     Description: CidrBlock for private subnet 01 within the VPC
 
   PrivateSubnet02Block:
     Type: String
-    Default: 192.169.128.0/18
+    Default: 192.168.101.0/24
     Description: CidrBlock for private subnet 02 within the VPC
 
   PrivateSubnet03Block:
     Type: String
-    Default: 192.170.128.0/18
+    Default: 192.168.102.0/24
     Description: CidrBlock for private subnet 03 within the VPC
 
   PrivateSubnet04Block:
     Type: String
-    Default: 192.171.128.0/18
+    Default: 192.168.103.0/24
     Description: CidrBlock for private subnet 04 within the VPC
 
   PrivateSubnet05Block:
     Type: String
-    Default: 192.172.128.0/18
+    Default: 192.168.104.0/24
     Description: CidrBlock for private subnet 05 within the VPC
 
   PrivateSubnet06Block:
     Type: String
-    Default: 192.173.128.0/18
+    Default: 192.168.105.0/24
     Description: CidrBlock for private subnet 06 within the VPC
 
 Metadata:
