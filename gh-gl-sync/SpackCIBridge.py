@@ -3,20 +3,22 @@
 import argparse
 import atexit
 import base64
+import dateutil.parser
 import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import urllib.parse
 import urllib.request
 
 
 class SpackCIBridge(object):
 
     def __init__(self):
-        self.gitlab_url = ""
-        self.github_url = ""
+        self.gitlab_repo = ""
+        self.github_repo = ""
 
     @atexit.register
     def cleanup():
@@ -81,9 +83,8 @@ class SpackCIBridge(object):
         self.github_pr_responses = []
         try:
             request = urllib.request.Request(
-                    "https://api.github.com/repos/%s/pulls?state=%s" % (self.github_repo, state))
-            if "GITHUB_TOKEN" in os.environ:
-                request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
+                    "https://api.github.com/repos/%s/pulls?state=%s" % (self.github_project, state))
+            request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
             response = urllib.request.urlopen(request)
         except OSError:
             return
@@ -94,8 +95,8 @@ class SpackCIBridge(object):
         one for GitHub and one for GitLab.
         """
         subprocess.run(["git", "init"], check=True)
-        subprocess.run(["git", "remote", "add", "github", self.github_url], check=True)
-        subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_url], check=True)
+        subprocess.run(["git", "remote", "add", "github", self.github_repo], check=True)
+        subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_repo], check=True)
 
     def fetch_gitlab_prs(self):
         """Query GitLab for branches that have already been copied over from GitHub PRs.
@@ -163,13 +164,119 @@ class SpackCIBridge(object):
             branch_name = "github/{0}".format(open_pr)
             subprocess.run(["git", "branch", "-q", branch_name, branch_name], check=True)
 
+    def make_status_for_pipeline(self, pipeline):
+        """Generate POST data to create a GitHub status from a GitLab pipeline
+           API response
+        """
+        post_data = {}
+        if "status" not in pipeline:
+            return post_data
+
+        if pipeline["status"] == "created":
+            post_data["state"] = "pending"
+            post_data["description"] = "Pipeline has been created"
+
+        elif pipeline["status"] == "waiting_for_resource":
+            post_data["state"] = "pending"
+            post_data["description"] = "Pipeline is waiting for resources"
+
+        elif pipeline["status"] == "preparing":
+            post_data["state"] = "pending"
+            post_data["description"] = "Pipeline is preparing"
+
+        elif pipeline["status"] == "pending":
+            post_data["state"] = "pending"
+            post_data["description"] = "Pipeline is pending"
+
+        elif pipeline["status"] == "running":
+            post_data["state"] = "pending"
+            post_data["description"] = "Pipeline is running"
+
+        elif pipeline["status"] == "manual":
+            post_data["state"] = "pending"
+            post_data["description"] = "Pipeline is running manually"
+
+        elif pipeline["status"] == "scheduled":
+            post_data["state"] = "pending"
+            post_data["description"] = "Pipeline is scheduled"
+
+        elif pipeline["status"] == "failed":
+            post_data["state"] = "error"
+            post_data["description"] = "Pipeline failed"
+
+        elif pipeline["status"] == "canceled":
+            post_data["state"] = "failure"
+            post_data["description"] = "Pipeline was canceled"
+
+        elif pipeline["status"] == "skipped":
+            post_data["state"] = "failure"
+            post_data["description"] = "Pipeline was skipped"
+
+        elif pipeline["status"] == "success":
+            post_data["state"] = "success"
+            post_data["description"] = "Pipeline succeeded"
+
+        post_data["target_url"] = pipeline["web_url"]
+        post_data["context"] = "ci/gitlab-ci"
+
+        post_data = json.dumps(post_data).encode('utf-8')
+        return post_data
+
+    def dedupe_pipelines(self, api_response):
+        """Prune pipelines API response to only include the most recent result for each SHA"""
+        pipelines = {}
+        for response in api_response:
+            sha = response['sha']
+            if sha not in pipelines:
+                pipelines[sha] = response
+            else:
+                existing_datetime = dateutil.parser.parse(pipelines[sha]['updated_at'])
+                current_datetime = dateutil.parser.parse(response['updated_at'])
+                if current_datetime > existing_datetime:
+                    pipelines[sha] = response
+        return pipelines
+
+    def get_pipeline_api_template(self, gitlab_host, gitlab_project):
+        template = gitlab_host
+        template += "/api/v4/projects/"
+        template += urllib.parse.quote_plus(gitlab_project)
+        template += "/pipelines?ref={0}"
+        return template
+
+    def post_pipeline_status(self, open_prs, pipeline_api_template):
+        for open_pr in open_prs:
+            # Use gitlab's API to get pipeline results for the corresponding ref.
+            api_url = pipeline_api_template.format("github/" + open_pr)
+            try:
+                request = urllib.request.Request(api_url)
+                response = urllib.request.urlopen(request)
+            except OSError:
+                continue
+            try:
+                pipelines = json.loads(response.read())
+            except json.decoder.JSONDecodeError:
+                continue
+            # Post status to GitHub for each pipeline found.
+            pipelines = self.dedupe_pipelines(pipelines)
+            for sha, pipeline in pipelines.items():
+                print("Posting status for {0} / {1}".format(open_pr, sha))
+                post_data = self.make_status_for_pipeline(pipeline)
+                post_request = urllib.request.Request(
+                        "https://api.github.com/repos/{0}/statuses/{1}".format(self.github_project, sha),
+                        data=post_data)
+                post_request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
+                post_request.add_header("Accept", "application/vnd.github.v3+json")
+                post_response = urllib.request.urlopen(post_request)
+                if post_response.status != 201:
+                    print("Expected 201 when creating status, got {0}".format(post_response.status))
+
     def sync(self, args):
         """Synchronize pull requests from GitHub as branches on GitLab."""
         # Handle input arguments for connecting to GitHub and GitLab.
         os.environ["GIT_SSH_COMMAND"] = "ssh -F /dev/null -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-        self.gitlab_url = "git@{0}:{1}.git".format(args.gitlab_host, args.gitlab_repo)
-        self.github_url = "https://github.com/{0}.git".format(args.github_repo)
-        self.github_repo = args.github_repo
+        self.gitlab_repo = args.gitlab_repo
+        self.github_repo = "https://github.com/{0}.git".format(args.github_project)
+        self.github_project = args.github_project
 
         # Work inside a temporary directory that will be deleted when this script terminates.
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -199,19 +306,27 @@ class SpackCIBridge(object):
                 push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + closed_refspecs + open_refspecs
                 subprocess.run(push_args, check=True)
 
+            # Post pipeline status to GitHub for each open PR.
+            pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
+            self.post_pipeline_status(open_prs, pipeline_api_template)
+
 
 if __name__ == "__main__":
     # Parse command-line arguments.
     parser = argparse.ArgumentParser(description="Sync GitHub PRs to GitLab")
-    parser.add_argument("github_repo", help="GitHub repo (org/repo or user/repo)")
-    parser.add_argument("gitlab_host", help="URL to GitLab server")
-    parser.add_argument("gitlab_repo", help="GitLab repo (org/repo or user/repo)")
+    parser.add_argument("github_project", help="GitHub project (org/repo or user/repo)")
+    parser.add_argument("gitlab_repo", help="Full clone URL for GitLab")
+    parser.add_argument("gitlab_host", help="GitLab web host")
+    parser.add_argument("gitlab_project", help="GitLab project (org/repo or user/repo)")
 
     args = parser.parse_args()
 
     ssh_key_base64 = os.getenv("GITLAB_SSH_KEY_BASE64")
     if ssh_key_base64 is None:
         raise Exception("GITLAB_SSH_KEY_BASE64 environment is not set")
+
+    if "GITHUB_TOKEN" not in os.environ:
+        raise Exception("GITHUB_TOKEN environment is not set")
 
     bridge = SpackCIBridge()
     bridge.setup_ssh(ssh_key_base64)

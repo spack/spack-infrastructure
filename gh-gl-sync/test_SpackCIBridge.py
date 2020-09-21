@@ -1,3 +1,7 @@
+import json
+import os
+from unittest.mock import patch
+
 import SpackCIBridge
 
 
@@ -65,8 +69,6 @@ def test_get_open_refspecs():
 
 def test_ssh_agent():
     """Test starting & stopping ssh-agent."""
-    import os
-
     def check_pid(pid):
         """Local function to check if a PID is running or not."""
         try:
@@ -104,3 +106,177 @@ def test_ssh_agent():
 
     # Prevent atexit from trying to kill it again.
     del os.environ["SSH_AGENT_PID"]
+
+
+def test_get_pipeline_api_template():
+    """Test the get_pipeline_api_template method."""
+    bridge = SpackCIBridge.SpackCIBridge()
+    template = bridge.get_pipeline_api_template("https://gitlab.spack.io", "zack/my_test_proj")
+    assert template == "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
+
+
+def test_dedupe_pipelines():
+    """Test the dedupe_pipelines method."""
+    input = [
+        {
+            "id": 1,
+            "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "ref": "github/pr1_readme",
+            "status": "failed",
+            "created_at": "2020-08-26T17:26:30.216Z",
+            "updated_at": "2020-08-26T17:26:36.807Z",
+            "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/1"
+        },
+        {
+            "id": 2,
+            "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "ref": "github/pr1_readme",
+            "status": "passed",
+            "created_at": "2020-08-27T17:27:30.216Z",
+            "updated_at": "2020-08-27T17:27:36.807Z",
+            "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/2"
+        },
+        {
+            "id": 3,
+            "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "ref": "github/pr2_todo",
+            "status": "failed",
+            "created_at": "2020-08-26T17:26:30.216Z",
+            "updated_at": "2020-08-26T17:26:36.807Z",
+            "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/3"
+        },
+    ]
+    expected = {
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
+            "id": 2,
+            "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "ref": "github/pr1_readme",
+            "status": "passed",
+            "created_at": "2020-08-27T17:27:30.216Z",
+            "updated_at": "2020-08-27T17:27:36.807Z",
+            "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/2"
+        },
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": {
+            "id": 3,
+            "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "ref": "github/pr2_todo",
+            "status": "failed",
+            "created_at": "2020-08-26T17:26:30.216Z",
+            "updated_at": "2020-08-26T17:26:36.807Z",
+            "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/3"
+        },
+    }
+    bridge = SpackCIBridge.SpackCIBridge()
+    assert bridge.dedupe_pipelines(input) == expected
+
+
+def test_make_status_for_pipeline():
+    """Test the make_status_for_pipeline method."""
+    bridge = SpackCIBridge.SpackCIBridge()
+    pipeline = {"web_url": "foo"}
+    status = bridge.make_status_for_pipeline(pipeline)
+    assert status == {}
+
+    test_cases = [
+        {
+            "input": "created",
+            "state": "pending",
+            "description": "Pipeline has been created",
+        },
+        {
+            "input": "waiting_for_resource",
+            "state": "pending",
+            "description": "Pipeline is waiting for resources",
+        },
+        {
+            "input": "preparing",
+            "state": "pending",
+            "description": "Pipeline is preparing",
+        },
+        {
+            "input": "pending",
+            "state": "pending",
+            "description": "Pipeline is pending",
+        },
+        {
+            "input": "running",
+            "state": "pending",
+            "description": "Pipeline is running",
+        },
+        {
+            "input": "manual",
+            "state": "pending",
+            "description": "Pipeline is running manually",
+        },
+        {
+            "input": "scheduled",
+            "state": "pending",
+            "description": "Pipeline is scheduled",
+        },
+        {
+            "input": "failed",
+            "state": "error",
+            "description": "Pipeline failed",
+        },
+        {
+            "input": "canceled",
+            "state": "failure",
+            "description": "Pipeline was canceled",
+        },
+        {
+            "input": "skipped",
+            "state": "failure",
+            "description": "Pipeline was skipped",
+        },
+        {
+            "input": "success",
+            "state": "success",
+            "description": "Pipeline succeeded",
+        },
+    ]
+    for test_case in test_cases:
+        pipeline["status"] = test_case["input"]
+        status = bridge.make_status_for_pipeline(pipeline)
+        assert json.loads(status.decode("utf-8"))["state"] == test_case["state"]
+        assert json.loads(status.decode("utf-8"))["description"] == test_case["description"]
+
+
+class FakeResponse:
+    status: int
+    data: bytes
+
+    def __init__(self, *, data: bytes):
+        self.data = data
+
+    def read(self):
+        self.status = 201 if self.data is not None else 404
+        return self.data
+
+    def close(self):
+        pass
+
+
+def test_post_pipeline_status(capfd):
+    """Test the post_pipeline_status method."""
+    open_prs = ["pr1_readme"]
+    template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
+    bridge = SpackCIBridge.SpackCIBridge()
+    bridge.github_project = "zack/my_test_proj"
+    os.environ["GITHUB_TOKEN"] = "my_github_token"
+    mock_data = b'''[
+        {
+            "id": 1,
+            "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "ref": "github/pr1_readme",
+            "status": "failed",
+            "created_at": "2020-08-26T17:26:30.216Z",
+            "updated_at": "2020-08-26T17:26:36.807Z",
+            "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/1"
+        }
+    ]'''
+    with patch('urllib.request.urlopen', return_value=FakeResponse(data=mock_data)) as mock_urlopen:
+        bridge.post_pipeline_status(open_prs, template)
+        assert mock_urlopen.call_count == 2
+    out, err = capfd.readouterr()
+    assert out == "Posting status for pr1_readme / aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    del os.environ["GITHUB_TOKEN"]
