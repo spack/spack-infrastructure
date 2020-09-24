@@ -169,7 +169,7 @@ Resources:
             EOF
 
             labels="$(
-                python3 -m awscli cloudformation describe-stacks \
+                aws cloudformation describe-stacks \
                     --region ${AWS::Region} \
                     --stack-name ${AWS::StackName} | python script.py )"
 
