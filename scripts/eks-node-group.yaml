@@ -98,7 +98,6 @@ Metadata:
           - Subnets
 
 Resources:
-
   NodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -114,8 +113,18 @@ Resources:
         - Key: !Sub kubernetes.io/cluster/${ClusterName}
           Value: owned
           PropagateAtLaunch: true
-
-          !Ref InstanceTags
+        - Key: eks:cluster-name
+          Value: !Ref ClusterName
+          PropagateAtLaunch: true
+        - Key: eks:nodegroup-name
+          Value: !Ref NodeGroupName
+          PropagateAtLaunch: true
+        - Key: k8s.io/cluster-autoscaler/enabled
+          Value: "true"
+          PropagateAtLaunch: true
+        - Key: !Sub k8s.io/cluster-autoscaler/${ClusterName}
+          Value: owned
+          PropagateAtLaunch: true
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MaxBatchSize: 1
