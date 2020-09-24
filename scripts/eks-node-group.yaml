@@ -29,19 +29,15 @@ Parameters:
     ConstraintDescription: Must be a valid EC2 instance type
 
   NodeAutoScalingGroupMinSize:
-    Description: Minimum size of Node Group ASG.
+    Description: Minimum size of the Node Group.
     Type: Number
     Default: 0
 
   NodeAutoScalingGroupMaxSize:
-    Description: "\
-      Maximum size of Node Group ASG. Set to at least 
-      1 greater than NodeAutoScalingGroupDesiredCapacity."
-    Type: Number
-    Default: 4
-
-  NodeAutoScalingGroupDesiredCapacity:
-    Description: Desired capacity of Node Group ASG.
+    Description: Maximum size of the Node Group.
+    ConstraintDescription: |
+        If equal to minimum size, then cluster
+        autoscaler will be disabled for this group.
     Type: Number
     Default: 3
 
@@ -51,9 +47,10 @@ Parameters:
     Default: 20
 
   ClusterName:
-    Description: "\
-      The cluster name provided when the cluster was created. If \
-      it is incorrect, nodes will not be able to join the cluster."
+    Description: The cluster name provided when the cluster was created.
+    ConstraintDescription: |
+      If it is incorrect, nodes will
+      not be able to join the cluster.
     Type: String
 
   NodeGroupName:
@@ -73,35 +70,43 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
 
 Metadata:
-
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
           default: EKS Cluster
         Parameters:
           - ClusterName
+
       - Label:
-          default: Worker Node Configuration
+          default: Group Configuration
         Parameters:
           - NodeGroupName
           - NodeAutoScalingGroupMinSize
-          - NodeAutoScalingGroupDesiredCapacity
           - NodeAutoScalingGroupMaxSize
+
+      - Label:
+          default: Instance Configuration
+        Parameters:
           - NodeInstanceType
           - NodeInstanceProfile
           - NodeImageId
           - NodeVolumeSize
+
       - Label:
-          default: Worker Network Configuration
+          default: Network Configuration
         Parameters:
           - NodeSecurityGroup
           - Subnets
+
+Conditions:
+  EnableClusterAutoscaling:
+    !Equals [!Ref NodeAutoScalingGroupMinSize, !Ref NodeAutoScalingGroupMaxSize]
 
 Resources:
   NodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      DesiredCapacity: !Ref NodeAutoScalingGroupDesiredCapacity
+      DesiredCapacity: !Ref NodeAutoScalingGroupMinSize
       LaunchConfigurationName: !Ref NodeLaunchConfig
       MinSize: !Ref NodeAutoScalingGroupMinSize
       MaxSize: !Ref NodeAutoScalingGroupMaxSize
@@ -120,7 +125,7 @@ Resources:
           Value: !Ref NodeGroupName
           PropagateAtLaunch: true
         - Key: k8s.io/cluster-autoscaler/enabled
-          Value: "true"
+          Value: !If [ EnableClusterAutoscaling, "true", "false" ]
           PropagateAtLaunch: true
         - Key: !Sub k8s.io/cluster-autoscaler/${ClusterName}
           Value: owned
@@ -128,7 +133,7 @@ Resources:
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MaxBatchSize: 1
-        MinInstancesInService: !Ref NodeAutoScalingGroupDesiredCapacity
+        MinInstancesInService: !Ref NodeAutoScalingGroupMinSize
         PauseTime: PT5M
 
   NodeLaunchConfig:
@@ -138,7 +143,6 @@ Resources:
       IamInstanceProfile: !Ref NodeInstanceProfile
       ImageId: !Ref NodeImageId
       InstanceType: !Ref NodeInstanceType
-      KeyName: !Ref KeyName
       SecurityGroups:
         - !Ref NodeSecurityGroup
       BlockDeviceMappings:
