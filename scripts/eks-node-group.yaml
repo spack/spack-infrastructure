@@ -59,7 +59,7 @@ Parameters:
 
   NodeInstanceProfile:
     Description: IAM profile for node instances.
-    Type: String
+    Type: AWS::IAM::InstanceProfile
 
   NodeSecurityGroup:
     Description: Security for the nodes in the cluster.
