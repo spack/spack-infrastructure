@@ -12,11 +12,11 @@
 #      using the second script.
 #
 #  This is the second (2nd) script.
+
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Amazon EKS - Node IAM Role and Instance Profile
 Resources:
-
   NodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -34,6 +34,21 @@ Resources:
             Principal:
               Service: ec2.amazonaws.com
             Action: sts:AssumeRole
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - autoscaling:DescribeAutoScalingGroups
+                  - autoscaling:DescribeAutoScalingInstances
+                  - autoscaling:DescribeLaunchConfigurations
+                  - autoscaling:DescribeTags
+                  - autoscaling:SetDesiredCapacity
+                  - autoscaling:TerminateInstanceInAutoScalingGroup
+                  - ec2:DescribeLaunchTemplateVersions
       Path: "/"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
@@ -42,7 +57,6 @@ Resources:
         - arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess
 
 Outputs:
-
   NodeInstanceProfile:
     Description: The node instance profile
     Value: !Ref NodeInstanceProfile

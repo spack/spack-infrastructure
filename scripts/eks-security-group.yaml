@@ -12,6 +12,7 @@
 #      using the second script.
 #
 #  This is the first (1st) script.
+
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Amazon EKS - Security Group for EKS Nodes
