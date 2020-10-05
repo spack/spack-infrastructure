@@ -63,7 +63,7 @@ Parameters:
 
   NodeSecurityGroup:
     Description: Security for the nodes in the cluster.
-    Type: String
+    Type: AWS::EC2::SecurityGroup::GroupName
 
   Subnets:
     Description: The subnets where workers can be created.
