@@ -15,7 +15,7 @@ spec:
       app: gitlab
       svc: runner
       size: t2.large
-  replicas: 0
+  replicas: 4
   template:
     metadata:
       labels:
