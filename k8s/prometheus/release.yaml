@@ -1,0 +1,86 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: prometheus
+  namespace: prometheus
+spec:
+  releaseName: prometheus
+  chart:
+    name: prometheus
+    repository: https://prometheus-community.github.io/helm-charts
+    version: 11.16.0  # prometheus@2.21.0
+  values:
+    alertmanager:
+      enabled: true
+      # TODO(opadron): enable once TLS + ingress is working
+      # baseURL: alertmanager.next.spack.io
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          kubernetes.io/tls-acme: 'true'
+          cert-manager.io/cluster-issuer: letsencrypt
+        hosts:
+          - alertmanager.next.spack.io
+        tls:
+          - secretName: prometheus-alerts-tls
+            hosts:
+              - alertmanager.next.spack.io
+      nodeSelector:
+        spack.io/node-pool: base
+      replicaCount: 3
+      statefulSet:
+        enabled: true
+
+    nodeExporter:
+      nodeSelector:
+        spack.io/node-pool: base
+
+    server:
+      # TODO(opadron): enable once TLS + ingress is working
+      # baseURL: prometheus.next.spack.io
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          kubernetes.io/tls-acme: 'true'
+          cert-manager.io/cluster-issuer: letsencrypt
+        hosts:
+          - prometheus.next.spack.io
+        tls:
+          - secretName: prometheus-server-tls
+            hosts:
+              - prometheus.next.spack.io
+      nodeSelector:
+        spack.io/node-pool: base
+      replicaCount: 3
+      statefulSet:
+        enabled: true
+      ## Vertical Pod Autoscaler config
+      ## Ref: https://github.com/kubernetes/autoscaler/tree/master
+      ##                        /vertical-pod-autoscaler
+      ## TODO(opadron)
+      verticalAutoscaler:
+        enabled: false
+
+    pushgateway:
+      enabled: true
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          kubernetes.io/tls-acme: 'true'
+          cert-manager.io/cluster-issuer: letsencrypt
+        hosts:
+          - pushgateway.next.spack.io
+        tls:
+          - secretName: prometheus-alerts-tls
+            hosts:
+              - pushgateway.next.spack.io
+      nodeSelector:
+        spack.io/node-pool: base
+      replicaCount: 3
+
+    # TODO(opadron): look into more custom config
+    # (e.g.: for slack notifications)

@@ -1,0 +1,12 @@
+---
+createCRD: false
+workers: 4
+helm:
+  versions: "v3"
+nodeSelector:
+    spack.io/node-pool: base
+configureRepositories:
+  enable: true
+  repositories:
+    - name: fluxcd
+      url: https://charts.fluxcd.io

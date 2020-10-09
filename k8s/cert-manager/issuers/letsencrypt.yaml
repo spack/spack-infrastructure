@@ -1,0 +1,16 @@
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    # TODO(opadron): switch this back to Todd's email after completing the
+    #                migration
+    email: omar.padron@kitware.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt
+      key: letsencrypt
+    solvers:
+      - http01: {"ingress": {"class": "nginx"}}
