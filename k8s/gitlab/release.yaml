@@ -1,0 +1,83 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: gitlab
+  namespace: gitlab
+spec:
+  releaseName: gitlab
+  chart:
+    name: gitlab
+    repository: https://charts.gitlab.io
+    version: 4.3.5 # gitlab@13.3.5
+  values:
+    # Documentation for these values and more can be found at
+    # https://gitlab.com/gitlab-org/charts/gitlab/
+
+    # No documentation was available for nodeSelector. Hopefully this is right.
+    nodeSelector:
+      spack.io/node-pool: gitlab
+
+    ## The global properties are used to configure multiple charts at once.
+    ## Extended documenation at doc/charts/globals.md
+    global:
+      ## doc/charts/globals.md#configure-host-settings
+      hosts:
+        domain: next.spack.io
+        https: true
+
+      ## doc/charts/globals.md#configure-ingress-settings
+      ingress:
+        configureCertmanager: false
+
+      gitlab:
+        ## Enterprise license for this GitLab installation
+        ## Secret created according to doc/installation/secrets.md#initial-enterprise-license
+        ## If allowing shared-secrets generation, this is OPTIONAL.
+        ## TODO: set this up
+        license: {}
+          # secret: RELEASE-gitlab-license
+          # key: license
+
+      ## doc/charts/globals.md#configure-postgresql-settings
+      psql:
+        password:
+          secret: gitlab-secrets
+          key: gitlab-db-password
+        host: gitlab-db.cgnbnwwuxkgt.us-east-1.rds.amazonaws.com
+        username: gitlab
+        database: gitlabhq_production
+
+      ## doc/charts/globals.md#configure-redis-settings
+      redis:
+        password:
+          enabled: false
+        host: gitlab-cache.cev8lh.0001.use1.cache.amazonaws.com
+
+      ## doc/charts/globals.md#configure-minio-settings
+      minio:
+        enabled: false
+
+      ## doc/charts/globals.md#configure-grafana-integration
+      grafana:
+        enabled: false
+
+    ## End of global
+
+    certmanager:
+      install: false
+
+    nginx-ingress:
+      enabled: false
+
+    prometheus:
+      install: false
+
+    redis:
+      install: false
+
+    postgresql:
+      install: false
+
+    gitlab-runner:
+      install: false
