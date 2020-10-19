@@ -64,6 +64,13 @@ spec:
 
     ## End of global
 
+    # Two webservice replicas.
+    # doc/charts/gitlab/webservice/index.md
+    gitlab:
+      webservice:
+        replicaCount: 2
+
+    # Disable lots of other components that we handle separately.
     certmanager:
       install: false
 
