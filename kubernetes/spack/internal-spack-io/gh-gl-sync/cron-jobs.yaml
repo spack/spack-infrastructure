@@ -1,3 +1,5 @@
+    export GITLAB_SSH_KEY_BASE64="$( base64 < /secrets/gitlab-ssh-key )"
+    export GITHUB_TOKEN="$( cat /secrets/github-access-token )"
 ---
 apiVersion: batch/v1beta1
 kind: CronJob
@@ -13,22 +15,23 @@ spec:
           restartPolicy: Never
           containers:
           - name: sync
-            image: alpine
+            image: zackgalbreath/spack-ci-bridge:0.0.1
             imagePullPolicy: IfNotPresent
-            command: ["sh", "/scripts/entrypoint.sh"]
-            volumeMounts:
-              - name: scripts
-                mountPath: "/scripts"
-              - name: secrets
-                mountPath: "/secrets"
-          volumes:
-            - name: scripts
-              configMap:
-                name: gh-gl-sync
-                defaultMode: 0700
-            - name: secrets
-              secret:
-                secretName: gh-gl-sync
-                defaultMode: 0700
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: github-access-token
+            - name: GITLAB_SSH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: gitlab-ssh-key
+            args:
+              - "scottwittenburg/gitlab-ci-tests"
+              - "ssh://git@ssh.gitlab.spack.io/scott/gitlab-ci-tests"
+              - "https://gitlab.spack.io"
+              - "scott/gitlab-ci-tests"
           nodeSelector:
             "beta.kubernetes.io/instance-type": "t2.medium"
