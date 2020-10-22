@@ -249,6 +249,8 @@ class SpackCIBridge(object):
             api_url = pipeline_api_template.format("github/" + open_pr)
             try:
                 request = urllib.request.Request(api_url)
+                if "GITLAB_TOKEN" in os.environ:
+                    request.add_header("Authorization", "Bearer %s" % os.environ["GITLAB_TOKEN"])
                 response = urllib.request.urlopen(request)
             except OSError:
                 continue
@@ -275,7 +277,7 @@ class SpackCIBridge(object):
         # Handle input arguments for connecting to GitHub and GitLab.
         os.environ["GIT_SSH_COMMAND"] = "ssh -F /dev/null -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
         self.gitlab_repo = args.gitlab_repo
-        self.github_repo = "https://github.com/{0}.git".format(args.github_project)
+        self.github_repo = "https://{0}@github.com/{1}.git".format(os.environ["GITHUB_TOKEN"], args.github_project)
         self.github_project = args.github_project
 
         # Work inside a temporary directory that will be deleted when this script terminates.
