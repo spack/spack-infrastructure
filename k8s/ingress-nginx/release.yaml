@@ -44,7 +44,9 @@ spec:
       service:
         enabled: true
 
-        annotations: {}
+        annotations:
+            "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": true
+
         labels: {}
 
         enableHttp: true
