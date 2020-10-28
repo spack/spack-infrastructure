@@ -21,14 +21,24 @@ spec:
     ## The global properties are used to configure multiple charts at once.
     ## Extended documenation at doc/charts/globals.md
     global:
+      appConfig:
+        smartcard:
+          enabled: false
+
       ## doc/charts/globals.md#configure-host-settings
       hosts:
         domain: next.spack.io
         https: true
+        gitlab:
+          name: gitlab.next.spack.io
+        #TODO(opadron): deploy stand-alone docker registry
+        registry:
+          name: registry.next.spack.io
 
       ## doc/charts/globals.md#configure-ingress-settings
       ingress:
         configureCertmanager: false
+        class: nginx
 
       gitlab:
         ## Enterprise license for this GitLab installation
@@ -68,7 +78,15 @@ spec:
     # doc/charts/gitlab/webservice/index.md
     gitlab:
       webservice:
+        ingress:
+          tls:
+            secretName: tls-gitlab-web
         replicaCount: 2
+
+    registry:
+      ingress:
+        tls:
+          secretName: tls-gitlab-registry
 
     # Disable lots of other components that we handle separately.
     certmanager:

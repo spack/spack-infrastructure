@@ -1,0 +1,39 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitlab-web
+  namespace: gitlab
+spec:
+  secretName: tls-gitlab-web
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - gitlab.next.spack.io
+  acme:
+    config:
+      - http01:
+          ingressClass: nginx
+        domains:
+          - gitlab.next.spack.io
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitlab-registry
+  namespace: gitlab
+spec:
+  secretName: tls-gitlab-registry
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - registry.next.spack.io
+  acme:
+    config:
+      - http01:
+          ingressClass: nginx
+        domains:
+          - registry.next.spack.io
