@@ -11,12 +11,6 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - gitlab.next.spack.io
-  acme:
-    config:
-      - http01:
-          ingressClass: nginx
-        domains:
-          - gitlab.next.spack.io
 
 ---
 apiVersion: cert-manager.io/v1
@@ -31,9 +25,3 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - registry.next.spack.io
-  acme:
-    config:
-      - http01:
-          ingressClass: nginx
-        domains:
-          - registry.next.spack.io
