@@ -29,7 +29,7 @@ spec:
       requestConcurrency: 20
       locked: false
 
-      tags: "avx,tiny,minimal,public,spack"
+      tags: "avx,tiny,public,spack"
       runUntagged: false
       privileged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
