@@ -22,6 +22,9 @@ spec:
     metrics:
       enabled: true
 
+    rbac:
+      serviceAccountName: runner
+
     runners:
       # default image
       image: "busybox:1.32.0"
