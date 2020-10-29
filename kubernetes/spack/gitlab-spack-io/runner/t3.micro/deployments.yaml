@@ -59,7 +59,7 @@ spec:
 
         env:
         - name: DOCKER_IMAGE
-          value: "ubuntu:latest"
+          value: "ubuntu:18.04"
 
         - name: CI_SERVER_URL
           value: "http://gitlab"
@@ -89,7 +89,7 @@ spec:
           value: "1.7" # prevent more than one job from running on a t3.micro
 
         - name: KUBERNETES_PULL_POLICY
-          value: "always"
+          value: "if-not-present"
 
         - name: KUBERNETES_POLL_TIMEOUT
           value: "3600" # one hour
