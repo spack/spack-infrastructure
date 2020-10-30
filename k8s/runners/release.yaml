@@ -70,23 +70,23 @@ spec:
         ## Use this line for access using google-application-credentials file
         # secretName: google-application-credentials
 
-      builds:
-        cpuRequests: 800m
-        cpuLimit: 800m
-        memoryRequests: 688Mi
-        memoryLimit: 688Mi
+      builds: {}
+      # cpuRequests: 800m
+      # cpuLimit: 800m
+      # memoryRequests: 688Mi
+      # memoryLimit: 688Mi
 
-      services:
-        cpuRequests: 50m
-        cpuLimit: 50m
-        memoryRequests: 144Mi
-        memoryLimit: 144Mi
+      services: {}
+      # cpuRequests: 50m
+      # cpuLimit: 50m
+      # memoryRequests: 144Mi
+      # memoryLimit: 144Mi
 
-      helpers:
-        cpuRequests: 50m
-        cpuLimit: 50m
-        memoryRequests: 144Mi
-        memoryLimit: 144Mi
+      helpers: {}
+      # cpuRequests: 50m
+      # cpuLimit: 50m
+      # memoryRequests: 144Mi
+      # memoryLimit: 144Mi
 
       # cloneUrl: https://gitlab.next.spack.io
 
