@@ -46,6 +46,8 @@ spec:
       # build log size limit
       outputLimit: 4096
 
+      serviceAccountName: builder
+
       # Distributed runners caching
       # TODO(opadron): Look into this after setting up stand-alone minio service
       cache: {}
