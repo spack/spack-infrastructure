@@ -11,6 +11,9 @@ spec:
     repository: https://charts.gitlab.io
     version: 0.21.1  # gitlab-runner@13.4.1
   values:
+    image: gitlab/gitlab-runner:alpine-v13.5.0
+    imagePullPolicy: IfNotPresent
+
     gitlabUrl: "http://gitlab-webservice.gitlab.svc.cluster.local:8080/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600  # six hours
