@@ -99,7 +99,7 @@ Metadata:
           - Subnets
 
 Conditions:
-  EnableClusterAutoscaling:
+  DisableClusterAutoscaling:
     !Equals [!Ref NodeAutoScalingGroupMinSize, !Ref NodeAutoScalingGroupMaxSize]
 
 Resources:
@@ -125,7 +125,7 @@ Resources:
           Value: !Ref NodeGroupName
           PropagateAtLaunch: true
         - Key: k8s.io/cluster-autoscaler/enabled
-          Value: !If [ EnableClusterAutoscaling, "true", "false" ]
+          Value: !If [ DisableClusterAutoscaling, "false", "true" ]
           PropagateAtLaunch: true
         - Key: !Sub k8s.io/cluster-autoscaler/${ClusterName}
           Value: owned
