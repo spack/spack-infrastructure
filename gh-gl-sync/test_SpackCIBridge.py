@@ -127,7 +127,8 @@ def test_get_pipeline_api_template():
     """Test the get_pipeline_api_template method."""
     bridge = SpackCIBridge.SpackCIBridge()
     template = bridge.get_pipeline_api_template("https://gitlab.spack.io", "zack/my_test_proj")
-    assert template == "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
+    assert template[0:84] == "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?updated_after="
+    assert template[117:] == "&ref={0}"
 
 
 def test_dedupe_pipelines():

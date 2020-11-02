@@ -3,6 +3,7 @@
 import argparse
 import atexit
 import base64
+from datetime import datetime, timedelta, timezone
 import dateutil.parser
 import json
 import os
@@ -263,10 +264,13 @@ class SpackCIBridge(object):
         return pipelines
 
     def get_pipeline_api_template(self, gitlab_host, gitlab_project):
+        dt = datetime.now(timezone.utc) + timedelta(minutes=-2)
+        time_threshold = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
         template = gitlab_host
         template += "/api/v4/projects/"
         template += urllib.parse.quote_plus(gitlab_project)
-        template += "/pipelines?ref={0}"
+        template += "/pipelines?updated_after={0}".format(time_threshold)
+        template += "&ref={0}"
         return template
 
     def post_pipeline_status(self, open_prs, pipeline_api_template):
