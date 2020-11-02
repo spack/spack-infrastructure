@@ -22,13 +22,14 @@ nodeSelector:
 
 git:
   url: "ssh://git@github.com/spack/spack-infrastructure"
-  branch: "zack-wip"
+  branch: "production"
   path: "k8s"
   user: "Spack Bot"
   email: "maintainers@spack.io"
   verifySignatures: false
   setAuthor: true
   ciSkip: true
+  pollInterval: "30s"
 
 syncGarbageCollection:
   enabled: true
