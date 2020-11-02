@@ -130,6 +130,13 @@ Resources:
         - Key: !Sub k8s.io/cluster-autoscaler/${ClusterName}
           Value: owned
           PropagateAtLaunch: true
+        - Key: "\
+            k8s.io/cluster-autoscaler/node-template/resources\
+            /spack.io/node-share"
+          Value: 1Gi
+          PropagateAtLaunch: true
+
+
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MaxBatchSize: 1
