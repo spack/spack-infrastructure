@@ -273,10 +273,10 @@ class SpackCIBridge(object):
         template += "&ref={0}"
         return template
 
-    def post_pipeline_status(self, open_prs, pipeline_api_template):
-        for open_pr in open_prs:
+    def post_pipeline_status(self, branches, pipeline_api_template):
+        for branch in branches:
             # Use gitlab's API to get pipeline results for the corresponding ref.
-            api_url = pipeline_api_template.format("github/" + open_pr)
+            api_url = pipeline_api_template.format("github/" + branch)
             try:
                 request = urllib.request.Request(api_url)
                 if "GITLAB_TOKEN" in os.environ:
@@ -291,7 +291,7 @@ class SpackCIBridge(object):
             # Post status to GitHub for each pipeline found.
             pipelines = self.dedupe_pipelines(pipelines)
             for sha, pipeline in pipelines.items():
-                print("Posting status for {0} / {1}".format(open_pr, sha))
+                print("Posting status for {0} / {1}".format(branch, sha))
                 post_data = self.make_status_for_pipeline(pipeline)
                 post_request = urllib.request.Request(
                         "https://api.github.com/repos/{0}/statuses/{1}".format(self.github_project, sha),
@@ -344,7 +344,7 @@ class SpackCIBridge(object):
 
             # Post pipeline status to GitHub for each open PR.
             pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
-            self.post_pipeline_status(open_prs, pipeline_api_template)
+            self.post_pipeline_status(open_prs + protected_branches, pipeline_api_template)
 
 
 if __name__ == "__main__":
