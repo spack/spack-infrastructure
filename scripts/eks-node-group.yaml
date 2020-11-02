@@ -131,6 +131,11 @@ Resources:
           Value: owned
           PropagateAtLaunch: true
         - Key: "\
+            k8s.io/cluster-autoscaler/node-template/label\
+            /spack.io/node-pool"
+          Value: !Ref NodeGroupName
+          PropagateAtLaunch: true
+        - Key: "\
             k8s.io/cluster-autoscaler/node-template/resources\
             /spack.io/node-share"
           Value: 1Gi
