@@ -190,11 +190,6 @@ Resources:
             /etc/eks/bootstrap.sh ${ClusterName} \
                 --kubelet-extra-args "--node-labels=$labels"
 
-            /opt/aws/bin/cfn-signal --exit-code $? \
-                     --stack  ${AWS::StackName} \
-                     --resource NodeGroup  \
-                     --region ${AWS::Region} || true
-
 Outputs:
 
   NodeGroup:
