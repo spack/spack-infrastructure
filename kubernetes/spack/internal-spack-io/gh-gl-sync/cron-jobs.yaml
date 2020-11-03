@@ -1,5 +1,3 @@
-    export GITLAB_SSH_KEY_BASE64="$( base64 < /secrets/gitlab-ssh-key )"
-    export GITHUB_TOKEN="$( cat /secrets/github-access-token )"
 ---
 apiVersion: batch/v1beta1
 kind: CronJob
@@ -17,13 +15,14 @@ spec:
           - name: sync
             image: zackgalbreath/spack-ci-bridge:0.0.2
             imagePullPolicy: IfNotPresent
-          env:
+            env:
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: gh-gl-sync
                   key: github-access-token
-            - name: GITLAB_SSH_KEY
+            # This secret is double base64 encoded
+            - name: GITLAB_SSH_KEY_BASE64
               valueFrom:
                 secretKeyRef:
                   name: gh-gl-sync
