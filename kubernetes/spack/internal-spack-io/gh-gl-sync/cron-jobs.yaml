@@ -15,7 +15,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: sync
-            image: zackgalbreath/spack-ci-bridge:0.0.1
+            image: zackgalbreath/spack-ci-bridge:0.0.2
             imagePullPolicy: IfNotPresent
           env:
             - name: GITHUB_TOKEN

@@ -53,7 +53,7 @@ def test_get_prs_to_delete(capfd):
 
 
 def test_get_open_refspecs():
-    """Test the get_open_refspecs method."""
+    """Test the get_open_refspecs and update_refspecs_for_protected_branches methods."""
     open_prs = ["pr1_this", "pr2_that"]
     bridge = SpackCIBridge.SpackCIBridge()
     open_refspecs, fetch_refspecs = bridge.get_open_refspecs(open_prs)
@@ -64,6 +64,21 @@ def test_get_open_refspecs():
     assert fetch_refspecs == [
         "+refs/pull/1/head:refs/remotes/github/pr1_this",
         "+refs/pull/2/head:refs/remotes/github/pr2_that"
+    ]
+
+    protected_branches = ["develop", "master"]
+    bridge.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
+    assert open_refspecs == [
+        "github/pr1_this:github/pr1_this",
+        "github/pr2_that:github/pr2_that",
+        "github/develop:github/develop",
+        "github/master:github/master",
+    ]
+    assert fetch_refspecs == [
+        "+refs/pull/1/head:refs/remotes/github/pr1_this",
+        "+refs/pull/2/head:refs/remotes/github/pr2_that",
+        "+refs/heads/develop:refs/remotes/github/develop",
+        "+refs/heads/master:refs/remotes/github/master"
     ]
 
 
@@ -112,7 +127,8 @@ def test_get_pipeline_api_template():
     """Test the get_pipeline_api_template method."""
     bridge = SpackCIBridge.SpackCIBridge()
     template = bridge.get_pipeline_api_template("https://gitlab.spack.io", "zack/my_test_proj")
-    assert template == "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
+    assert template[0:84] == "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?updated_after="
+    assert template[117:] == "&ref={0}"
 
 
 def test_dedupe_pipelines():

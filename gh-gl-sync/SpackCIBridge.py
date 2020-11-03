@@ -3,6 +3,7 @@
 import argparse
 import atexit
 import base64
+from datetime import datetime, timedelta, timezone
 import dateutil.parser
 import json
 import os
@@ -90,6 +91,25 @@ class SpackCIBridge(object):
             return
         self.github_pr_responses = json.loads(response.read())
 
+    def list_github_protected_branches(self):
+        """ Return a list of protected branch names from GitHub."""
+        try:
+            request = urllib.request.Request(
+                    "https://api.github.com/repos/%s/branches?protected=true" % (self.github_project))
+            request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
+            response = urllib.request.urlopen(request)
+        except OSError:
+            return
+        github_branch_responses = json.loads(response.read())
+        protected_branches = []
+        for github_branch_response in github_branch_responses:
+            protected_branches.append(github_branch_response["name"])
+        protected_branches = sorted(protected_branches)
+        print("Protected branches:")
+        for protected_branch in protected_branches:
+            print("    {0}".format(protected_branch))
+        return protected_branches
+
     def setup_git_repo(self):
         """Initialize a bare git repository with two remotes:
         one for GitHub and one for GitLab.
@@ -151,17 +171,24 @@ class SpackCIBridge(object):
             open_refspecs.append("github/{0}:github/{0}".format(open_pr))
         return open_refspecs, fetch_refspecs
 
-    def fetch_github_prs(self, fetch_refspecs):
+    def update_refspecs_for_protected_branches(self, protected_branches, open_refspecs, fetch_refspecs):
+        """Update our refspecs lists for protected branches from GitHub."""
+        for protected_branch in protected_branches:
+            fetch_refspecs.append("+refs/heads/{0}:refs/remotes/github/{0}".format(protected_branch))
+            open_refspecs.append("github/{0}:github/{0}".format(protected_branch))
+        return open_refspecs, fetch_refspecs
+
+    def fetch_github_branches(self, fetch_refspecs):
         """Perform `git fetch` for a given list of refspecs."""
         print("Fetching GitHub refs for open PRs")
         fetch_args = ["git", "fetch", "-q", "github"] + fetch_refspecs
         subprocess.run(fetch_args, check=True)
 
-    def build_local_branches(self, open_prs):
-        """Create local branches for a list of open PRs."""
-        print("Building local branches for open PRs")
-        for open_pr in open_prs:
-            branch_name = "github/{0}".format(open_pr)
+    def build_local_branches(self, open_prs, protected_branches):
+        """Create local branches for a list of open PRs and protected branches."""
+        print("Building local branches for open PRs and protected branches")
+        for branch in open_prs + protected_branches:
+            branch_name = "github/{0}".format(branch)
             subprocess.run(["git", "branch", "-q", branch_name, branch_name], check=True)
 
     def make_status_for_pipeline(self, pipeline):
@@ -237,16 +264,19 @@ class SpackCIBridge(object):
         return pipelines
 
     def get_pipeline_api_template(self, gitlab_host, gitlab_project):
+        dt = datetime.now(timezone.utc) + timedelta(minutes=-2)
+        time_threshold = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
         template = gitlab_host
         template += "/api/v4/projects/"
         template += urllib.parse.quote_plus(gitlab_project)
-        template += "/pipelines?ref={0}"
+        template += "/pipelines?updated_after={0}".format(time_threshold)
+        template += "&ref={0}"
         return template
 
-    def post_pipeline_status(self, open_prs, pipeline_api_template):
-        for open_pr in open_prs:
+    def post_pipeline_status(self, branches, pipeline_api_template):
+        for branch in branches:
             # Use gitlab's API to get pipeline results for the corresponding ref.
-            api_url = pipeline_api_template.format("github/" + open_pr)
+            api_url = pipeline_api_template.format("github/" + branch)
             try:
                 request = urllib.request.Request(api_url)
                 if "GITLAB_TOKEN" in os.environ:
@@ -261,7 +291,7 @@ class SpackCIBridge(object):
             # Post status to GitHub for each pipeline found.
             pipelines = self.dedupe_pipelines(pipelines)
             for sha, pipeline in pipelines.items():
-                print("Posting status for {0} / {1}".format(open_pr, sha))
+                print("Posting status for {0} / {1}".format(branch, sha))
                 post_data = self.make_status_for_pipeline(pipeline)
                 post_request = urllib.request.Request(
                         "https://api.github.com/repos/{0}/statuses/{1}".format(self.github_project, sha),
@@ -290,6 +320,9 @@ class SpackCIBridge(object):
             # Retrieve currently open PRs from GitHub.
             open_prs = self.list_github_prs("open")
 
+            # Get protected branches on GitHub.
+            protected_branches = self.list_github_protected_branches()
+
             # Retrieve PRs that have already been synced to GitLab.
             synced_prs = self.get_synced_prs()
 
@@ -297,20 +330,21 @@ class SpackCIBridge(object):
             # These will be deleted from GitLab.
             closed_refspecs = self.get_prs_to_delete(open_prs, synced_prs)
 
-            # Get refspecs for open PRs.
+            # Get refspecs for open PRs and protected branches.
             open_refspecs, fetch_refspecs = self.get_open_refspecs(open_prs)
+            self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
 
-            # Sync open GitHub PRs to GitLab.
-            self.fetch_github_prs(fetch_refspecs)
-            self.build_local_branches(open_prs)
+            # Sync open GitHub PRs and protected branches to GitLab.
+            self.fetch_github_branches(fetch_refspecs)
+            self.build_local_branches(open_prs, protected_branches)
             if open_refspecs or closed_refspecs:
-                print("Syncing PRs to GitLab")
+                print("Syncing to GitLab")
                 push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + closed_refspecs + open_refspecs
                 subprocess.run(push_args, check=True)
 
             # Post pipeline status to GitHub for each open PR.
             pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
-            self.post_pipeline_status(open_prs, pipeline_api_template)
+            self.post_pipeline_status(open_prs + protected_branches, pipeline_api_template)
 
 
 if __name__ == "__main__":
