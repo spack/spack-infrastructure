@@ -293,12 +293,15 @@ class SpackCIBridge(object):
             for sha, pipeline in pipelines.items():
                 print("Posting status for {0} / {1}".format(branch, sha))
                 post_data = self.make_status_for_pipeline(pipeline)
-                post_request = urllib.request.Request(
-                        "https://api.github.com/repos/{0}/statuses/{1}".format(self.github_project, sha),
-                        data=post_data)
-                post_request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
-                post_request.add_header("Accept", "application/vnd.github.v3+json")
-                post_response = urllib.request.urlopen(post_request)
+                try:
+                    post_request = urllib.request.Request(
+                            "https://api.github.com/repos/{0}/statuses/{1}".format(self.github_project, sha),
+                            data=post_data)
+                    post_request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
+                    post_request.add_header("Accept", "application/vnd.github.v3+json")
+                    post_response = urllib.request.urlopen(post_request)
+                except OSError:
+                    continue
                 if post_response.status != 201:
                     print("Expected 201 when creating status, got {0}".format(post_response.status))
 
