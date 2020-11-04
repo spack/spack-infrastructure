@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: node-share-controller-script
-  namespace: gitlab
+  namespace: custom
 data:
   script: |
     #!/bin/sh
