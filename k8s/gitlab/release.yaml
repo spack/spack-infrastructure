@@ -4,12 +4,15 @@ kind: HelmRelease
 metadata:
   name: gitlab
   namespace: gitlab
+  annotations:
+    fluxcd.io/ignore: "true"
 spec:
   releaseName: gitlab
   chart:
     name: gitlab
     repository: https://charts.gitlab.io
-    version: 4.3.5 # gitlab@13.3.5
+    version: 4.3.5  # gitlab@13.3.5
+
   values:
     # Documentation for these values and more can be found at
     # https://gitlab.com/gitlab-org/charts/gitlab/
@@ -81,7 +84,7 @@ spec:
         ingress:
           tls:
             secretName: tls-gitlab-web
-        replicaCount: 2
+        replicaCount: 3
 
     registry:
       ingress:
