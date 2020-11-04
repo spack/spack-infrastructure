@@ -20,8 +20,8 @@ spec:
     terminationGracePeriodSeconds: 21600  # six hours
     concurrent: 20
     checkInterval: 30
-    preEntrypointScript: |
-      echo "Hello, from tiny-pub runner"
+    # preEntrypointScript: |
+    #   echo "Hello, from tiny-pub runner"
 
     metrics:
       enabled: true
@@ -88,8 +88,6 @@ spec:
       # cpuLimit: 50m
       # memoryRequests: 144Mi
       # memoryLimit: 144Mi
-
-      # cloneUrl: https://gitlab.next.spack.io
 
       nodeSelector:
         spack.io/node-pool: glr-tiny-pub  # pool for jobs
