@@ -1,0 +1,211 @@
+# Tweaked version of the EKS cloud formation template.
+#
+# The original is split into three:
+#
+#  1 - one for creating a security group.
+#
+#  2 - one for creating a node IAM role and instance profile.
+#
+#  3 - one for creating and managing a pool of nodes in an autoscaling group.
+#      The nodes in the autoscaling group will use a security group created
+#      using the first script, and an IAM role and instance profile created
+#      using the second script.
+#
+#  This is the third (3rd) script.
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Amazon EKS - Node Group
+
+Parameters:
+
+  NodeImageId:
+    Description: AMI id for the node instances.
+    Type: AWS::EC2::Image::Id
+
+  NodeInstanceType:
+    Description: EC2 instance type for the node instances
+    Type: String
+    Default: t3.medium
+    ConstraintDescription: Must be a valid EC2 instance type
+
+  NodeAutoScalingGroupMinSize:
+    Description: Minimum size of the Node Group.
+    Type: Number
+    Default: 0
+
+  NodeAutoScalingGroupMaxSize:
+    Description: Maximum size of the Node Group.
+    ConstraintDescription: |
+        If equal to minimum size, then cluster
+        autoscaler will be disabled for this group.
+    Type: Number
+    Default: 3
+
+  NodeVolumeSize:
+    Description: Node volume size (in GB)
+    Type: Number
+    Default: 20
+
+  ClusterName:
+    Description: The cluster name provided when the cluster was created.
+    ConstraintDescription: |
+      If it is incorrect, nodes will
+      not be able to join the cluster.
+    Type: String
+
+  NodeGroupName:
+    Description: Unique identifier for the Node Group.
+    Type: String
+
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instances
+    Type: "AWS::EC2::KeyPair::KeyName"
+
+  NodeInstanceProfile:
+    Description: IAM profile for node instances.
+    Type: String
+
+  NodeSecurityGroup:
+    Description: Security for the nodes in the cluster.
+    Type: String
+
+  Subnets:
+    Description: The subnets where workers can be created.
+    Type: List<AWS::EC2::Subnet::Id>
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: EKS Cluster
+        Parameters:
+          - ClusterName
+
+      - Label:
+          default: Group Configuration
+        Parameters:
+          - NodeGroupName
+          - NodeAutoScalingGroupMinSize
+          - NodeAutoScalingGroupMaxSize
+
+      - Label:
+          default: Instance Configuration
+        Parameters:
+          - NodeInstanceType
+          - NodeInstanceProfile
+          - NodeImageId
+          - NodeVolumeSize
+          - KeyName
+
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - NodeSecurityGroup
+          - Subnets
+
+Conditions:
+  DisableClusterAutoscaling:
+    !Equals [!Ref NodeAutoScalingGroupMinSize, !Ref NodeAutoScalingGroupMaxSize]
+
+Resources:
+  NodeGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      DesiredCapacity: !Ref NodeAutoScalingGroupMinSize
+      LaunchConfigurationName: !Ref NodeLaunchConfig
+      MinSize: !Ref NodeAutoScalingGroupMinSize
+      MaxSize: !Ref NodeAutoScalingGroupMaxSize
+      VPCZoneIdentifier: !Ref Subnets
+      Tags:
+        - Key: Name
+          Value: !Sub ${ClusterName}-${NodeGroupName}-Node
+          PropagateAtLaunch: true
+        - Key: !Sub kubernetes.io/cluster/${ClusterName}
+          Value: owned
+          PropagateAtLaunch: true
+        - Key: eks:cluster-name
+          Value: !Ref ClusterName
+          PropagateAtLaunch: true
+        - Key: eks:nodegroup-name
+          Value: !Ref NodeGroupName
+          PropagateAtLaunch: true
+        - Key: k8s.io/cluster-autoscaler/enabled
+          Value: !If [ DisableClusterAutoscaling, "false", "true" ]
+          PropagateAtLaunch: true
+        - Key: !Sub k8s.io/cluster-autoscaler/${ClusterName}
+          Value: owned
+          PropagateAtLaunch: true
+        - Key: "\
+            k8s.io/cluster-autoscaler/node-template/label\
+            /spack.io/node-pool"
+          Value: !Ref NodeGroupName
+          PropagateAtLaunch: true
+        - Key: "\
+            k8s.io/cluster-autoscaler/node-template/resources\
+            /spack.io/node-share"
+          Value: 1Gi
+          PropagateAtLaunch: true
+
+
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 1
+        MinInstancesInService: !Ref NodeAutoScalingGroupMinSize
+        PauseTime: PT5M
+
+  NodeLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !Ref NodeInstanceProfile
+      ImageId: !Ref NodeImageId
+      InstanceType: !Ref NodeInstanceType
+      SecurityGroups:
+        - !Ref NodeSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref NodeVolumeSize
+            VolumeType: gp2
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            cat > script.py << EOF
+            import json, sys
+            tags = json.load(sys.stdin)
+            tags = (tags.get("Stacks", []) + [{}])[0].get("Tags", [])
+            print(",".join(
+                "{}={}".format(key[10:], value)
+                for key, value in (
+                    (x.get("Key", ""), x.get("Value", ""))
+                    for x in tags
+                )
+                if key.startswith("k8s-label/")))
+            EOF
+
+            labels="$(
+                aws cloudformation describe-stacks \
+                    --region ${AWS::Region} \
+                    --stack-name ${AWS::StackName} | python script.py )"
+
+            set -o xtrace
+
+            /etc/eks/bootstrap.sh ${ClusterName} \
+                --kubelet-extra-args "--node-labels=$labels"
+
+            /opt/aws/bin/cfn-signal --exit-code $? \
+                     --stack  ${AWS::StackName} \
+                     --resource NodeGroup  \
+                     --region ${AWS::Region} || true
+
+Outputs:
+
+  NodeGroup:
+    Description: The node autoscaling group
+    Value: !Ref NodeGroup
+
+  NodeLaunchConfig:
+    Description: The node autoscaling group launch configuration
+    Value: !Ref NodeLaunchConfig
