@@ -168,6 +168,7 @@ Resources:
             VolumeSize: !Ref NodeVolumeSize
             VolumeType: gp2
             DeleteOnTermination: true
+      KeyName: !Ref KeyName
       UserData:
         Fn::Base64:
           !Sub |
