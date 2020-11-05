@@ -73,7 +73,7 @@ spec:
         # secretName: google-application-credentials
 
       builds:
-        cpuRequests: 5000m
+        cpuRequests: 1500m
 
       services: {}
       # cpuRequests: 50m
