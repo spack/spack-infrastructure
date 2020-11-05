@@ -5,7 +5,7 @@ metadata:
   name: runner-tiny-pub
   namespace: gitlab
 spec:
-  releaseName: runner-tiny-pub
+  releaseName: tiny-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -15,7 +15,8 @@ spec:
     image: gitlab/gitlab-runner:alpine-v12.10.0
     imagePullPolicy: IfNotPresent
 
-    gitlabUrl: "http://gitlab-webservice.gitlab.svc.cluster.local:8080/"
+    # gitlabUrl: "http://gitlab-webservice.gitlab.svc.cluster.local:8080/"
+    gitlabUrl: "http://gitlab-unicorn.gitlab.svc.cluster.local:8080/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600  # six hours
     concurrent: 20

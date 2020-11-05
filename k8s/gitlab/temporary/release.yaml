@@ -1,0 +1,140 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: gitlab
+  namespace: gitlab
+spec:
+  releaseName: gitlab
+  chart:
+    name: gitlab
+    repository: https://charts.gitlab.io
+    version: 3.2.2 # gitlab@12.9.2
+
+  values:
+    global:
+      operator:
+        enabled: false
+
+      edition: ee
+
+      hosts:
+        domain: next.spack.io
+        https: true
+        gitlab:
+          name: gitlab.next.spack.io
+        minio:
+          name: minio.next.spack.io
+        registry:
+          name: registry.next.spack.io
+
+      ingress:
+        configureCertmanager: false
+        class: nginx
+
+      gitlab:
+        license: {}
+
+      ## doc/charts/globals.md#configure-postgresql-settings
+      ## psql:
+      ##   password:
+      ##     secret: gitlab-secrets
+      ##     key: gitlab-db-password
+      ##   host: r001-spack-gitlab.cgnbnwwuxkgt.us-east-1.rds.amazonaws.com
+      ##   username: gitlab
+      ##   database: gitlabhq_production
+
+      ## doc/charts/globals.md#configure-redis-settings
+      ## redis:
+      ##   password:
+      ##     enabled: false
+      ##   host: r003-spack-gitlab.cev8lh.clustercfg.use1.cache.amazonaws.com
+
+      ## doc/charts/globals.md#configure-minio-settings
+      ## NOTE(opadron): in the older version of this chart, this section is
+      ##                moved to the root
+      ## minio:
+      ##   ingress:
+      ##     tls:
+      ##       secretName: tls-gitlab-minio
+
+      ## doc/charts/globals.md#configure-grafana-integration
+      grafana:
+        enabled: false
+
+      ## doc/charts/globals.md#configure-registry-settings
+      ## NOTE(opadron): in the older version of this chart, this section is
+      ##                moved to the root
+      ## registry:
+      ##   ingress:
+      ##     tls:
+      ##       secretName: tls-gitlab-registry
+
+      ## GitLab Runner
+      ## Secret created according to doc/installation/secrets.md#gitlab-runner-secret
+      ## If allowing shared-secrets generation, this is OPTIONAL.
+      runner:
+          install: false
+
+      ## smtp:
+      ##   enabled: false
+
+    certmanager:
+      install: false
+
+    nginx-ingress:
+      enabled: false
+
+    prometheus:
+      install: false
+
+    ## redis:
+    ## install: false
+
+    ## postgresql:
+    ##   install: false
+
+    ## doc/charts/globals.md#configure-minio-settings
+    ## NOTE(opadron): this is where the minio section is in the old version of
+    ##                this chart.
+    minio:
+      ingress:
+        tls:
+          secretName: tls-gitlab-minio
+
+    ## doc/charts/globals.md#configure-registry-settings
+    ## NOTE(opadron): this is where the registry section is in the old version of
+    ##                this chart.
+    registry:
+      ingress:
+        tls:
+          secretName: tls-gitlab-registry
+
+    gitlab-runner:
+      install: false
+
+    ## Settings for individual sub-charts under GitLab
+    ## Note: Many of these settings are configurable via globals
+    gitlab:
+    ## doc/charts/gitlab/migrations
+    # migrations:
+    # enabled: false
+    ## doc/charts/gitlab/unicorn
+      ingress:
+        tls:
+          enabled: true
+      unicorn:
+        ingress:
+          tls:
+            secretName: tls-gitlab-unicorn
+        replicaCount: 4
+    ## doc/charts/gitlab/sidekiq
+    #   sidekiq:
+    #     enabled: false
+    ## doc/charts/gitlab/gitaly
+    #   gitaly:
+    ## doc/charts/gitlab/gitlab-shell
+    #   gitlab-shell:
+    #     enabled: false
+    ## doc/charts/gitlab/gitlab-grafana
+    #   gitlab-grafana:
