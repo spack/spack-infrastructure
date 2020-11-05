@@ -72,11 +72,8 @@ spec:
         ## Use this line for access using google-application-credentials file
         # secretName: google-application-credentials
 
-      builds: {}
-      # cpuRequests: 800m
-      # cpuLimit: 800m
-      # memoryRequests: 688Mi
-      # memoryLimit: 688Mi
+      builds:
+        cpuRequests: 1050m
 
       services: {}
       # cpuRequests: 50m

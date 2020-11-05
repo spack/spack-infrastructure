@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-large-pub
+  name: runner-xlarge-pub
   namespace: gitlab
 spec:
-  releaseName: large-pub
+  releaseName: xlarge-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -22,7 +22,7 @@ spec:
     concurrent: 20
     checkInterval: 30
     # preEntrypointScript: |
-    #   echo "Hello, from large-pub runner"
+    #   echo "Hello, from xlarge-pub runner"
 
     metrics:
       enabled: true
@@ -37,7 +37,7 @@ spec:
       requestConcurrency: 20
       locked: false
 
-      tags: "avx,avx2,avx512,large,public,spack"
+      tags: "avx,avx2,avx512,xlarge,public,spack"
       runUntagged: false
       privileged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
@@ -73,7 +73,7 @@ spec:
         # secretName: google-application-credentials
 
       builds:
-        cpuRequests: 5000m
+        cpuRequests: 9000m
 
       services: {}
       # cpuRequests: 50m
@@ -88,7 +88,7 @@ spec:
       # memoryLimit: 144Mi
 
       nodeSelector:
-        spack.io/node-pool: glr-large-pub  # pool for jobs
+        spack.io/node-pool: glr-xlarge-pub  # pool for jobs
 
     nodeSelector:
       spack.io/node-pool: base  # pool for the runner
