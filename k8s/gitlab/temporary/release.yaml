@@ -148,10 +148,6 @@ spec:
         nodeSelector:
           spack.io/node-pool: base
 
-      unicorn:
-        nodeSelector:
-          spack.io/node-pool: base
-
       gitaly:
         nodeSelector:
           spack.io/node-pool: base
