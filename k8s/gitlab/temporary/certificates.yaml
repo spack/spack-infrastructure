@@ -4,6 +4,8 @@ kind: Certificate
 metadata:
   name: gitlab-unicorn-temp
   namespace: gitlab
+  annotations:
+    fluxcd.io/ignore: "true"
 spec:
   secretName: tls-gitlab-unicorn-temp
   issuerRef:
@@ -18,6 +20,8 @@ kind: Certificate
 metadata:
   name: gitlab-registry-temp
   namespace: gitlab
+  annotations:
+    fluxcd.io/ignore: "true"
 spec:
   secretName: tls-gitlab-registry-temp
   issuerRef:
@@ -32,6 +36,8 @@ kind: Certificate
 metadata:
   name: gitlab-minio-temp
   namespace: gitlab
+  annotations:
+    fluxcd.io/ignore: "true"
 spec:
   secretName: tls-gitlab-minio-temp
   issuerRef:
