@@ -40,7 +40,7 @@ spec:
       tags: "avx,avx2,avx512,xlarge,public,spack"
       runUntagged: false
       privileged: false
-      secret: gitlab-gitlab-runner-secret  # from gitlab release
+      secret: gitlab-temp-gitlab-runner-secret  # from gitlab release
 
       namespace: pipeline
       pollTimeout: 600  # ten minutes
