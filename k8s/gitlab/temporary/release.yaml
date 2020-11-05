@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: gitlab
+  name: gitlab-temp
   namespace: gitlab
 spec:
-  releaseName: gitlab
+  releaseName: gitlab-temp
   chart:
     name: gitlab
     repository: https://charts.gitlab.io
