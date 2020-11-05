@@ -2,10 +2,10 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: gitlab-unicorn
+  name: gitlab-unicorn-temp
   namespace: gitlab
 spec:
-  secretName: tls-gitlab-unicorn
+  secretName: tls-gitlab-unicorn-temp
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer
@@ -16,10 +16,10 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: gitlab-registry
+  name: gitlab-registry-temp
   namespace: gitlab
 spec:
-  secretName: tls-gitlab-registry
+  secretName: tls-gitlab-registry-temp
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer
@@ -30,10 +30,10 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: gitlab-minio
+  name: gitlab-minio-temp
   namespace: gitlab
 spec:
-  secretName: tls-gitlab-minio
+  secretName: tls-gitlab-minio-temp
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer

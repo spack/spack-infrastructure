@@ -103,7 +103,7 @@ spec:
     minio:
       ingress:
         tls:
-          secretName: tls-gitlab-minio
+          secretName: tls-gitlab-minio-temp
       nodeSelector:
         spack.io/node-pool: base
 
@@ -113,7 +113,7 @@ spec:
     registry:
       ingress:
         tls:
-          secretName: tls-gitlab-registry
+          secretName: tls-gitlab-registry-temp
       nodeSelector:
         spack.io/node-pool: base
 
@@ -127,7 +127,7 @@ spec:
       unicorn:
         ingress:
           tls:
-            secretName: tls-gitlab-unicorn
+            secretName: tls-gitlab-unicorn-temp
         replicaCount: 4
         nodeSelector:
           spack.io/node-pool: base
