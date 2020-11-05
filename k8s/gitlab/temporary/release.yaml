@@ -12,6 +12,9 @@ spec:
     version: 3.2.2 # gitlab@12.9.2
 
   values:
+    nodeSelector:
+      spack.io/node-pool: base
+
     global:
       operator:
         enabled: false
