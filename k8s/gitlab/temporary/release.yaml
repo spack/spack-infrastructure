@@ -104,6 +104,8 @@ spec:
       ingress:
         tls:
           secretName: tls-gitlab-minio
+      nodeSelector:
+        spack.io/node-pool: base
 
     ## doc/charts/globals.md#configure-registry-settings
     ## NOTE(opadron): this is where the registry section is in the old version of
@@ -112,17 +114,13 @@ spec:
       ingress:
         tls:
           secretName: tls-gitlab-registry
+      nodeSelector:
+        spack.io/node-pool: base
 
     gitlab-runner:
       install: false
 
-    ## Settings for individual sub-charts under GitLab
-    ## Note: Many of these settings are configurable via globals
     gitlab:
-    ## doc/charts/gitlab/migrations
-    # migrations:
-    # enabled: false
-    ## doc/charts/gitlab/unicorn
       ingress:
         tls:
           enabled: true
@@ -131,13 +129,57 @@ spec:
           tls:
             secretName: tls-gitlab-unicorn
         replicaCount: 4
-    ## doc/charts/gitlab/sidekiq
-    #   sidekiq:
-    #     enabled: false
-    ## doc/charts/gitlab/gitaly
-    #   gitaly:
-    ## doc/charts/gitlab/gitlab-shell
-    #   gitlab-shell:
-    #     enabled: false
-    ## doc/charts/gitlab/gitlab-grafana
-    #   gitlab-grafana:
+        nodeSelector:
+          spack.io/node-pool: base
+
+      gitlab-exporter:
+        nodeSelector:
+          spack.io/node-pool: base
+
+      gitlab-shell:
+        nodeSelector:
+          spack.io/node-pool: base
+
+      sidekiq:
+        nodeSelector:
+          spack.io/node-pool: base
+
+      task-runner:
+        nodeSelector:
+          spack.io/node-pool: base
+
+      unicorn:
+        nodeSelector:
+          spack.io/node-pool: base
+
+      gitaly:
+        nodeSelector:
+          spack.io/node-pool: base
+
+      migrations:
+        nodeSelector:
+          spack.io/node-pool: base
+
+    gitaly:
+      nodeSelector:
+        spack.io/node-pool: base
+
+    gitlab-shell:
+      nodeSelector:
+        spack.io/node-pool: base
+
+    gitlab-grafana:
+      nodeSelector:
+        spack.io/node-pool: base
+
+    postgresql:
+      nodeSelector:
+        spack.io/node-pool: base
+
+    redis:
+      nodeSelector:
+        spack.io/node-pool: base
+
+    shared-secrets:
+      nodeSelector:
+        spack.io/node-pool: base
