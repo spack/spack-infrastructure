@@ -27,6 +27,16 @@ spec:
                 secretKeyRef:
                   name: gh-gl-sync
                   key: gitlab-ssh-key
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: aws-access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: aws-secret-access-key
             args:
               - "scottwittenburg/gitlab-ci-tests"
               - "ssh://git@ssh.gitlab.spack.io/scott/gitlab-ci-tests"
