@@ -13,7 +13,7 @@ spec:
 
   values:
     nodeSelector:
-      spack.io/node-pool: base
+      spack.io/node-pool: gitlab
 
     global:
       operator:
@@ -105,7 +105,7 @@ spec:
         tls:
           secretName: tls-gitlab-minio-temp
       nodeSelector:
-        spack.io/node-pool: base
+        spack.io/node-pool: gitlab
 
     ## doc/charts/globals.md#configure-registry-settings
     ## NOTE(opadron): this is where the registry section is in the old version of
@@ -115,7 +115,7 @@ spec:
         tls:
           secretName: tls-gitlab-registry-temp
       nodeSelector:
-        spack.io/node-pool: base
+        spack.io/node-pool: gitlab
 
     gitlab-runner:
       install: false
@@ -130,52 +130,52 @@ spec:
             secretName: tls-gitlab-unicorn-temp
         replicaCount: 4
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: gitlab
 
       gitlab-exporter:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: gitlab
 
       gitlab-shell:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: gitlab
 
       sidekiq:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: gitlab
 
       task-runner:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: gitlab
 
       gitaly:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: gitlab
 
       migrations:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: gitlab
 
     gitaly:
       nodeSelector:
-        spack.io/node-pool: base
+        spack.io/node-pool: gitlab
 
     gitlab-shell:
       nodeSelector:
-        spack.io/node-pool: base
+        spack.io/node-pool: gitlab
 
     gitlab-grafana:
       nodeSelector:
-        spack.io/node-pool: base
+        spack.io/node-pool: gitlab
 
     postgresql:
       nodeSelector:
-        spack.io/node-pool: base
+        spack.io/node-pool: gitlab
 
     redis:
       nodeSelector:
-        spack.io/node-pool: base
+        spack.io/node-pool: gitlab
 
     shared-secrets:
       nodeSelector:
-        spack.io/node-pool: base
+        spack.io/node-pool: gitlab
