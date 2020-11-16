@@ -3,6 +3,7 @@
 import argparse
 import atexit
 import base64
+import boto3
 from datetime import datetime, timedelta, timezone
 import dateutil.parser
 import json
@@ -305,6 +306,19 @@ class SpackCIBridge(object):
                 if post_response.status != 201:
                     print("Expected 201 when creating status, got {0}".format(post_response.status))
 
+    def delete_pr_mirrors(self, closed_refspecs):
+        if closed_refspecs:
+            bucket_name = "spack-pr-mirrors"
+
+            s3 = boto3.resource("s3")
+            bucket = s3.Bucket(bucket_name)
+
+            print("Deleting mirrors for closed PRs:")
+            for refspec in closed_refspecs:
+                pr_mirror_key = refspec[1:]
+                print("    deleting {0}".format(pr_mirror_key))
+                bucket.objects.filter(Prefix=pr_mirror_key).delete()
+
     def sync(self, args):
         """Synchronize pull requests from GitHub as branches on GitLab."""
         # Handle input arguments for connecting to GitHub and GitLab.
@@ -345,6 +359,9 @@ class SpackCIBridge(object):
                 push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + closed_refspecs + open_refspecs
                 subprocess.run(push_args, check=True)
 
+            # Clean up per-PR dedicated mirrors for any closed PRs
+            self.delete_pr_mirrors(closed_refspecs)
+
             # Post pipeline status to GitHub for each open PR.
             pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
             self.post_pipeline_status(open_prs + protected_branches, pipeline_api_template)
@@ -366,6 +383,12 @@ if __name__ == "__main__":
 
     if "GITHUB_TOKEN" not in os.environ:
         raise Exception("GITHUB_TOKEN environment is not set")
+
+    if "AWS_ACCESS_KEY_ID" not in os.environ:
+        raise Exception("AWS_ACCESS_KEY_ID environment is not set")
+
+    if "AWS_SECRET_ACCESS_KEY" not in os.environ:
+        raise Exception("AWS_SECRET_ACCESS_KEY environment is not set")
 
     bridge = SpackCIBridge()
     bridge.setup_ssh(ssh_key_base64)
