@@ -16,7 +16,7 @@ spec:
     imagePullPolicy: IfNotPresent
 
     # gitlabUrl: "http://gitlab-webservice.gitlab.svc.cluster.local:8080/"
-    gitlabUrl: "http://gitlab-unicorn.gitlab.svc.cluster.local:8080/"
+    gitlabUrl: "http://gitlab-temp-unicorn.gitlab.svc.cluster.local:8080/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600  # six hours
     concurrent: 20
