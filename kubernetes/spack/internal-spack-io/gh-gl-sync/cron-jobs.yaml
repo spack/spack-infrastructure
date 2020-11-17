@@ -38,9 +38,9 @@ spec:
                   name: gh-gl-sync
                   key: aws-secret-access-key
             args:
-              - "scottwittenburg/gitlab-ci-tests"
-              - "ssh://git@ssh.gitlab.spack.io/scott/gitlab-ci-tests"
+              - "spack/spack"
+              - "ssh://git@ssh.gitlab.spack.io/spack/spack"
               - "https://gitlab.spack.io"
-              - "scott/gitlab-ci-tests"
+              - "spack/spack"
           nodeSelector:
             "beta.kubernetes.io/instance-type": "t2.medium"
