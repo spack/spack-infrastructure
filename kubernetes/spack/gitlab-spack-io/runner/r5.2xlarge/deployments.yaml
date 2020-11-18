@@ -58,8 +58,11 @@ spec:
                 gitlab-runner unregister --name "$( hostname )"
 
         env:
-        - name: DOCKER_IMAGE
-          value: "ubuntu:18.04"
+        - name: KUBERNETES_IMAGE
+          value: "k8s.internal/ubuntu:18.04"
+
+        - name: KUBERNETES_HELPER_IMAGE
+          value: "k8s.internal/gitlab-gitlab-runner-helper:x86_64-ece86343"
 
         - name: CI_SERVER_URL
           value: "http://gitlab"

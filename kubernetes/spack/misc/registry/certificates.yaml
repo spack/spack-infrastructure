@@ -1,0 +1,14 @@
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: tls-registry
+  namespace: spack
+spec:
+  secretName: tls-registry
+  issuerRef:
+    name: self-sign
+    kind: ClusterIssuer
+  dnsNames:
+  - registry.spack.svc.cluster.local
+  - k8s.internal

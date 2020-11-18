@@ -1,0 +1,100 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry
+  namespace: spack
+  labels:
+    app: registry
+spec:
+  selector:
+    matchLabels:
+      app: registry
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: registry
+    spec:
+      containers:
+      - name: registry
+        image: "registry:2.6.0"
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REGISTRY_HTTP_SECRET
+          value: tls-registry
+        - name: REGISTRY_HTTP_ADDR
+          value: 0.0.0.0:443
+        - name: REGISTRY_HTTP_TLS_CERTIFICATE
+          value: /ca-data/tls.crt
+        - name: REGISTRY_HTTP_TLS_KEY
+          value: /ca-data/tls.key
+        ports:
+        - name: https
+          containerPort: 443
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/registry
+        - name: ca-data
+          mountPath: /ca-data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: registry-data
+        - name: ca-data
+          secret:
+            secretName: tls-registry
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-shell
+  namespace: spack
+  labels:
+    app: docker-shell
+spec:
+  selector:
+    matchLabels:
+      app: docker-shell
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: docker-shell
+    spec:
+      containers:
+      - name: docker
+        image: "docker:dind"
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - "sh"
+              - "-c"
+              - "  apk add bind-tools \
+                && ip=\"$( host -t A registry.spack.svc.cluster.local \
+                        | tail -n 1 | cut -d' ' -f 4 )\" \
+                && echo \"$ip k8s.internal\" >> /etc/hosts"
+        volumeMounts:
+        - name: ca-crt
+          mountPath: /etc/docker/certs.d/registry.spack.svc.cluster.local/ca.crt
+          subPath: ca.crt
+        - name: ca-crt
+          mountPath: /etc/docker/certs.d/k8s.internal/ca.crt
+          subPath: ca.crt
+        securityContext:
+          privileged: true
+      volumes:
+        - name: ca-crt
+          secret:
+            secretName: tls-registry
+      nodeSelector:
+        "beta.kubernetes.io/instance-type": "t2.medium"

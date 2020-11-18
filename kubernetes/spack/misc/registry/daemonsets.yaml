@@ -1,0 +1,70 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: registry-ca
+  namespace: spack
+  labels:
+    k8s-app: registry-ca
+spec:
+  selector:
+    matchLabels:
+      k8s-app: registry-ca
+  template:
+    metadata:
+      labels:
+        k8s-app: registry-ca
+    spec:
+      containers:
+      - name: registry-ca
+        imagePullPolicy: IfNotPresent
+        image: alpine
+        command: [sh]
+        args:
+            - -c
+            - "   cp /ca-data/ca.crt /docker-cert/0 \
+               && cp /ca-data/ca.crt /docker-cert/1 \
+               && exec tail -f /dev/null"
+        volumeMounts:
+        - name: docker-cert0
+          mountPath: /docker-cert/0
+        - name: docker-cert1
+          mountPath: /docker-cert/1
+        - name: ca-cert
+          mountPath: /ca-data/ca.crt
+          subPath: ca.crt
+      - name: hosts-adjuster
+        imagePullPolicy: IfNotPresent
+        image: alpine
+        command: [sh]
+        args:
+            - -c
+            - "   apk add bind-tools gawk \
+               && while sleep 5 ; do \
+                    line=\"$( tail -n 1 /host-hosts )\" \
+               &&   ip=\"$( echo \"$line\" | awk '{print $1}' )\" \
+               &&   dns=\"$( echo \"$line\" | awk '{print $2}' )\" \
+               &&   if [ \"$dns\" '!=' 'registry.spack.svc.cluster.local' ] ; then \
+                       ip=\"$( host -t a registry.spack.svc.cluster.local \
+                               | tail -n 1 | cut -d' ' -f 4 )\"
+               &&      echo \"Appending entry: $ip\" \
+               &&      echo \"$ip registry.spack.svc.cluster.local k8s.internal\" >> /host-hosts \
+               ;    fi \
+               ;  done"
+        volumeMounts:
+        - name: etc-hosts
+          mountPath: /host-hosts
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: docker-cert0
+        hostPath:
+          path: /etc/docker/certs.d/registry.spack.svc.cluster.local
+      - name: docker-cert1
+        hostPath:
+          path: /etc/docker/certs.d/k8s.internal
+      - name: etc-hosts
+        hostPath:
+          path: /etc/hosts
+      - name: ca-cert
+        secret:
+          secretName: tls-registry
