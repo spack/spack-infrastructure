@@ -5,7 +5,7 @@ metadata:
   name: gh-gl-sync
   namespace: spack
 spec:
-  schedule: "*/1 * * * *"
+  schedule: "*/2 * * * *"
   jobTemplate:
     spec:
       template:
