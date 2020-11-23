@@ -111,6 +111,25 @@ class SpackCIBridge(object):
             print("    {0}".format(protected_branch))
         return protected_branches
 
+    def list_github_tags(self):
+        """ Return a list of tag names from GitHub."""
+        try:
+            request = urllib.request.Request(
+                    "https://api.github.com/repos/%s/tags" % (self.github_project))
+            request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
+            response = urllib.request.urlopen(request)
+        except OSError:
+            return
+        github_tag_responses = json.loads(response.read())
+        tags = []
+        for github_tag_response in github_tag_responses:
+            tags.append(github_tag_response['name'])
+        tags = sorted(tags)
+        print("Tags:")
+        for tag in tags:
+            print("    {0}".format(tag))
+        return tags
+
     def setup_git_repo(self):
         """Initialize a bare git repository with two remotes:
         one for GitHub and one for GitLab.
@@ -177,6 +196,13 @@ class SpackCIBridge(object):
         for protected_branch in protected_branches:
             fetch_refspecs.append("+refs/heads/{0}:refs/remotes/github/{0}".format(protected_branch))
             open_refspecs.append("github/{0}:github/{0}".format(protected_branch))
+        return open_refspecs, fetch_refspecs
+
+    def update_refspecs_for_tags(self, tags, open_refspecs, fetch_refspecs):
+        """Update our refspecs lists for tags from GitHub."""
+        for tag in tags:
+            fetch_refspecs.append("+refs/tags/{0}:refs/tags/{0}".format(tag))
+            open_refspecs.append("refs/tags/{0}:refs/tags/{0}".format(tag))
         return open_refspecs, fetch_refspecs
 
     def fetch_github_branches(self, fetch_refspecs):
@@ -340,6 +366,9 @@ class SpackCIBridge(object):
             # Get protected branches on GitHub.
             protected_branches = self.list_github_protected_branches()
 
+            # Get tags on GitHub.
+            tags = self.list_github_tags()
+
             # Retrieve PRs that have already been synced to GitLab.
             synced_prs = self.get_synced_prs()
 
@@ -350,6 +379,7 @@ class SpackCIBridge(object):
             # Get refspecs for open PRs and protected branches.
             open_refspecs, fetch_refspecs = self.get_open_refspecs(open_prs)
             self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
+            self.update_refspecs_for_tags(tags, open_refspecs, fetch_refspecs)
 
             # Sync open GitHub PRs and protected branches to GitLab.
             self.fetch_github_branches(fetch_refspecs)
