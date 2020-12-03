@@ -29,7 +29,7 @@ various controllers designed to respond to changes to instances of these kinds
 of state.  A controller's actions often have side effects that introduce
 changes to other, related kinds of state, and which often elicit responses from
 other controllers in turn.  Thus, while the action of any one controller is
-relatively simple to understand, their collective operation routinely involve
+relatively simple to understand, their collective operation routinely involves
 large, cascading chain-reactions from whose aggregate effects emerge
 infrastructure automation of considerable sophistication.
 
@@ -146,8 +146,8 @@ FIELDS:
 
 We briefly detail a few of these fields:
 
-  - `name` specifies the name of the resource (`Pod`, in this case).  Outside
-     of a few exceptions, it is a required field.
+  - `name` specifies the name of the resource (the name of the `Pod`, in this
+    case).  Outside of a few exceptions, it is a required field.
 
   - `namespace` provides the name of a namespace for the resource.  Namespaces
      are logical groupings of related resources.  Resources in Kubernetes are
