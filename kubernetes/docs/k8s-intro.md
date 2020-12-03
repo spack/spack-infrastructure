@@ -28,7 +28,7 @@ consists almost entirely of "types" of state data (or "kind"s of state) and
 various controllers designed to respond to changes to instances of these kinds
 of state.  A controller's actions often have side effects that introduce
 changes to other, related kinds of state, and which often elicit responses from
-other controllers in turn.  Thus, while the actions of any one controller is
+other controllers in turn.  Thus, while the action of any one controller is
 relatively simple to understand, their collective operation routinely involve
 large, cascading chain-reactions from whose aggregate effects emerge
 infrastructure automation of considerable sophistication.
