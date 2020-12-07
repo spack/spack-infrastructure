@@ -6,6 +6,7 @@ import base64
 import boto3
 from datetime import datetime, timedelta, timezone
 import dateutil.parser
+from github import Github
 import json
 import os
 import re
@@ -21,6 +22,9 @@ class SpackCIBridge(object):
     def __init__(self):
         self.gitlab_repo = ""
         self.github_repo = ""
+
+        self.py_github = Github(os.environ.get('GITHUB_TOKEN'))
+        self.py_gh_repo = self.py_github.get_repo('spack/spack')
 
     @atexit.register
     def cleanup():
@@ -68,9 +72,9 @@ class SpackCIBridge(object):
         for GitHub PRs with a given state: open, closed, or all.
         """
         pr_strings = []
-        self.get_prs_from_github_api(state)
-        for self.github_pr_response in self.github_pr_responses:
-            pr_string = "pr{0}_{1}".format(self.github_pr_response["number"], self.github_pr_response["head"]["ref"])
+        pulls = self.py_gh_repo.get_pulls(state=state)
+        for pull in pulls:
+            pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
             pr_strings.append(pr_string)
         pr_strings = sorted(pr_strings)
         print("{0} PRs:".format(state.capitalize()))
@@ -78,33 +82,10 @@ class SpackCIBridge(object):
             print("    {0}".format(pr_string))
         return pr_strings
 
-    def get_prs_from_github_api(self, state):
-        """Query the GitHub API for PRs with a given state: open, closed, or all.
-        Store this retrieved data in self.github_pr_responses.
-        """
-        self.github_pr_responses = []
-        try:
-            request = urllib.request.Request(
-                    "https://api.github.com/repos/%s/pulls?state=%s" % (self.github_project, state))
-            request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
-            response = urllib.request.urlopen(request)
-        except OSError:
-            return
-        self.github_pr_responses = json.loads(response.read())
-
     def list_github_protected_branches(self):
         """ Return a list of protected branch names from GitHub."""
-        try:
-            request = urllib.request.Request(
-                    "https://api.github.com/repos/%s/branches?protected=true" % (self.github_project))
-            request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
-            response = urllib.request.urlopen(request)
-        except OSError:
-            return
-        github_branch_responses = json.loads(response.read())
-        protected_branches = []
-        for github_branch_response in github_branch_responses:
-            protected_branches.append(github_branch_response["name"])
+        branches = self.py_gh_repo.get_branches()
+        protected_branches = [br.name for br in branches if br.protected]
         protected_branches = sorted(protected_branches)
         print("Protected branches:")
         for protected_branch in protected_branches:
@@ -113,18 +94,8 @@ class SpackCIBridge(object):
 
     def list_github_tags(self):
         """ Return a list of tag names from GitHub."""
-        try:
-            request = urllib.request.Request(
-                    "https://api.github.com/repos/%s/tags" % (self.github_project))
-            request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
-            response = urllib.request.urlopen(request)
-        except OSError:
-            return
-        github_tag_responses = json.loads(response.read())
-        tags = []
-        for github_tag_response in github_tag_responses:
-            tags.append(github_tag_response['name'])
-        tags = sorted(tags)
+        tag_list = self.py_gh_repo.get_tags()
+        tags = sorted([tag.name for tag in tag_list])
         print("Tags:")
         for tag in tags:
             print("    {0}".format(tag))
@@ -320,17 +291,15 @@ class SpackCIBridge(object):
             for sha, pipeline in pipelines.items():
                 print("Posting status for {0} / {1}".format(branch, sha))
                 post_data = self.make_status_for_pipeline(pipeline)
-                try:
-                    post_request = urllib.request.Request(
-                            "https://api.github.com/repos/{0}/statuses/{1}".format(self.github_project, sha),
-                            data=post_data)
-                    post_request.add_header("Authorization", "token %s" % os.environ["GITHUB_TOKEN"])
-                    post_request.add_header("Accept", "application/vnd.github.v3+json")
-                    post_response = urllib.request.urlopen(post_request)
-                except OSError:
-                    continue
-                if post_response.status != 201:
-                    print("Expected 201 when creating status, got {0}".format(post_response.status))
+                status_response = self.py_gh_repo.get_commit(sha=sha).create_status(
+                    state=post_data["state"],
+                    target_url=post_data["target_url"],
+                    description=post_data["description"],
+                    context=post_data["context"]
+                )
+                if status_response.state != post_data["state"]:
+                    print("Expected CommitStatus state {0}, got {1}".format(
+                        post_data["state"], status_response.state))
 
     def delete_pr_mirrors(self, closed_refspecs):
         if closed_refspecs:
@@ -363,7 +332,7 @@ class SpackCIBridge(object):
             # Retrieve currently open PRs from GitHub.
             open_prs = self.list_github_prs("open")
 
-            # Get protected branches on GitHub.
+            # # Get protected branches on GitHub.
             protected_branches = self.list_github_protected_branches()
 
             # Get tags on GitHub.

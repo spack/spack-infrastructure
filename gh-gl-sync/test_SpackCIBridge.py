@@ -5,29 +5,6 @@ from unittest.mock import patch
 import SpackCIBridge
 
 
-def test_list_github_prs(capfd):
-    """Test the list_github_prs method."""
-    bridge = SpackCIBridge.SpackCIBridge()
-    bridge.get_prs_from_github_api = lambda *args: None
-    bridge.github_pr_responses = [
-        {
-            "number": 1,
-            "head": {
-                "ref": "improve_docs",
-            }
-        },
-        {
-            "number": 2,
-            "head": {
-                "ref": "fix_test",
-            }
-        },
-    ]
-    assert bridge.list_github_prs("open") == ["pr1_improve_docs", "pr2_fix_test"]
-    out, err = capfd.readouterr()
-    assert out == "Open PRs:\n    pr1_improve_docs\n    pr2_fix_test\n"
-
-
 def test_get_synced_prs(capfd):
     """Test the get_synced_prs method."""
     bridge = SpackCIBridge.SpackCIBridge()
