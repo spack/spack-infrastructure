@@ -24,7 +24,7 @@ class SpackCIBridge(object):
         self.github_repo = ""
 
         self.py_github = Github(os.environ.get('GITHUB_TOKEN'))
-        self.py_gh_repo = self.py_github.get_repo('spack/spack')
+        self.py_gh_repo = self.py_github.get_repo('spack/spack', lazy=True)
 
     @atexit.register
     def cleanup():
@@ -243,8 +243,6 @@ class SpackCIBridge(object):
 
         post_data["target_url"] = pipeline["web_url"]
         post_data["context"] = "ci/gitlab-ci"
-
-        post_data = json.dumps(post_data).encode('utf-8')
         return post_data
 
     def dedupe_pipelines(self, api_response):
