@@ -262,7 +262,7 @@ class SpackCIBridge(object):
         return pipelines
 
     def get_pipeline_api_template(self, gitlab_host, gitlab_project):
-        dt = datetime.now(timezone.utc) + timedelta(minutes=-2)
+        dt = datetime.now(timezone.utc) + timedelta(minutes=-4)
         time_threshold = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
         template = gitlab_host
         template += "/api/v4/projects/"
