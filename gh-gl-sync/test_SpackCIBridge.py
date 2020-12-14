@@ -1,29 +1,41 @@
-import json
 import os
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import SpackCIBridge
 
 
+class AttrDict(dict):
+    def __init__(self, iterable, **kwargs):
+        super(AttrDict, self).__init__(iterable, **kwargs)
+        for key, value in iterable.items():
+            if isinstance(value, dict):
+                self.__dict__[key] = AttrDict(value)
+            else:
+                self.__dict__[key] = value
+
+
 def test_list_github_prs(capfd):
     """Test the list_github_prs method."""
-    bridge = SpackCIBridge.SpackCIBridge()
-    bridge.get_prs_from_github_api = lambda *args: None
-    bridge.github_pr_responses = [
-        {
+    github_pr_response = [
+        AttrDict({
             "number": 1,
             "head": {
                 "ref": "improve_docs",
             }
-        },
-        {
+        }),
+        AttrDict({
             "number": 2,
             "head": {
                 "ref": "fix_test",
             }
-        },
+        }),
     ]
+    gh_repo = Mock()
+    gh_repo.get_pulls.return_value = github_pr_response
+    bridge = SpackCIBridge.SpackCIBridge()
+    bridge.py_gh_repo = gh_repo
     assert bridge.list_github_prs("open") == ["pr1_improve_docs", "pr2_fix_test"]
+    assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
     assert out == "Open PRs:\n    pr1_improve_docs\n    pr2_fix_test\n"
 
@@ -253,8 +265,8 @@ def test_make_status_for_pipeline():
     for test_case in test_cases:
         pipeline["status"] = test_case["input"]
         status = bridge.make_status_for_pipeline(pipeline)
-        assert json.loads(status.decode("utf-8"))["state"] == test_case["state"]
-        assert json.loads(status.decode("utf-8"))["description"] == test_case["description"]
+        assert status["state"] == test_case["state"]
+        assert status["description"] == test_case["description"]
 
 
 class FakeResponse:
@@ -276,9 +288,16 @@ def test_post_pipeline_status(capfd):
     """Test the post_pipeline_status method."""
     open_prs = ["pr1_readme"]
     template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
+    gh_commit = Mock()
+    gh_commit.create_status.return_value = AttrDict({"state": "error"})
+    gh_repo = Mock()
+    gh_repo.get_commit.return_value = gh_commit
+
     bridge = SpackCIBridge.SpackCIBridge()
+    bridge.py_gh_repo = gh_repo
     bridge.github_project = "zack/my_test_proj"
     os.environ["GITHUB_TOKEN"] = "my_github_token"
+
     mock_data = b'''[
         {
             "id": 1,
@@ -292,7 +311,9 @@ def test_post_pipeline_status(capfd):
     ]'''
     with patch('urllib.request.urlopen', return_value=FakeResponse(data=mock_data)) as mock_urlopen:
         bridge.post_pipeline_status(open_prs, template)
-        assert mock_urlopen.call_count == 2
+        assert mock_urlopen.call_count == 1
+        assert gh_repo.get_commit.call_count == 1
+        assert gh_commit.create_status.call_count == 1
     out, err = capfd.readouterr()
     assert out == "Posting status for pr1_readme / aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
     del os.environ["GITHUB_TOKEN"]
