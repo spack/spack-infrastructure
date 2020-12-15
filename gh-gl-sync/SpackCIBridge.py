@@ -319,6 +319,7 @@ class SpackCIBridge(object):
         self.gitlab_repo = args.gitlab_repo
         self.github_repo = "https://{0}@github.com/{1}.git".format(os.environ["GITHUB_TOKEN"], args.github_project)
         self.github_project = args.github_project
+        post_status = not args.disable_status_post
 
         # Work inside a temporary directory that will be deleted when this script terminates.
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -360,9 +361,10 @@ class SpackCIBridge(object):
             if "AWS_ACCESS_KEY_ID" in os.environ and "AWS_SECRET_ACCESS_KEY" in os.environ:
                 self.delete_pr_mirrors(closed_refspecs)
 
-            # Post pipeline status to GitHub for each open PR.
-            pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
-            self.post_pipeline_status(open_prs + protected_branches, pipeline_api_template)
+            # Post pipeline status to GitHub for each open PR, if enabled
+            if post_status:
+                pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
+                self.post_pipeline_status(open_prs + protected_branches, pipeline_api_template)
 
 
 if __name__ == "__main__":
@@ -372,6 +374,8 @@ if __name__ == "__main__":
     parser.add_argument("gitlab_repo", help="Full clone URL for GitLab")
     parser.add_argument("gitlab_host", help="GitLab web host")
     parser.add_argument("gitlab_project", help="GitLab project (org/repo or user/repo)")
+    parser.add_argument("--disable-status-post", action="store_true", default=False,
+                        help="Do not post pipeline status to each GitHub PR")
 
     args = parser.parse_args()
 
