@@ -16,8 +16,6 @@ spec:
       containerPort:
         http: 80
         https: 443
-
-        # TODO(opadron): look into possibly tunneling ssh through ssl.
         # ssh: 22
 
       # NOTE(opadron): use this if tunneling ssh.
@@ -55,13 +53,11 @@ spec:
         ports:
           http: 80
           https: 443
-          # TODO(opadron): look into possibly tunneling ssh through ssl.
           # ssh: 22
 
         targetPorts:
           http: http
           https: https
-          # TODO(opadron): look into possibly tunneling ssh through ssl.
           # ssh: ssh
 
         type: LoadBalancer
@@ -91,8 +87,8 @@ spec:
     # TCP service key:value pairs
     # Ref: https://github.com/kubernetes/contrib/tree/master/ingress
     #                        /controllers/nginx/examples/tcp
-    tcp: {}
-    #  8080: "default/example-tcp-svc:9000"
+    tcp:
+      22: "gitlab/gitlab-temp-gitlab-shell:22"
 
     # UDP service key:value pairs
     # Ref: https://github.com/kubernetes/contrib/tree/master/ingress
