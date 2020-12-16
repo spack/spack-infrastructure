@@ -125,6 +125,10 @@ spec:
         tls:
           enabled: true
       unicorn:
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-webservice-ee
+          tag: v12.9.2
         ingress:
           tls:
             secretName: tls-gitlab-unicorn-temp
