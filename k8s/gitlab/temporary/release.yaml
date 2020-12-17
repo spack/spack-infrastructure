@@ -145,10 +145,18 @@ spec:
           spack.io/node-pool: gitlab
 
       sidekiq:
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-sidekiq-ee
+          tag: v12.9.2
         nodeSelector:
           spack.io/node-pool: gitlab
 
       task-runner:
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-task-runner-ee
+          tag: v12.9.2
         nodeSelector:
           spack.io/node-pool: gitlab
 
