@@ -19,12 +19,14 @@ def test_list_github_prs(capfd):
     github_pr_response = [
         AttrDict({
             "number": 1,
+            "merge_commit_sha": "aaaaaaaa",
             "head": {
                 "ref": "improve_docs",
             }
         }),
         AttrDict({
             "number": 2,
+            "merge_commit_sha": "bbbbbbbb",
             "head": {
                 "ref": "fix_test",
             }
@@ -34,7 +36,9 @@ def test_list_github_prs(capfd):
     gh_repo.get_pulls.return_value = github_pr_response
     bridge = SpackCIBridge.SpackCIBridge()
     bridge.py_gh_repo = gh_repo
-    assert bridge.list_github_prs("open") == ["pr1_improve_docs", "pr2_fix_test"]
+    github_prs = bridge.list_github_prs("open")
+    assert github_prs["pr_strings"] == ["pr1_improve_docs", "pr2_fix_test"]
+    assert github_prs["merge_commit_shas"] == ["aaaaaaaa", "bbbbbbbb"]
     assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
     assert out == "Open PRs:\n    pr1_improve_docs\n    pr2_fix_test\n"
@@ -66,7 +70,10 @@ def test_get_prs_to_delete(capfd):
 
 def test_get_open_refspecs():
     """Test the get_open_refspecs and update_refspecs_for_protected_branches methods."""
-    open_prs = ["pr1_this", "pr2_that"]
+    open_prs = {
+        "pr_strings": ["pr1_this", "pr2_that"],
+        "merge_commit_shas": ["aaaaaaaa", "bbbbbbbb"],
+    }
     bridge = SpackCIBridge.SpackCIBridge()
     open_refspecs, fetch_refspecs = bridge.get_open_refspecs(open_prs)
     assert open_refspecs == [
@@ -74,8 +81,8 @@ def test_get_open_refspecs():
         "github/pr2_that:github/pr2_that"
     ]
     assert fetch_refspecs == [
-        "+refs/pull/1/head:refs/remotes/github/pr1_this",
-        "+refs/pull/2/head:refs/remotes/github/pr2_that"
+        "+aaaaaaaa:refs/remotes/github/pr1_this",
+        "+bbbbbbbb:refs/remotes/github/pr2_that"
     ]
 
     protected_branches = ["develop", "master"]
@@ -87,8 +94,8 @@ def test_get_open_refspecs():
         "github/master:github/master",
     ]
     assert fetch_refspecs == [
-        "+refs/pull/1/head:refs/remotes/github/pr1_this",
-        "+refs/pull/2/head:refs/remotes/github/pr2_that",
+        "+aaaaaaaa:refs/remotes/github/pr1_this",
+        "+bbbbbbbb:refs/remotes/github/pr2_that",
         "+refs/heads/develop:refs/remotes/github/develop",
         "+refs/heads/master:refs/remotes/github/master"
     ]
