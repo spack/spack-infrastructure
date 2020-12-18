@@ -22,6 +22,8 @@ class SpackCIBridge(object):
     def __init__(self):
         self.gitlab_repo = ""
         self.github_repo = ""
+        self.github_project = ""
+        self.unmergeable_shas = []
 
         self.py_github = Github(os.environ.get('GITHUB_TOKEN'))
         self.py_gh_repo = self.py_github.get_repo('spack/spack', lazy=True)
@@ -76,6 +78,7 @@ class SpackCIBridge(object):
         for pull in pulls:
             if not pull.merge_commit_sha:
                 print("PR {0} ({1}) has no 'merge_commit_sha', skipping".format(pull.number, pull.head.ref))
+                self.unmergeable_shas.append(pull.head.sha)
                 continue
             pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
             pr_dict[pr_string] = pull.merge_commit_sha
@@ -305,6 +308,19 @@ class SpackCIBridge(object):
                     print("Expected CommitStatus state {0}, got {1}".format(
                         post_data["state"], status_response.state))
 
+        # Post errors to any PRs that we found didn't have a merge_commit_sha, and
+        # thus were likely unmergeable.
+        for sha in self.unmergeable_shas:
+            commit_state = "error"
+            status_response = self.py_gh_repo.get_commit(sha=sha).create_status(
+                state=commit_state,
+                description="PR could not be merged with base",
+                context="ci/gitlab-ci"
+            )
+            if status_response.state != commit_state:
+                print("Expected CommitStatus state {0}, got {1}".format(
+                    commit_state, status_response.state))
+
     def delete_pr_mirrors(self, closed_refspecs):
         if closed_refspecs:
             bucket_name = "spack-pr-mirrors"
@@ -325,6 +341,7 @@ class SpackCIBridge(object):
         self.gitlab_repo = args.gitlab_repo
         self.github_repo = "https://{0}@github.com/{1}.git".format(os.environ["GITHUB_TOKEN"], args.github_project)
         self.github_project = args.github_project
+        self.unmergeable_shas = []
         post_status = not args.disable_status_post
 
         # Work inside a temporary directory that will be deleted when this script terminates.
