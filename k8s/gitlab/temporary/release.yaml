@@ -106,6 +106,8 @@ spec:
           secretName: tls-gitlab-minio-temp
       nodeSelector:
         spack.io/node-pool: gitlab
+      persistence:
+        size: 100Gi
 
     ## doc/charts/globals.md#configure-registry-settings
     ## NOTE(opadron): this is where the registry section is in the old version of
