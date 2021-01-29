@@ -1,4 +1,4 @@
-FROM registry.gitlab.com/gitlab-org/build/cng/gitlab-sidekiq-ee:v12.9.2
+FROM registry.gitlab.com/gitlab-org/build/cng/gitlab-task-runner-ee:v13.8.0
 
 RUN sed -i -e 's/LOW_NEEDS_LIMIT = [0-9]\+/LOW_NEEDS_LIMIT = 1000/g' \
            -e 's/HARD_NEEDS_LIMIT = [0-9]\+/HARD_NEEDS_LIMIT = 1000/g' \

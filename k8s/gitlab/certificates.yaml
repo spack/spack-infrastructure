@@ -2,12 +2,12 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: gitlab-unicorn
+  name: gitlab-webservice
   namespace: gitlab
   annotations:
     fluxcd.io/ignore: "true"
 spec:
-  secretName: tls-gitlab-unicorn
+  secretName: tls-gitlab-webservice
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer
@@ -29,3 +29,19 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - registry.next.spack.io
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitlab-minio
+  namespace: gitlab
+  annotations:
+    fluxcd.io/ignore: "true"
+spec:
+  secretName: tls-gitlab-minio
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - minio.next.spack.io
