@@ -9,10 +9,9 @@ spec:
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
-    version: 0.21.1  # gitlab-runner@13.4.1
+    version: 0.25.0  # gitlab-runner@13.8.0
   values:
-    # image: gitlab/gitlab-runner:alpine-v13.5.0
-    image: gitlab/gitlab-runner:alpine-v12.10.0
+    image: gitlab/gitlab-runner:alpine-v13.8.0
     imagePullPolicy: IfNotPresent
 
     gitlabUrl: "https://gitlab.next.spack.io/"
@@ -30,6 +29,10 @@ spec:
       serviceAccountName: runner
 
     runners:
+      config: |
+        [[runners]]
+          environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
+
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
@@ -39,7 +42,7 @@ spec:
       tags: "avx,medium,public,spack"
       runUntagged: false
       privileged: false
-      secret: gitlab-temp-gitlab-runner-secret  # from gitlab release
+      secret: gitlab-gitlab-runner-secret  # from gitlab release
 
       namespace: pipeline
       pollTimeout: 600  # ten minutes

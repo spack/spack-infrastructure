@@ -4,8 +4,6 @@ kind: Certificate
 metadata:
   name: gitlab-webservice
   namespace: gitlab
-  annotations:
-    fluxcd.io/ignore: "true"
 spec:
   secretName: tls-gitlab-webservice
   issuerRef:
@@ -20,8 +18,6 @@ kind: Certificate
 metadata:
   name: gitlab-registry
   namespace: gitlab
-  annotations:
-    fluxcd.io/ignore: "true"
 spec:
   secretName: tls-gitlab-registry
   issuerRef:
@@ -36,8 +32,6 @@ kind: Certificate
 metadata:
   name: gitlab-minio
   namespace: gitlab
-  annotations:
-    fluxcd.io/ignore: "true"
 spec:
   secretName: tls-gitlab-minio
   issuerRef:
