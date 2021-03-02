@@ -295,6 +295,8 @@ def test_post_pipeline_status(capfd):
     """Test the post_pipeline_status method."""
     open_prs = ["pr1_readme"]
     template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
+    commit_template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/repository/commits/{}".format(
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
     gh_commit = Mock()
     gh_commit.create_status.return_value = AttrDict({"state": "error"})
     gh_repo = Mock()
@@ -317,10 +319,11 @@ def test_post_pipeline_status(capfd):
         }
     ]'''
     with patch('urllib.request.urlopen', return_value=FakeResponse(data=mock_data)) as mock_urlopen:
-        bridge.post_pipeline_status(open_prs, template)
-        assert mock_urlopen.call_count == 1
+        bridge.post_pipeline_status(open_prs, template, commit_template)
+        assert mock_urlopen.call_count == 2
         assert gh_repo.get_commit.call_count == 1
         assert gh_commit.create_status.call_count == 1
     out, err = capfd.readouterr()
-    assert out == "Posting status for pr1_readme / aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    expected_content = "Posting status for pr1_readme / aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    assert expected_content in out
     del os.environ["GITHUB_TOKEN"]
