@@ -4,113 +4,152 @@ kind: HelmRelease
 metadata:
   name: gitlab
   namespace: gitlab
-  annotations:
-    fluxcd.io/ignore: "true"
 spec:
   releaseName: gitlab
   chart:
     name: gitlab
     repository: https://charts.gitlab.io
-    version: 3.2.2 # gitlab@12.9.2
+    version: 4.8.0 # gitlab@13.8.0
 
   values:
-    # Documentation for these values and more can be found at
-    # https://gitlab.com/gitlab-org/charts/gitlab/
-
-    # No documentation was available for nodeSelector. Hopefully this is right.
     nodeSelector:
-      spack.io/node-pool: base
+      spack.io/node-pool: gitlab
 
-    ## The global properties are used to configure multiple charts at once.
-    ## Extended documenation at doc/charts/globals.md
     global:
-      appConfig:
-        smartcard:
-          enabled: false
+      common:
+        labels: {}
 
-      ## doc/charts/globals.md#configure-host-settings
+      operator:
+        enabled: false
+
+      edition: ee
+
       hosts:
         domain: next.spack.io
         https: true
         gitlab:
           name: gitlab.next.spack.io
-        # TODO(opadron): deploy stand-alone docker registry
+        minio:
+          name: minio.next.spack.io
         registry:
           name: registry.next.spack.io
+        smartcard:
+          enabled: false
+        ssh: ssh.gitlab.next.spack.io
 
-      ## doc/charts/globals.md#configure-ingress-settings
       ingress:
         configureCertmanager: false
         class: nginx
 
       gitlab:
-        ## Enterprise license for this GitLab installation
-        ## Secret created according to doc/installation/secrets.md#initial-enterprise-license
-        ## If allowing shared-secrets generation, this is OPTIONAL.
-        ## TODO: set this up
         license: {}
-          # secret: RELEASE-gitlab-license
-          # key: license
 
-      ## doc/charts/globals.md#configure-postgresql-settings
+      initialRootPassword: {}
+
       psql:
-        password:
-          secret: gitlab-secrets
-          key: gitlab-db-password
-        host: r001-spack-gitlab.cgnbnwwuxkgt.us-east-1.rds.amazonaws.com
-        username: gitlab
-        database: gitlabhq_production
+        connectTimeout:
+        password: {}
 
-      ## doc/charts/globals.md#configure-redis-settings
       redis:
         password:
-          enabled: false
-        host: r003-spack-gitlab.cev8lh.clustercfg.use1.cache.amazonaws.com
+          enabled: true
 
-      ## doc/charts/globals.md#configure-minio-settings
       minio:
-        ## NOTE(opadron): minio absolutely **has** to be enabled to work around
-        ##                multiple bugs in version 3.2.2 of this chart
-        ##
-        ## https://gitlab.com/gitlab-org/charts/gitlab/-/issues/698
-        ## https://gitlab.com/gitlab-org/charts/gitlab/-/issues/721
-        ## https://gitlab.com/gitlab-org/charts/gitlab/-/issues/930
-        ## https://gitlab.com/gitlab-org/charts/gitlab/-/issues/1998
         enabled: true
 
-      ## doc/charts/globals.md#configure-grafana-integration
       grafana:
         enabled: false
 
-    ## End of global
+      appConfig:
+        smartcard:
+          enabled: false
 
-    gitlab:
-      unicorn:
-        ingress:
-          tls:
-            secretName: tls-gitlab-unicorn
-        replicaCount: 4
+      antiAffinity: hard
+    ### END OF GLOBAL SECTION
 
-    registry:
-      ingress:
-        tls:
-          secretName: tls-gitlab-registry
-
-    # Disable lots of other components that we handle separately.
     certmanager:
+      install: false
+
+    prometheus:
       install: false
 
     nginx-ingress:
       enabled: false
 
-    prometheus:
-      install: false
+    minio:
+      ingress:
+        tls:
+          secretName: tls-gitlab-minio
+      nodeSelector:
+        spack.io/node-pool: gitlab
+      persistence:
+        size: 100Gi
 
-    redis:
-      install: false
-
-    postgresql:
-      install: false
+    registry:
+      ingress:
+        tls:
+          secretName: tls-gitlab-registry
+      nodeSelector:
+        spack.io/node-pool: gitlab
 
     gitlab-runner:
       install: false
+
+    gitlab:
+      ingress:
+        tls:
+          enabled: true
+      webservice:
+        ingress:
+          enabled: true
+          tls:
+            enabled: true
+            secretName: tls-gitlab-webservice
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-webservice-ee
+          tag: v13.8.0
+        minReplicas: 2
+        maxReplicas: 4
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+      gitlab-exporter:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+      gitlab-shell:
+        service:
+          type: LoadBalancer
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+      sidekiq:
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-sidekiq-ee
+          tag: v13.8.0
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+
+      task-runner:
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-task-runner-ee
+          tag: v13.8.0
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+        replicas: 4
+        antiAffinityLabels:
+          matchLabels:
+            app: 'gitaly'
+
+      gitaly:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+      migrations:
+        nodeSelector:
+          spack.io/node-pool: gitlab
