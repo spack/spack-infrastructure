@@ -345,28 +345,36 @@ class SpackCIBridge(object):
                     print('Using tested commit to post status')
                     pr_sha = sha
                 print("Posting status for {0} / {1}".format(branch, pr_sha))
-                status_response = self.py_gh_repo.get_commit(sha=pr_sha).create_status(
-                    state=post_data["state"],
-                    target_url=post_data["target_url"],
-                    description=post_data["description"],
-                    context=post_data["context"]
-                )
-                if status_response.state != post_data["state"]:
-                    print("Expected CommitStatus state {0}, got {1}".format(
-                        post_data["state"], status_response.state))
+                try:
+                    status_response = self.py_gh_repo.get_commit(sha=pr_sha).create_status(
+                        state=post_data["state"],
+                        target_url=post_data["target_url"],
+                        description=post_data["description"],
+                        context=post_data["context"]
+                    )
+                    if status_response.state != post_data["state"]:
+                        print("Expected CommitStatus state {0}, got {1}".format(
+                            post_data["state"], status_response.state))
+                except Exception as e_inst:
+                    print('Caught exception posting status for {0}/{1}'.format(branch, pr_sha))
+                    print(e_inst)
 
         # Post errors to any PRs that we found didn't have a merge_commit_sha, and
         # thus were likely unmergeable.
         for sha in self.unmergeable_shas:
             commit_state = "error"
-            status_response = self.py_gh_repo.get_commit(sha=sha).create_status(
-                state=commit_state,
-                description="PR could not be merged with base",
-                context="ci/gitlab-ci"
-            )
-            if status_response.state != commit_state:
-                print("Expected CommitStatus state {0}, got {1}".format(
-                    commit_state, status_response.state))
+            try:
+                status_response = self.py_gh_repo.get_commit(sha=sha).create_status(
+                    state=commit_state,
+                    description="PR could not be merged with base",
+                    context="ci/gitlab-ci"
+                )
+                if status_response.state != commit_state:
+                    print("Expected CommitStatus state {0}, got {1}".format(
+                        commit_state, status_response.state))
+            except Exception as e_inst:
+                print('Caught exception posting status for unmergeable sha {0}'.format(sha))
+                print(e_inst)
 
     def delete_pr_mirrors(self, closed_refspecs):
         if closed_refspecs:
