@@ -9,7 +9,7 @@ spec:
   chart:
     name: gitlab
     repository: https://charts.gitlab.io
-    version: 4.8.0 # gitlab@13.8.0
+    version: 4.8.7 # gitlab@13.8.7
 
   values:
     nodeSelector:
