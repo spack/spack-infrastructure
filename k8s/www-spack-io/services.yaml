@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spack-io
+  labels:
+    app: spack-io
+    svc: web
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app: spack-io
+    svc: web
+
+## # TODO(opadron): enable this redirector after migrating DNS
+## ---
+## apiVersion: v1
+## kind: Service
+## metadata:
+##   name: spack-io-redirect
+##   labels:
+##     app: spack-io
+##     svc: web-redirect
+## spec:
+##   type: ClusterIP
+##   ports:
+##   - name: http
+##     port: 80
+##     targetPort: http
+##   selector:
+##     app: spack-io
+##     svc: web-redirect
