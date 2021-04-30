@@ -1,0 +1,15 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: spack-packages
+spec:
+  tls:
+  - secretName: tls-packages
+  rules:
+  - host: packages.next.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: spack-packages
+          servicePort: 80
