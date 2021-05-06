@@ -376,10 +376,8 @@ class SpackCIBridge(object):
                 print('Caught exception posting status for unmergeable sha {0}'.format(sha))
                 print(e_inst)
 
-    def delete_pr_mirrors(self, closed_refspecs):
+    def delete_pr_mirrors(self, bucket_name, closed_refspecs):
         if closed_refspecs:
-            bucket_name = "spack-pr-mirrors"
-
             s3 = boto3.resource("s3")
             bucket = s3.Bucket(bucket_name)
 
@@ -436,9 +434,9 @@ class SpackCIBridge(object):
                 subprocess.run(push_args, check=True)
 
             # Clean up per-PR dedicated mirrors for any closed PRs
-            if "AWS_ACCESS_KEY_ID" in os.environ and "AWS_SECRET_ACCESS_KEY" in os.environ:
+            if args.pr_mirror_bucket:
                 print('Cleaning up per-PR mirrors for closed PRs')
-                self.delete_pr_mirrors(closed_refspecs)
+                self.delete_pr_mirrors(args.pr_mirror_bucket, closed_refspecs)
 
             # Post pipeline status to GitHub for each open PR, if enabled
             if post_status:
@@ -459,6 +457,8 @@ if __name__ == "__main__":
     parser.add_argument("gitlab_project", help="GitLab project (org/repo or user/repo)")
     parser.add_argument("--disable-status-post", action="store_true", default=False,
                         help="Do not post pipeline status to each GitHub PR")
+    parser.add_argument("--pr-mirror-bucket", default=None,
+                        help="Delete mirrors for closed PRs from the specified S3 bucket")
 
     args = parser.parse_args()
 

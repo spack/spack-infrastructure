@@ -28,20 +28,12 @@ spec:
                 secretKeyRef:
                   name: gh-gl-sync
                   key: gitlab-ssh-key
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: gh-gl-sync
-                  key: aws-access-key-id
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: gh-gl-sync
-                  key: aws-secret-access-key
             args:
               - "spack/spack"
               - "ssh://git@ssh.gitlab.next.spack.io/spack/spack"
               - "https://gitlab.next.spack.io"
               - "spack/spack"
+              - "--pr-mirror-bucket"
+              - "spack-binaries-prs"
           nodeSelector:
             spack.io/node-pool: base
