@@ -1,0 +1,39 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: gitlab-api-scrape
+  namespace: custom
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: scrape
+            image: zackgalbreath/gitlab-api-scrape:0.0.1
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-api-scrape
+                  key: aws-access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-api-scrape
+                  key: aws-secret-access-key
+            - name: GITLAB_PRIVATE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-api-scrape
+                  key: gitlab-private-token
+            args:
+              - "https://gitlab.next.spack.io"
+              - "spack/spack"
+              - "--post-summary"
+          nodeSelector:
+            spack.io/node-pool: base
