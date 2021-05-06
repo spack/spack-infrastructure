@@ -22,9 +22,13 @@ class SpackCIBridge(object):
     def __init__(self):
         self.gitlab_repo = ""
         self.github_repo = ""
+        self.github_project = ""
+        self.unmergeable_shas = []
 
         self.py_github = Github(os.environ.get('GITHUB_TOKEN'))
         self.py_gh_repo = self.py_github.get_repo('spack/spack', lazy=True)
+
+        self.merge_msg_regex = re.compile(r"Merge\s+([^\s]+)\s+into\s+[^\s]+")
 
     @atexit.register
     def cleanup():
@@ -71,16 +75,25 @@ class SpackCIBridge(object):
         """ Return a list of strings in the format: "pr<PR#>_<headref>"
         for GitHub PRs with a given state: open, closed, or all.
         """
-        pr_strings = []
+        pr_dict = {}
         pulls = self.py_gh_repo.get_pulls(state=state)
         for pull in pulls:
+            if not pull.merge_commit_sha:
+                print("PR {0} ({1}) has no 'merge_commit_sha', skipping".format(pull.number, pull.head.ref))
+                self.unmergeable_shas.append(pull.head.sha)
+                continue
             pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
-            pr_strings.append(pr_string)
-        pr_strings = sorted(pr_strings)
+            pr_dict[pr_string] = pull.merge_commit_sha
+
+        pr_strings = sorted(pr_dict.keys())
+        merge_commit_shas = [pr_dict[s] for s in pr_strings]
         print("{0} PRs:".format(state.capitalize()))
         for pr_string in pr_strings:
             print("    {0}".format(pr_string))
-        return pr_strings
+        return {
+            "pr_strings": pr_strings,
+            "merge_commit_shas": merge_commit_shas,
+        }
 
     def list_github_protected_branches(self):
         """ Return a list of protected branch names from GitHub."""
@@ -150,15 +163,13 @@ class SpackCIBridge(object):
 
     def get_open_refspecs(self, open_prs):
         """Return lists of refspecs for fetch and push given a list of open PRs."""
-        pr_number_regexp = re.compile(r"pr([0-9]+)")
+        pr_strings = open_prs["pr_strings"]
+        merge_commit_shas = open_prs["merge_commit_shas"]
         open_refspecs = []
         fetch_refspecs = []
-        for open_pr in open_prs:
-            match = pr_number_regexp.search(open_pr)
-            if match is None:
-                continue
-            pr_num = match.group(1)
-            fetch_refspecs.append("+refs/pull/{0}/head:refs/remotes/github/{1}".format(pr_num, open_pr))
+        for open_pr, merge_commit_sha in zip(pr_strings, merge_commit_shas):
+            fetch_refspecs.append("+{0}:refs/remotes/github/{1}".format(
+                merge_commit_sha, open_pr))
             open_refspecs.append("github/{0}:github/{0}".format(open_pr))
         return open_refspecs, fetch_refspecs
 
@@ -185,7 +196,7 @@ class SpackCIBridge(object):
     def build_local_branches(self, open_prs, protected_branches):
         """Create local branches for a list of open PRs and protected branches."""
         print("Building local branches for open PRs and protected branches")
-        for branch in open_prs + protected_branches:
+        for branch in open_prs["pr_strings"] + protected_branches:
             branch_name = "github/{0}".format(branch)
             subprocess.run(["git", "branch", "-q", branch_name, branch_name], check=True)
 
@@ -269,7 +280,47 @@ class SpackCIBridge(object):
         template += "&ref={0}"
         return template
 
-    def post_pipeline_status(self, branches, pipeline_api_template):
+    def get_commit_api_template(self, gitlab_host, gitlab_project):
+        template = gitlab_host
+        template += "/api/v4/projects/"
+        template += urllib.parse.quote_plus(gitlab_project)
+        template += "/repository/commits/{0}"
+        return template
+
+    def find_pr_sha(self, tested_sha, commit_api_template):
+        api_url = commit_api_template.format(tested_sha)
+
+        try:
+            request = urllib.request.Request(api_url)
+            if "GITLAB_TOKEN" in os.environ:
+                request.add_header("Authorization", "Bearer %s" % os.environ["GITLAB_TOKEN"])
+            response = urllib.request.urlopen(request)
+        except OSError:
+            print('Failed to fetch commit for tested sha {0}'.format(tested_sha))
+            return None
+
+        response_data = response.read()
+
+        try:
+            tested_commit_info = json.loads(response_data)
+        except json.decoder.JSONDecodeError:
+            print('Failed to parse response as json ({0})'.format(response_data))
+            return None
+
+        if 'title' not in tested_commit_info:
+            print('Returned commit object missing "Title" field')
+            return None
+
+        merge_commit_msg = tested_commit_info['title']
+        m = self.merge_msg_regex.match(merge_commit_msg)
+
+        if m is None:
+            print('Failed to find pr_sha in merge commit message')
+            return None
+
+        return m.group(1)
+
+    def post_pipeline_status(self, branches, pipeline_api_template, commit_api_template):
         for branch in branches:
             # Use gitlab's API to get pipeline results for the corresponding ref.
             api_url = pipeline_api_template.format("github/" + branch)
@@ -287,17 +338,43 @@ class SpackCIBridge(object):
             # Post status to GitHub for each pipeline found.
             pipelines = self.dedupe_pipelines(pipelines)
             for sha, pipeline in pipelines.items():
-                print("Posting status for {0} / {1}".format(branch, sha))
                 post_data = self.make_status_for_pipeline(pipeline)
+                pr_sha = self.find_pr_sha(sha, commit_api_template)
+                if not pr_sha:
+                    print('Could not find github PR sha for tested commit: {0}'.format(sha))
+                    print('Using tested commit to post status')
+                    pr_sha = sha
+                print("Posting status for {0} / {1}".format(branch, pr_sha))
+                try:
+                    status_response = self.py_gh_repo.get_commit(sha=pr_sha).create_status(
+                        state=post_data["state"],
+                        target_url=post_data["target_url"],
+                        description=post_data["description"],
+                        context=post_data["context"]
+                    )
+                    if status_response.state != post_data["state"]:
+                        print("Expected CommitStatus state {0}, got {1}".format(
+                            post_data["state"], status_response.state))
+                except Exception as e_inst:
+                    print('Caught exception posting status for {0}/{1}'.format(branch, pr_sha))
+                    print(e_inst)
+
+        # Post errors to any PRs that we found didn't have a merge_commit_sha, and
+        # thus were likely unmergeable.
+        for sha in self.unmergeable_shas:
+            commit_state = "error"
+            try:
                 status_response = self.py_gh_repo.get_commit(sha=sha).create_status(
-                    state=post_data["state"],
-                    target_url=post_data["target_url"],
-                    description=post_data["description"],
-                    context=post_data["context"]
+                    state=commit_state,
+                    description="PR could not be merged with base",
+                    context="ci/gitlab-ci"
                 )
-                if status_response.state != post_data["state"]:
+                if status_response.state != commit_state:
                     print("Expected CommitStatus state {0}, got {1}".format(
-                        post_data["state"], status_response.state))
+                        commit_state, status_response.state))
+            except Exception as e_inst:
+                print('Caught exception posting status for unmergeable sha {0}'.format(sha))
+                print(e_inst)
 
     def delete_pr_mirrors(self, closed_refspecs):
         if closed_refspecs:
@@ -319,6 +396,8 @@ class SpackCIBridge(object):
         self.gitlab_repo = args.gitlab_repo
         self.github_repo = "https://{0}@github.com/{1}.git".format(os.environ["GITHUB_TOKEN"], args.github_project)
         self.github_project = args.github_project
+        self.unmergeable_shas = []
+        post_status = not args.disable_status_post
 
         # Work inside a temporary directory that will be deleted when this script terminates.
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -341,7 +420,7 @@ class SpackCIBridge(object):
 
             # Find closed PRs that are currently synced.
             # These will be deleted from GitLab.
-            closed_refspecs = self.get_prs_to_delete(open_prs, synced_prs)
+            closed_refspecs = self.get_prs_to_delete(open_prs["pr_strings"], synced_prs)
 
             # Get refspecs for open PRs and protected branches.
             open_refspecs, fetch_refspecs = self.get_open_refspecs(open_prs)
@@ -358,11 +437,17 @@ class SpackCIBridge(object):
 
             # Clean up per-PR dedicated mirrors for any closed PRs
             if "AWS_ACCESS_KEY_ID" in os.environ and "AWS_SECRET_ACCESS_KEY" in os.environ:
+                print('Cleaning up per-PR mirrors for closed PRs')
                 self.delete_pr_mirrors(closed_refspecs)
 
-            # Post pipeline status to GitHub for each open PR.
-            pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
-            self.post_pipeline_status(open_prs + protected_branches, pipeline_api_template)
+            # Post pipeline status to GitHub for each open PR, if enabled
+            if post_status:
+                print('Posting pipeline status for open PRs and protected branches')
+                pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
+                commit_api_template = self.get_commit_api_template(args.gitlab_host, args.gitlab_project)
+                self.post_pipeline_status(open_prs["pr_strings"] + protected_branches,
+                                          pipeline_api_template,
+                                          commit_api_template)
 
 
 if __name__ == "__main__":
@@ -372,6 +457,8 @@ if __name__ == "__main__":
     parser.add_argument("gitlab_repo", help="Full clone URL for GitLab")
     parser.add_argument("gitlab_host", help="GitLab web host")
     parser.add_argument("gitlab_project", help="GitLab project (org/repo or user/repo)")
+    parser.add_argument("--disable-status-post", action="store_true", default=False,
+                        help="Do not post pipeline status to each GitHub PR")
 
     args = parser.parse_args()
 

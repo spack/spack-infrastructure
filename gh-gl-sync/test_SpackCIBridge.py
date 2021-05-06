@@ -19,12 +19,14 @@ def test_list_github_prs(capfd):
     github_pr_response = [
         AttrDict({
             "number": 1,
+            "merge_commit_sha": "aaaaaaaa",
             "head": {
                 "ref": "improve_docs",
             }
         }),
         AttrDict({
             "number": 2,
+            "merge_commit_sha": "bbbbbbbb",
             "head": {
                 "ref": "fix_test",
             }
@@ -34,7 +36,9 @@ def test_list_github_prs(capfd):
     gh_repo.get_pulls.return_value = github_pr_response
     bridge = SpackCIBridge.SpackCIBridge()
     bridge.py_gh_repo = gh_repo
-    assert bridge.list_github_prs("open") == ["pr1_improve_docs", "pr2_fix_test"]
+    github_prs = bridge.list_github_prs("open")
+    assert github_prs["pr_strings"] == ["pr1_improve_docs", "pr2_fix_test"]
+    assert github_prs["merge_commit_shas"] == ["aaaaaaaa", "bbbbbbbb"]
     assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
     assert out == "Open PRs:\n    pr1_improve_docs\n    pr2_fix_test\n"
@@ -66,7 +70,10 @@ def test_get_prs_to_delete(capfd):
 
 def test_get_open_refspecs():
     """Test the get_open_refspecs and update_refspecs_for_protected_branches methods."""
-    open_prs = ["pr1_this", "pr2_that"]
+    open_prs = {
+        "pr_strings": ["pr1_this", "pr2_that"],
+        "merge_commit_shas": ["aaaaaaaa", "bbbbbbbb"],
+    }
     bridge = SpackCIBridge.SpackCIBridge()
     open_refspecs, fetch_refspecs = bridge.get_open_refspecs(open_prs)
     assert open_refspecs == [
@@ -74,8 +81,8 @@ def test_get_open_refspecs():
         "github/pr2_that:github/pr2_that"
     ]
     assert fetch_refspecs == [
-        "+refs/pull/1/head:refs/remotes/github/pr1_this",
-        "+refs/pull/2/head:refs/remotes/github/pr2_that"
+        "+aaaaaaaa:refs/remotes/github/pr1_this",
+        "+bbbbbbbb:refs/remotes/github/pr2_that"
     ]
 
     protected_branches = ["develop", "master"]
@@ -87,8 +94,8 @@ def test_get_open_refspecs():
         "github/master:github/master",
     ]
     assert fetch_refspecs == [
-        "+refs/pull/1/head:refs/remotes/github/pr1_this",
-        "+refs/pull/2/head:refs/remotes/github/pr2_that",
+        "+aaaaaaaa:refs/remotes/github/pr1_this",
+        "+bbbbbbbb:refs/remotes/github/pr2_that",
         "+refs/heads/develop:refs/remotes/github/develop",
         "+refs/heads/master:refs/remotes/github/master"
     ]
@@ -288,6 +295,8 @@ def test_post_pipeline_status(capfd):
     """Test the post_pipeline_status method."""
     open_prs = ["pr1_readme"]
     template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
+    commit_template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/repository/commits/{}".format(
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
     gh_commit = Mock()
     gh_commit.create_status.return_value = AttrDict({"state": "error"})
     gh_repo = Mock()
@@ -310,10 +319,11 @@ def test_post_pipeline_status(capfd):
         }
     ]'''
     with patch('urllib.request.urlopen', return_value=FakeResponse(data=mock_data)) as mock_urlopen:
-        bridge.post_pipeline_status(open_prs, template)
-        assert mock_urlopen.call_count == 1
+        bridge.post_pipeline_status(open_prs, template, commit_template)
+        assert mock_urlopen.call_count == 2
         assert gh_repo.get_commit.call_count == 1
         assert gh_commit.create_status.call_count == 1
     out, err = capfd.readouterr()
-    assert out == "Posting status for pr1_readme / aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    expected_content = "Posting status for pr1_readme / aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    assert expected_content in out
     del os.environ["GITHUB_TOKEN"]
