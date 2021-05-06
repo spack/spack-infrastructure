@@ -19,16 +19,34 @@ import urllib.request
 
 class SpackCIBridge(object):
 
-    def __init__(self):
-        self.gitlab_repo = ""
-        self.github_repo = ""
-        self.github_project = ""
-        self.unmergeable_shas = []
+    def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
+                 disable_status_post=True, pr_mirror_bucket=None):
+        self.gitlab_repo = gitlab_repo
+        self.github_project = github_project
+        github_token = os.environ.get('GITHUB_TOKEN')
+        self.github_repo = "https://{0}@github.com/{1}.git".format(github_token, self.github_project)
 
-        self.py_github = Github(os.environ.get('GITHUB_TOKEN'))
-        self.py_gh_repo = self.py_github.get_repo('spack/spack', lazy=True)
+        self.py_github = Github(github_token)
+        self.py_gh_repo = self.py_github.get_repo(self.github_project, lazy=True)
 
         self.merge_msg_regex = re.compile(r"Merge\s+([^\s]+)\s+into\s+[^\s]+")
+        self.unmergeable_shas = []
+
+        self.post_status = not disable_status_post
+        self.pr_mirror_bucket = pr_mirror_bucket
+
+        dt = datetime.now(timezone.utc) + timedelta(minutes=-4)
+        time_threshold = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
+        self.pipeline_api_template = gitlab_host
+        self.pipeline_api_template += "/api/v4/projects/"
+        self.pipeline_api_template += urllib.parse.quote_plus(gitlab_project)
+        self.pipeline_api_template += "/pipelines?updated_after={0}".format(time_threshold)
+        self.pipeline_api_template += "&ref={0}"
+
+        self.commit_api_template = gitlab_host
+        self.commit_api_template += "/api/v4/projects/"
+        self.commit_api_template += urllib.parse.quote_plus(gitlab_project)
+        self.commit_api_template += "/repository/commits/{0}"
 
     @atexit.register
     def cleanup():
@@ -270,25 +288,8 @@ class SpackCIBridge(object):
                     pipelines[sha] = response
         return pipelines
 
-    def get_pipeline_api_template(self, gitlab_host, gitlab_project):
-        dt = datetime.now(timezone.utc) + timedelta(minutes=-4)
-        time_threshold = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
-        template = gitlab_host
-        template += "/api/v4/projects/"
-        template += urllib.parse.quote_plus(gitlab_project)
-        template += "/pipelines?updated_after={0}".format(time_threshold)
-        template += "&ref={0}"
-        return template
-
-    def get_commit_api_template(self, gitlab_host, gitlab_project):
-        template = gitlab_host
-        template += "/api/v4/projects/"
-        template += urllib.parse.quote_plus(gitlab_project)
-        template += "/repository/commits/{0}"
-        return template
-
-    def find_pr_sha(self, tested_sha, commit_api_template):
-        api_url = commit_api_template.format(tested_sha)
+    def find_pr_sha(self, tested_sha):
+        api_url = self.commit_api_template.format(tested_sha)
 
         try:
             request = urllib.request.Request(api_url)
@@ -320,10 +321,10 @@ class SpackCIBridge(object):
 
         return m.group(1)
 
-    def post_pipeline_status(self, branches, pipeline_api_template, commit_api_template):
+    def post_pipeline_status(self, branches):
         for branch in branches:
             # Use gitlab's API to get pipeline results for the corresponding ref.
-            api_url = pipeline_api_template.format("github/" + branch)
+            api_url = self.pipeline_api_template.format("github/" + branch)
             try:
                 request = urllib.request.Request(api_url)
                 if "GITLAB_TOKEN" in os.environ:
@@ -339,7 +340,7 @@ class SpackCIBridge(object):
             pipelines = self.dedupe_pipelines(pipelines)
             for sha, pipeline in pipelines.items():
                 post_data = self.make_status_for_pipeline(pipeline)
-                pr_sha = self.find_pr_sha(sha, commit_api_template)
+                pr_sha = self.find_pr_sha(sha)
                 if not pr_sha:
                     print('Could not find github PR sha for tested commit: {0}'.format(sha))
                     print('Using tested commit to post status')
@@ -376,10 +377,10 @@ class SpackCIBridge(object):
                 print('Caught exception posting status for unmergeable sha {0}'.format(sha))
                 print(e_inst)
 
-    def delete_pr_mirrors(self, bucket_name, closed_refspecs):
+    def delete_pr_mirrors(self, closed_refspecs):
         if closed_refspecs:
             s3 = boto3.resource("s3")
-            bucket = s3.Bucket(bucket_name)
+            bucket = s3.Bucket(self.pr_mirror_bucket)
 
             print("Deleting mirrors for closed PRs:")
             for refspec in closed_refspecs:
@@ -387,15 +388,10 @@ class SpackCIBridge(object):
                 print("    deleting {0}".format(pr_mirror_key))
                 bucket.objects.filter(Prefix=pr_mirror_key).delete()
 
-    def sync(self, args):
+    def sync(self):
         """Synchronize pull requests from GitHub as branches on GitLab."""
-        # Handle input arguments for connecting to GitHub and GitLab.
+        # Setup SSH command for communicating with GitLab.
         os.environ["GIT_SSH_COMMAND"] = "ssh -F /dev/null -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-        self.gitlab_repo = args.gitlab_repo
-        self.github_repo = "https://{0}@github.com/{1}.git".format(os.environ["GITHUB_TOKEN"], args.github_project)
-        self.github_project = args.github_project
-        self.unmergeable_shas = []
-        post_status = not args.disable_status_post
 
         # Work inside a temporary directory that will be deleted when this script terminates.
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -434,18 +430,14 @@ class SpackCIBridge(object):
                 subprocess.run(push_args, check=True)
 
             # Clean up per-PR dedicated mirrors for any closed PRs
-            if args.pr_mirror_bucket:
+            if self.pr_mirror_bucket:
                 print('Cleaning up per-PR mirrors for closed PRs')
-                self.delete_pr_mirrors(args.pr_mirror_bucket, closed_refspecs)
+                self.delete_pr_mirrors(closed_refspecs)
 
             # Post pipeline status to GitHub for each open PR, if enabled
-            if post_status:
+            if self.post_status:
                 print('Posting pipeline status for open PRs and protected branches')
-                pipeline_api_template = self.get_pipeline_api_template(args.gitlab_host, args.gitlab_project)
-                commit_api_template = self.get_commit_api_template(args.gitlab_host, args.gitlab_project)
-                self.post_pipeline_status(open_prs["pr_strings"] + protected_branches,
-                                          pipeline_api_template,
-                                          commit_api_template)
+                self.post_pipeline_status(open_prs["pr_strings"] + protected_branches)
 
 
 if __name__ == "__main__":
@@ -469,6 +461,11 @@ if __name__ == "__main__":
     if "GITHUB_TOKEN" not in os.environ:
         raise Exception("GITHUB_TOKEN environment is not set")
 
-    bridge = SpackCIBridge()
+    bridge = SpackCIBridge(gitlab_repo=args.gitlab_repo,
+                           gitlab_host=args.gitlab_host,
+                           gitlab_project=args.gitlab_project,
+                           github_project=args.github_project,
+                           disable_status_post=args.disable_status_post,
+                           pr_mirror_bucket=args.pr_mirror_bucket)
     bridge.setup_ssh(ssh_key_base64)
-    bridge.sync(args)
+    bridge.sync()
