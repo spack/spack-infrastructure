@@ -1,0 +1,25 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: rotate-gitlab-aws-access-keys
+  namespace: custom
+spec:
+  schedule: "0 */12 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: rotate-keys
+          restartPolicy: Never
+          containers:
+          - name: rotate-gitlab-aws-access-keys
+            image: zackgalbreath/spack-rotate-keys:0.0.1
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: rotate-keys
+                  key: gitlab-token
+          nodeSelector:
+            spack.io/node-pool: base
