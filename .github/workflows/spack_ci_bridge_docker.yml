@@ -55,7 +55,7 @@ jobs:
           context: ./scripts/gitlab_api
           file: ./scripts/gitlab_api/Dockerfile
           push: true
-          tags: zackgalbreath/gitlab-api-scrape:0.0.1
+          tags: zackgalbreath/gitlab-api-scrape:0.0.2
       -
         name: Image digest
         run: echo ${{ steps.docker_build_scrape.outputs.digest }}
