@@ -143,9 +143,9 @@ def test_ssh_agent():
 
 
 def test_get_pipeline_api_template():
-    """Test the get_pipeline_api_template method."""
-    bridge = SpackCIBridge.SpackCIBridge()
-    template = bridge.get_pipeline_api_template("https://gitlab.spack.io", "zack/my_test_proj")
+    """Test that pipeline_api_template get constructed properly."""
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io", gitlab_project="zack/my_test_proj")
+    template = bridge.pipeline_api_template
     assert template[0:84] == "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?updated_after="
     assert template[117:] == "&ref={0}"
 
@@ -294,17 +294,16 @@ class FakeResponse:
 def test_post_pipeline_status(capfd):
     """Test the post_pipeline_status method."""
     open_prs = ["pr1_readme"]
-    template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
-    commit_template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/repository/commits/{}".format(
-        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+
     gh_commit = Mock()
     gh_commit.create_status.return_value = AttrDict({"state": "error"})
     gh_repo = Mock()
     gh_repo.get_commit.return_value = gh_commit
 
-    bridge = SpackCIBridge.SpackCIBridge()
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
+                                         gitlab_project="zack/my_test_proj",
+                                         github_project="zack/my_test_proj")
     bridge.py_gh_repo = gh_repo
-    bridge.github_project = "zack/my_test_proj"
     os.environ["GITHUB_TOKEN"] = "my_github_token"
 
     mock_data = b'''[
@@ -319,7 +318,7 @@ def test_post_pipeline_status(capfd):
         }
     ]'''
     with patch('urllib.request.urlopen', return_value=FakeResponse(data=mock_data)) as mock_urlopen:
-        bridge.post_pipeline_status(open_prs, template, commit_template)
+        bridge.post_pipeline_status(open_prs)
         assert mock_urlopen.call_count == 2
         assert gh_repo.get_commit.call_count == 1
         assert gh_commit.create_status.call_count == 1
