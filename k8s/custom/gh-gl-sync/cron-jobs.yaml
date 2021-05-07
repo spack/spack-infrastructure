@@ -3,17 +3,18 @@ apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
   name: gh-gl-sync
-  namespace: spack
+  namespace: custom
 spec:
-  schedule: "*/6 * * * *"
+  schedule: "*/3 * * * *"
   jobTemplate:
     spec:
       template:
         spec:
+          serviceAccountName: gh-gl-sync
           restartPolicy: Never
           containers:
           - name: sync
-            image: zackgalbreath/spack-ci-bridge:0.0.7
+            image: zackgalbreath/spack-ci-bridge:0.0.11
             imagePullPolicy: IfNotPresent
             env:
             - name: GITHUB_TOKEN
@@ -27,20 +28,12 @@ spec:
                 secretKeyRef:
                   name: gh-gl-sync
                   key: gitlab-ssh-key
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: gh-gl-sync
-                  key: aws-access-key-id
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: gh-gl-sync
-                  key: aws-secret-access-key
             args:
               - "spack/spack"
-              - "ssh://git@ssh.gitlab.spack.io/spack/spack"
-              - "https://gitlab.spack.io"
+              - "ssh://git@ssh.gitlab.next.spack.io/spack/spack"
+              - "https://gitlab.next.spack.io"
               - "spack/spack"
+              - "--pr-mirror-bucket"
+              - "spack-binaries-prs"
           nodeSelector:
-            "beta.kubernetes.io/instance-type": "t2.medium"
+            spack.io/node-pool: base

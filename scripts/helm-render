@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+# Convenience script for rendering HelmRelease kubernetes kinds.
+#
+# Requirements:
+#
+#   - Install helm version 3.
+#
+#   - Install yq cli tool.
+#
+#   - You will need to have any non-standard helm repos added to your helm
+#     installation before trying to render any releases that use charts from
+#     that repo.
+#
+#     Example:
+#
+#       $ helm repo add gitlab https://charts.gitlab.io
+#
+#       Now, you can render HelmReleases that use charts from charts.gitlab.io.
+#       (The "gitlab" name can be anything you want, but you do need to pick
+#       *something*.  This script will automatically detect the name you chose
+#       and use it when calling helm.)
+
+trap 'if [ -n "$tmp" ] ; then rm -rf "$tmp" ; fi ; exit' EXIT INT TERM QUIT
+
+if [ "${#@}" '=' '0' ] ; then
+    files=(-)
+else
+    files=("${@}")
+fi
+
+num_files="${#files[@]}"
+for (( i=0; i<num_files ; ++i )) ; do
+    f="${files[$i]}"
+    if [ "$f" '=' '-' ] ; then
+        f="/dev/stdin"
+    fi
+
+    if [ -f "$f" ] ; then
+        continue
+    fi
+
+    if [ '!' -e "$f" ] ; then
+        echo "$0: $f: No such file or directory" >&2
+        exit 1
+    fi
+
+    if [ -z "$tmp" ] ; then
+        tmp="$( mktemp -d )"
+    fi
+
+    mkdir -p "$tmp/files"
+    real_path="$( readlink -e "$f" )"
+    name_hash="$( echo "$real_path" | sha1sum | cut -d\  -f 1 )"
+    if [ '!' -f "$tmp/files/$name_hash" ] ; then
+        if [ -z "$real_path" ] ; then
+            cat
+        else
+            cat "$real_path"
+        fi > "$tmp/files/$name_hash"
+    fi
+
+    files[$i]="$tmp/files/$name_hash"
+done
+
+for (( i=0; i<num_files ; ++i )) ; do
+    file="${files[$i]}"
+
+    release="$( yq -r '.spec.releaseName' "$file" )"
+    chart="$( yq -r '.spec.chart.name' "$file" )"
+    version="$( yq -r '.spec.chart.version' "$file" )"
+    repository_url="$( yq -r '.spec.chart.repository' "$file" )"
+    namespace="$( yq -r '.metadata.namespace' "$file" )"
+
+    awk_script='$2=='"\"$repository_url\""'{print $1 ; exit}'
+    repository_name="$( helm repo list | tail -n +2 | awk "$awk_script" )"
+
+    yq -c '.spec.values' "$file" |
+        helm template "$release" "$repository_name/$chart" \
+                      --dry-run \
+                      -f - \
+                      --namespace "$namespace" \
+                      --version "$version"
+done
