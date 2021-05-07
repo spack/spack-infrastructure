@@ -334,15 +334,12 @@ e.g. '2019-03-15T08:00:00Z').  If none is provided, the default is 24 hrs before
         print(read_back.read())
 
     if post_summary:
-        if "AWS_ACCESS_KEY_ID" in os.environ and "AWS_SECRET_ACCESS_KEY" in os.environ:
-            now = datetime.now()
-            now_dir = now.strftime('%Y/%m')
-            now_name = now.strftime('%Y_%m_%d_%H_%M')
-            object_name = 'pipeline-statistics/' + now_dir + '/daily_summary_{0}.txt'.format(now_name)
-            s3_client = boto3.client('s3')
-            try:
-                response = s3_client.upload_file('output.txt', 'spack-binaries-develop', object_name)
-            except ClientError as e:
-                print(e)
-        else:
-            print('\n *** WARNING: Missing credentials to write to S3 bucket *** \n')
+        now = datetime.now()
+        now_dir = now.strftime('%Y/%m')
+        now_name = now.strftime('%Y_%m_%d_%H_%M')
+        object_name = 'pipeline-statistics/' + now_dir + '/daily_summary_{0}.txt'.format(now_name)
+        s3_client = boto3.client('s3')
+        try:
+            response = s3_client.upload_file('output.txt', 'spack-logs', object_name)
+        except ClientError as e:
+            print(e)
