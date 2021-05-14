@@ -23,3 +23,23 @@ spec:
                   key: gitlab-token
           nodeSelector:
             spack.io/node-pool: base
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: clear-admin-keys
+  namespace: custom
+spec:
+  schedule: "0 0 10 */2 *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: clear-admin-keys
+          restartPolicy: Never
+          containers:
+          - name: clear-admin-keys
+            image: zackgalbreath/spack-clear-admin-keys:0.0.1
+            imagePullPolicy: IfNotPresent
+          nodeSelector:
+            spack.io/node-pool: base
