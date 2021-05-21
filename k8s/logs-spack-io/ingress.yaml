@@ -1,0 +1,23 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: logs-spack-io
+  namespace: logs-spack-io
+spec:
+  tls:
+  - secretName: tls-www
+  rules:
+  # - host: www.spack.io
+  #   http:
+  #     paths:
+  #     - backend:
+  #         serviceName: spack-io-redirect
+  #         servicePort: 80
+  - host: logs.spack.io
+  # - host: spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: logs-spack-io
+          servicePort: 80
