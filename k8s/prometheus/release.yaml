@@ -13,8 +13,7 @@ spec:
   values:
     alertmanager:
       enabled: true
-      # TODO(opadron): enable once TLS + ingress is working
-      # baseURL: alertmanager.next.spack.io
+      baseURL: alertmanager.spack.io
       ingress:
         enabled: true
         annotations:
@@ -22,10 +21,12 @@ spec:
           kubernetes.io/tls-acme: 'true'
           cert-manager.io/cluster-issuer: letsencrypt
         hosts:
+          - alertmanager.spack.io
           - alertmanager.next.spack.io
         tls:
           - secretName: prometheus-alerts-tls
             hosts:
+              - alertmanager.spack.io
               - alertmanager.next.spack.io
       nodeSelector:
         spack.io/node-pool: base
@@ -38,8 +39,7 @@ spec:
         spack.io/node-pool: base
 
     server:
-      # TODO(opadron): enable once TLS + ingress is working
-      # baseURL: prometheus.next.spack.io
+      baseURL: prometheus.spack.io
       ingress:
         enabled: true
         annotations:
@@ -47,10 +47,12 @@ spec:
           kubernetes.io/tls-acme: 'true'
           cert-manager.io/cluster-issuer: letsencrypt
         hosts:
+          - prometheus.spack.io
           - prometheus.next.spack.io
         tls:
           - secretName: prometheus-server-tls
             hosts:
+              - prometheus.spack.io
               - prometheus.next.spack.io
       nodeSelector:
         spack.io/node-pool: base
@@ -73,10 +75,12 @@ spec:
           kubernetes.io/tls-acme: 'true'
           cert-manager.io/cluster-issuer: letsencrypt
         hosts:
+          - pushgateway.spack.io
           - pushgateway.next.spack.io
         tls:
           - secretName: prometheus-alerts-tls
             hosts:
+              - pushgateway.spack.io
               - pushgateway.next.spack.io
       nodeSelector:
         spack.io/node-pool: base

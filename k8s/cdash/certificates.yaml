@@ -9,6 +9,7 @@ spec:
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer
-  commonName: cdash.next.spack.io
+  commonName: cdash.spack.io
   dnsNames:
+  - cdash.spack.io
   - cdash.next.spack.io

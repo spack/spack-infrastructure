@@ -17,7 +17,6 @@ spec:
     app: spack-io
     svc: web
 
-# TODO(opadron): enable this redirector after migrating DNS
 ---
 apiVersion: v1
 kind: Service

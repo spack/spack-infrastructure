@@ -30,8 +30,8 @@ spec:
                   key: gitlab-ssh-key
             args:
               - "spack/spack"
-              - "ssh://git@ssh.gitlab.next.spack.io/spack/spack"
-              - "https://gitlab.next.spack.io"
+              - "ssh://git@ssh.gitlab.spack.io/spack/spack"
+              - "https://gitlab.spack.io"
               - "spack/spack"
               - "--pr-mirror-bucket"
               - "spack-binaries-prs"

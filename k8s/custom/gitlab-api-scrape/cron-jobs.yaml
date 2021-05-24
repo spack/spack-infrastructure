@@ -23,7 +23,7 @@ spec:
                   name: gitlab-api-scrape
                   key: gitlab-private-token
             args:
-              - "https://gitlab.next.spack.io"
+              - "https://gitlab.spack.io"
               - "spack/spack"
               - "--post-summary"
           nodeSelector:
