@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slack-spack-io
+  namespace: spack
+  labels:
+    app: slack-spack-io
+    svc: web
+spec:
+  selector:
+    matchLabels:
+      app: slack-spack-io
+      svc: web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: slack-spack-io
+        svc: web
+    spec:
+      containers:
+      - name: web
+        image: "spack/slackin-extended:latest"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 80
+        env:
+        - name: SLACK_SUBDOMAIN
+          value: spackpm
+        - name: SLACKIN_ANALYTICS
+          value: "UA-101208306-3"
+        - name: SLACKIN_PORT
+          value: "80"
+        - name: SLACKIN_COC
+          value: "https://github.com/spack/spack/blob/develop/.github/CODE_OF_CONDUCT.md"
+        - name: SLACK_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: spack-slackin-credentials
+              key: slack_api_token
+        - name: RECAPTCHA_SITEKEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-slackin-credentials
+              key: google_captcha_sitekey
+        - name: RECAPTCHA_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: spack-slackin-credentials
+              key: google_captcha_secret
+      nodeSelector:
+        spack.io/node-pool: base

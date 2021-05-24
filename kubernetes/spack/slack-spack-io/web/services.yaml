@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slack-spack-io
+  namespace: spack
+  labels:
+    app: slack-spack-io
+    svc: web
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+  selector:
+    app: slack-spack-io
+    svc: web
