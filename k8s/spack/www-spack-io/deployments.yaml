@@ -1,0 +1,64 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spack-io
+  namespace: spack
+  labels:
+    app: spack-io
+    svc: web
+spec:
+  selector:
+    matchLabels:
+      app: spack-io
+      svc: web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: spack-io
+        svc: web
+    spec:
+      containers:
+      - name: web
+        image: "spack/spack.io:latest"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 80
+      nodeSelector:
+        spack.io/node-pool: base
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spack-io-redirect
+  namespace: spack
+  labels:
+    app: spack-io
+    svc: web-redirect
+spec:
+  selector:
+    matchLabels:
+      app: spack-io
+      svc: web-redirect
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: spack-io
+        svc: web-redirect
+    spec:
+      containers:
+      - name: web
+        image: "schmunk42/nginx-redirect"
+        imagePullPolicy: Always
+        env:
+        - name: SERVER_REDIRECT
+          value: spack.io
+        ports:
+        - name: http
+          containerPort: 80
+      nodeSelector:
+        spack.io/node-pool: base
