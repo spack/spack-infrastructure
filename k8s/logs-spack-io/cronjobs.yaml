@@ -1,0 +1,68 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: matomo-archive
+
+spec:
+  schedule: "*/30 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: matomo-archive
+            image: matomo:3.14.1-fpm-alpine
+            command: ["/usr/local/bin/php"]
+            args: ["/var/www/html/console", "core:archive", "--url=https://logs.spack.io"]
+            env:
+            - name: MATOMO_DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: logs-spack-io-secrets
+                  key: mysql_host
+            - name: MATOMO_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: logs-spack-io-secrets
+                  key: mysql_user
+            - name: MATOMO_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: logs-spack-io-secrets
+                  key: mysql_password
+            - name: MATOMO_DATABASE_DBNAME
+              valueFrom:
+                secretKeyRef:
+                  name: logs-spack-io-secrets
+                  key: mysql_database
+            - name: MATOMO_DATABASE_ADAPTER
+              value: mysql
+            - name: MATOMO_DATABASE_TABLES_PREFIX
+              valueFrom:
+                secretKeyRef:
+                  name: logs-spack-io-secrets
+                  key: matomo_database_tables_prefix
+            resources:
+              requests:
+                cpu: 100m
+                memory: 512Mi
+              limits:
+                cpu: 500m
+                memory: 1Gi
+            volumeMounts:
+            - mountPath: /var/www/html
+              name: html-files
+          restartPolicy: OnFailure
+          volumes:
+          # These AWS EBS volume must already exist!
+          - name: html-files
+            awsElasticBlockStore:
+              # Can this be from secrets too?
+              volumeID: "volume-xxx"
+              fsType: ext4         
+          - name: migration-logs
+            awsElasticBlockStore:
+              # Can this be from secrets too?
+              volumeID: "volume-xxx"
+              fsType: ext4

@@ -2,9 +2,10 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: tls-www
+  name: tls-logs
+  namespace: logs-spack-io
 spec:
-  secretName: tls-www
+  secretName: tls-logs
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer
