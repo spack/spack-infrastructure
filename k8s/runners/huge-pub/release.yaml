@@ -40,7 +40,7 @@ spec:
       requestConcurrency: 20
       locked: false
 
-      tags: "avx,avx2,avx512,huge,public,spack"
+      tags: "x86_64,avx,avx2,avx512,huge,public,spack"
       runUntagged: false
       privileged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
