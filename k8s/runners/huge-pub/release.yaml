@@ -14,7 +14,7 @@ spec:
     image: gitlab/gitlab-runner:alpine-v13.8.0
     imagePullPolicy: IfNotPresent
 
-    gitlabUrl: "https://gitlab.next.spack.io/"
+    gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600  # six hours
     concurrent: 20

@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: spack-packages
+  namespace: spack
   labels:
     app: spack-packages
     svc: web

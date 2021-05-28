@@ -3,10 +3,12 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: tls-packages
+  namespace: spack
 spec:
   secretName: tls-packages
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer
   dnsNames:
+  - packages.spack.io
   - packages.next.spack.io

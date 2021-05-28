@@ -25,17 +25,17 @@ spec:
       edition: ee
 
       hosts:
-        domain: next.spack.io
+        domain: spack.io
         https: true
         gitlab:
-          name: gitlab.next.spack.io
+          name: gitlab.spack.io
         minio:
-          name: minio.next.spack.io
+          name: minio.gitlab.spack.io
         registry:
-          name: registry.next.spack.io
+          name: registry.gitlab.spack.io
         smartcard:
           enabled: false
-        ssh: ssh.gitlab.next.spack.io
+        ssh: ssh.gitlab.spack.io
 
       ingress:
         configureCertmanager: false
