@@ -46,6 +46,18 @@ spec:
 
       initialRootPassword: {}
 
+      email:
+        from: admin@gitlab.spack.io
+        reply_to: noreply@gitlab.spack.io
+      smtp:
+        enabled: true
+        address: email-smtp.us-east-1.amazonaws.com
+        user_name: AKIAYSCIUVA2HA4WTV6O
+        password:
+          secret: smtp-password
+        port: 465
+        tls: true
+
       psql:
         connectTimeout:
         password: {}
