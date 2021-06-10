@@ -117,6 +117,10 @@ spec:
           tls:
             enabled: true
             secretName: tls-gitlab-webservice
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-webservice-ee
+          tag: v13.8.8
         minReplicas: 2
         maxReplicas: 4
         nodeSelector:
@@ -133,10 +137,18 @@ spec:
           spack.io/node-pool: gitlab
 
       sidekiq:
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-sidekiq-ee
+          tag: v13.8.8
         nodeSelector:
           spack.io/node-pool: gitlab
 
       task-runner:
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-task-runner-ee
+          tag: v13.8.8
         nodeSelector:
           spack.io/node-pool: gitlab
 
