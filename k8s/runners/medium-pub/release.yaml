@@ -91,6 +91,7 @@ spec:
 
       nodeSelector:
         spack.io/node-pool: glr-medium-pub  # pool for jobs
+        kubernetes.io/arch: amd64
 
     nodeSelector:
       spack.io/node-pool: base  # pool for the runner

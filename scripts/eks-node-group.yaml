@@ -164,6 +164,10 @@ Resources:
             VolumeType: gp2
             DeleteOnTermination: true
       UserData:
+        # Custom code to convert cloudformation stack tags to kubernetes node
+        # labels.  Since it's python, it should run on most architectures w/out
+        # problems.  This runs on the instance as a systemd unit when the instance
+        # starts up.
         Fn::Base64:
           !Sub |
             #!/bin/bash
