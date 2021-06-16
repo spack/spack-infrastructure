@@ -22,6 +22,10 @@ def test_list_github_prs(capfd):
             "merge_commit_sha": "aaaaaaaa",
             "head": {
                 "ref": "improve_docs",
+                "sha": "shafoo"
+            },
+            "base": {
+                "sha": "shabar"
             }
         }),
         AttrDict({
@@ -29,6 +33,10 @@ def test_list_github_prs(capfd):
             "merge_commit_sha": "bbbbbbbb",
             "head": {
                 "ref": "fix_test",
+                "sha": "shagah"
+            },
+            "base": {
+                "sha": "shafaz"
             }
         }),
     ]
@@ -73,6 +81,8 @@ def test_get_open_refspecs():
     open_prs = {
         "pr_strings": ["pr1_this", "pr2_that"],
         "merge_commit_shas": ["aaaaaaaa", "bbbbbbbb"],
+        "base_shas": ["shafoo", "shabar"],
+        "head_shas": ["shabaz", "shagah"]
     }
     bridge = SpackCIBridge.SpackCIBridge()
     open_refspecs, fetch_refspecs = bridge.get_open_refspecs(open_prs)
@@ -147,7 +157,7 @@ def test_get_pipeline_api_template():
     bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io", gitlab_project="zack/my_test_proj")
     template = bridge.pipeline_api_template
     assert template[0:84] == "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?updated_after="
-    assert template[117:] == "&ref={0}"
+    assert template.endswith("&ref={1}")
 
 
 def test_dedupe_pipelines():
@@ -293,7 +303,12 @@ class FakeResponse:
 
 def test_post_pipeline_status(capfd):
     """Test the post_pipeline_status method."""
-    open_prs = ["pr1_readme"]
+    open_prs = {
+        "pr_strings": ["pr1_readme"],
+        "merge_commit_shas": ["aaaaaaaa"],
+        "base_shas": ["shafoo"],
+        "head_shas": ["shabaz"]
+    }
 
     gh_commit = Mock()
     gh_commit.create_status.return_value = AttrDict({"state": "error"})
@@ -318,11 +333,11 @@ def test_post_pipeline_status(capfd):
         }
     ]'''
     with patch('urllib.request.urlopen', return_value=FakeResponse(data=mock_data)) as mock_urlopen:
-        bridge.post_pipeline_status(open_prs)
+        bridge.post_pipeline_status(open_prs, [])
         assert mock_urlopen.call_count == 2
         assert gh_repo.get_commit.call_count == 1
         assert gh_commit.create_status.call_count == 1
     out, err = capfd.readouterr()
-    expected_content = "Posting status for pr1_readme / aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    expected_content = "  pr1_readme -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
     assert expected_content in out
     del os.environ["GITHUB_TOKEN"]

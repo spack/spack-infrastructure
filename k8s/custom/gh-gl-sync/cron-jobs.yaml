@@ -14,7 +14,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: sync
-            image: zackgalbreath/spack-ci-bridge:0.0.11
+            image: zackgalbreath/spack-ci-bridge:0.0.12
             imagePullPolicy: IfNotPresent
             env:
             - name: GITHUB_TOKEN
@@ -35,5 +35,7 @@ spec:
               - "spack/spack"
               - "--pr-mirror-bucket"
               - "spack-binaries-prs"
+              - "--main-branch"
+              - "develop"
           nodeSelector:
             spack.io/node-pool: base
