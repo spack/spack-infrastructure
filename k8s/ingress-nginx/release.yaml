@@ -42,6 +42,7 @@ spec:
 
         annotations:
           "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true"
+          "nginx.ingress.kubernetes.io/proxy-body-size": "10m"
 
         labels: {}
 
