@@ -59,3 +59,57 @@ jobs:
       -
         name: Image digest
         run: echo ${{ steps.docker_build_scrape.outputs.digest }}
+  rotate-aws-keys:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push rotate-aws-keys
+        id: docker_build_rotate_aws_keys
+        uses: docker/build-push-action@v2
+        with:
+          context: ./k8s/custom/rotate-keys
+          file: ./k8s/custom/rotate-keys/rotate.docker
+          push: true
+          tags: zackgalbreath/spack-rotate-keys:0.0.2
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build_rotate_aws_keys.outputs.digest }}
+  clear-admin-keys:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push clear-admin-keys
+        id: docker_build_clear_admin_keys
+        uses: docker/build-push-action@v2
+        with:
+          context: ./k8s/custom/rotate-keys
+          file: ./k8s/custom/rotate-keys/delete.docker
+          push: true
+          tags: zackgalbreath/spack-clear-admin-keys:0.0.1
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build_clear_admin_keys.outputs.digest }}
