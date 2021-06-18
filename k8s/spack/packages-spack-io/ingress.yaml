@@ -14,9 +14,3 @@ spec:
       - backend:
           serviceName: spack-packages
           servicePort: 80
-  - host: packages.next.spack.io
-    http:
-      paths:
-      - backend:
-          serviceName: spack-packages
-          servicePort: 80

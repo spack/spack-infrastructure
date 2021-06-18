@@ -12,5 +12,4 @@ spec:
   commonName: spack.io
   dnsNames:
   - spack.io
-  - next.spack.io
   - www.spack.io

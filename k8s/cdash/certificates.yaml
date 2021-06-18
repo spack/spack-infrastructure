@@ -12,4 +12,3 @@ spec:
   commonName: cdash.spack.io
   dnsNames:
   - cdash.spack.io
-  - cdash.next.spack.io

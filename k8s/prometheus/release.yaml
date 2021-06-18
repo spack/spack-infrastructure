@@ -22,12 +22,10 @@ spec:
           cert-manager.io/cluster-issuer: letsencrypt
         hosts:
           - alertmanager.spack.io
-          - alertmanager.next.spack.io
         tls:
           - secretName: prometheus-alerts-tls
             hosts:
               - alertmanager.spack.io
-              - alertmanager.next.spack.io
       nodeSelector:
         spack.io/node-pool: base
       replicaCount: 3
@@ -48,12 +46,10 @@ spec:
           cert-manager.io/cluster-issuer: letsencrypt
         hosts:
           - prometheus.spack.io
-          - prometheus.next.spack.io
         tls:
           - secretName: prometheus-server-tls
             hosts:
               - prometheus.spack.io
-              - prometheus.next.spack.io
       nodeSelector:
         spack.io/node-pool: base
       replicaCount: 3
@@ -76,12 +72,10 @@ spec:
           cert-manager.io/cluster-issuer: letsencrypt
         hosts:
           - pushgateway.spack.io
-          - pushgateway.next.spack.io
         tls:
           - secretName: prometheus-alerts-tls
             hosts:
               - pushgateway.spack.io
-              - pushgateway.next.spack.io
       nodeSelector:
         spack.io/node-pool: base
       replicaCount: 3
