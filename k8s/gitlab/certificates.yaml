@@ -11,7 +11,6 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - gitlab.spack.io
-    - gitlab.next.spack.io
 
 ---
 apiVersion: cert-manager.io/v1
@@ -26,7 +25,6 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - registry.gitlab.spack.io
-    - registry.gitlab.next.spack.io
 
 ---
 apiVersion: cert-manager.io/v1
@@ -41,4 +39,3 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - minio.gitlab.spack.io
-    - minio.gitlab.next.spack.io

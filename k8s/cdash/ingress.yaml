@@ -14,9 +14,3 @@ spec:
       - backend:
           serviceName: cdash
           servicePort: 80
-  - host: cdash.next.spack.io
-    http:
-      paths:
-      - backend:
-          serviceName: cdash
-          servicePort: 80

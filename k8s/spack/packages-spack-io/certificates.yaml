@@ -11,4 +11,3 @@ spec:
     kind: ClusterIssuer
   dnsNames:
   - packages.spack.io
-  - packages.next.spack.io
