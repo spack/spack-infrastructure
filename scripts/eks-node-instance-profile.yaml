@@ -1,0 +1,66 @@
+# Tweaked version of the EKS cloud formation template.
+#
+# The original is split into three:
+#
+#  1 - one for creating a security group.
+#
+#  2 - one for creating a node IAM role and instance profile.
+#
+#  3 - one for creating and managing a pool of nodes in an autoscaling group.
+#      The nodes in the autoscaling group will use a security group created
+#      using the first script, and an IAM role and instance profile created
+#      using the second script.
+#
+#  This is the second (2nd) script.
+
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Amazon EKS - Node IAM Role and Instance Profile
+Resources:
+  NodeInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+        - !Ref NodeInstanceRole
+
+  NodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - autoscaling:DescribeAutoScalingGroups
+                  - autoscaling:DescribeAutoScalingInstances
+                  - autoscaling:DescribeLaunchConfigurations
+                  - autoscaling:DescribeTags
+                  - autoscaling:SetDesiredCapacity
+                  - autoscaling:TerminateInstanceInAutoScalingGroup
+                  - ec2:DescribeLaunchTemplateVersions
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess
+
+Outputs:
+  NodeInstanceProfile:
+    Description: The node instance profile
+    Value: !Ref NodeInstanceProfile
+
+  NodeInstanceRole:
+    Description: The node instance IAM role
+    Value: !Ref NodeInstanceRole

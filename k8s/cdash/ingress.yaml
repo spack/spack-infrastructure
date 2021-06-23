@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cdash
+  namespace: cdash
+spec:
+  tls:
+  - secretName: tls-cdash
+  rules:
+  - host: cdash.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: cdash
+          servicePort: 80

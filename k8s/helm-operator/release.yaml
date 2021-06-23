@@ -1,0 +1,40 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: helm-operator
+  namespace: flux
+spec:
+  releaseName: helm-operator
+  chart:
+    name: helm-operator
+    repository: https://charts.fluxcd.io
+    version: 1.2.0
+  values:
+    createCRD: false
+    workers: 4
+    helm:
+      versions: "v3"
+    nodeSelector:
+      spack.io/node-pool: base
+    configureRepositories:
+      enable: true
+      repositories:
+        - name: appscode
+          url: https://charts.appscode.com/stable
+        - name: autoscaler
+          url: https://kubernetes.github.io/autoscaler
+        - name: bitnami
+          url: https://charts.bitnami.com
+        - name: flagger
+          url: https://flagger.app
+        - name: fluxcd
+          url: https://charts.fluxcd.io
+        - name: gitlab
+          url: https://charts.gitlab.io
+        - name: ingress-nginx
+          url: https://kubernetes.github.io/ingress-nginx
+        - name: jetstack
+          url: https://charts.jetstack.io
+        - name: prometheus
+          url: https://prometheus-community.github.io/helm-charts

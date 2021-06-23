@@ -57,6 +57,10 @@ Parameters:
     Description: Unique identifier for the Node Group.
     Type: String
 
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instances
+    Type: "AWS::EC2::KeyPair::KeyName"
+
   NodeInstanceProfile:
     Description: IAM profile for node instances.
     Type: String
@@ -91,6 +95,7 @@ Metadata:
           - NodeInstanceProfile
           - NodeImageId
           - NodeVolumeSize
+          - KeyName
 
       - Label:
           default: Network Configuration
@@ -163,11 +168,8 @@ Resources:
             VolumeSize: !Ref NodeVolumeSize
             VolumeType: gp2
             DeleteOnTermination: true
+      KeyName: !Ref KeyName
       UserData:
-        # Custom code to convert cloudformation stack tags to kubernetes node
-        # labels.  Since it's python, it should run on most architectures w/out
-        # problems.  This runs on the instance as a systemd unit when the instance
-        # starts up.
         Fn::Base64:
           !Sub |
             #!/bin/bash

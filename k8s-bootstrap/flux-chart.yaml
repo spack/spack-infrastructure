@@ -1,0 +1,51 @@
+---
+replicaCount: 3
+
+logFormat: fmt
+
+service:
+  type: ClusterIP
+  port: 3030
+
+rbac:
+  create: true
+  pspEnabled: false
+
+serviceAccount:
+  create: true
+
+clusterRole:
+  create: true
+
+nodeSelector:
+  spack.io/node-pool: base
+
+git:
+  url: "ssh://git@github.com/spack/spack-infrastructure"
+  branch: "production"
+  path: "k8s"
+  user: "Spack Bot"
+  email: "maintainers@spack.io"
+  verifySignatures: false
+  setAuthor: true
+  ciSkip: true
+  pollInterval: "30s"
+
+syncGarbageCollection:
+  enabled: true
+
+memcached:
+  enabled: true
+  nodeSelector:
+    spack.io/node-pool: base
+
+ssh:
+  # Overrides for git over SSH. If you use your own git server, you
+  # will likely need to provide a host key for it in this field.
+  known_hosts: "\
+    github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa\
+    +PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJi\
+    zHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHT\
+    vKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3R\
+    KrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43\
+    JXiUFFAaQ=="

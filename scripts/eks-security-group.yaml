@@ -1,11 +1,18 @@
 # Tweaked version of the EKS cloud formation template.
 #
-# The original is split into two:
+# The original is split into three:
 #
-#  1 - one for creating a security group. (this script)
-#  2 - one for creating and managing a pool of nodes in an autoscaling group.
+#  1 - one for creating a security group.
+#
+#  2 - one for creating a node IAM role and instance profile.
+#
+#  3 - one for creating and managing a pool of nodes in an autoscaling group.
 #      The nodes in the autoscaling group will use a security group created
-#      using the first script.
+#      using the first script, and an IAM role and instance profile created
+#      using the second script.
+#
+#  This is the first (1st) script.
+
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Amazon EKS - Security Group for EKS Nodes
@@ -22,7 +29,7 @@ Parameters:
     Type: AWS::EC2::SecurityGroup::Id
 
   VpcId:
-    Description: The VPC of the worker instances
+    Description: The VPC in which to place the worker instances
     Type: AWS::EC2::VPC::Id
 
 Metadata:
@@ -37,30 +44,6 @@ Metadata:
           - VpcId
 
 Resources:
-
-  NodeInstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Path: "/"
-      Roles:
-        - !Ref NodeInstanceRole
-
-  NodeInstanceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ec2.amazonaws.com
-            Action: sts:AssumeRole
-      Path: "/"
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-
   NodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -145,14 +128,6 @@ Resources:
       FromPort: 443
 
 Outputs:
-
-  NodeInstanceProfile:
-    Description: The node instance profile
-    Value: !GetAtt NodeInstanceProfile.Arn
-
-  NodeInstanceRole:
-    Description: The node instance role
-    Value: !GetAtt NodeInstanceRole.Arn
 
   NodeSecurityGroup:
     Description: The security group for the node group

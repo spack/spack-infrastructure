@@ -22,6 +22,10 @@ def test_list_github_prs(capfd):
             "merge_commit_sha": "aaaaaaaa",
             "head": {
                 "ref": "improve_docs",
+                "sha": "shafoo"
+            },
+            "base": {
+                "sha": "shabar"
             }
         }),
         AttrDict({
@@ -29,6 +33,10 @@ def test_list_github_prs(capfd):
             "merge_commit_sha": "bbbbbbbb",
             "head": {
                 "ref": "fix_test",
+                "sha": "shagah"
+            },
+            "base": {
+                "sha": "shafaz"
             }
         }),
     ]
@@ -42,6 +50,47 @@ def test_list_github_prs(capfd):
     assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
     assert out == "Open PRs:\n    pr1_improve_docs\n    pr2_fix_test\n"
+
+
+def test_list_github_protected_branches(capfd):
+    """Test the list_github_protected_branches method and verify that we do not
+       push main_branch commits when it already has a pipeline running."""
+    github_branches_response = [
+        AttrDict({
+            "name": "alpha",
+            "protected": True
+        }),
+        AttrDict({
+          "name": "develop",
+          "protected": True
+        }),
+        AttrDict({
+          "name": "feature",
+          "protected": False
+        }),
+        AttrDict({
+          "name": "main",
+          "protected": True
+        }),
+        AttrDict({
+          "name": "release",
+          "protected": True
+        }),
+        AttrDict({
+          "name": "wip",
+          "protected": False
+        }),
+    ]
+    gh_repo = Mock()
+    gh_repo.get_branches.return_value = github_branches_response
+    bridge = SpackCIBridge.SpackCIBridge(main_branch="develop")
+    bridge.currently_running_sha = "aaaaaaaa"
+    bridge.py_gh_repo = gh_repo
+    protected_branches = bridge.list_github_protected_branches()
+    assert protected_branches == ["alpha", "main", "release"]
+    expected = "Skip pushing develop because it already has a pipeline running (aaaaaaaa)"
+    out, err = capfd.readouterr()
+    assert expected in out
 
 
 def test_get_synced_prs(capfd):
@@ -73,6 +122,8 @@ def test_get_open_refspecs():
     open_prs = {
         "pr_strings": ["pr1_this", "pr2_that"],
         "merge_commit_shas": ["aaaaaaaa", "bbbbbbbb"],
+        "base_shas": ["shafoo", "shabar"],
+        "head_shas": ["shabaz", "shagah"]
     }
     bridge = SpackCIBridge.SpackCIBridge()
     open_refspecs, fetch_refspecs = bridge.get_open_refspecs(open_prs)
@@ -143,11 +194,11 @@ def test_ssh_agent():
 
 
 def test_get_pipeline_api_template():
-    """Test the get_pipeline_api_template method."""
-    bridge = SpackCIBridge.SpackCIBridge()
-    template = bridge.get_pipeline_api_template("https://gitlab.spack.io", "zack/my_test_proj")
+    """Test that pipeline_api_template get constructed properly."""
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io", gitlab_project="zack/my_test_proj")
+    template = bridge.pipeline_api_template
     assert template[0:84] == "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?updated_after="
-    assert template[117:] == "&ref={0}"
+    assert template.endswith("&ref={1}")
 
 
 def test_dedupe_pipelines():
@@ -212,6 +263,10 @@ def test_make_status_for_pipeline():
     status = bridge.make_status_for_pipeline(pipeline)
     assert status == {}
 
+    pipeline["status"] = "canceled"
+    status = bridge.make_status_for_pipeline(pipeline)
+    assert status == {}
+
     test_cases = [
         {
             "input": "created",
@@ -254,11 +309,6 @@ def test_make_status_for_pipeline():
             "description": "Pipeline failed",
         },
         {
-            "input": "canceled",
-            "state": "failure",
-            "description": "Pipeline was canceled",
-        },
-        {
             "input": "skipped",
             "state": "failure",
             "description": "Pipeline was skipped",
@@ -293,18 +343,22 @@ class FakeResponse:
 
 def test_post_pipeline_status(capfd):
     """Test the post_pipeline_status method."""
-    open_prs = ["pr1_readme"]
-    template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/pipelines?ref={0}"
-    commit_template = "https://gitlab.spack.io/api/v4/projects/zack%2Fmy_test_proj/repository/commits/{}".format(
-        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+    open_prs = {
+        "pr_strings": ["pr1_readme"],
+        "merge_commit_shas": ["aaaaaaaa"],
+        "base_shas": ["shafoo"],
+        "head_shas": ["shabaz"]
+    }
+
     gh_commit = Mock()
     gh_commit.create_status.return_value = AttrDict({"state": "error"})
     gh_repo = Mock()
     gh_repo.get_commit.return_value = gh_commit
 
-    bridge = SpackCIBridge.SpackCIBridge()
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
+                                         gitlab_project="zack/my_test_proj",
+                                         github_project="zack/my_test_proj")
     bridge.py_gh_repo = gh_repo
-    bridge.github_project = "zack/my_test_proj"
     os.environ["GITHUB_TOKEN"] = "my_github_token"
 
     mock_data = b'''[
@@ -319,11 +373,11 @@ def test_post_pipeline_status(capfd):
         }
     ]'''
     with patch('urllib.request.urlopen', return_value=FakeResponse(data=mock_data)) as mock_urlopen:
-        bridge.post_pipeline_status(open_prs, template, commit_template)
+        bridge.post_pipeline_status(open_prs, [])
         assert mock_urlopen.call_count == 2
         assert gh_repo.get_commit.call_count == 1
         assert gh_commit.create_status.call_count == 1
     out, err = capfd.readouterr()
-    expected_content = "Posting status for pr1_readme / aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    expected_content = "  pr1_readme -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
     assert expected_content in out
     del os.environ["GITHUB_TOKEN"]

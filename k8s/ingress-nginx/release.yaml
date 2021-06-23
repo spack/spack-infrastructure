@@ -1,0 +1,92 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+spec:
+  releaseName: ingress-nginx
+  chart:
+    name: ingress-nginx
+    repository: https://kubernetes.github.io/ingress-nginx
+    version: 3.4.0  # ingress-nginx@0.40.1
+  values:
+    controller:
+      # Configures the ports the nginx-controller listens on
+      containerPort:
+        http: 80
+        https: 443
+
+      # config: {}
+      # configMapNamespace: ""
+      # tcp:
+      #   configMapNamespace: ""
+      # udp:
+      #   configMapNamespace: ""
+
+      nodeSelector:
+        spack.io/node-pool: base
+
+      replicaCount: 1
+      minAvailable: 1
+
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 4
+        targetCPUUtilizationPercentage: 50
+        targetMemoryUtilizationPercentage: 50
+
+      service:
+        enabled: true
+
+        annotations:
+          "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true"
+
+        labels: {}
+
+        enableHttp: true
+        enableHttps: true
+
+        ports:
+          http: 80
+          https: 443
+
+        targetPorts:
+          http: http
+          https: https
+
+        type: LoadBalancer
+
+      metrics:
+        enabled: false  # TODO(opadron): flip this after installing prometheus
+        port: 10254
+
+        service:
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "10254"
+          type: ClusterIP
+          servicePort: 9913
+
+        serviceMonitor:
+          enabled: true
+
+    ## Default 404 backend
+    defaultBackend:
+      enabled: true
+      replicaCount: 3
+      minAvailable: 1
+      nodeSelector:
+        spack.io/node-pool: base
+
+    # TCP service key:value pairs
+    # Ref: https://github.com/kubernetes/contrib/tree/master/ingress
+    #                        /controllers/nginx/examples/tcp
+    tcp: {}
+
+    # UDP service key:value pairs
+    # Ref: https://github.com/kubernetes/contrib/tree/master/ingress
+    #                        /controllers/nginx/examples/udp
+    udp: {}
+    #  53: "kube-system/kube-dns:53"

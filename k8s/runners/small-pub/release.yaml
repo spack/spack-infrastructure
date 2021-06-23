@@ -1,0 +1,98 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: runner-small-pub
+  namespace: gitlab
+spec:
+  releaseName: small-pub
+  chart:
+    name: gitlab-runner
+    repository: https://charts.gitlab.io
+    version: 0.25.0  # gitlab-runner@13.8.0
+  values:
+    image: gitlab/gitlab-runner:alpine-v13.8.0
+    imagePullPolicy: IfNotPresent
+
+    gitlabUrl: "https://gitlab.spack.io/"
+    unregisterRunners: true
+    terminationGracePeriodSeconds: 21600  # six hours
+    concurrent: 20
+    checkInterval: 30
+    # preEntrypointScript: |
+    #   echo "Hello, from small-pub runner"
+
+    metrics:
+      enabled: true
+
+    rbac:
+      serviceAccountName: runner
+
+    runners:
+      config: |
+        [[runners]]
+          environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
+
+      # default image
+      # default image
+      image: "busybox:1.32.0"
+      imagePullPolicy: "if-not-present"
+      requestConcurrency: 20
+      locked: false
+
+      tags: "x86_64,avx,small,public,spack"
+      runUntagged: false
+      privileged: false
+      secret: gitlab-gitlab-runner-secret  # from gitlab release
+
+      namespace: pipeline
+      pollTimeout: 600  # ten minutes
+
+      # build log size limit
+      outputLimit: 4096
+
+      serviceAccountName: runner
+
+      # Distributed runners caching
+      # TODO(opadron): Look into this after setting up stand-alone minio service
+      cache: {}
+        ## General settings
+        # cacheType: s3
+        # cachePath: "gitlab_runner"
+        # cacheShared: true
+
+        ## S3 settings
+        # s3ServerAddress: s3.amazonaws.com
+        # s3BucketName:
+        # s3BucketLocation:
+        # s3CacheInsecure: false
+        # secretName: s3access
+
+        ## GCS settings
+        # gcsBucketName:
+        ## Use this line for access using access-id and private-key
+        # secretName: gcsaccess
+        ## Use this line for access using google-application-credentials file
+        # secretName: google-application-credentials
+
+      builds:
+        cpuRequests: 510m
+
+      services: {}
+      # cpuRequests: 50m
+      # cpuLimit: 50m
+      # memoryRequests: 144Mi
+      # memoryLimit: 144Mi
+
+      helpers: {}
+      # cpuRequests: 50m
+      # cpuLimit: 50m
+      # memoryRequests: 144Mi
+      # memoryLimit: 144Mi
+
+      nodeSelector:
+        spack.io/node-pool: glr-small-pub  # pool for jobs
+        kubernetes.io/arch: amd64
+
+    nodeSelector:
+      spack.io/node-pool: base  # pool for the runner

@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: slack-spack-io
+  namespace: spack
+spec:
+  tls:
+  - secretName: tls-slack
+  rules:
+  - host: slack.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: slack-spack-io
+          servicePort: 80

@@ -1,0 +1,34 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+spec:
+  releaseName: cluster-autoscaler
+  chart:
+    name: cluster-autoscaler-chart
+    repository: https://kubernetes.github.io/autoscaler
+    version: 1.0.4  # cluster-autoscaler@1.18.1
+  values:
+    cloudProvider: aws
+    awsRegion: us-east-1
+    autoDiscovery:
+      clusterName: spack
+      tags:
+      - k8s.io/cluster-autoscaler/enabled
+      - k8s.io/cluster-autoscaler/{{ .Values.autoDiscovery.clusterName }}
+      - kubernetes.io/cluster/{{ .Values.autoDiscovery.clusterName }}
+
+    extraArgs:
+      balance-similar-node-groups: true
+      leader-elect: true
+      skip-nodes-with-system-pods: false
+
+    nodeSelector:
+      spack.io/node-pool: base
+
+    replicaCount: 3
+
+    serviceMonitor:
+      enabled: false
