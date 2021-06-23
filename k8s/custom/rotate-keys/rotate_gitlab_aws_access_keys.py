@@ -8,7 +8,7 @@ import urllib.request
 
 def update_gitlab_variable(k, v):
     DATA = urllib.parse.urlencode({'value': v}).encode()
-    URL = 'https://gitlab.next.spack.io/api/v4/projects/2/variables/{0}'.format(k)
+    URL = 'https://gitlab.spack.io/api/v4/projects/2/variables/{0}'.format(k)
     request = urllib.request.Request(url=URL, data=DATA, method='PUT')
     request.add_header('Authorization', 'Bearer %s' % os.environ['GITLAB_TOKEN'])
     urllib.request.urlopen(request)

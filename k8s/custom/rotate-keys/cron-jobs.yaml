@@ -13,7 +13,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: rotate-gitlab-aws-access-keys
-            image: zackgalbreath/spack-rotate-keys:0.0.1
+            image: zackgalbreath/spack-rotate-keys:0.0.2
             imagePullPolicy: IfNotPresent
             env:
             - name: GITLAB_TOKEN
