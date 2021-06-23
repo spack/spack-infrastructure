@@ -263,6 +263,10 @@ def test_make_status_for_pipeline():
     status = bridge.make_status_for_pipeline(pipeline)
     assert status == {}
 
+    pipeline["status"] = "canceled"
+    status = bridge.make_status_for_pipeline(pipeline)
+    assert status == {}
+
     test_cases = [
         {
             "input": "created",
@@ -303,11 +307,6 @@ def test_make_status_for_pipeline():
             "input": "failed",
             "state": "error",
             "description": "Pipeline failed",
-        },
-        {
-            "input": "canceled",
-            "state": "failure",
-            "description": "Pipeline was canceled",
         },
         {
             "input": "skipped",

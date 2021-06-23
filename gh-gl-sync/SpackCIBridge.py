@@ -287,8 +287,10 @@ class SpackCIBridge(object):
             post_data["description"] = "Pipeline failed"
 
         elif pipeline["status"] == "canceled":
-            post_data["state"] = "failure"
-            post_data["description"] = "Pipeline was canceled"
+            # Do not post canceled pipeline status to GitHub, it's confusing to our users.
+            # This usually happens when a PR gets force-pushed. The next time the sync script runs
+            # it will post a status for the newly force-pushed commit.
+            return {}
 
         elif pipeline["status"] == "skipped":
             post_data["state"] = "failure"
@@ -392,6 +394,8 @@ class SpackCIBridge(object):
                 continue
             for sha, pipeline in pipelines.items():
                 post_data = self.make_status_for_pipeline(pipeline)
+                if not post_data:
+                    continue
                 # TODO: associate shas with protected branches, so we do not have to
                 # hit an endpoint here, but just use the sha we already know just like
                 # we do below for backlogged PR statuses.
