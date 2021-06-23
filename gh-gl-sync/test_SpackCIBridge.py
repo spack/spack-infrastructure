@@ -52,6 +52,47 @@ def test_list_github_prs(capfd):
     assert out == "Open PRs:\n    pr1_improve_docs\n    pr2_fix_test\n"
 
 
+def test_list_github_protected_branches(capfd):
+    """Test the list_github_protected_branches method and verify that we do not
+       push main_branch commits when it already has a pipeline running."""
+    github_branches_response = [
+        AttrDict({
+            "name": "alpha",
+            "protected": True
+        }),
+        AttrDict({
+          "name": "develop",
+          "protected": True
+        }),
+        AttrDict({
+          "name": "feature",
+          "protected": False
+        }),
+        AttrDict({
+          "name": "main",
+          "protected": True
+        }),
+        AttrDict({
+          "name": "release",
+          "protected": True
+        }),
+        AttrDict({
+          "name": "wip",
+          "protected": False
+        }),
+    ]
+    gh_repo = Mock()
+    gh_repo.get_branches.return_value = github_branches_response
+    bridge = SpackCIBridge.SpackCIBridge(main_branch="develop")
+    bridge.currently_running_sha = "aaaaaaaa"
+    bridge.py_gh_repo = gh_repo
+    protected_branches = bridge.list_github_protected_branches()
+    assert protected_branches == ["alpha", "main", "release"]
+    expected = "Skip pushing develop because it already has a pipeline running (aaaaaaaa)"
+    out, err = capfd.readouterr()
+    assert expected in out
+
+
 def test_get_synced_prs(capfd):
     """Test the get_synced_prs method."""
     bridge = SpackCIBridge.SpackCIBridge()
@@ -222,6 +263,10 @@ def test_make_status_for_pipeline():
     status = bridge.make_status_for_pipeline(pipeline)
     assert status == {}
 
+    pipeline["status"] = "canceled"
+    status = bridge.make_status_for_pipeline(pipeline)
+    assert status == {}
+
     test_cases = [
         {
             "input": "created",
@@ -262,11 +307,6 @@ def test_make_status_for_pipeline():
             "input": "failed",
             "state": "error",
             "description": "Pipeline failed",
-        },
-        {
-            "input": "canceled",
-            "state": "failure",
-            "description": "Pipeline was canceled",
         },
         {
             "input": "skipped",

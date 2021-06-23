@@ -35,11 +35,12 @@ class SpackCIBridge(object):
         self.post_status = not disable_status_post
         self.pr_mirror_bucket = pr_mirror_bucket
         self.main_branch = main_branch
+        self.currently_running_sha = None
 
         dt = datetime.now(timezone.utc) + timedelta(minutes=-4)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
-        # We use a  longer time threshold to find the currently running main branch pipeline.
+        # We use a longer time threshold to find the currently running main branch pipeline.
         dt = datetime.now(timezone.utc) + timedelta(minutes=-1440)
         self.time_threshold_long = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
@@ -132,6 +133,10 @@ class SpackCIBridge(object):
         branches = self.py_gh_repo.get_branches()
         protected_branches = [br.name for br in branches if br.protected]
         protected_branches = sorted(protected_branches)
+        if self.currently_running_sha:
+            print("Skip pushing {0} because it already has a pipeline running ({1})"
+                  .format(self.main_branch, self.currently_running_sha))
+            protected_branches.remove(self.main_branch)
         print("Protected branches:")
         for protected_branch in protected_branches:
             print("    {0}".format(protected_branch))
@@ -193,7 +198,7 @@ class SpackCIBridge(object):
             closed_refspecs.append(":github/{0}".format(pr))
         return closed_refspecs
 
-    def get_open_refspecs(self, open_prs, testing_sha=None):
+    def get_open_refspecs(self, open_prs):
         """Return lists of refspecs for fetch and push given a list of open PRs."""
         print("Building initial lists of refspecs to fetch and push")
         pr_strings = open_prs["pr_strings"]
@@ -204,7 +209,7 @@ class SpackCIBridge(object):
         for open_pr, merge_commit_sha, base_sha in zip(pr_strings, merge_commit_shas, base_shas):
             fetch_refspecs.append("+{0}:refs/remotes/github/{1}".format(
                 merge_commit_sha, open_pr))
-            if not testing_sha or testing_sha != base_sha:
+            if not self.currently_running_sha or self.currently_running_sha != base_sha:
                 open_refspecs.append("github/{0}:github/{0}".format(open_pr))
                 print("  pushing {0} -> {1}".format(open_pr, base_sha))
             else:
@@ -282,8 +287,10 @@ class SpackCIBridge(object):
             post_data["description"] = "Pipeline failed"
 
         elif pipeline["status"] == "canceled":
-            post_data["state"] = "failure"
-            post_data["description"] = "Pipeline was canceled"
+            # Do not post canceled pipeline status to GitHub, it's confusing to our users.
+            # This usually happens when a PR gets force-pushed. The next time the sync script runs
+            # it will post a status for the newly force-pushed commit.
+            return {}
 
         elif pipeline["status"] == "skipped":
             post_data["state"] = "failure"
@@ -365,14 +372,14 @@ class SpackCIBridge(object):
 
         return self.dedupe_pipelines(pipelines)
 
-    def post_pipeline_status(self, open_prs, protected_branches, testing_sha=None):
+    def post_pipeline_status(self, open_prs, protected_branches):
         pipeline_branches = []
         backlog_branches = []
         # Split up the open_prs branches into two piles: branches we force-pushed to gitlab
         # and branches we deferred pushing because they have a main branch parent which is
         # currently getting tested by a pipeline.
         for pr_branch, base_sha, head_sha in zip(open_prs["pr_strings"], open_prs["base_shas"], open_prs["head_shas"]):
-            if not testing_sha or testing_sha != base_sha:
+            if not self.currently_running_sha or self.currently_running_sha != base_sha:
                 pipeline_branches.append(pr_branch)
             else:
                 backlog_branches.append((pr_branch, head_sha))
@@ -387,6 +394,8 @@ class SpackCIBridge(object):
                 continue
             for sha, pipeline in pipelines.items():
                 post_data = self.make_status_for_pipeline(pipeline)
+                if not post_data:
+                    continue
                 # TODO: associate shas with protected branches, so we do not have to
                 # hit an endpoint here, but just use the sha we already know just like
                 # we do below for backlogged PR statuses.
@@ -469,16 +478,15 @@ class SpackCIBridge(object):
             # Setup the local repo with two remotes.
             self.setup_git_repo()
 
-            currently_running_sha = None
             if self.main_branch:
                 # Find the currently running main branch pipeline, if any, and get the sha
                 main_branch_pipelines = self.get_pipelines_for_branch(self.main_branch, self.time_threshold_long)
                 for sha, pipeline in main_branch_pipelines.items():
                     if pipeline['status'] == "running":
-                        currently_running_sha = sha
+                        self.currently_running_sha = sha
                         break
 
-            print("Currently running {0} pipeline: {1}".format(self.main_branch, currently_running_sha))
+            print("Currently running {0} pipeline: {1}".format(self.main_branch, self.currently_running_sha))
 
             # Retrieve currently open PRs from GitHub.
             open_prs = self.list_github_prs("open")
@@ -497,8 +505,7 @@ class SpackCIBridge(object):
             closed_refspecs = self.get_prs_to_delete(open_prs["pr_strings"], synced_prs)
 
             # Get refspecs for open PRs and protected branches.
-            open_refspecs, fetch_refspecs = self.get_open_refspecs(
-                open_prs, testing_sha=currently_running_sha)
+            open_refspecs, fetch_refspecs = self.get_open_refspecs(open_prs)
             self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
             self.update_refspecs_for_tags(tags, open_refspecs, fetch_refspecs)
 
@@ -518,8 +525,7 @@ class SpackCIBridge(object):
             # Post pipeline status to GitHub for each open PR, if enabled
             if self.post_status:
                 print('Posting pipeline status for open PRs and protected branches')
-                self.post_pipeline_status(open_prs, protected_branches,
-                                          testing_sha=currently_running_sha)
+                self.post_pipeline_status(open_prs, protected_branches)
 
 
 if __name__ == "__main__":
