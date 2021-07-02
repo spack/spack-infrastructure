@@ -28,7 +28,7 @@ jobs:
           context: ./gh-gl-sync
           file: ./gh-gl-sync/Dockerfile
           push: true
-          tags: zackgalbreath/spack-ci-bridge:0.0.14
+          tags: zackgalbreath/spack-ci-bridge:0.0.15
       -
         name: Image digest
         run: echo ${{ steps.docker_build_sync.outputs.digest }}
