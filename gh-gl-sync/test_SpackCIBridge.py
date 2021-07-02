@@ -1,5 +1,5 @@
 import os
-from unittest.mock import patch, Mock
+from unittest.mock import create_autospec, patch, Mock
 
 import SpackCIBridge
 
@@ -44,12 +44,28 @@ def test_list_github_prs(capfd):
     gh_repo.get_pulls.return_value = github_pr_response
     bridge = SpackCIBridge.SpackCIBridge()
     bridge.py_gh_repo = gh_repo
-    github_prs = bridge.list_github_prs("open")
+
+    import subprocess
+    actual_run_method = subprocess.run
+    mock_run_return = Mock()
+    mock_run_return.stdout = b"Merge shagah into ccccccc"
+    subprocess.run = create_autospec(subprocess.run, return_value=mock_run_return)
+    retval = bridge.list_github_prs()
+    subprocess.run = actual_run_method
+
+    github_prs = retval[0]
     assert github_prs["pr_strings"] == ["pr1_improve_docs", "pr2_fix_test"]
     assert github_prs["merge_commit_shas"] == ["aaaaaaaa", "bbbbbbbb"]
     assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
-    assert out == "Open PRs:\n    pr1_improve_docs\n    pr2_fix_test\n"
+    expected = """Skip pushing pr2_fix_test because GitLab already has HEAD shagah
+All Open PRs:
+    pr1_improve_docs
+    pr2_fix_test
+Filtered Open PRs:
+    pr1_improve_docs
+"""
+    assert out == expected
 
 
 def test_list_github_protected_branches(capfd):
@@ -96,10 +112,10 @@ def test_list_github_protected_branches(capfd):
 def test_get_synced_prs(capfd):
     """Test the get_synced_prs method."""
     bridge = SpackCIBridge.SpackCIBridge()
-    bridge.fetch_gitlab_prs = lambda *args: None
+    bridge.get_gitlab_pr_branches = lambda *args: None
     bridge.gitlab_pr_output = b"""
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	refs/heads/github/pr1_example
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	refs/heads/github/pr2_another_try
+  gitlab/github/pr1_example
+  gitlab/github/pr2_another_try
     """
     assert bridge.get_synced_prs() == ["pr1_example", "pr2_another_try"]
     out, err = capfd.readouterr()

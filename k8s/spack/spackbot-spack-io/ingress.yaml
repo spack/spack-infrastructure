@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: spackbot-spack-io
+  namespace: spack
+spec:
+  tls:
+  - secretName: tls-spackbot
+  rules:
+  - host: spackbot.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: spackbot-spack-io
+          servicePort: 80
