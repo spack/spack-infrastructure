@@ -96,37 +96,54 @@ class SpackCIBridge(object):
             fp.seek(0)
             subprocess.run(["ssh-add", fp.name], check=True)
 
-    def list_github_prs(self, state):
-        """ Return a list of strings in the format: "pr<PR#>_<headref>"
-        for GitHub PRs with a given state: open, closed, or all.
-        """
+    def list_github_prs(self):
+        """ Return two dicts of data about open PRs on GitHub:
+            one for all open PRs, and one for open PRs that are not up-to-date on GitLab."""
         pr_dict = {}
-        pulls = self.py_gh_repo.get_pulls(state=state)
+        pulls = self.py_gh_repo.get_pulls(state="open")
         for pull in pulls:
             if not pull.merge_commit_sha:
                 print("PR {0} ({1}) has no 'merge_commit_sha', skipping".format(pull.number, pull.head.ref))
                 self.unmergeable_shas.append(pull.head.sha)
                 continue
             pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
+
+            push = True
+            log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
+            merge_commit_msg = subprocess.run(log_args, check=True, stdout=subprocess.PIPE).stdout
+            match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
+            if match and match.group(1) == pull.head.sha:
+                print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
+                push = False
+
             pr_dict[pr_string] = {
                 'merge_commit_sha': pull.merge_commit_sha,
                 'base_sha': pull.base.sha,
                 'head_sha': pull.head.sha,
+                'push': push,
             }
 
-        pr_strings = sorted(pr_dict.keys())
-        merge_commit_shas = [pr_dict[s]['merge_commit_sha'] for s in pr_strings]
-        base_shas = [pr_dict[s]['base_sha'] for s in pr_strings]
-        head_shas = [pr_dict[s]['head_sha'] for s in pr_strings]
-        print("{0} PRs:".format(state.capitalize()))
-        for pr_string in pr_strings:
+        def listify_dict(d):
+            pr_strings = sorted(d.keys())
+            merge_commit_shas = [d[s]['merge_commit_sha'] for s in pr_strings]
+            base_shas = [d[s]['base_sha'] for s in pr_strings]
+            head_shas = [d[s]['head_sha'] for s in pr_strings]
+            return {
+                "pr_strings": pr_strings,
+                "merge_commit_shas": merge_commit_shas,
+                "base_shas": base_shas,
+                "head_shas": head_shas,
+            }
+        all_open_prs = listify_dict(pr_dict)
+        filtered_pr_dict = {k: v for (k, v) in pr_dict.items() if v['push']}
+        filtered_open_prs = listify_dict(filtered_pr_dict)
+        print("All Open PRs:")
+        for pr_string in all_open_prs['pr_strings']:
             print("    {0}".format(pr_string))
-        return {
-            "pr_strings": pr_strings,
-            "merge_commit_shas": merge_commit_shas,
-            "base_shas": base_shas,
-            "head_shas": head_shas,
-        }
+        print("Filtered Open PRs:")
+        for pr_string in filtered_open_prs['pr_strings']:
+            print("    {0}".format(pr_string))
+        return [all_open_prs, filtered_open_prs]
 
     def list_github_protected_branches(self):
         """ Return a list of protected branch names from GitHub."""
@@ -159,23 +176,27 @@ class SpackCIBridge(object):
         subprocess.run(["git", "remote", "add", "github", self.github_repo], check=True)
         subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_repo], check=True)
 
-    def fetch_gitlab_prs(self):
+    def get_gitlab_pr_branches(self):
         """Query GitLab for branches that have already been copied over from GitHub PRs.
-        Return the string output of `git ls-remote`.
+        Return the string output of `git branch --remotes --list gitlab/github/pr*`.
         """
-        ls_remote_args = ["git", "ls-remote", "gitlab", "github/pr*"]
+        branch_args = ["git", "branch", "--remotes", "--list", "gitlab/github/pr*"]
         self.gitlab_pr_output = \
-            subprocess.run(ls_remote_args, check=True, stdout=subprocess.PIPE).stdout
+            subprocess.run(branch_args, check=True, stdout=subprocess.PIPE).stdout
+
+    def gitlab_shallow_fetch(self):
+        """Perform a shallow fetch from GitLab"""
+        fetch_args = ["git", "fetch", "-q", "--depth=1", "gitlab"]
+        subprocess.run(fetch_args, check=True, stdout=subprocess.PIPE).stdout
 
     def get_synced_prs(self):
-        """Return a list of PRs that have already been synchronized to GitLab."""
-        self.fetch_gitlab_prs()
+        """Return a list of PR branches that already exist on GitLab."""
+        self.get_gitlab_pr_branches()
         synced_prs = []
         for line in self.gitlab_pr_output.split(b"\n"):
-            parts = line.split()
-            if len(parts) != 2:
+            if line.find(b"gitlab/github/") == -1:
                 continue
-            synced_pr = parts[1].replace(b"refs/heads/github/", b"").decode("utf-8")
+            synced_pr = line.strip().replace(b"gitlab/github/", b"").decode("utf-8")
             synced_prs.append(synced_pr)
         print("Synced PRs:")
         for pr in synced_prs:
@@ -236,7 +257,7 @@ class SpackCIBridge(object):
     def fetch_github_branches(self, fetch_refspecs):
         """Perform `git fetch` for a given list of refspecs."""
         print("Fetching GitHub refs for open PRs")
-        fetch_args = ["git", "fetch", "-q", "github"] + fetch_refspecs
+        fetch_args = ["git", "fetch", "-q", "--depth=1", "github"] + fetch_refspecs
         subprocess.run(fetch_args, check=True)
 
     def build_local_branches(self, open_prs, protected_branches):
@@ -488,8 +509,11 @@ class SpackCIBridge(object):
 
             print("Currently running {0} pipeline: {1}".format(self.main_branch, self.currently_running_sha))
 
-            # Retrieve currently open PRs from GitHub.
-            open_prs = self.list_github_prs("open")
+            # Shallow fetch from GitLab.
+            self.gitlab_shallow_fetch()
+
+            # Retrieve open PRs from GitHub.
+            all_open_prs, open_prs = self.list_github_prs()
 
             # Get protected branches on GitHub.
             protected_branches = self.list_github_protected_branches()
@@ -502,7 +526,7 @@ class SpackCIBridge(object):
 
             # Find closed PRs that are currently synced.
             # These will be deleted from GitLab.
-            closed_refspecs = self.get_prs_to_delete(open_prs["pr_strings"], synced_prs)
+            closed_refspecs = self.get_prs_to_delete(all_open_prs["pr_strings"], synced_prs)
 
             # Get refspecs for open PRs and protected branches.
             open_refspecs, fetch_refspecs = self.get_open_refspecs(open_prs)
