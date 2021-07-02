@@ -67,6 +67,7 @@ async def webhook_handler(request):
     payload = await request.json()
 
     if payload['action'] == 'closed' and payload['pull_request']['merged'] == True:
+        # TODO: make sure this is to the target branch we care about
         pr_number = payload['number']
         pr_branch = payload['pull_request']['head']['ref']
 
@@ -78,6 +79,8 @@ async def webhook_handler(request):
 
         # await copy_mirror_entries(pr_mirror_url, shared_mirror_url)
         # await update_mirror_index(shared_mirror_url)
+
+        # TODO: check if we need to respond immediately to github,
 
 
 if __name__ == "__main__":
