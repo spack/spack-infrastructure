@@ -219,9 +219,10 @@ spec:
   # Should Kubernetes restart a POD's containers?
   restartPolicy: Always  # default
 
-  # Insist that this Pod runs on a t3.medium instance.  (Only works on AWS)
+  # Insist that this Pod runs on one of our "base" nodes.
+  # (Only works on AWS)
   nodeSelector:
-    "beta.kubernetes.io/instance-type": "t3.medium"
+    spack.io/node-pool: "base"
 
   # list of containers to run in the Pod.
   # As is the case in this example, there's usually only one container in a Pod.
@@ -390,7 +391,7 @@ spec:
     spec:
       restartPolicy: Always  # default
       nodeSelector:
-        "beta.kubernetes.io/instance-type": "t3.medium"
+        spack.io/node-pool: "base"
       containers:
         - name: my-demo-pod-container
           image: ghcr.io/spack/my-demo-image:v1.2.3
@@ -564,20 +565,15 @@ spec:
   # This will typically be configured by your cluster administrator.
   issuerRef:
     name: letsencrypt
-    kind: Issuer
+    kind: ClusterIssuer
 
-  # request a certificate for these domains:
+  # request a certificate with this common name:
+  commonName: my-demo.spack.io
+
+  # request a certificate for these domains
+  # (must contain the common name, if given):
   dnsNames:
     - my-demo.spack.io
-
-  # Technical details concerning how the Issuer will handle the request.
-  # Generally, your cluster administrator will tell you what to put here.
-  acme:
-    config:
-      - http01:
-          ingressClass: nginx
-        domains:
-          - my-demo.spack.io
 ```
 
 ##### my-demo-ingress.yaml
