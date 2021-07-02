@@ -1,0 +1,47 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spackbot-spack-io
+  namespace: spack
+  labels:
+    app: spackbot-spack-io
+    svc: web
+spec:
+  selector:
+    matchLabels:
+      app: spackbot-spack-io
+      svc: web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: spackbot-spack-io
+        svc: web
+    spec:
+      containers:
+      - name: web
+        image: "spack/spackbot:latest"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: GITHUB_APP_IDENTIFIER
+          value: "123749"
+        - name: GITHUB_APP_REQUESTER
+          value: "spackbot"
+        - name: GITHUB_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-credentials
+              key: github_private_key
+        - name: GITHUB_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-credentials
+              key: github_webhook_secret
+      nodeSelector:
+        spack.io/node-pool: base
