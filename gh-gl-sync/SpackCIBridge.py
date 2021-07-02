@@ -110,11 +110,16 @@ class SpackCIBridge(object):
 
             push = True
             log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
-            merge_commit_msg = subprocess.run(log_args, check=True, stdout=subprocess.PIPE).stdout
-            match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
-            if match and match.group(1) == pull.head.sha:
-                print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
-                push = False
+            try:
+                merge_commit_msg = subprocess.run(log_args, check=True, stdout=subprocess.PIPE).stdout
+                match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
+                if match and match.group(1) == pull.head.sha:
+                    print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
+                    push = False
+
+            except subprocess.CalledProcessError:
+                # This occurs when it's a new PR that hasn't been pushed to GitLab yet.
+                pass
 
             pr_dict[pr_string] = {
                 'merge_commit_sha': pull.merge_commit_sha,
