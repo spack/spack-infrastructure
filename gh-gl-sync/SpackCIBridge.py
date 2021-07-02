@@ -262,7 +262,7 @@ class SpackCIBridge(object):
     def fetch_github_branches(self, fetch_refspecs):
         """Perform `git fetch` for a given list of refspecs."""
         print("Fetching GitHub refs for open PRs")
-        fetch_args = ["git", "fetch", "-q", "--depth=1", "github"] + fetch_refspecs
+        fetch_args = ["git", "fetch", "-q", "github"] + fetch_refspecs
         subprocess.run(fetch_args, check=True)
 
     def build_local_branches(self, open_prs, protected_branches):
