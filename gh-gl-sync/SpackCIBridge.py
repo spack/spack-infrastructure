@@ -554,7 +554,7 @@ class SpackCIBridge(object):
             # Post pipeline status to GitHub for each open PR, if enabled
             if self.post_status:
                 print('Posting pipeline status for open PRs and protected branches')
-                self.post_pipeline_status(open_prs, protected_branches)
+                self.post_pipeline_status(all_open_prs, protected_branches)
 
 
 if __name__ == "__main__":
