@@ -37,7 +37,7 @@ class SpackCIBridge(object):
         self.main_branch = main_branch
         self.currently_running_sha = None
 
-        dt = datetime.now(timezone.utc) + timedelta(minutes=-4)
+        dt = datetime.now(timezone.utc) + timedelta(minutes=-15)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
         # We use a longer time threshold to find the currently running main branch pipeline.
@@ -237,12 +237,12 @@ class SpackCIBridge(object):
                 merge_commit_sha, open_pr))
             if not self.currently_running_sha or self.currently_running_sha != base_sha:
                 open_refspecs.append("github/{0}:github/{0}".format(open_pr))
-                print("  pushing {0} -> {1}".format(open_pr, base_sha))
+                print("  pushing {0} (based on {1})".format(open_pr, base_sha))
             else:
                 # By omitting these branches from "open_refspecs", we will defer pushing
                 # them to gitlab for a time when there is not a main branch pipeline running
                 # on one of their parent commits.
-                print("  defer pushing {0} -> {1}".format(open_pr, base_sha))
+                print("  defer pushing {0} (based on {1})".format(open_pr, base_sha))
         return open_refspecs, fetch_refspecs
 
     def update_refspecs_for_protected_branches(self, protected_branches, open_refspecs, fetch_refspecs):
