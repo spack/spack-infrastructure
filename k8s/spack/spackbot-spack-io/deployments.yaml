@@ -33,6 +33,11 @@ spec:
           value: "123749"
         - name: GITHUB_APP_REQUESTER
           value: "spackbot"
+        - name: GITLAB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-credentials
+              key: gitlab_token
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
