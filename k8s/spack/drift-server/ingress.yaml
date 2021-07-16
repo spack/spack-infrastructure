@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: drift-server-spack-io
+  namespace: spack
+spec:
+  tls:
+  - secretName: tls-drift-server
+  rules:
+  - host: drift-server.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: drift-server-spack-io
+          servicePort: 80

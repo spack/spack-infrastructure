@@ -1,0 +1,14 @@
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: tls-drift-server
+  namespace: spack
+spec:
+  secretName: tls-drift-server
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  commonName: drift-server.spack.io
+  dnsNames:
+    - drift-server.spack.io
