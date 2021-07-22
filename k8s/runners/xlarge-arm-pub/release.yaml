@@ -40,7 +40,7 @@ spec:
       requestConcurrency: 20
       locked: false
 
-      tags: "arm,aarch64,graviton,graviton2,xlarge,public,spack"
+      tags: "arm,aarch64,graviton,graviton2,xlarge,public,aws,spack"
       runUntagged: false
       privileged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
