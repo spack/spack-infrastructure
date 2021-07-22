@@ -39,7 +39,7 @@ spec:
       requestConcurrency: 20
       locked: false
 
-      tags: "x86_64,avx,medium,public,spack"
+      tags: "x86_64,avx,medium,public,aws,spack"
       runUntagged: false
       privileged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
