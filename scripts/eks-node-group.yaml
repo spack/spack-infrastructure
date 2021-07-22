@@ -34,7 +34,7 @@ Parameters:
     Default: amd64
     AllowedValues:
       - amd64
-      - aarch64
+      - arm64
 
   NodeAutoScalingGroupMinSize:
     Description: Minimum size of the Node Group.
