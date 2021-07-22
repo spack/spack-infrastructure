@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drift-server-db-spack-io
+  namespace: spack
+  labels:
+    app: drift-server-spack-io
+    svc: postgres
+
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      app: drift-server-db-spack-io
+      svc: postgres
+
+  template:
+    metadata:
+      labels:
+        app: drift-server-db-spack-io
+        svc: postgres
+
+    spec:
+
+      nodeSelector:
+        spack.io/node-pool: base
+      containers:
+        - name: drift-server-db-spack-io
+          image: postgres:9.6
+          volumeMounts:
+            - name: postgres-disk
+              mountPath: /var/lib/postgresql/data          
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: drift-server-secrets
+                  key: drift_server_pass
+            - name: POSTGRES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: drift-server-secrets
+                  key: drift_server_user
+          ports:
+            - name: tcp-postgres
+              containerPort: 5432
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -U "postgres" -h 127.0.0.1 -p 5432
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+
+      volumes:
+        - name: postgres-disk
+          persistentVolumeClaim:
+            claimName: drift-server-db

@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: "ghcr.io/autamus/drif-server:latest"
+        image: ghcr.io/buildsi/drift-server:latest
         imagePullPolicy: Always
         ports:
         - name: http
@@ -30,21 +30,21 @@ spec:
         - name: DRIFTSERVER_PORT
           value: "8080"
         - name: DRIFTSERVER_DATABASE_TYPE
-          value: "mysql"
+          value: "postgres"
         - name: DRIFTSERVER_DATABASE_DSN
           valueFrom:
             secretKeyRef:
               name: drift-server-secrets
-              key: driftserver_database_dsn
+              key: drift_server_dsn
         - name: DRIFTSERVER_USER
           valueFrom:
             secretKeyRef:
               name: drift-server-secrets
-              key: driftserver_user
+              key: drift_server_user
         - name: DRIFTSERVER_PASS
           valueFrom:
             secretKeyRef:
               name: drift-server-secrets
-              key: driftserver_pass
+              key: drift_server_pass
       nodeSelector:
         spack.io/node-pool: base
