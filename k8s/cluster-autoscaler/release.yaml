@@ -7,9 +7,9 @@ metadata:
 spec:
   releaseName: cluster-autoscaler
   chart:
-    name: cluster-autoscaler-chart
+    name: cluster-autoscaler
     repository: https://kubernetes.github.io/autoscaler
-    version: 1.0.4  # cluster-autoscaler@1.18.1
+    version: 9.9.2  # cluster-autoscaler@1.20.0
   values:
     cloudProvider: aws
     awsRegion: us-east-1

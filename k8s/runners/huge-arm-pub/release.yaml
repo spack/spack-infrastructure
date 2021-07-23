@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-small-pub
+  name: runner-huge-arm-pub
   namespace: gitlab
 spec:
-  releaseName: small-pub
+  releaseName: huge-arm-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -20,7 +20,7 @@ spec:
     concurrent: 20
     checkInterval: 30
     # preEntrypointScript: |
-    #   echo "Hello, from small-pub runner"
+    #   echo "Hello, from huge-pub runner"
 
     metrics:
       enabled: true
@@ -34,13 +34,12 @@ spec:
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
 
       # default image
-      # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
       requestConcurrency: 20
       locked: false
 
-      tags: "x86_64,avx,small,public,spack"
+      tags: "arm,aarch64,graviton,graviton2,huge,public,aws,spack"
       runUntagged: false
       privileged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
@@ -76,7 +75,7 @@ spec:
         # secretName: google-application-credentials
 
       builds:
-        cpuRequests: 510m
+        cpuRequests: 2500m
 
       services: {}
       # cpuRequests: 50m
@@ -84,15 +83,21 @@ spec:
       # memoryRequests: 144Mi
       # memoryLimit: 144Mi
 
-      helpers: {}
+      helpers:
+        # Without specifying image here, we got the following error when the
+        # job was run:
+        #
+        # ERROR: Job failed (system failure): prepare environment: unable to upgrade connection: container not found ("helper").
+        #
+        image: gitlab/gitlab-runner-helper:arm-latest
       # cpuRequests: 50m
       # cpuLimit: 50m
       # memoryRequests: 144Mi
       # memoryLimit: 144Mi
 
       nodeSelector:
-        spack.io/node-pool: glr-small-pub  # pool for jobs
-        kubernetes.io/arch: amd64
+        spack.io/node-pool: glr-huge-pub  # pool for jobs
+        kubernetes.io/arch: arm64
 
     nodeSelector:
       spack.io/node-pool: base  # pool for the runner
