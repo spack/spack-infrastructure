@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-huge-pub
+  name: runner-huge-arm-pub
   namespace: gitlab
 spec:
-  releaseName: huge-pub
+  releaseName: huge-arm-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -34,13 +34,12 @@ spec:
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
 
       # default image
-      # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
       requestConcurrency: 20
       locked: false
 
-      tags: "x86_64,avx,avx2,avx512,huge,public,aws,spack"
+      tags: "arm,aarch64,graviton,graviton2,huge,public,aws,spack"
       runUntagged: false
       privileged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
@@ -84,7 +83,13 @@ spec:
       # memoryRequests: 144Mi
       # memoryLimit: 144Mi
 
-      helpers: {}
+      helpers:
+        # Without specifying image here, we got the following error when the
+        # job was run:
+        #
+        # ERROR: Job failed (system failure): prepare environment: unable to upgrade connection: container not found ("helper").
+        #
+        image: gitlab/gitlab-runner-helper:arm-latest
       # cpuRequests: 50m
       # cpuLimit: 50m
       # memoryRequests: 144Mi
@@ -92,7 +97,7 @@ spec:
 
       nodeSelector:
         spack.io/node-pool: glr-huge-pub  # pool for jobs
-        kubernetes.io/arch: amd64
+        kubernetes.io/arch: arm64
 
     nodeSelector:
       spack.io/node-pool: base  # pool for the runner

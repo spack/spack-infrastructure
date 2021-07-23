@@ -13,7 +13,7 @@ spec:
   values:
     alertmanager:
       enabled: true
-      baseURL: alertmanager.spack.io
+      baseURL: https://alertmanager.spack.io
       ingress:
         enabled: true
         annotations:
