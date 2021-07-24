@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: drift-server-db-spack-io
+  name: spack-io-drift-server-db
   namespace: spack
   labels:
-    app: drift-server-spack-io
+    app: spack-io-drift-server
     svc: postgres
 
 spec:
@@ -14,13 +14,13 @@ spec:
 
   selector:
     matchLabels:
-      app: drift-server-db-spack-io
+      app: spack-io-drift-server-db
       svc: postgres
 
   template:
     metadata:
       labels:
-        app: drift-server-db-spack-io
+        app: spack-io-drift-server-db
         svc: postgres
 
     spec:
@@ -28,8 +28,8 @@ spec:
       nodeSelector:
         spack.io/node-pool: base
       containers:
-        - name: drift-server-db-spack-io
-          image: postgres:9.6
+        - name: spack-io-drift-server-db
+          image: postgres:13.3
           volumeMounts:
             - name: postgres-disk
               mountPath: /var/lib/postgresql/data          
@@ -45,11 +45,16 @@ spec:
                 secretKeyRef:
                   name: drift-server-secrets
                   key: drift_server_pass
-            - name: POSTGRES_USERNAME
+            - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: drift-server-secrets
                   key: drift_server_user
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: drift-server-secrets
+                  key: drift_server_db
           ports:
             - name: tcp-postgres
               containerPort: 5432

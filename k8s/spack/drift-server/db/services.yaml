@@ -8,8 +8,9 @@ metadata:
     svc: postgres
 spec:
   selector:
-    app: drift-server-db-spack-io
+    app: spack-io-drift-server-db
   type: ClusterIP
   ports:
+      # tcp-postgres
     - port: 5432
       targetPort: 5432
