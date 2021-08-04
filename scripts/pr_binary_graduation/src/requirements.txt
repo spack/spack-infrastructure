@@ -1,0 +1,4 @@
+aiohttp==3.7.4.post0
+awscli==1.20.13
+boto3==1.18.13
+rq==1.9.0
