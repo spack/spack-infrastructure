@@ -32,6 +32,7 @@ GET_PIPELINES   = '/api/v4/projects/{0}/pipelines?per_page=100'
 GET_JOBS        = '/api/v4/projects/{0}/pipelines/{1}/jobs?per_page=100'
 GET_BRIDGE_JOBS = '/api/v4/projects/{0}/pipelines/{1}/bridges?per_page=100'
 GET_JOB_TRACE   = '/api/v4/projects/{0}/jobs/{1}/trace'
+GET_ARTIFACTS   = '/api/v4/projects/{0}/jobs/{1}/artifacts'
 
 QUERY_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
