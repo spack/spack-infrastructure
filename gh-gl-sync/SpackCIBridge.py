@@ -37,7 +37,7 @@ class SpackCIBridge(object):
         self.main_branch = main_branch
         self.currently_running_sha = None
 
-        dt = datetime.now(timezone.utc) + timedelta(minutes=-15)
+        dt = datetime.now(timezone.utc) + timedelta(minutes=-30)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
         # We use a longer time threshold to find the currently running main branch pipeline.
