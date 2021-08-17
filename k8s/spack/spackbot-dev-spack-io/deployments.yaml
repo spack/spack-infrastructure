@@ -21,22 +21,17 @@ spec:
     spec:
       containers:
       - name: web
-        image: "ghcr.io/spack/spack-bot@sha256:94fc2270c03f13218f748e34f4ff1a6d48da5d232240df06020c9fb14ed81063"
+        # Note that we can switch between development images or latest to test.
+        # This should not be merged until the digest of the working image is selected.
+        image: "ghcr.io/spack/spack-bot:v-test-1"
+#        image: "ghcr.io/spack/spack-bot:latest"
+#        image: "ghcr.io/spack/spack-bot@sha256:94fc2270c03f13218f748e34f4ff1a6d48da5d232240df06020c9fb14ed81063"
 
         # Mount secrets to non-existing location
         volumeMounts:
           - mountPath: "/git_rsa"
-            name: spack-bot-dev-credentials
+            name: spack-bot-dev-idrsa
             readOnly: true
-
-        # The container lifecycle ensures the credential files are copied to the right space.
-        lifecycle:
-          postStart:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - mkdir -p /root/.ssh && cp /git_rsa/id_rsa /root/.ssh/id_rsa && cp /git_rsa/id_rsa.pub /root/.ssh/id_rsa.pub
 
         imagePullPolicy: Always
         ports:
@@ -49,6 +44,11 @@ spec:
           value: "123749"
         - name: GITHUB_APP_REQUESTER
           value: "spackbot"
+        - name: GITHUB_IDRSA
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-dev-credentials
+              key: github_idrsa
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
@@ -60,8 +60,8 @@ spec:
               name: spack-bot-dev-credentials
               key: github_webhook_secret
       volumes:
-        - name: spack-bot-dev-credentials
+        - name: spack-bot-dev-idrsa
           secret:
-            secretName: spack-bot-dev-credentials
+            secretName: spack-bot-dev-idrsa
       nodeSelector:
         spack.io/node-pool: base
