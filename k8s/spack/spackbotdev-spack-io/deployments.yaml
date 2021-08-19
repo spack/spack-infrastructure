@@ -2,26 +2,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: spackbot-spack-io
+  name: spackbotdev-spack-io
   namespace: spack
   labels:
-    app: spackbot-spack-io
+    app: spackbotdev-spack-io
     svc: web
 spec:
   selector:
     matchLabels:
-      app: spackbot-spack-io
+      app: spackbotdev-spack-io
       svc: web
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
-        app: spackbot-spack-io
+        app: spackbotdev-spack-io
         svc: web
     spec:
       containers:
       - name: web
-        image: "ghcr.io/spack/spackbot:latest"
+        # image: "spack/spackbot:latest"
+        image: "ghcr.io/scottwittenburg/spackbot:0.0.8"
         imagePullPolicy: Always
         ports:
         - name: http
@@ -76,10 +77,11 @@ spec:
         app: spackbotdev-spack-io
         svc: workers
     spec:
-      serviceAccountName: spackbot-spack-io
+      serviceAccountName: spackbotdev-spack-io
       containers:
       - name: worker
-        image: "ghcr.io/spack/spackbot-workers:latest"
+        # image: "spack/spackbot-workers:latest"
+        image: "ghcr.io/scottwittenburg/spackbot-workers:0.0.8"
         imagePullPolicy: IfNotPresent
         env:
         - name: REDIS_HOST
@@ -95,3 +97,4 @@ spec:
               key: gitlab_token
       nodeSelector:
         spack.io/node-pool: base
+
