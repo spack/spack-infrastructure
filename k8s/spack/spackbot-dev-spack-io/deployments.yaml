@@ -41,7 +41,7 @@ spec:
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: GITHUB_APP_IDENTIFIER
-          value: "123749"
+          value: "126480"
         - name: GITHUB_APP_REQUESTER
           value: "spackbot"
         - name: GITHUB_IDRSA
