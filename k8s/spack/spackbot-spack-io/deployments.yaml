@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: "spack/spackbot:latest"
+        image: "ghcr.io/spack/spack-bot:e3405654bb"
         imagePullPolicy: Always
         ports:
         - name: http
