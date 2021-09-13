@@ -17,7 +17,12 @@ spec:
         http: 80
         https: 443
 
-      # config: {}
+      # NOTE(opadron): In case we want to configure global timeouts.
+      # config:
+      #   proxy-connect-timeout: "5"
+      #   proxy-send-timeout: "60"
+      #   proxy-read-timeout: "60"
+
       # configMapNamespace: ""
       # tcp:
       #   configMapNamespace: ""
@@ -43,6 +48,9 @@ spec:
         annotations:
           "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true"
           "nginx.ingress.kubernetes.io/proxy-body-size": "10m"
+
+          # NOTE(opadron): Set the idle timeout for the ingress LB
+          "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout": "3600"
 
         labels: {}
 
