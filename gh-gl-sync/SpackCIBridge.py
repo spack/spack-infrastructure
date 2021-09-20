@@ -379,7 +379,10 @@ class SpackCIBridge(object):
 
     def get_pipelines_for_branch(self, branch, time_threshold):
         # Use gitlab's API to get pipeline results for the corresponding ref.
-        api_url = self.pipeline_api_template.format(time_threshold, "github/" + branch)
+        api_url = self.pipeline_api_template.format(
+            time_threshold,
+            urllib.parse.quote_plus("github/" + branch)
+        )
         try:
             request = urllib.request.Request(api_url)
             if "GITLAB_TOKEN" in os.environ:
