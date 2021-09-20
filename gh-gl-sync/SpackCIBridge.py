@@ -37,7 +37,7 @@ class SpackCIBridge(object):
         self.main_branch = main_branch
         self.currently_running_sha = None
 
-        dt = datetime.now(timezone.utc) + timedelta(minutes=-30)
+        dt = datetime.now(timezone.utc) + timedelta(minutes=-60)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
         # We use a longer time threshold to find the currently running main branch pipeline.
@@ -379,7 +379,10 @@ class SpackCIBridge(object):
 
     def get_pipelines_for_branch(self, branch, time_threshold):
         # Use gitlab's API to get pipeline results for the corresponding ref.
-        api_url = self.pipeline_api_template.format(time_threshold, "github/" + branch)
+        api_url = self.pipeline_api_template.format(
+            time_threshold,
+            urllib.parse.quote_plus("github/" + branch)
+        )
         try:
             request = urllib.request.Request(api_url)
             if "GITLAB_TOKEN" in os.environ:
