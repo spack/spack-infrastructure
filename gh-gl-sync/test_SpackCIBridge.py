@@ -139,7 +139,8 @@ def test_get_open_refspecs():
         "pr_strings": ["pr1_this", "pr2_that"],
         "merge_commit_shas": ["aaaaaaaa", "bbbbbbbb"],
         "base_shas": ["shafoo", "shabar"],
-        "head_shas": ["shabaz", "shagah"]
+        "head_shas": ["shabaz", "shagah"],
+        "backlogged": [False, False]
     }
     bridge = SpackCIBridge.SpackCIBridge()
     open_refspecs, fetch_refspecs = bridge.get_open_refspecs(open_prs)
@@ -363,7 +364,8 @@ def test_post_pipeline_status(capfd):
         "pr_strings": ["pr1_readme"],
         "merge_commit_shas": ["aaaaaaaa"],
         "base_shas": ["shafoo"],
-        "head_shas": ["shabaz"]
+        "head_shas": ["shabaz"],
+        "backlogged": [False]
     }
 
     gh_commit = Mock()
