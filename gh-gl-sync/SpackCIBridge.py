@@ -109,6 +109,7 @@ class SpackCIBridge(object):
             pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
 
             push = True
+            backlogged = False
             log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
             try:
                 merge_commit_msg = subprocess.run(log_args, check=True, stdout=subprocess.PIPE).stdout
@@ -121,11 +122,21 @@ class SpackCIBridge(object):
                 # This occurs when it's a new PR that hasn't been pushed to GitLab yet.
                 pass
 
+            if push:
+                # A PR can only be "backlogged" if we needed to push it in the first place
+                # (either because 1 we have never pushed it before, or 2 we have pushed it
+                # before, but the HEAD sha has changed since we pushed it last).  It becomes
+                # "backlogged" if we needed to push it, but the BASE of the merge commit we
+                # would push is currently getting tested in a pipeline.
+                if self.currently_running_sha and self.currently_running_sha == pull.base.sha:
+                    backlogged = True
+
             pr_dict[pr_string] = {
                 'merge_commit_sha': pull.merge_commit_sha,
                 'base_sha': pull.base.sha,
                 'head_sha': pull.head.sha,
                 'push': push,
+                'backlogged': backlogged,
             }
 
         def listify_dict(d):
@@ -133,11 +144,13 @@ class SpackCIBridge(object):
             merge_commit_shas = [d[s]['merge_commit_sha'] for s in pr_strings]
             base_shas = [d[s]['base_sha'] for s in pr_strings]
             head_shas = [d[s]['head_sha'] for s in pr_strings]
+            b_logged = [d[s]['backlogged'] for s in pr_strings]
             return {
                 "pr_strings": pr_strings,
                 "merge_commit_shas": merge_commit_shas,
                 "base_shas": base_shas,
                 "head_shas": head_shas,
+                "backlogged": b_logged,
             }
         all_open_prs = listify_dict(pr_dict)
         filtered_pr_dict = {k: v for (k, v) in pr_dict.items() if v['push']}
@@ -230,12 +243,16 @@ class SpackCIBridge(object):
         pr_strings = open_prs["pr_strings"]
         merge_commit_shas = open_prs["merge_commit_shas"]
         base_shas = open_prs["base_shas"]
+        backlogged = open_prs["backlogged"]
         open_refspecs = []
         fetch_refspecs = []
-        for open_pr, merge_commit_sha, base_sha in zip(pr_strings, merge_commit_shas, base_shas):
+        for open_pr, merge_commit_sha, base_sha, backlog in zip(pr_strings,
+                                                                merge_commit_shas,
+                                                                base_shas,
+                                                                backlogged):
             fetch_refspecs.append("+{0}:refs/remotes/github/{1}".format(
                 merge_commit_sha, open_pr))
-            if not self.currently_running_sha or self.currently_running_sha != base_sha:
+            if not backlog:
                 open_refspecs.append("github/{0}:github/{0}".format(open_pr))
                 print("  pushing {0} (based on {1})".format(open_pr, base_sha))
             else:
@@ -407,8 +424,11 @@ class SpackCIBridge(object):
         # Split up the open_prs branches into two piles: branches we force-pushed to gitlab
         # and branches we deferred pushing because they have a main branch parent which is
         # currently getting tested by a pipeline.
-        for pr_branch, base_sha, head_sha in zip(open_prs["pr_strings"], open_prs["base_shas"], open_prs["head_shas"]):
-            if not self.currently_running_sha or self.currently_running_sha != base_sha:
+        for pr_branch, base_sha, head_sha, backlog in zip(open_prs["pr_strings"],
+                                                          open_prs["base_shas"],
+                                                          open_prs["head_shas"],
+                                                          open_prs["backlogged"]):
+            if not backlog:
                 pipeline_branches.append(pr_branch)
             else:
                 backlog_branches.append((pr_branch, head_sha))
