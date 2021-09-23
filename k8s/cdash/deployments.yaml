@@ -80,6 +80,7 @@ spec:
             \$CDASH_DB_CONNECTION_TYPE = '\'host\'';
             \$CDASH_BASE_URL = '\'https://cdash.spack.io\'';
             \$CDASH_USE_HTTPS = '\'1\'';
+            \$CDASH_PRODUCTION_MODE = '\'1\'';
             \$CDASH_AUTOREMOVE_BUILDS = '\'1\'';
             \$CDASH_DEFAULT_PROJECT = '\'Spack\'';
             \$CDASH_ACTIVE_PROJECT_DAYS = '\'0\'';
