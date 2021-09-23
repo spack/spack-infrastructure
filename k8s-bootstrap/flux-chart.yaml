@@ -22,8 +22,8 @@ nodeSelector:
 
 git:
   url: "ssh://git@github.com/spack/spack-infrastructure"
-  branch: "production"
-  path: "k8s"
+  branch: "flux"
+  path: "flux"
   user: "Spack Bot"
   email: "maintainers@spack.io"
   verifySignatures: false
