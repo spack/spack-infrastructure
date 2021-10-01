@@ -121,11 +121,17 @@ spec:
           pullPolicy: IfNotPresent
           repository: ghcr.io/scottwittenburg/gitlab-org-build-cng-gitlab-webservice-ee
           tag: v13.8.8
-        minReplicas: 2
-        maxReplicas: 4
+        minReplicas: 4
+        maxReplicas: 16
+        resources:
+          limits:
+            cpu: 1500m
+            memory: 2.5G
+          requests:
+            cpu: 300m
+            memory: 1.5G
         nodeSelector:
           spack.io/node-pool: gitlab
-
       gitlab-exporter:
         nodeSelector:
           spack.io/node-pool: gitlab
@@ -152,7 +158,7 @@ spec:
         nodeSelector:
           spack.io/node-pool: gitlab
 
-        replicas: 4
+        replicas: 8
         antiAffinityLabels:
           matchLabels:
             app: 'gitaly'
