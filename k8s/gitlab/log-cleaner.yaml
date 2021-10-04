@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-cleaner-script
+  namespace: gitlab
+data:
+  script: |
+    #! /bin/bash
+    set +o history
+    mc alias set gitlab https://minio.gitlab.spack.io \
+        "$ACCESS_KEY" "$SECRET_KEY"
+    set -o history
+    echo
+
+    mc find gitlab/gitlab-artifacts --maxdepth 5 --path '*_*_*' -exec \
+        'mc find {} --maxdepth 3 --older-than 7d --name job.log' \
+    | while read LOG_FILE ; do
+        mc rm "$LOG_FILE"
+    done | tee >( wc -l > /tmp/num_files)
+
+    echo
+    echo "Removed $( cat /tmp/num_files ) file(s)."
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: log-cleaner
+  namespace: gitlab
+spec:
+  schedule: "0 4 * * *"  # every day at 4 AM ET
+  jobTemplate:
+    metadata:
+      labels:
+        app: gitlab
+        svc: log-cleaner
+    spec:
+      template:
+        metadata:
+          labels:
+            app: gitlab
+            svc: log-cleaner
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: cleaner
+            image: "minio/mc:RELEASE.2021-09-23T05-44-03Z"
+            imagePullPolicy: IfNotPresent
+            command: ["bash", "/cleaner/script"]
+            volumeMounts:
+              - name: cleaner
+                mountPath: "/cleaner"
+            env:
+            - name: ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-minio-secret
+                  key: accesskey
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-minio-secret
+                  key: secretkey
+          volumes:
+            - name: cleaner
+              configMap:
+                name: log-cleaner-script
+                defaultMode: 0700
+          nodeSelector:
+            spack.io/node-pool: base
