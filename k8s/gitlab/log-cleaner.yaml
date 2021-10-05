@@ -14,7 +14,7 @@ data:
     echo
 
     mc find gitlab/gitlab-artifacts --maxdepth 5 --path '*_*_*' -exec \
-        'mc find {} --maxdepth 3 --older-than 7d --name job.log' \
+        'mc find {} --maxdepth 3 --older-than 30d --name job.log' \
     | while read LOG_FILE ; do
         mc rm "$LOG_FILE"
     done | tee >( wc -l > /tmp/num_files)
