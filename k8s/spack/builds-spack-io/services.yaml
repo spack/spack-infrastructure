@@ -13,9 +13,6 @@ spec:
   - name: http
     port: 80
     targetPort: 3031
-  - name: https
-    port: 443
-    targetPort: 3031
   selector:
     app: builds-spack-io
     svc: web
