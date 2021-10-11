@@ -12,7 +12,7 @@ spec:
     matchLabels:
       app: builds-spack-io
       svc: web
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
@@ -24,7 +24,8 @@ spec:
       - name: web
 
         # https://github.com/spack/spack-monitor/pkgs/container/spack-monitor
-        image: "ghcr.io/spack/spack-monitor:4d00c388"
+        image: "ghcr.io/spack/spack-monitor:28f3b3a6"
+        args: ["/code/script/k8s/run_uwsgi.sh"]
         imagePullPolicy: Always
         ports:
         - name: http
@@ -39,6 +40,8 @@ spec:
         - name: SPACKMON_DOMAIN_NAME
           value: https://builds.spack.io
         - name: SPACKMON_PORT
+          value: null
+        - name: SPACKMON_DOMAIN_PORT
           value: null
 
         # Database

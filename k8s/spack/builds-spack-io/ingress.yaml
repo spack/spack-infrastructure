@@ -13,4 +13,12 @@ spec:
       paths:
       - backend:
           serviceName: builds-spack-io
+          servicePort: 80         
+      - path: /static
+        backend:
+          serviceName: static-service
+          servicePort: 80
+      - path: /images
+        backend:
+          serviceName: images-services
           servicePort: 80
