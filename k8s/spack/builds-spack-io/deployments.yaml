@@ -42,6 +42,8 @@ spec:
         # Database
         - name: DATABASE_ENGINE
           value: django.db.backends.postgresql_psycopg2
+        - name: DATABASE_PORT
+          value: 5432
 
         - name: DATABASE_PASSWORD
           valueFrom:
