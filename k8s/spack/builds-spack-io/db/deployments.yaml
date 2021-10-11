@@ -24,7 +24,6 @@ spec:
         svc: postgres
 
     spec:
-
       nodeSelector:
         spack.io/node-pool: base
       containers:

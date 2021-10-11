@@ -24,7 +24,7 @@ spec:
       - name: web
 
         # https://github.com/spack/spack-monitor/pkgs/container/spack-monitor
-        image: "ghcr.io/spack/spack-monitor:e13ad73b"
+        image: "ghcr.io/spack/spack-monitor:c4e629a4"
         imagePullPolicy: Always
         ports:
         - name: http
@@ -43,7 +43,7 @@ spec:
         - name: DATABASE_ENGINE
           value: django.db.backends.postgresql_psycopg2
         - name: DATABASE_PORT
-          value: 5432
+          value: "5432"
 
         - name: DATABASE_PASSWORD
           valueFrom:
