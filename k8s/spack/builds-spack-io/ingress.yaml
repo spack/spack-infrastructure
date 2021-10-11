@@ -13,4 +13,4 @@ spec:
       paths:
       - backend:
           serviceName: builds-spack-io
-          servicePort: 80
+          servicePort: 3031

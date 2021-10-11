@@ -24,7 +24,7 @@ spec:
       - name: web
 
         # https://github.com/spack/spack-monitor/pkgs/container/spack-monitor
-        image: "ghcr.io/spack/spack-monitor:c4e629a4"
+        image: "ghcr.io/spack/spack-monitor:4d00c388"
         imagePullPolicy: Always
         ports:
         - name: http
@@ -32,6 +32,8 @@ spec:
         env:
         - name: PYTHONUNBUFFERED
           value: "1"
+        - name: DEBUG
+          value: "false"
         - name: SPACKMON_ENABLE_GITHUB_AUTH
           value: "true"
         - name: SPACKMON_DOMAIN_NAME
@@ -65,6 +67,16 @@ spec:
             secretKeyRef:
               name: spack-build-credentials
               key: database_host
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: secret_key
+        - name: JWT_SERVER_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: jwt_secret
 
         # GitHub Social Auth
         - name: SOCIAL_AUTH_GITHUB_SECRET

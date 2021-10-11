@@ -11,8 +11,11 @@ spec:
   type: ClusterIP
   ports:
   - name: http
-    port: 3031
-    targetPort: 80
+    port: 80
+    targetPort: 3031
+  - name: https
+    port: 443
+    targetPort: 3031
   selector:
     app: builds-spack-io
     svc: web

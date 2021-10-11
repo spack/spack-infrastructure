@@ -72,4 +72,4 @@ spec:
       volumes:
         - name: postgres-disk
           persistentVolumeClaim:
-            claimName: builds-spack-io-database
+            claimName: builds-spack-io-db
