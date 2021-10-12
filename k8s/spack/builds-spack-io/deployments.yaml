@@ -12,7 +12,7 @@ spec:
     matchLabels:
       app: builds-spack-io
       svc: web
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:
@@ -26,6 +26,9 @@ spec:
         # https://github.com/spack/spack-monitor/pkgs/container/spack-monitor
         image: "ghcr.io/spack/spack-monitor:28f3b3a6"
         args: ["/code/script/k8s/run_uwsgi.sh"]
+        volumeMounts:
+          - name: builds-spack-io-cache
+            mountPath: /code/data          
         imagePullPolicy: Always
         ports:
         - name: http
@@ -37,6 +40,8 @@ spec:
           value: "false"
         - name: SPACKMON_ENABLE_GITHUB_AUTH
           value: "true"
+        - name: SPACKMON_CACHE_DIR
+          value: /code/data/cache
         - name: SPACKMON_DOMAIN_NAME
           value: https://builds.spack.io
         - name: SPACKMON_PORT
@@ -94,3 +99,8 @@ spec:
               key: social_auth_github_key
       nodeSelector:
         spack.io/node-pool: base
+        
+      volumes:
+        - name: builds-spack-io-cache
+          persistentVolumeClaim:
+            claimName: builds-spack-io-cache
