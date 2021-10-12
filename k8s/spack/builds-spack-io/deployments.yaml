@@ -24,7 +24,7 @@ spec:
       - name: web
 
         # https://github.com/spack/spack-monitor/pkgs/container/spack-monitor
-        image: "ghcr.io/spack/spack-monitor:28f3b3a6"
+        image: "ghcr.io/spack/spack-monitor:4fca67da"
         args: ["/code/script/k8s/run_uwsgi.sh"]
         volumeMounts:
           - name: builds-spack-io-cache
