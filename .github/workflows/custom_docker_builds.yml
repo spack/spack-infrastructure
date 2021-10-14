@@ -21,14 +21,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
-        name: Build and push spack-ci-bridge
+        name: Build and push ci-bridge
         id: docker_build_sync
         uses: docker/build-push-action@v2
         with:
-          context: ./gh-gl-sync
-          file: ./gh-gl-sync/Dockerfile
+          context: ./images/gh-gl-sync
+          file: ./images/gh-gl-sync/Dockerfile
           push: true
-          tags: zackgalbreath/spack-ci-bridge:0.0.21
+          tags: spack/ci-bridge:0.0.21
       -
         name: Image digest
         run: echo ${{ steps.docker_build_sync.outputs.digest }}
@@ -52,10 +52,10 @@ jobs:
         id: docker_build_scrape
         uses: docker/build-push-action@v2
         with:
-          context: ./scripts/gitlab_api
-          file: ./scripts/gitlab_api/Dockerfile
+          context: ./images/gitlab-api-scrape
+          file: ./images/gitlab-api-scrape/Dockerfile
           push: true
-          tags: zackgalbreath/gitlab-api-scrape:0.0.2
+          tags: spack/gitlab-api-scrape:0.0.2
       -
         name: Image digest
         run: echo ${{ steps.docker_build_scrape.outputs.digest }}
@@ -79,10 +79,10 @@ jobs:
         id: docker_build_rotate_aws_keys
         uses: docker/build-push-action@v2
         with:
-          context: ./k8s/custom/rotate-keys
-          file: ./k8s/custom/rotate-keys/rotate.docker
+          context: ./images/ci-key-rotate
+          file: ./images/ci-key-rotate/Dockerfile
           push: true
-          tags: zackgalbreath/spack-rotate-keys:0.0.2
+          tags: spack/ci-key-rotate:0.0.2
       -
         name: Image digest
         run: echo ${{ steps.docker_build_rotate_aws_keys.outputs.digest }}
@@ -106,10 +106,10 @@ jobs:
         id: docker_build_clear_admin_keys
         uses: docker/build-push-action@v2
         with:
-          context: ./k8s/custom/rotate-keys
-          file: ./k8s/custom/rotate-keys/delete.docker
+          context: ./images/ci-key-clear
+          file: ./images/ci-key-clear/Dockerfile
           push: true
-          tags: zackgalbreath/spack-clear-admin-keys:0.0.1
+          tags: spack/ci-key-clear:0.0.1
       -
         name: Image digest
         run: echo ${{ steps.docker_build_clear_admin_keys.outputs.digest }}
