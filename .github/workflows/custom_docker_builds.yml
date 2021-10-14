@@ -194,3 +194,30 @@ jobs:
       -
         name: Image digest
         run: echo ${{ steps.docker_build_gitlab_task_runner.outputs.digest }}
+  gitops:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push gitops
+        id: docker_build_gitops
+        uses: docker/build-push-action@v2
+        with:
+          context: ./images/gitops
+          file: ./images/gitops/Dockerfile
+          push: true
+          tags: spack/gitops:0.0.1
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build_gitops.outputs.digest }}
