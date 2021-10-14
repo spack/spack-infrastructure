@@ -113,3 +113,84 @@ jobs:
       -
         name: Image digest
         run: echo ${{ steps.docker_build_clear_admin_keys.outputs.digest }}
+  gitlab-webservice:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push gitlab-webservice
+        id: docker_build_gitlab_webservice
+        uses: docker/build-push-action@v2
+        with:
+          context: ./images/gitlab-webservice
+          file: ./images/gitlab-webservice/Dockerfile
+          push: true
+          tags: spack/gitlab-webservice:v13.8.8
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build_gitlab_webservice.outputs.digest }}
+  gitlab-sidekiq:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push gitlab-sidekiq
+        id: docker_build_gitlab_sideqkiq
+        uses: docker/build-push-action@v2
+        with:
+          context: ./images/gitlab-sidekiq
+          file: ./images/gitlab-sidekiq/Dockerfile
+          push: true
+          tags: spack/gitlab-sidekiq:v13.8.8
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build_gitlab_sideqkiq.outputs.digest }}
+  gitlab-task-runner:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push gitlab-task-runner
+        id: docker_build_gitlab_task_runner
+        uses: docker/build-push-action@v2
+        with:
+          context: ./images/gitlab-task-runner
+          file: ./images/gitlab-task-runner/Dockerfile
+          push: true
+          tags: spack/gitlab-task-runner:v13.8.8
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build_gitlab_task_runner.outputs.digest }}
