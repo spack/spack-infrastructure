@@ -36,6 +36,7 @@ class SpackCIBridge(object):
         self.pr_mirror_bucket = pr_mirror_bucket
         self.main_branch = main_branch
         self.currently_running_sha = None
+        self.currently_running_url = None
 
         dt = datetime.now(timezone.utc) + timedelta(minutes=-60)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
@@ -470,12 +471,15 @@ class SpackCIBridge(object):
 
         # Post a status of pending/backlogged for branches we deferred pushing
         print('Posting backlogged status to the following:')
+        backlog_desc = \
+            "waiting for base {} commit pipeline to succeed".format(self.main_branch)
         for branch, head_sha in backlog_branches:
             try:
                 print('  {0} -> {1}'.format(branch, head_sha))
                 status_response = self.py_gh_repo.get_commit(sha=head_sha).create_status(
                     state="pending",
-                    description="backlogged",
+                    target_url=self.currently_running_url,
+                    description=backlog_desc,
                     context="ci/gitlab-ci"
                 )
                 if status_response.state != "pending":
@@ -533,6 +537,7 @@ class SpackCIBridge(object):
                 for sha, pipeline in main_branch_pipelines.items():
                     if pipeline['status'] == "running":
                         self.currently_running_sha = sha
+                        self.currently_running_url = pipeline["web_url"]
                         break
 
             print("Currently running {0} pipeline: {1}".format(self.main_branch, self.currently_running_sha))
