@@ -22,8 +22,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: controller
-          image: ghcr.io/opadron/gitops:latest
-          imagePullPolicy: Always
+          image: ghcr.io/spack/gitops:0.0.1
           args:
             - --repo
             - ssh://git@github.com/spack/spack-infrastructure
