@@ -399,3 +399,122 @@ def test_post_pipeline_status(capfd):
     expected_content = "  pr1_readme -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
     assert expected_content in out
     del os.environ["GITHUB_TOKEN"]
+
+
+def test_pipeline_status_backlogged_by_main_branch(capfd):
+    """Test the post_pipeline_status method for a PR that is backlogged because its base is being tested."""
+    open_prs = {
+        "pr_strings": ["pr1_readme"],
+        "merge_commit_shas": ["aaaaaaaa"],
+        "base_shas": ["shafoo"],
+        "head_shas": ["shabaz"],
+        "backlogged": ["base"]
+    }
+
+    gh_commit = Mock()
+    gh_commit.create_status.return_value = AttrDict({"state": "pending"})
+    gh_repo = Mock()
+    gh_repo.get_commit.return_value = gh_commit
+
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
+                                         gitlab_project="zack/my_test_proj",
+                                         github_project="zack/my_test_proj",
+                                         main_branch="develop")
+    bridge.py_gh_repo = gh_repo
+    os.environ["GITHUB_TOKEN"] = "my_github_token"
+
+    currently_running_url = "https://gitlab.spack.io/zack/my_test_proj/pipelines/4"
+    bridge.currently_running_url = currently_running_url
+    expected_desc = "waiting for base develop commit pipeline to succeed"
+
+    bridge.post_pipeline_status(open_prs, [])
+    assert gh_commit.create_status.call_count == 1
+    gh_commit.create_status.assert_called_with(
+        state="pending",
+        context="ci/gitlab-ci",
+        description=expected_desc,
+        target_url=(currently_running_url,)
+    )
+    out, err = capfd.readouterr()
+    expected_content = """Posting backlogged status to the following:
+  pr1_readme -> shabaz"""
+    assert expected_content in out
+    del os.environ["GITHUB_TOKEN"]
+
+
+def test_pipeline_status_backlogged_by_checks(capfd):
+    """Test the post_pipeline_status method for a PR that is backlogged because of a required check."""
+
+    """Helper function to parameterize the test"""
+    def verify_backlogged_by_checks(capfd, checks_return_value):
+        github_pr_response = [
+            AttrDict({
+                "number": 1,
+                "merge_commit_sha": "aaaaaaaa",
+                "head": {
+                    "ref": "improve_docs",
+                    "sha": "shafoo"
+                },
+                "base": {
+                    "sha": "shabar"
+                }
+            }),
+        ]
+
+        gh_commit = Mock()
+        gh_commit.get_check_runs.return_value = checks_return_value
+        gh_commit.create_status.return_value = AttrDict({"state": "pending"})
+
+        gh_repo = Mock()
+        gh_repo.get_pulls.return_value = github_pr_response
+        gh_repo.get_commit.return_value = gh_commit
+
+        bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
+                                             gitlab_project="zack/my_test_proj",
+                                             github_project="zack/my_test_proj",
+                                             prereq_checks=["style"])
+        bridge.py_gh_repo = gh_repo
+        bridge.currently_running_sha = None
+
+        import subprocess
+        actual_run_method = subprocess.run
+        mock_run_return = Mock()
+        mock_run_return.stdout = b"Merge shagah into ccccccc"
+
+        subprocess.run = create_autospec(subprocess.run, return_value=mock_run_return)
+        all_open_prs, open_prs = bridge.list_github_prs()
+        subprocess.run = actual_run_method
+
+        os.environ["GITHUB_TOKEN"] = "my_github_token"
+
+        expected_desc = open_prs["backlogged"][0]
+        assert expected_desc == "waiting for style check to succeed"
+
+        bridge.post_pipeline_status(open_prs, [])
+        assert gh_commit.create_status.call_count == 1
+        gh_commit.create_status.assert_called_with(
+            state="pending",
+            context="ci/gitlab-ci",
+            description=expected_desc,
+            target_url="",
+        )
+        out, err = capfd.readouterr()
+        expected_content = """Posting backlogged status to the following:
+  pr1_improve_docs -> shafoo"""
+        assert expected_content in out
+
+        del os.environ["GITHUB_TOKEN"]
+
+    # Verify backlogged status when the required check hasn't passed successfully.
+    checks_return_value = [
+        AttrDict({
+            "name": "style",
+            "status": "in_progress",
+            "conclusion": None,
+        })
+    ]
+    verify_backlogged_by_checks(capfd, checks_return_value)
+
+    # Verify backlogged status when the required check is missing from the API's response.
+    checks_api_response = []
+    verify_backlogged_by_checks(capfd, checks_api_response)
