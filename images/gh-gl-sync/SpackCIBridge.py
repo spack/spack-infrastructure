@@ -20,7 +20,7 @@ import urllib.request
 class SpackCIBridge(object):
 
     def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
-                 disable_status_post=True, pr_mirror_bucket=None, main_branch=None):
+                 disable_status_post=True, pr_mirror_bucket=None, main_branch=None, prereq_checks=[]):
         self.gitlab_repo = gitlab_repo
         self.github_project = github_project
         github_token = os.environ.get('GITHUB_TOKEN')
@@ -36,6 +36,9 @@ class SpackCIBridge(object):
         self.pr_mirror_bucket = pr_mirror_bucket
         self.main_branch = main_branch
         self.currently_running_sha = None
+        self.currently_running_url = None
+
+        self.prereq_checks = prereq_checks
 
         dt = datetime.now(timezone.utc) + timedelta(minutes=-60)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
@@ -108,8 +111,10 @@ class SpackCIBridge(object):
                 continue
             pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
 
+            # Determine what PRs need to be pushed to GitLab. This happens in one of two cases:
+            # 1) we have never pushed it before
+            # 2) we have pushed it before, but the HEAD sha has changed since we pushed it last
             push = True
-            backlogged = False
             log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
             try:
                 merge_commit_msg = subprocess.run(log_args, check=True, stdout=subprocess.PIPE).stdout
@@ -122,14 +127,26 @@ class SpackCIBridge(object):
                 # This occurs when it's a new PR that hasn't been pushed to GitLab yet.
                 pass
 
+            backlogged = False
             if push:
-                # A PR can only be "backlogged" if we needed to push it in the first place
-                # (either because 1 we have never pushed it before, or 2 we have pushed it
-                # before, but the HEAD sha has changed since we pushed it last).  It becomes
-                # "backlogged" if we needed to push it, but the BASE of the merge commit we
-                # would push is currently getting tested in a pipeline.
+                # Check the PRs-to-be-pushed to see if any of them should be considered "backlogged".
+                # We currently recognize two types of backlogged PRs:
+                # 1) The PR is based on a version of the "main branch" that's currently being tested
+                # 2) Some required "prerequisite checks" have not yet completed successfully.
                 if self.currently_running_sha and self.currently_running_sha == pull.base.sha:
-                    backlogged = True
+                    backlogged = "base"
+                if self.prereq_checks:
+                    checks_desc = "waiting for {} check to succeed"
+                    checks_to_verify = self.prereq_checks.copy()
+                    pr_check_runs = self.py_gh_repo.get_commit(sha=pull.head.sha).get_check_runs()
+                    for check in pr_check_runs:
+                        if check.name in checks_to_verify:
+                            checks_to_verify.remove(check.name)
+                            if check.conclusion != "success":
+                                backlogged = checks_desc.format(check.name)
+                                break
+                    if not backlogged and checks_to_verify:
+                        backlogged = checks_desc.format(checks_to_verify[0])
 
             pr_dict[pr_string] = {
                 'merge_commit_sha': pull.merge_commit_sha,
@@ -256,10 +273,13 @@ class SpackCIBridge(object):
                 open_refspecs.append("github/{0}:github/{0}".format(open_pr))
                 print("  pushing {0} (based on {1})".format(open_pr, base_sha))
             else:
-                # By omitting these branches from "open_refspecs", we will defer pushing
-                # them to gitlab for a time when there is not a main branch pipeline running
-                # on one of their parent commits.
-                print("  defer pushing {0} (based on {1})".format(open_pr, base_sha))
+                if backlog == "base":
+                    # By omitting these branches from "open_refspecs", we will defer pushing
+                    # them to gitlab for a time when there is not a main branch pipeline running
+                    # on one of their parent commits.
+                    print("  defer pushing {0} (based on {1})".format(open_pr, base_sha))
+                else:
+                    print("  defer pushing {0} (based on checks)".format(open_pr))
         return open_refspecs, fetch_refspecs
 
     def update_refspecs_for_protected_branches(self, protected_branches, open_refspecs, fetch_refspecs):
@@ -422,8 +442,7 @@ class SpackCIBridge(object):
         pipeline_branches = []
         backlog_branches = []
         # Split up the open_prs branches into two piles: branches we force-pushed to gitlab
-        # and branches we deferred pushing because they have a main branch parent which is
-        # currently getting tested by a pipeline.
+        # and branches we deferred pushing.
         for pr_branch, base_sha, head_sha, backlog in zip(open_prs["pr_strings"],
                                                           open_prs["base_shas"],
                                                           open_prs["head_shas"],
@@ -431,7 +450,7 @@ class SpackCIBridge(object):
             if not backlog:
                 pipeline_branches.append(pr_branch)
             else:
-                backlog_branches.append((pr_branch, head_sha))
+                backlog_branches.append((pr_branch, head_sha, backlog))
 
         pipeline_branches.extend(protected_branches)
 
@@ -470,19 +489,27 @@ class SpackCIBridge(object):
 
         # Post a status of pending/backlogged for branches we deferred pushing
         print('Posting backlogged status to the following:')
-        for branch, head_sha in backlog_branches:
+        base_backlog_desc = \
+            "waiting for base {} commit pipeline to succeed".format(self.main_branch)
+        for branch, head_sha, reason in backlog_branches:
             try:
                 print('  {0} -> {1}'.format(branch, head_sha))
+                if backlog == "base":
+                    desc = base_backlog_desc
+                    url = self.currently_running_url,
+                else:
+                    desc = reason
+                    url = ""
                 status_response = self.py_gh_repo.get_commit(sha=head_sha).create_status(
                     state="pending",
-                    description="backlogged",
+                    target_url=url,
+                    description=desc,
                     context="ci/gitlab-ci"
                 )
                 if status_response.state != "pending":
-                    print("Expected CommitStatus state {0}, got {1}".format(
-                        post_data["state"], status_response.state))
+                    print("Expected CommitStatus state pending, got {}".format(status_response.state))
             except Exception as e_inst:
-                print('Caught exception posting status for {0}/{1}'.format(branch, pr_sha))
+                print('Caught exception posting status for {0}/{1}'.format(branch, head_sha))
                 print(e_inst)
 
         # Post errors to any PRs that we found didn't have a merge_commit_sha, and
@@ -533,6 +560,7 @@ class SpackCIBridge(object):
                 for sha, pipeline in main_branch_pipelines.items():
                     if pipeline['status'] == "running":
                         self.currently_running_sha = sha
+                        self.currently_running_url = pipeline["web_url"]
                         break
 
             print("Currently running {0} pipeline: {1}".format(self.main_branch, self.currently_running_sha))
@@ -595,6 +623,8 @@ if __name__ == "__main__":
                         help="""If provided, we find the sha of the currently running
 pipeline on this branch, and then PR branch merge commits having that sha as a parent
 (base.sha) will not be synced.""")
+    parser.add_argument("--prereq-check", nargs="+", default=False,
+                        help="Only push branches that have already passed this GitHub check")
 
     args = parser.parse_args()
 
@@ -611,6 +641,7 @@ pipeline on this branch, and then PR branch merge commits having that sha as a p
                            github_project=args.github_project,
                            disable_status_post=args.disable_status_post,
                            pr_mirror_bucket=args.pr_mirror_bucket,
-                           main_branch=args.main_branch)
+                           main_branch=args.main_branch,
+                           prereq_checks=args.prereq_check)
     bridge.setup_ssh(ssh_key_base64)
     bridge.sync()
