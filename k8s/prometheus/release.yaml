@@ -4,6 +4,8 @@ kind: HelmRelease
 metadata:
   name: prometheus
   namespace: prometheus
+annotations:
+  fluxcd.io/ignore: true
 spec:
   releaseName: prometheus
   chart:
@@ -53,6 +55,13 @@ spec:
       nodeSelector:
         spack.io/node-pool: base
       replicaCount: 3
+      resources:
+        limits:
+          cpu: 500m
+          memory: 4Gi
+        requests:
+          cpu: 500m
+          memory: 4Gi
       statefulSet:
         enabled: true
       ## Vertical Pod Autoscaler config
