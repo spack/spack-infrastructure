@@ -1,4 +1,4 @@
-FROM registry.gitlab.com/gitlab-org/build/cng/gitlab-webservice-ee:v13.8.8
+FROM registry.gitlab.com/gitlab-org/build/cng/gitlab-webservice-ee:v14.4.1
 
 # TODO(opadron): At some point, we might want to reinvestigate gitlab code
 # changes as a means of working around certain limits.  If/when we do, here are

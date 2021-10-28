@@ -1,4 +1,4 @@
-FROM registry.gitlab.com/gitlab-org/build/cng/gitlab-task-runner-ee:v13.8.8
+FROM registry.gitlab.com/gitlab-org/build/cng/gitlab-task-runner-ee:v14.4.1
 
 RUN ss='s/return false unless Feature.enabled?(:ci_yaml_limit_size.*' \
   ; ss="$ss/return false/g" \
