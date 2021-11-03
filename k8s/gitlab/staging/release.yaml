@@ -1,0 +1,108 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-staging-patch
+  annotations:
+    cd.spack.io/staged-resource: "1"
+data:
+  apiVersion: helm.fluxcd.io/v1
+  kind: HelmRelease
+  name: gitlab
+  patch: |
+    - op: replace
+      path: /metadata/name
+      value: gitlab-{ENV}
+    - op: replace
+      path: /spec/releaseName
+      value: gitlab-{ENV}
+    - op: replace
+      path: /spec/chart/version
+      value: 5.4.1  # gitlab@14.4.1
+    - op: replace
+      path: /spec/values/global/hosts/domain
+      value: "{ENV}.spack.io"
+    - op: replace
+      path: /spec/values/global/hosts/gitlab/name
+      value: gitlab.{ENV}.spack.io
+    - op: replace
+      path: /spec/values/global/hosts/minio/name
+      value: minio.gitlab.{ENV}.spack.io
+    - op: replace
+      path: /spec/values/global/hosts/registry/name
+      value: registry.gitlab.{ENV}.spack.io
+    - op: remove
+      path: /spec/values/global/hosts/ssh
+    - op: replace
+      path: /spec/values/global/email/from
+      value: admin@gitlab.{ENV}.spack.io
+    - op: replace
+      path: /spec/values/global/email/reply_to
+      value: noreply@gitlab.{ENV}.spack.io
+    - op: remove
+      path: /spec/values/global/psql
+    - op: remove
+      path: /spec/values/global/redis
+    - op: remove
+      path: /spec/values/global/minio
+    - op: remove
+      path: /spec/values/global/grafana
+    - op: remove
+      path: /spec/values/global/appConfig
+    - op: replace
+      path: /spec/values/minio/ingress/tls/secretName
+      value: tls-gitlab-{ENV}-minio
+    - op: replace
+      path: /spec/values/minio/persistence/size
+      value: 10Gi
+    - op: replace
+      path: /spec/values/registry/ingress/tls/secretName
+      value: tls-gitlab-{ENV}-registry
+    - op: add
+      path: /spec/values
+      value:
+        grafana:
+          enabled: false
+    - op: replace
+      path: /spec/values/gitlab/webservice/ingress/tls/secretName
+      value: tls-gitlab-{ENV}-webservice
+
+      # - op: replace
+      #   path: /spec/values/gitlab/webservice/image/tag
+      #   value: v14.4.1
+
+    - op: remove
+      path: /spec/values/gitlab/webservice/image/tag
+    - op: remove
+      path: /spec/values/gitlab/webservice/image/repository
+
+    - op: replace
+      path: /spec/values/gitlab/webservice/minReplicas
+      value: 1
+    - op: replace
+      path: /spec/values/gitlab/webservice/maxReplicas
+      value: 3
+    - op: remove
+      path: /spec/values/gitlab/gitlab-shell/service
+
+      # - op: replace
+      #   path: /spec/values/gitlab/sidekiq/image/tag
+      #   value: v14.4.1
+
+    - op: remove
+      path: /spec/values/gitlab/sidekiq/image/tag
+    - op: remove
+      path: /spec/values/gitlab/sidekiq/image/repository
+
+      # - op: replace
+      #   path: /spec/values/gitlab/task-runner/image/tag
+      #   value: v14.4.1
+
+    - op: remove
+      path: /spec/values/gitlab/task-runner/image/tag
+    - op: remove
+      path: /spec/values/gitlab/task-runner/image/repository
+
+    - op: replace
+      path: /spec/values/gitlab/task-runner/replicas
+      value: 3
