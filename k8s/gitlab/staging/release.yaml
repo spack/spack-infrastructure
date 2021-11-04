@@ -66,16 +66,13 @@ data:
     - op: replace
       path: /spec/values/gitlab/webservice/ingress/tls/secretName
       value: tls-gitlab-{ENV}-webservice
-
-      # - op: replace
-      #   path: /spec/values/gitlab/webservice/image/tag
-      #   value: v14.4.1
-
+    - op: replace
+      path: /spec/values/gitlab/webservice/image/tag
+      value: v14.4.1
     - op: remove
       path: /spec/values/gitlab/webservice/image/tag
     - op: remove
       path: /spec/values/gitlab/webservice/image/repository
-
     - op: replace
       path: /spec/values/gitlab/webservice/minReplicas
       value: 1
@@ -84,25 +81,20 @@ data:
       value: 3
     - op: remove
       path: /spec/values/gitlab/gitlab-shell/service
-
-      # - op: replace
-      #   path: /spec/values/gitlab/sidekiq/image/tag
-      #   value: v14.4.1
-
+    - op: replace
+      path: /spec/values/gitlab/sidekiq/image/tag
+      value: v14.4.1
     - op: remove
       path: /spec/values/gitlab/sidekiq/image/tag
     - op: remove
       path: /spec/values/gitlab/sidekiq/image/repository
-
-      # - op: replace
-      #   path: /spec/values/gitlab/task-runner/image/tag
-      #   value: v14.4.1
-
+    - op: replace
+      path: /spec/values/gitlab/task-runner/image/tag
+      value: v14.4.1
     - op: remove
       path: /spec/values/gitlab/task-runner/image/tag
     - op: remove
       path: /spec/values/gitlab/task-runner/image/repository
-
     - op: replace
       path: /spec/values/gitlab/task-runner/replicas
       value: 3
