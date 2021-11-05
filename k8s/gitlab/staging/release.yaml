@@ -3,6 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: gitlab-staging-patch
+  namespace: gitlab
   annotations:
     cd.spack.io/staged-resource: "1"
 data:
