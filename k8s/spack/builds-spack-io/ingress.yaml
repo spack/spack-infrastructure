@@ -4,6 +4,12 @@ kind: Ingress
 metadata:
   name: builds-spack-io
   namespace: spack
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10024M"
+    nginx.ingress.kubernetes.io/client-body-buffer-size: "10024M"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
 spec:
   tls:
   - secretName: tls-spackbuilds
