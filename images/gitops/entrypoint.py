@@ -118,6 +118,14 @@ def warn(*args):
     sys.stdout.write('\x1b[0m\n')
 
 
+RE_TILDE = re.compile('~0')
+RE_SLASH = re.compile('~1')
+
+
+def process_path_token(tok):
+    return RE_TILDE.sub('~', RE_SLASH.sub('/', tok))
+
+
 def apply_patch(obj, patch):
     for p in patch:
         op = p.get('op', None)
@@ -133,7 +141,8 @@ def apply_patch(obj, patch):
             if path == '/':
                 key = ''
             else:
-                tokens = path.split('/')[1:]
+                tokens = [process_path_token(tok)
+                          for tok in path.split('/')[1:]]
                 tokens, key = tokens[:-1], tokens[-1]
                 for t in tokens:
                     if isinstance(ptr, list):

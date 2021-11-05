@@ -201,7 +201,7 @@ jobs:
           context: ./images/gitops
           file: ./images/gitops/Dockerfile
           push: true
-          tags: ghcr.io/spack/gitops:0.0.1
+          tags: ghcr.io/spack/gitops:0.0.2
       -
         name: Image digest
         run: echo ${{ steps.docker_build_gitops.outputs.digest }}
