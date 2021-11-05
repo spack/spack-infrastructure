@@ -4,8 +4,8 @@ kind: HelmRelease
 metadata:
   name: prometheus
   namespace: prometheus
-annotations:
-  fluxcd.io/ignore: true
+  annotations:
+    fluxcd.io/ignore: "true"
 spec:
   releaseName: prometheus
   chart:
@@ -34,12 +34,8 @@ spec:
       statefulSet:
         enabled: true
 
-    nodeExporter:
-      nodeSelector:
-        spack.io/node-pool: base
-
     server:
-      baseURL: prometheus.spack.io
+      baseURL: https://prometheus.spack.io
       ingress:
         enabled: true
         annotations:
@@ -53,17 +49,17 @@ spec:
             hosts:
               - prometheus.spack.io
       nodeSelector:
-        spack.io/node-pool: base
-      replicaCount: 3
+        spack.io/node-pool: beefy
       resources:
         limits:
-          cpu: 500m
-          memory: 4Gi
+          cpu: 1000m
+          memory: 60Gi
         requests:
-          cpu: 500m
-          memory: 4Gi
-      statefulSet:
-        enabled: true
+          cpu: 1000m
+          memory: 60Gi
+      persistentVolume:
+        size: 100Gi
+
       ## Vertical Pod Autoscaler config
       ## Ref: https://github.com/kubernetes/autoscaler/tree/master
       ##                        /vertical-pod-autoscaler
