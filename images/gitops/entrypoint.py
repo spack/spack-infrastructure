@@ -3,6 +3,7 @@ import copy
 import datetime
 import os
 import os.path
+import re
 import subprocess
 import shutil
 import sys
