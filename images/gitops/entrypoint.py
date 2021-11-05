@@ -251,6 +251,7 @@ last_production_hash = read_scalar_from_path(last_production_file)
 last_target_hash = read_scalar_from_path(last_target_file)
 
 waited_last_iter = False
+first_iteration = True
 
 while True:
     start_time = time.time()
@@ -263,14 +264,15 @@ while True:
     current_production_hash = repo.rev_list(args.production_branch)
     current_target_hash = repo.rev_list(args.target_branch)
 
-    staging_needs_update = (last_staging_hash is None or
+    staging_needs_update = (first_iteration or last_staging_hash is None or
                             last_staging_hash != current_staging_hash)
 
-    production_needs_update = (last_production_hash is None or
-                            last_production_hash != current_production_hash)
+    production_needs_update = (first_iteration or last_production_hash is None
+                               or last_production_hash !=
+                                   current_production_hash)
 
-    target_needs_update = (last_target_hash is None or
-                            last_target_hash != current_target_hash)
+    target_needs_update = (first_iteration or last_target_hash is None or
+                           last_target_hash != current_target_hash)
 
     update_staging_hash = False
     update_production_hash = False
@@ -455,3 +457,5 @@ while True:
     sleep_time = args.interval - elapsed_time
     if sleep_time > 0:
         time.sleep(sleep_time)
+
+    first_iteration = False
