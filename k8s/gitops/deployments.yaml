@@ -8,6 +8,8 @@ metadata:
     app: gitops-controller
     svc: controller
 spec:
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: gitops-controller
