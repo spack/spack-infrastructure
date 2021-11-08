@@ -16,7 +16,7 @@ jobs:
           git                                                                  \
           openssh-client                                                       \
           python3-pip
-        sudo pip3 install -r gh-gl-sync/requirements.txt
+        sudo pip3 install -r images/gh-gl-sync/requirements.txt
     - name: test
       run: |
         ctest -VV -S .github/spack_ci_bridge.cmake

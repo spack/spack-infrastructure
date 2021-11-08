@@ -13,7 +13,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: rotate-gitlab-aws-access-keys
-            image: zackgalbreath/spack-rotate-keys:0.0.2
+            image: ghcr.io/spack/ci-key-rotate:0.0.2
             imagePullPolicy: IfNotPresent
             env:
             - name: GITLAB_TOKEN
@@ -39,7 +39,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: clear-admin-keys
-            image: zackgalbreath/spack-clear-admin-keys:0.0.1
+            image: spack/ci-key-clear:0.0.1
             imagePullPolicy: IfNotPresent
           nodeSelector:
             spack.io/node-pool: base
