@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metabase-postgres
+  namespace: monitoring
+  labels:
+    app: metabase-postgres
+spec:
+  type: NodePort
+  ports:
+    - port: 5432
+  selector:
+    app: metabase-postgres
