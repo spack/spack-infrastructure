@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: metabase
+  namespace: monitoring
+spec:
+  tls:
+  - secretName: tls-metabase
+  rules:
+  - host: metabase.spack.io
+    http:
+      paths:
+      - backend:
+          serviceName: metabase
+          servicePort: 3000
