@@ -1,0 +1,12 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: monitoring
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: metabase
+  POSTGRES_USER: postgres
+  PGDATA: /var/lib/postgresql/data/pgdata
