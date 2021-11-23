@@ -1,0 +1,18 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  releaseName: kube-prometheus-stack
+  chart:
+    name: kube-prometheus-stack
+    repository: https://prometheus-community.github.io/helm-charts
+    version: 19.2.2
+  values:
+    namespaceOverride: "monitoring"
+    promethus:
+      prometheusSpec:
+        nodeSelector:
+          spack.io/node-pool: beefy
