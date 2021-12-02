@@ -42,9 +42,6 @@ data:
       path: /spec/values/runners/namespace
       value: gitlab
     - op: replace
-      path: /spec/values/runners/pollTimeout
-      value: 30
-    - op: replace
       path: /spec/values/runners/nodeSelector/spack.io~1node-pool
       value: glr-xlarge-pub
     - op: remove
