@@ -1,2 +1,3 @@
 gitlab-docker/data
 gitlab-docker/my-vars.sh
+real-secrets.yaml
