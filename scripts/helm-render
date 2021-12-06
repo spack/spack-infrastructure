@@ -2,6 +2,10 @@
 
 # Convenience script for rendering HelmRelease kubernetes kinds.
 #
+# Usage:
+#     helm-render [release.yaml [release2.yaml ...]]
+#     ./generate-release-yaml | helm-render [-]
+#
 # Requirements:
 #
 #   - Install helm version 3.
@@ -66,16 +70,16 @@ done
 for (( i=0; i<num_files ; ++i )) ; do
     file="${files[$i]}"
 
-    release="$( yq -r '.spec.releaseName' "$file" )"
-    chart="$( yq -r '.spec.chart.name' "$file" )"
-    version="$( yq -r '.spec.chart.version' "$file" )"
-    repository_url="$( yq -r '.spec.chart.repository' "$file" )"
-    namespace="$( yq -r '.metadata.namespace' "$file" )"
+    release="$( yq eval '.spec.releaseName' "$file" )"
+    chart="$( yq eval '.spec.chart.name' "$file" )"
+    version="$( yq eval '.spec.chart.version' "$file" )"
+    repository_url="$( yq eval '.spec.chart.repository' "$file" )"
+    namespace="$( yq eval '.metadata.namespace' "$file" )"
 
     awk_script='$2=='"\"$repository_url\""'{print $1 ; exit}'
     repository_name="$( helm repo list | tail -n +2 | awk "$awk_script" )"
 
-    yq -c '.spec.values' "$file" |
+    yq eval '.spec.values' "$file" |
         helm template "$release" "$repository_name/$chart" \
                       --dry-run \
                       -f - \
