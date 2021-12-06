@@ -11,8 +11,35 @@ spec:
     repository: https://prometheus-community.github.io/helm-charts
     version: 19.2.2
   values:
-    namespaceOverride: "monitoring"
-    promethus:
+    namespaceOverride: monitoring
+    alertmanager:
+      ingress:
+        enabled: true
+        hosts:
+        - alertmanager.spack.io
+        tls:
+          - secretName: tls-alertmanager-webservice
+            hosts:
+              - alertmanager.spack.io
+    grafana:
+      ingress:
+        enabled: true
+        hosts:
+        - grafana.spack.io
+        tls:
+          - secretName: tls-grafana-webservice
+            hosts:
+              - grafana.spack.io
+
+    prometheus:
+      ingress:
+        enabled: true
+        hosts:
+        - prometheus.spack.io
+        tls:
+          - secretName: tls-prometheus-webservice
+            hosts:
+              - prometheus.spack.io
       prometheusSpec:
         nodeSelector:
           spack.io/node-pool: beefy
