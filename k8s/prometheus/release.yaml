@@ -14,32 +14,15 @@ spec:
     namespaceOverride: monitoring
     alertmanager:
       ingress:
-        enabled: true
-        hosts:
-        - alertmanager.spack.io
-        tls:
-          - secretName: tls-alertmanager-webservice
-            hosts:
-              - alertmanager.spack.io
+        enabled: false
+
     grafana:
       ingress:
-        enabled: true
-        hosts:
-        - grafana.spack.io
-        tls:
-          - secretName: tls-grafana-webservice
-            hosts:
-              - grafana.spack.io
+        enabled: false
 
     prometheus:
       ingress:
-        enabled: true
-        hosts:
-        - prometheus.spack.io
-        tls:
-          - secretName: tls-prometheus-webservice
-            hosts:
-              - prometheus.spack.io
+        enabled: false
       prometheusSpec:
         nodeSelector:
           spack.io/node-pool: beefy
