@@ -82,7 +82,7 @@ spec:
             \$CDASH_USE_HTTPS = '\'1\'';
             \$CDASH_PRODUCTION_MODE = '\'1\'';
             \$CDASH_AUTOREMOVE_BUILDS = '\'1\'';
-            \$CDASH_DEFAULT_PROJECT = '\'Spack\'';
             \$CDASH_ACTIVE_PROJECT_DAYS = '\'0\'';
+            \$CDASH_ASYNCHRONOUS_SUBMISSION = '\'1\'';
       nodeSelector:
         spack.io/node-pool: base
