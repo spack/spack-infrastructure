@@ -41,10 +41,3 @@ data:
     - op: replace
       path: /spec/values/runners/namespace
       value: gitlab
-    - op: replace
-      path: /spec/values/runners/nodeSelector/spack.io~1node-pool
-      value: glr-xlarge-pub
-    - op: remove
-      path: /spec/values/runners/builds/cpuRequests
-    - op: remove
-      path: /spec/values/runners/nodeSelector/kubernetes.io~1arch

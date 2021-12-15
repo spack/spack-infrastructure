@@ -36,7 +36,7 @@ spec:
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
-      requestConcurrency: 20
+      requestConcurrency: 1
       locked: false
 
       tags: "arm,aarch64,graviton,graviton2,huge,public,aws,spack"
@@ -75,7 +75,8 @@ spec:
         # secretName: google-application-credentials
 
       builds:
-        cpuRequests: 2500m
+        cpuRequests: 46000m
+        memoryRequests: 94Gi
 
       services: {}
       # cpuRequests: 50m
