@@ -9,7 +9,7 @@ metadata:
 data:
   apiVersion: helm.fluxcd.io/v1
   kind: HelmRelease
-  name: runner-small-x86-pub
+  name: runner-xlarge-x86-pub
   patch: |
     - op: replace
       path: /metadata/name
@@ -34,20 +34,10 @@ data:
       value: 3
     - op: replace
       path: /spec/values/runners/tags
-      value: "x86_64,avx,{ENV},public,aws,spack"
+      value: "x86_64,avx,avx2,avx512,{ENV},public,aws,spack"
     - op: replace
       path: /spec/values/runners/secret
       value: gitlab-{ENV}-gitlab-runner-secret
     - op: replace
       path: /spec/values/runners/namespace
       value: gitlab
-    - op: replace
-      path: /spec/values/runners/pollTimeout
-      value: 30
-    - op: replace
-      path: /spec/values/runners/nodeSelector/spack.io~1node-pool
-      value: base
-    - op: remove
-      path: /spec/values/runners/builds/cpuRequests
-    - op: remove
-      path: /spec/values/runners/nodeSelector/kubernetes.io~1arch

@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metabase-config
+  namespace: monitoring
+  labels:
+    app: metabase
+data:
+  MB_DB_TYPE: postgres
+  MB_DB_DBNAME: metabase
+  MB_DB_PORT: "5432"
+  MB_DB_USER: postgres
+  MB_DB_HOST: metabase-postgres
+  MB_SITE_URL: http://metabase.spack.io
