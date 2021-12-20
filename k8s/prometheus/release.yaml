@@ -15,6 +15,10 @@ spec:
     alertmanager:
       ingress:
         enabled: false
+      alertmanagerSpec:
+        alertmanagerConfigSelector:
+          matchLabels:
+            alertmanagerConfig: spack
 
     grafana:
       ingress:
