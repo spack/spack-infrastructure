@@ -68,7 +68,7 @@ spec:
         type: LoadBalancer
 
       metrics:
-        enabled: false  # TODO(opadron): flip this after installing prometheus
+        enabled: true
         port: 10254
 
         service:
