@@ -1,9 +1,12 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: metabase
   namespace: monitoring
+  annotations:
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
+    nginx.ingress.kubernetes.io/auth-tls-secret: "ingress-nginx/client-ca"
 spec:
   tls:
   - secretName: tls-metabase
@@ -12,5 +15,9 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: metabase
-          servicePort: 3000
+          service:
+            name: metabase
+            port:
+              number: 3000
+        path: /
+        pathType: ImplementationSpecific

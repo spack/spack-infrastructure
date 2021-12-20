@@ -2,83 +2,27 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: prometheus
-  namespace: prometheus
+  name: kube-prometheus-stack
+  namespace: monitoring
 spec:
-  releaseName: prometheus
+  releaseName: kube-prometheus-stack
   chart:
-    name: prometheus
+    name: kube-prometheus-stack
     repository: https://prometheus-community.github.io/helm-charts
-    version: 11.16.0  # prometheus@2.21.0
+    version: 19.2.2
   values:
+    namespaceOverride: monitoring
     alertmanager:
-      enabled: true
-      baseURL: https://alertmanager.spack.io
       ingress:
-        enabled: true
-        annotations:
-          kubernetes.io/ingress.class: nginx
-          kubernetes.io/tls-acme: 'true'
-          cert-manager.io/cluster-issuer: letsencrypt
-        hosts:
-          - alertmanager.spack.io
-        tls:
-          - secretName: prometheus-alerts-tls
-            hosts:
-              - alertmanager.spack.io
-      nodeSelector:
-        spack.io/node-pool: base
-      replicaCount: 3
-      statefulSet:
-        enabled: true
-
-    nodeExporter:
-      nodeSelector:
-        spack.io/node-pool: base
-
-    server:
-      baseURL: prometheus.spack.io
-      ingress:
-        enabled: true
-        annotations:
-          kubernetes.io/ingress.class: nginx
-          kubernetes.io/tls-acme: 'true'
-          cert-manager.io/cluster-issuer: letsencrypt
-        hosts:
-          - prometheus.spack.io
-        tls:
-          - secretName: prometheus-server-tls
-            hosts:
-              - prometheus.spack.io
-      nodeSelector:
-        spack.io/node-pool: base
-      replicaCount: 3
-      statefulSet:
-        enabled: true
-      ## Vertical Pod Autoscaler config
-      ## Ref: https://github.com/kubernetes/autoscaler/tree/master
-      ##                        /vertical-pod-autoscaler
-      ## TODO(opadron)
-      verticalAutoscaler:
         enabled: false
 
-    pushgateway:
-      enabled: true
+    grafana:
       ingress:
-        enabled: true
-        annotations:
-          kubernetes.io/ingress.class: nginx
-          kubernetes.io/tls-acme: 'true'
-          cert-manager.io/cluster-issuer: letsencrypt
-        hosts:
-          - pushgateway.spack.io
-        tls:
-          - secretName: prometheus-alerts-tls
-            hosts:
-              - pushgateway.spack.io
-      nodeSelector:
-        spack.io/node-pool: base
-      replicaCount: 3
+        enabled: false
 
-    # TODO(opadron): look into more custom config
-    # (e.g.: for slack notifications)
+    prometheus:
+      ingress:
+        enabled: false
+      prometheusSpec:
+        nodeSelector:
+          spack.io/node-pool: beefy
