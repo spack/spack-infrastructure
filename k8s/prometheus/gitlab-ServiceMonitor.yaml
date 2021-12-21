@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gitlab-servicemonitor
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  jobLabel: jobLabel
+  namespaceSelector:
+    matchNames:
+      - "gitlab"
+  selector:
+    matchLabels:
+      app: "webservice"
+      release: "gitlab"
+      gitlab.com/webservice-name: "default"
+  endpoints:
+  - port: "http-webservice"
+    targetPort: "http-webservice"
+    path: "/-/metrics"

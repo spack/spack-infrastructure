@@ -24,5 +24,6 @@ spec:
       ingress:
         enabled: false
       prometheusSpec:
+        logLevel: "debug"
         nodeSelector:
           spack.io/node-pool: beefy
