@@ -2,6 +2,7 @@
 
 import csv
 import glob
+import itertools
 import logging
 import os
 from pathlib import Path
@@ -62,52 +63,48 @@ class JobLogScraper(object):
 
 
 class ErrorClassifier(object):
-    taxonomy = {
-        'no_runner': lambda df: df['runner'].isna(),
-        'job_log_missing': "ERROR: Got [0-9][0-9][0-9] for",
-        '5XX': 'HTTP Error 5[00|02|03]',
-        'spack_root': 'Error: SPACK_ROOT',
-        'setup_env': 'setup-env.sh: No such file or directory',
-        'no_spec': 'SpackError: No installed spec matches the hash',
-        'build_error': ['error found in build log:',
-                        'errors found in build log:'],
-        'oom': ['command terminated with exit code 137',
-                'ERROR: Job failed: exit code 137'],
-        'gitlab_down': 'fatal: unable to access',
-        'module_not_found': 'ModuleNotFoundError: No module named',
-        'artifacts': ['ERROR: Uploading artifacts',
-                      'ERROR: Downloading artifacts'],
-        'dial_backend': 'error dialing backend',
-        'pod_cleanup': 'Error cleaning up pod',
-        'pod_exec': 'Error response from daemon: No such exec instance',
-        'cmd_not_found': 'Command exited with status 127',
-        'db_mismatch': 'Error: Expected database version',
-        'db_match': 'spack.store.MatchError:',
-        'pod_timeout': 'timed out waiting for pod to start',
-        'docker_daemon': 'Cannot connect to the Docker daemon',
-        'rcp_failure': 'error: RPC failed',
-        'spack_error': 'To reproduce this build locally, run:',
-        'remote_not_found': ['fatal: Remote branch',
-                             'fatal: couldn\'t find remote ref'],
-        'pipeline_generation': 'Error: Pipeline generation failed',
-        'killed': 'Killed',
-        'remote_discontect': 'http.client.RemoteDisconnected',
-        'db_hash': 'Error: Expected database index keyed by',
-        'image_pull': ['Job failed (system failure): prepare environment: image pull failed',
-                       'ERROR: Job failed (system failure): failed to pull image']
-    }
+    def __init__(self, csv_path=None, log_dir='error_logs', taxonomy=None):
+        if taxonomy is None:
+            self.taxonomy = {
+                'no_runner': lambda df: df['runner'].isna(),
+                'job_log_missing': "ERROR: Got [0-9][0-9][0-9] for",
+                '5XX': 'HTTP Error 5[00|02|03]',
+                'spack_root': 'Error: SPACK_ROOT',
+                'setup_env': 'setup-env.sh: No such file or directory',
+                'no_spec': 'SpackError: No installed spec matches the hash',
+                'build_error': ['error found in build log:',
+                                'errors found in build log:'],
+                'oom': ['command terminated with exit code 137',
+                        'ERROR: Job failed: exit code 137'],
+                'gitlab_down': 'fatal: unable to access',
+                'module_not_found': 'ModuleNotFoundError: No module named',
+                'artifacts': ['ERROR: Uploading artifacts',
+                              'ERROR: Downloading artifacts'],
+                'dial_backend': 'error dialing backend',
+                'pod_cleanup': 'Error cleaning up pod',
+                'pod_exec': 'Error response from daemon: No such exec instance',
+                'cmd_not_found': 'Command exited with status 127',
+                'db_mismatch': 'Error: Expected database version',
+                'db_match': 'spack.store.MatchError:',
+                'pod_timeout': 'timed out waiting for pod to start',
+                'docker_daemon': 'Cannot connect to the Docker daemon',
+                'rcp_failure': 'error: RPC failed',
+                'spack_error': 'To reproduce this build locally, run:',
+                'remote_not_found': ['fatal: Remote branch',
+                                     'fatal: couldn\'t find remote ref'],
+                'pipeline_generation': 'Error: Pipeline generation failed',
+                'killed': 'Killed',
+                'remote_discontect': 'http.client.RemoteDisconnected',
+                'db_hash': 'Error: Expected database index keyed by',
+                'image_pull': ['Job failed (system failure): prepare environment: image pull failed',
+                               'ERROR: Job failed (system failure): failed to pull image'],
+                'other_errors': self._other_errors
+            }
+        else:
+            self.taxonomy = taxonomy
 
-    def __init__(self, csv_path, log_dir='error_logs'):
-        self.log_dir=log_dir
-        self.csv_path = csv_path
-        self.df = pd.read_csv(csv_path,
-                              index_col='id',
-                              infer_datetime_format=True)
-        self._verify_df()
-
-        self.df['created_at'] = pd.to_datetime(self.df['created_at'])
-        # Create 'kind' column
-        self.df['kind'] = self.df['runner'].apply(self._kind)
+        if csv_path is not None and log_dir is not None:
+            self.init_dataframe(csv_path, log_dir)
 
     def _verify_df(self):
         log_files = set([int(Path(s).stem) for s
@@ -143,18 +140,51 @@ class ErrorClassifier(object):
             f'sed -e "s|^.*/\(.*\).log|\\{_match_group}|"')
         return [int(s) for s in output.split('\n')] if output else []
 
-    def classify(self, taxonomy=None):
-        if taxonomy is None:
-            taxonomy = self.taxonomy
+    def _other_errors(self, df):
+        target_columns = list(set(self.error_columns) - set(['other_errors']))
+        return df[target_columns].apply(lambda row: not any(list(row)), axis=1)
 
-        for col, expr in taxonomy.items():
+    @property
+    def error_columns(self):
+        return list(self.taxonomy.keys())
+
+    def init_dataframe(self, csv_path, log_dir):
+        self.log_dir = log_dir
+        self.csv_path = csv_path
+
+        self.df = pd.read_csv(csv_path,
+                              index_col='id',
+                              infer_datetime_format=True)
+        self._verify_df()
+
+        self.df['created_at'] = pd.to_datetime(self.df['created_at'])
+        # Create 'kind' column
+        self.df['kind'] = self.df['runner'].apply(self._kind)
+
+
+    
+    def classify(self):
+        for col, expr in self.taxonomy.items():
+            # If this is a function, just call the function with the data frame
+            # and set the column to the values.
             if callable(expr):
                 self.df[col] = expr(self.df)
+
             else:
-                ids = self._grep_for_ids(expr)
+                # If this is a bare string, convert it to a list with one
+                # element (the string).
+                if isinstance(expr, str):
+                    expr = [expr]
+
+                # Create the column and set to False
                 self.df[col] = False
-                self.df.at[ids, col] = True
-            logging.info(f'Processing {col} ({self.df[col].value_counts().loc[True]})')
+                # Loop through strings in expr and greatp for IDs. Set the
+                # column of these ids to True.
+                for s in expr:
+                    ids = self._grep_for_ids(s)
+                    self.df.at[ids, col] = True
+
+            logging.info(f'Processed {col} ({self.df[col].value_counts().loc[True]})')
 
 class ErrorLogCSVType(click.File):
     """Given a CSV file, validate columns and return a csv.DictReader
@@ -203,11 +233,47 @@ def get_logs(error_csv, output, token, cache):
 @click.option('-i', '--input-dir', default='error_logs',
               type=click.Path(exists=True, file_okay=False),
               help="Directory containing job logs")
+@click.option('-o', '--output', default=None,
+              help="Save annotated CSV to this file name (default [ERROR_CSV]_annotated.csv)")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
-def classify(error_csv, input_dir):
+def classify(error_csv, input_dir, output):
+    if output is None:
+        path = Path(error_csv.file_name)
+        output = os.path.join(path.parents[0], f'{path.stem}_annotated.csv')
+
     classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
     classifier.classify()
-    import pudb; pu.db
+
+    logging.info(f'Saving to {output}')
+    classifier.df.to_csv(output)
+
+
+@cmd.command()
+@click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
+def overlap(error_csv):
+    df = pd.read_csv(error_csv.file_name,
+                     index_col='id',
+                     infer_datetime_format=True)
+
+    columns = ErrorClassifier().error_columns
+
+    def _overlap(columns):
+        for (a, b) in itertools.combinations(columns, 2):
+            numerator = len(df[(df[a] == True) & (df[b] == True)])
+            denominator = len(df[(df[a] == True) | (df[b] == True)])
+            if a != b and numerator > 0:
+                yield (a, b,
+                       numerator,
+                       denominator,
+                       round((numerator/float(denominator)) * 100, 2))
+
+
+    o = pd.DataFrame(list(_overlap(columns)),
+                     columns=['A', 'B', 'overlap', 'total', 'percent'])
+    o.set_index(['A', 'B'], inplace=True)
+    o.sort_values('percent', ascending=False, inplace=True)
+
+    print(o)
 
 if __name__ == '__main__':
     cmd()
