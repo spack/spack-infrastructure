@@ -6,8 +6,10 @@ import itertools
 import logging
 import os
 from pathlib import Path
+import random
 import re
 import subprocess
+import sys
 
 import click
 from click_loglevel import LogLevel
@@ -50,6 +52,10 @@ class JobLogScraper(object):
             logging.warning(f'Got {response.status_code} for {api_link}')
             text = f'ERROR: Got {response.status_code} for {api_link}'
 
+        if text == '':
+            logging.warning(f'Log File Empty {api_link}')
+            text = 'ERROR: Log File Empty'
+
         with open(f'{self.out_dir}/{job_id}.log', 'w') as f:
             f.write(text)
 
@@ -67,7 +73,8 @@ class ErrorClassifier(object):
         if taxonomy is None:
             self.taxonomy = {
                 'no_runner': lambda df: df['runner'].isna(),
-                'job_log_missing': "ERROR: Got [0-9][0-9][0-9] for",
+                'job_log_missing': ["ERROR: Got [0-9][0-9][0-9] for",
+                                    "ERROR: Log File Empty"],
                 '5XX': 'HTTP Error 5[00|02|03]',
                 'spack_root': 'Error: SPACK_ROOT',
                 'setup_env': 'setup-env.sh: No such file or directory',
@@ -247,6 +254,26 @@ def classify(error_csv, input_dir, output):
     logging.info(f'Saving to {output}')
     classifier.df.to_csv(output)
 
+
+@cmd.command()
+@click.option('-i', '--input-dir', default='error_logs',
+              type=click.Path(exists=True, file_okay=False),
+              help="Directory containing job logs")
+@click.argument('annotated_error_csv')
+@click.argument('error_class')
+def random_log(annotated_error_csv, error_class, input_dir):
+    if error_class not in ErrorClassifier().error_columns:
+        click.echo(
+            f'ERROR: "{error_class}" not one of: {os.linesep}'
+            f'{os.linesep.join(["  " + s for s in ErrorClassifier().error_columns])}',
+            err=True)
+        sys.exit(1)
+
+    df = pd.read_csv(annotated_error_csv,
+                     index_col='id')
+    idx = random.choice(df[df[error_class]].index)
+    with open(f'{input_dir}/{idx}.log', 'r') as fh:
+        click.echo(fh.read())
 
 @cmd.command()
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
