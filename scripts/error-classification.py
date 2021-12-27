@@ -98,9 +98,10 @@ class ErrorClassifier(object):
         if taxonomy is None:
             # Default taxonomy of errors
             self.taxonomy = {
-                'no_runner': lambda df: df['runner'].isna(),
                 'job_log_missing': ["ERROR: Got [0-9][0-9][0-9] for",
                                     "ERROR: Log File Empty"],
+                'limit_exceeded': "Job's log exceeded limit of",
+                'execution_timeout': "ERROR: Job failed: execution took longer than",
                 '5XX': 'HTTP Error 5[00|02|03]',
                 'spack_root': 'Error: SPACK_ROOT',
                 'setup_env': 'setup-env.sh: No such file or directory',
@@ -142,7 +143,6 @@ class ErrorClassifier(object):
             # Default order to deconflict errors
             self.deconflict_order = [
                 # API Scrape erorrs
-                'no_runner',
                 'job_log_missing',
                 # System Errors
                 'oom',
@@ -173,6 +173,8 @@ class ErrorClassifier(object):
                 'pipeline_generation',
                 'killed',
                 # Other Errors
+                'limit_exceeded',
+                'execution_timeout',
                 'other_errors']
         else:
             self.deconflict_order = deconflict_order
@@ -299,9 +301,17 @@ class ErrorClassifier(object):
                 # column of these ids to True.
                 for s in expr:
                     ids = self._grep_for_ids(s)
-                    self.df.at[ids, col] = True
+                    if bool(ids):
+                        self.df.at[ids, col] = True
 
-            logging.info(f'Processed {col} ({self.df[col].value_counts().loc[True]})')
+            # Count occurances of error
+            #   Note: handle if 0 occurances
+            try:
+                counts = self.df[col].value_counts().loc[True]
+            except KeyError:
+                counts = 0
+
+            logging.info(f'Processed {col} ({counts})')
 
     def correlations(self):
         """Return a dataframe with statistics on correlations between error classes.
@@ -358,7 +368,7 @@ class ErrorClassifier(object):
                 f'{os.linesep.join(["  " + s for s in ErrorClassifier().error_columns])}')
 
         idx = random.choice(self.df[self.df[error_class]].index)
-        return f'{self.log_dir}/{idx}.log'
+        return (idx, f'{self.log_dir}/{idx}.log')
 
 
     def stats(self):
@@ -371,8 +381,14 @@ class ErrorClassifier(object):
                             'Some overlap between errors is likely!')
             logging.warning('')
 
-        o = self.df[self.error_columns].apply(
-                lambda c: c.value_counts()[True]).sort_values(
+        # Return counts for column or 0 if no logs matched.
+        def _counts(c):
+            try:
+                return c.value_counts()[True]
+            except KeyError:
+                return 0
+
+        o = self.df[self.error_columns].apply(_counts).sort_values(
                     ascending=False).to_frame('count')
 
         o['percent'] = o['count'].apply(lambda v: round((v / float(len(self.df))) * 100, 2))
@@ -450,7 +466,7 @@ def random_log(error_csv, error_class, input_dir):
 
     classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
     try:
-        path = classifier.random_log(error_class)
+        idx, path = classifier.random_log(error_class)
     except RuntimeError as e:
         logging.error(str(e))
         sys.exit(1)
@@ -459,6 +475,7 @@ def random_log(error_csv, error_class, input_dir):
         click.echo(fh.read())
 
     logging.info(f'Finished printing {path}')
+    logging.info(f'See: {classifier.df.loc[idx]["job_link"]}')
 
 @cmd.command()
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
