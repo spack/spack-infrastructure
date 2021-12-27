@@ -242,11 +242,21 @@ class ErrorClassifier(object):
         return list(self.taxonomy.keys())
 
     def is_annotated(self):
-        """Return True if Dataframe has columns from taxonomy."""
+        """Return True if Dataframe has columns from taxonomy.
+
+        """
         if set(self.taxonomy.keys()) <= set(self.df.columns):
             return True
         return False
-    
+
+    def is_deconflicted(self):
+        """Return True if error columns have been deconflicted.
+
+        """
+        return not (self.df[self.error_columns].apply(
+            lambda r: len([_ for _ in r if _ is True]), axis=1) > 1).any()
+
+
     def init_dataframe(self, csv_path, log_dir):
         """Initialize the Dataframe.
 
@@ -349,6 +359,24 @@ class ErrorClassifier(object):
         idx = random.choice(self.df[self.df[error_class]].index)
         return f'{self.log_dir}/{idx}.log'
 
+
+    def stats(self):
+        if not self.is_annotated():
+            raise RuntimeError('Dataframe does not contain error annotations!')
+
+        if not self.is_deconflicted():
+            logging.warning('')
+            logging.warning('Dataframe has not been deconflicted. '
+                            'Some overlap between errors is likely!')
+            logging.warning('')
+
+        o = self.df[self.error_columns].apply(
+                lambda c: c.value_counts()[True]).sort_values(
+                    ascending=False).to_frame('count')
+
+        o['percent'] = o['count'].apply(lambda v: round((v / float(len(self.df))) * 100, 2))
+
+        return o
 
 @click.group()
 @click.option("-l", "--log-level", type=LogLevel(), default=logging.WARNING)
@@ -472,6 +500,18 @@ def deconflict(error_csv, input_dir, output):
     logging.info(f'Saving to {output}')
     classifier.df.to_csv(output)
 
+@cmd.command()
+@click.option('-i', '--input-dir', default='error_logs',
+              type=click.Path(exists=True, file_okay=False),
+              help="Directory containing job logs")
+@click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
+def stats(error_csv, input_dir):
+    classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
+    try:
+        click.echo(classifier.stats())
+    except RuntimeError as e:
+        logging.error(str(e))
+        sys.exit(1)
 
 if __name__ == '__main__':
     cmd()
