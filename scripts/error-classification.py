@@ -96,6 +96,7 @@ class ErrorClassifier(object):
     def __init__(self, csv_path=None, log_dir='error_logs',
                  taxonomy=None, deconflict_order=None):
         if taxonomy is None:
+            # Default taxonomy of errors
             self.taxonomy = {
                 'no_runner': lambda df: df['runner'].isna(),
                 'job_log_missing': ["ERROR: Got [0-9][0-9][0-9] for",
@@ -112,6 +113,7 @@ class ErrorClassifier(object):
                 'module_not_found': 'ModuleNotFoundError: No module named',
                 'artifacts': ['ERROR: Uploading artifacts',
                               'ERROR: Downloading artifacts'],
+                'fatal': 'FATAL: invalid argument',
                 'dial_backend': 'error dialing backend',
                 'pod_cleanup': 'Error cleaning up pod',
                 'pod_exec': 'Error response from daemon: No such exec instance',
@@ -137,6 +139,7 @@ class ErrorClassifier(object):
 
 
         if deconflict_order is None:
+            # Default order to deconflict errors
             self.deconflict_order = [
                 # API Scrape erorrs
                 'no_runner',
@@ -145,6 +148,7 @@ class ErrorClassifier(object):
                 'oom',
                 'gitlab_down',
                 'artifacts',
+                'fatal',
                 'pod_exec',
                 'pod_timeout',
                 'pod_cleanup',
@@ -180,6 +184,12 @@ class ErrorClassifier(object):
             self.init_dataframe(csv_path, log_dir)
 
     def _verify_df(self):
+        """Verify we have pulled logs for the Dataframe.
+
+        Checks to make sure the files in self.log_dir are consistent with the
+        job id's in the CSV file this Dataframe represents.
+
+        """
         log_files = set([int(Path(s).stem) for s
                          in glob.glob(f'{self.log_dir}/*.log')])
         idx = set(self.df.index)
@@ -199,6 +209,11 @@ class ErrorClassifier(object):
                 f'{os.linesep}Try running "get-logs" on {self.csv_path}')
 
     def _kind(self, r):
+        """Classfies the runner type.
+
+        Used to generate the 'kind' column for the CSV.
+
+        """
         if pd.isnull(r):
             return 'None'
         elif r.startswith('uo'):
@@ -207,6 +222,7 @@ class ErrorClassifier(object):
             return 'AWS'
 
     def _grep_for_ids(self, match_string):
+        """Subprocess out to grep. Return job ids that match match_string."""
         _match_group = '1'
         output = subprocess.getoutput(
             f'grep -l "{match_string}" {self.log_dir}/*.log | '
@@ -214,6 +230,10 @@ class ErrorClassifier(object):
         return [int(s) for s in output.split('\n')] if output else []
 
     def _other_errors(self, df):
+        """Classify all ids that do not have at least one other error as
+        'other_erorrs'
+
+        """
         target_columns = list(set(self.error_columns) - set(['other_errors']))
         return df[target_columns].apply(lambda row: not any(list(row)), axis=1)
 
@@ -221,7 +241,19 @@ class ErrorClassifier(object):
     def error_columns(self):
         return list(self.taxonomy.keys())
 
+    def is_annotated(self):
+        """Return True if Dataframe has columns from taxonomy."""
+        if set(self.taxonomy.keys()) <= set(self.df.columns):
+            return True
+        return False
+    
     def init_dataframe(self, csv_path, log_dir):
+        """Initialize the Dataframe.
+
+        Verifies logs exist for each job id, converts created_at to datetime and
+        set the 'kind' column for each type of runner.
+
+        """
         self.log_dir = log_dir
         self.csv_path = csv_path
 
@@ -235,6 +267,9 @@ class ErrorClassifier(object):
         self.df['kind'] = self.df['runner'].apply(self._kind)
 
     def classify(self):
+        """Classify all the errors based on job logs.
+
+        """
         for col, expr in self.taxonomy.items():
             # If this is a function, just call the function with the data frame
             # and set the column to the values.
@@ -258,6 +293,12 @@ class ErrorClassifier(object):
             logging.info(f'Processed {col} ({self.df[col].value_counts().loc[True]})')
 
     def correlations(self):
+        """Return a dataframe with statistics on correlations between error classes.
+
+        """
+        if not self.is_annotated():
+            raise RuntimeError('Dataframe does not contain error annotations!')
+
         def _overlap(columns):
             for (a, b) in itertools.combinations(columns, 2):
                 numerator = len(self.df[(self.df[a] == True) & (self.df[b] == True)])
@@ -276,6 +317,12 @@ class ErrorClassifier(object):
         return o
 
     def deconflict(self):
+        """Deconflicts error classes based on deconflict_order.
+
+        """
+        if not self.is_annotated():
+            raise RuntimeError('Dataframe does not contain error annotations!')
+
         def _deconflict(A):
             """Prefer errors in Column A"""
             target = list(set(self.error_columns) - set([A]))
@@ -288,9 +335,15 @@ class ErrorClassifier(object):
 
 
     def random_log(self, error_class):
+        """Return the path to a random log file in the given error_class.
+
+        """
+        if not self.is_annotated():
+            raise RuntimeError('Dataframe does not contain error annotations!')
+
         if error_class not in ErrorClassifier().error_columns:
             raise RuntimeError(
-                f'ERROR: "{error_class}" not one of: {os.linesep}'
+                f'"{error_class}" not one of: {os.linesep}'
                 f'{os.linesep.join(["  " + s for s in ErrorClassifier().error_columns])}')
 
         idx = random.choice(self.df[self.df[error_class]].index)
@@ -300,6 +353,11 @@ class ErrorClassifier(object):
 @click.group()
 @click.option("-l", "--log-level", type=LogLevel(), default=logging.WARNING)
 def cmd(log_level):
+    """Base command group.
+
+    Allows setting the logging level.
+
+    """
     logging.basicConfig(level=log_level)
 
 @cmd.command()
@@ -313,6 +371,9 @@ def cmd(log_level):
               help='Requests cache file name')
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
 def get_logs(error_csv, output, token, cache):
+    """Scrape Logs from Gitlab into a local directory.
+
+    """
     os.makedirs(output, exist_ok=True)
     scraper = JobLogScraper(token, session_name=cache, out_dir=output)
     scraper.process_csv(error_csv)
@@ -321,16 +382,27 @@ def get_logs(error_csv, output, token, cache):
 @click.option('-i', '--input-dir', default='error_logs',
               type=click.Path(exists=True, file_okay=False),
               help="Directory containing job logs")
+@click.option('--deconflict/--no-deconflict', default=True,
+              help='Boolean to deconflict the classified rrors')
 @click.option('-o', '--output', default=None,
               help="Save annotated CSV to this file name (default [ERROR_CSV]_annotated.csv)")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
-def classify(error_csv, input_dir, output):
+def classify(error_csv, input_dir, deconflict, output):
+    """Given an Error CSV classify each error based on the job log and the taxonomy.
+
+    """
     if output is None:
         path = Path(error_csv.file_name)
         output = os.path.join(path.parents[0], f'{path.stem}_annotated.csv')
 
     classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
     classifier.classify()
+    logging.info(f'Error overlap:{os.linesep}{classifier.correlations()}')
+
+    if deconflict:
+        classifier.deconflict()
+        logging.info(f'Post-deconflict error overlap:{os.linesep}'
+                     f'{classifier.correlations()}')
 
     logging.info(f'Saving to {output}')
     classifier.df.to_csv(output)
@@ -343,11 +415,15 @@ def classify(error_csv, input_dir, output):
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
 @click.argument('error_class')
 def random_log(error_csv, error_class, input_dir):
+    """Print a random log from the given error_class.
+
+    """
+
     classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
     try:
         path = classifier.random_log(error_class)
     except RuntimeError as e:
-        click.echo(str(e), err=True)
+        logging.error(str(e))
         sys.exit(1)
 
     with open(path, 'r') as fh:
@@ -361,21 +437,40 @@ def random_log(error_csv, error_class, input_dir):
               help="Directory containing job logs")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
 def overlap(error_csv, input_dir):
+    """Print correlation statsitics from an annotated Error CSV.
+
+    """
     classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
-    click.echo(classifier.correlations())
+    try:
+        click.echo(classifier.correlations())
+    except RuntimeError as e:
+        logging.error(str(e))
+        sys.exit(1)
 
 
 @cmd.command()
 @click.option('-i', '--input-dir', default='error_logs',
               type=click.Path(exists=True, file_okay=False),
               help="Directory containing job logs")
+@click.option('-o', '--output', default=None,
+              help="Save annotated CSV to this file name (default [ERROR_CSV] - destructive!)")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
-def deconflict(error_csv, input_dir):
+def deconflict(error_csv, input_dir, output):
+    """Deconflict an error CSV.
+
+    """
+    if output is None:
+        output = error_csv.file_name
+
     classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
-    classifier.deconflict()
+    try:
+        classifier.deconflict()
+    except RuntimeError as e:
+        logging.error(str(e))
+        sys.exit(1)
 
-    click.echo(classifier.correlations())
-
+    logging.info(f'Saving to {output}')
+    classifier.df.to_csv(output)
 
 
 if __name__ == '__main__':
