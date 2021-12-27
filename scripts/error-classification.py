@@ -180,7 +180,7 @@ class ErrorClassifier(object):
         if set(self.taxonomy.keys()) != set(self.deconflict_order):
             raise RuntimeError('Taxonomy keys and deconflict set do not match!')
 
-        if csv_path is not None and log_dir is not None:
+        if csv_path is not None:
             self.init_dataframe(csv_path, log_dir)
 
     def _verify_df(self):
@@ -190,23 +190,24 @@ class ErrorClassifier(object):
         job id's in the CSV file this Dataframe represents.
 
         """
-        log_files = set([int(Path(s).stem) for s
-                         in glob.glob(f'{self.log_dir}/*.log')])
-        idx = set(self.df.index)
+        if self.log_dir is not None:
+           log_files = set([int(Path(s).stem) for s
+                            in glob.glob(f'{self.log_dir}/*.log')])
+           idx = set(self.df.index)
 
-        def _log_file(id):
-            return f'  {self.log_dir}/{id}.log'
+           def _log_file(id):
+               return f'  {self.log_dir}/{id}.log'
 
-        if log_files - idx:
-            raise RuntimeError(
-                f'Log files present which are not in CSV: {os.linesep}'
-                f'{os.linesep.join([_log_file(s) for s in log_files - idx])}')
+           if log_files - idx:
+               raise RuntimeError(
+                   f'Log files present which are not in CSV: {os.linesep}'
+                   f'{os.linesep.join([_log_file(s) for s in log_files - idx])}')
 
-        if idx - log_files:
-            raise RuntimeError(
-                f'Errors in CSV without job logs (the following are missing): {os.linesep}'
-                f'{os.linesep.join([_log_file(s) for s in idx - log_files])}'
-                f'{os.linesep}Try running "get-logs" on {self.csv_path}')
+           if idx - log_files:
+               raise RuntimeError(
+                   f'Errors in CSV without job logs (the following are missing): {os.linesep}'
+                   f'{os.linesep.join([_log_file(s) for s in idx - log_files])}'
+                   f'{os.linesep}Try running "get-logs" on {self.csv_path}')
 
     def _kind(self, r):
         """Classfies the runner type.
@@ -460,15 +461,12 @@ def random_log(error_csv, error_class, input_dir):
     logging.info(f'Finished printing {path}')
 
 @cmd.command()
-@click.option('-i', '--input-dir', default='error_logs',
-              type=click.Path(exists=True, file_okay=False),
-              help="Directory containing job logs")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
-def overlap(error_csv, input_dir):
+def overlap(error_csv):
     """Print correlation statsitics from an annotated Error CSV.
 
     """
-    classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
+    classifier = ErrorClassifier(error_csv.file_name, log_dir=None)
     try:
         click.echo(classifier.correlations())
     except RuntimeError as e:
@@ -477,20 +475,17 @@ def overlap(error_csv, input_dir):
 
 
 @cmd.command()
-@click.option('-i', '--input-dir', default='error_logs',
-              type=click.Path(exists=True, file_okay=False),
-              help="Directory containing job logs")
 @click.option('-o', '--output', default=None,
               help="Save annotated CSV to this file name (default [ERROR_CSV] - destructive!)")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
-def deconflict(error_csv, input_dir, output):
+def deconflict(error_csv, output):
     """Deconflict an error CSV.
 
     """
     if output is None:
         output = error_csv.file_name
 
-    classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
+    classifier = ErrorClassifier(error_csv.file_name, log_dir=None)
     try:
         classifier.deconflict()
     except RuntimeError as e:
@@ -501,12 +496,9 @@ def deconflict(error_csv, input_dir, output):
     classifier.df.to_csv(output)
 
 @cmd.command()
-@click.option('-i', '--input-dir', default='error_logs',
-              type=click.Path(exists=True, file_okay=False),
-              help="Directory containing job logs")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
-def stats(error_csv, input_dir):
-    classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
+def stats(error_csv):
+    classifier = ErrorClassifier(error_csv.file_name, log_dir=None)
     try:
         click.echo(classifier.stats())
     except RuntimeError as e:
