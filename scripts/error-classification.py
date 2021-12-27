@@ -16,6 +16,30 @@ from click_loglevel import LogLevel
 import pandas as pd
 import requests_cache
 
+
+class ErrorLogCSVType(click.File):
+    """Given a CSV file, validate columns and return a csv.DictReader
+
+    """
+    name = "error_log_csv"
+    required_fields = set([
+        'id', 'name', 'created_at', 'duration', 'runner',
+        'stage', 'ref', 'project_name', 'job_link', 'api_link'])
+
+    def convert(self, value, param, ctx):
+        fh = super().convert(value, param, ctx)
+        reader = csv.DictReader(fh)
+
+        # Note: We stuff the file_name on the reader in case we want to use it
+        # later. This is a non-standard API!
+        reader.file_name = value
+
+        if not self.required_fields <= set(reader.fieldnames):
+            self.fail(f'CSV does not contain the following columns: '
+                      f'{self.required_fields - set(reader.fieldnames)}')
+        return reader
+
+
 class JobLogScraper(object):
     """Scrape job logs from GitLab API.
 
@@ -69,7 +93,8 @@ class JobLogScraper(object):
 
 
 class ErrorClassifier(object):
-    def __init__(self, csv_path=None, log_dir='error_logs', taxonomy=None):
+    def __init__(self, csv_path=None, log_dir='error_logs',
+                 taxonomy=None, deconflict_order=None):
         if taxonomy is None:
             self.taxonomy = {
                 'no_runner': lambda df: df['runner'].isna(),
@@ -101,7 +126,7 @@ class ErrorClassifier(object):
                                      'fatal: couldn\'t find remote ref'],
                 'pipeline_generation': 'Error: Pipeline generation failed',
                 'killed': 'Killed',
-                'remote_discontect': 'http.client.RemoteDisconnected',
+                'remote_disconnect': 'http.client.RemoteDisconnected',
                 'db_hash': 'Error: Expected database index keyed by',
                 'image_pull': ['Job failed (system failure): prepare environment: image pull failed',
                                'ERROR: Job failed (system failure): failed to pull image'],
@@ -109,6 +134,47 @@ class ErrorClassifier(object):
             }
         else:
             self.taxonomy = taxonomy
+
+
+        if deconflict_order is None:
+            self.deconflict_order = [
+                # API Scrape erorrs
+                'no_runner',
+                'job_log_missing',
+                # System Errors
+                'oom',
+                'gitlab_down',
+                'artifacts',
+                'pod_exec',
+                'pod_timeout',
+                'pod_cleanup',
+                'image_pull',
+                'docker_daemon',
+                'rcp_failure',
+                '5XX',
+                'dial_backend',
+                'remote_disconnect',
+                # Spack Errors
+                'db_mismatch',
+                'db_match',
+                'db_hash',
+                'no_spec',
+                'remote_not_found',
+                'cmd_not_found',
+                'module_not_found',
+                'setup_env',
+                'spack_root',
+                'build_error',
+                'spack_error',
+                'pipeline_generation',
+                'killed',
+                # Other Errors
+                'other_errors']
+        else:
+            self.deconflict_order = deconflict_order
+
+        if set(self.taxonomy.keys()) != set(self.deconflict_order):
+            raise RuntimeError('Taxonomy keys and deconflict set do not match!')
 
         if csv_path is not None and log_dir is not None:
             self.init_dataframe(csv_path, log_dir)
@@ -168,8 +234,6 @@ class ErrorClassifier(object):
         # Create 'kind' column
         self.df['kind'] = self.df['runner'].apply(self._kind)
 
-
-    
     def classify(self):
         for col, expr in self.taxonomy.items():
             # If this is a function, just call the function with the data frame
@@ -193,27 +257,44 @@ class ErrorClassifier(object):
 
             logging.info(f'Processed {col} ({self.df[col].value_counts().loc[True]})')
 
-class ErrorLogCSVType(click.File):
-    """Given a CSV file, validate columns and return a csv.DictReader
+    def correlations(self):
+        def _overlap(columns):
+            for (a, b) in itertools.combinations(columns, 2):
+                numerator = len(self.df[(self.df[a] == True) & (self.df[b] == True)])
+                denominator = len(self.df[(self.df[a] == True) | (self.df[b] == True)])
+                if a != b and numerator > 0:
+                    yield (a, b,
+                           numerator,
+                           denominator,
+                           round((numerator/float(denominator)) * 100, 2))
 
-    """
-    name = "error_log_csv"
-    required_fields = set([
-        'id', 'name', 'created_at', 'duration', 'runner',
-        'stage', 'ref', 'project_name', 'job_link', 'api_link'])
 
-    def convert(self, value, param, ctx):
-        fh = super().convert(value, param, ctx)
-        reader = csv.DictReader(fh)
+        o = pd.DataFrame(list(_overlap(self.error_columns)),
+                         columns=['A', 'B', 'overlap', 'total', 'percent'])
+        o.set_index(['A', 'B'], inplace=True)
+        o.sort_values('percent', ascending=False, inplace=True)
+        return o
 
-        # Note: We stuff the file_name on the reader in case we want to use it
-        # later. This is a non-standard API!
-        reader.file_name = value
+    def deconflict(self):
+        def _deconflict(A):
+            """Prefer errors in Column A"""
+            target = list(set(self.error_columns) - set([A]))
+            if self.df[A].any():
+                # Where column "A" is true, set all other error columns to false
+                self.df.loc[self.df[A], target] = False
 
-        if not self.required_fields <= set(reader.fieldnames):
-            self.fail(f'CSV does not contain the following columns: '
-                      f'{self.required_fields - set(reader.fieldnames)}')
-        return reader
+        for column in self.deconflict_order:
+            _deconflict(column)
+
+
+    def random_log(self, error_class):
+        if error_class not in ErrorClassifier().error_columns:
+            raise RuntimeError(
+                f'ERROR: "{error_class}" not one of: {os.linesep}'
+                f'{os.linesep.join(["  " + s for s in ErrorClassifier().error_columns])}')
+
+        idx = random.choice(self.df[self.df[error_class]].index)
+        return f'{self.log_dir}/{idx}.log'
 
 
 @click.group()
@@ -259,48 +340,43 @@ def classify(error_csv, input_dir, output):
 @click.option('-i', '--input-dir', default='error_logs',
               type=click.Path(exists=True, file_okay=False),
               help="Directory containing job logs")
-@click.argument('annotated_error_csv')
+@click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
 @click.argument('error_class')
-def random_log(annotated_error_csv, error_class, input_dir):
-    if error_class not in ErrorClassifier().error_columns:
-        click.echo(
-            f'ERROR: "{error_class}" not one of: {os.linesep}'
-            f'{os.linesep.join(["  " + s for s in ErrorClassifier().error_columns])}',
-            err=True)
+def random_log(error_csv, error_class, input_dir):
+    classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
+    try:
+        path = classifier.random_log(error_class)
+    except RuntimeError as e:
+        click.echo(str(e), err=True)
         sys.exit(1)
 
-    df = pd.read_csv(annotated_error_csv,
-                     index_col='id')
-    idx = random.choice(df[df[error_class]].index)
-    with open(f'{input_dir}/{idx}.log', 'r') as fh:
+    with open(path, 'r') as fh:
         click.echo(fh.read())
 
+    logging.info(f'Finished printing {path}')
+
 @cmd.command()
+@click.option('-i', '--input-dir', default='error_logs',
+              type=click.Path(exists=True, file_okay=False),
+              help="Directory containing job logs")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
-def overlap(error_csv):
-    df = pd.read_csv(error_csv.file_name,
-                     index_col='id',
-                     infer_datetime_format=True)
-
-    columns = ErrorClassifier().error_columns
-
-    def _overlap(columns):
-        for (a, b) in itertools.combinations(columns, 2):
-            numerator = len(df[(df[a] == True) & (df[b] == True)])
-            denominator = len(df[(df[a] == True) | (df[b] == True)])
-            if a != b and numerator > 0:
-                yield (a, b,
-                       numerator,
-                       denominator,
-                       round((numerator/float(denominator)) * 100, 2))
+def overlap(error_csv, input_dir):
+    classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
+    click.echo(classifier.correlations())
 
 
-    o = pd.DataFrame(list(_overlap(columns)),
-                     columns=['A', 'B', 'overlap', 'total', 'percent'])
-    o.set_index(['A', 'B'], inplace=True)
-    o.sort_values('percent', ascending=False, inplace=True)
+@cmd.command()
+@click.option('-i', '--input-dir', default='error_logs',
+              type=click.Path(exists=True, file_okay=False),
+              help="Directory containing job logs")
+@click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
+def deconflict(error_csv, input_dir):
+    classifier = ErrorClassifier(error_csv.file_name, log_dir=input_dir)
+    classifier.deconflict()
 
-    print(o)
+    click.echo(classifier.correlations())
+
+
 
 if __name__ == '__main__':
     cmd()
