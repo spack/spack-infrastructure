@@ -398,9 +398,33 @@ class ErrorClassifier(object):
 @click.group()
 @click.option("-l", "--log-level", type=LogLevel(), default=logging.WARNING)
 def cmd(log_level):
-    """Base command group.
+    """Classification tools for Spack Errors
 
-    Allows setting the logging level.
+    Provides tools to get job log traces and classify them based on a taxonomy
+    of errors. Logs are grepped for strings and matching error class columns are
+    set to true in a resulting CSV. multiple classes may match a job log and so
+    errors may be 'deconflicted' based on a pirorty list.
+
+    Error CSVs must be in the proper format. These can be exported from the
+    following Metabase Analytic:
+
+    https://metabase.spack.io/question/16-job-errors-api-ink
+
+    Example Usage:
+
+    \b
+      # Download the Error CSV from Metabase. You must specify
+      # how far back you would like to look for errors (e.g. "7 DAYS")
+    \b
+      # Assume you have downloaded the CSV to 20211227-7days.csv
+      $> error-classification.py -l INFO get-logs -t [GITLAB_API_TOKEN] 20211227-7days.csv
+    \b
+      # Note: logs are downloaded into error_logs/ directory by default
+      $> error-classification.py -l INFO classify 20211227-7days.csv
+    \b
+      # Note: Annotated CSV is saved to 20211227-7days_annotated.csv
+      $> error-classification.py stats 20211227-7days_annotated.csv
+      ...
 
     """
     logging.basicConfig(level=log_level)
@@ -433,7 +457,7 @@ def get_logs(error_csv, output, token, cache):
               help="Save annotated CSV to this file name (default [ERROR_CSV]_annotated.csv)")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
 def classify(error_csv, input_dir, deconflict, output):
-    """Given an Error CSV classify each error based on the job log and the taxonomy.
+    """Classify errors in the CSV based on the taxonomy.
 
     """
     if output is None:
@@ -496,7 +520,7 @@ def overlap(error_csv):
               help="Save annotated CSV to this file name (default [ERROR_CSV] - destructive!)")
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
 def deconflict(error_csv, output):
-    """Deconflict an error CSV.
+    """Deconflict an annotated error CSV.
 
     """
     if output is None:
@@ -515,6 +539,9 @@ def deconflict(error_csv, output):
 @cmd.command()
 @click.argument('error_csv', type=ErrorLogCSVType(mode='r'))
 def stats(error_csv):
+    """Print error counts and percentages.
+
+    """
     classifier = ErrorClassifier(error_csv.file_name, log_dir=None)
     try:
         click.echo(classifier.stats())
