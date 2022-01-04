@@ -24,5 +24,13 @@ spec:
       ingress:
         enabled: false
       prometheusSpec:
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: gp2
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 200Gi
         nodeSelector:
           spack.io/node-pool: beefy
