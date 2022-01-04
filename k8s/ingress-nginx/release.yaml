@@ -68,13 +68,10 @@ spec:
         type: LoadBalancer
 
       metrics:
-        enabled: false  # TODO(opadron): flip this after installing prometheus
+        enabled: true
         port: 10254
 
         service:
-          annotations:
-            prometheus.io/scrape: "true"
-            prometheus.io/port: "10254"
           type: ClusterIP
           servicePort: 9913
 
