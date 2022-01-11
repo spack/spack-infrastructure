@@ -76,7 +76,7 @@ spec:
 
       builds:
         cpuRequests: 4000m
-        memoryRequests: 7514794Ki  # 7.166 Gi
+        memoryRequests: 7689557Ki  # 7.333 Gi
 
       services: {}
       # cpuRequests: 50m
