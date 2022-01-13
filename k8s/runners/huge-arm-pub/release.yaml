@@ -36,7 +36,7 @@ spec:
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
-      requestConcurrency: 1
+      requestConcurrency: 20
       locked: false
 
       tags: "arm,aarch64,graviton,graviton2,huge,public,aws,spack"
