@@ -36,7 +36,7 @@ spec:
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
-      requestConcurrency: 5
+      requestConcurrency: 20
       locked: false
 
       tags: "arm,aarch64,graviton,graviton2,xlarge,public,aws,spack"
@@ -75,8 +75,7 @@ spec:
         # secretName: google-application-credentials
 
       builds:
-        cpuRequests: 16000m
-        memoryRequests: 30758229Ki  # 29.333 Gi
+        cpuRequests: 9000m
 
       services: {}
       # cpuRequests: 50m
@@ -97,7 +96,7 @@ spec:
       # memoryLimit: 144Mi
 
       nodeSelector:
-        spack.io/node-pool: glr-huge-pub  # pool for jobs
+        spack.io/node-pool: glr-xlarge-pub  # pool for jobs
         kubernetes.io/arch: arm64
 
     nodeSelector:
