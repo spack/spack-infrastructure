@@ -494,9 +494,9 @@ class SpackCIBridge(object):
         for branch, head_sha, reason in backlog_branches:
             try:
                 print('  {0} -> {1}'.format(branch, head_sha))
-                if backlog == "base":
+                if reason == "base":
                     desc = base_backlog_desc
-                    url = self.currently_running_url,
+                    url = self.currently_running_url
                 else:
                     desc = reason
                     url = ""

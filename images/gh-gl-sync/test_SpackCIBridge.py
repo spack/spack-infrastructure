@@ -433,7 +433,7 @@ def test_pipeline_status_backlogged_by_main_branch(capfd):
         state="pending",
         context="ci/gitlab-ci",
         description=expected_desc,
-        target_url=(currently_running_url,)
+        target_url=currently_running_url
     )
     out, err = capfd.readouterr()
     expected_content = """Posting backlogged status to the following:
