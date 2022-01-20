@@ -170,3 +170,8 @@ spec:
       migrations:
         nodeSelector:
           spack.io/node-pool: gitlab
+
+    postgresql:
+      master:
+        nodeSelector:
+          spack.io/node-pool: gitlab
