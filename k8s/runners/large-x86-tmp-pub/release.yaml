@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-medium-x86-pub
+  name: runner-large-x86-tmp-pub
   namespace: gitlab
 spec:
-  releaseName: medium-x86-pub
+  releaseName: large-x86-tmp-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -17,10 +17,10 @@ spec:
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600  # six hours
-    concurrent: 50
+    concurrent: 10
     checkInterval: 30
     # preEntrypointScript: |
-    #   echo "Hello, from medium-pub runner"
+    #   echo "Hello, from large-pub runner"
 
     metrics:
       enabled: true
@@ -36,10 +36,10 @@ spec:
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
-      requestConcurrency: 20
+      requestConcurrency: 10
       locked: false
 
-      tags: "x86_64,avx,medium,public,aws,spack"
+      tags: "x86_64,avx,avx2,avx512,large,public,aws,spack"
       runUntagged: false
       privileged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
@@ -75,7 +75,8 @@ spec:
         # secretName: google-application-credentials
 
       builds:
-        cpuRequests: 1050m
+        cpuRequests: 8000m
+        memoryRequests: 15379114Ki  # 14.666 Gi
 
       services: {}
       # cpuRequests: 50m
@@ -90,7 +91,7 @@ spec:
       # memoryLimit: 144Mi
 
       nodeSelector:
-        spack.io/node-pool: glr-medium-pub  # pool for jobs
+        spack.io/node-pool: glr-huge-tmp-pub  # pool for jobs
         kubernetes.io/arch: amd64
 
     nodeSelector:
