@@ -15,6 +15,9 @@ data:
       path: /metadata/name
       value: runner-{ENV}
     - op: replace
+      path: /spec/chart/version
+      value: "0.37.1"  # bleeding edge
+    - op: replace
       path: /spec/releaseName
       value: runner-{ENV}
     - op: replace
