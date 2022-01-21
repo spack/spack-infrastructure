@@ -126,7 +126,7 @@ jobs:
           context: ./images/gitlab-webservice
           file: ./images/gitlab-webservice/Dockerfile
           push: true
-          tags: ghcr.io/spack/gitlab-webservice:v14.4.1
+          tags: ghcr.io/spack/gitlab-webservice:v14.6.3
       -
         name: Image digest
         run: echo ${{ steps.docker_build_gitlab_webservice.outputs.digest }}
@@ -151,7 +151,7 @@ jobs:
           context: ./images/gitlab-sidekiq
           file: ./images/gitlab-sidekiq/Dockerfile
           push: true
-          tags: ghcr.io/spack/gitlab-sidekiq:v14.4.1
+          tags: ghcr.io/spack/gitlab-sidekiq:v14.6.3
       -
         name: Image digest
         run: echo ${{ steps.docker_build_gitlab_sideqkiq.outputs.digest }}
@@ -176,7 +176,7 @@ jobs:
           context: ./images/gitlab-task-runner
           file: ./images/gitlab-task-runner/Dockerfile
           push: true
-          tags: ghcr.io/spack/gitlab-task-runner:v14.4.1
+          tags: ghcr.io/spack/gitlab-task-runner:v14.6.3
       -
         name: Image digest
         run: echo ${{ steps.docker_build_gitlab_task_runner.outputs.digest }}
