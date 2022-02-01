@@ -81,9 +81,20 @@ data:
     - op: replace
       path: /spec/values/gitlab/sidekiq/image/tag
       value: v14.6.3
-    - op: replace
-      path: /spec/values/gitlab/task-runner/image/tag
-      value: v14.6.3
-    - op: replace
-      path: /spec/values/gitlab/task-runner/replicas
-      value: 3
+    - op: remove
+      path: /spec/values/gitlab/task-runner
+    - op: add
+      path: /spec/values/gitlab
+      value:
+        toolbox:
+          image:
+            pullPolicy: IfNotPresent
+            repository: ghcr.io/spack/gitlab-toolbox
+            tag: v14.6.3
+          nodeSelector:
+            spack.io/node-pool: gitlab
+
+          replicas: 3
+          antiAffinityLabels:
+            matchLabels:
+              app: 'gitaly'
