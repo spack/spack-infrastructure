@@ -16,7 +16,6 @@ spec:
   - name: 'slack'
     slackConfigs:
       - channel: '#monitoring-alerts'
-        sendResolved: true
         apiURL:
           name: slack-webhook-alertmanager
           key: webhook

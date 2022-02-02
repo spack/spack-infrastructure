@@ -1,0 +1,25 @@
+---
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-prometheus-stack-spack-custom-alerts
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack
+    release: kube-prometheus-stack
+spec:
+  groups:
+   - name: spack-custom-alerts
+     rules:
+       - alert: GitlabPipelinePodStuck
+         annotations:
+           description: '{{ $labels.pod }} has had no activity for more than 5 minutes.'
+           runbook_url: 'TODO'
+           summary: 'The pod appears to be stuck.  No CPU, RAM, or Network activity for the last 5 minutes.'
+         expr: node_namespace_pod_name:pipeline_stuck_pods_info == 1
+         for: 5m
+         labels:
+           severity: critical
+           namespace: monitoring
+           source_namespace: "{{ $labels.namespace }}"
