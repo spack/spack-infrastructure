@@ -4,6 +4,8 @@ kind: HelmRelease
 metadata:
   name: runner-large-x86-tmp-pub
   namespace: gitlab
+  annotations:
+      fluxcd.io/ignore: "true"
 spec:
   releaseName: large-x86-tmp-pub
   chart:
