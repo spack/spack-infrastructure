@@ -12,6 +12,10 @@ spec:
     version: 19.2.2
   values:
     defaultRules:
+      disabled:
+        # Both of these services are handled by EKS
+        KubeSchedulerDown: true
+        KubeControllerManagerDown: true
       additionalRuleLabels:
         namespace: monitoring
         source_namespace: '{{ $labels.namespace }}'
@@ -21,6 +25,7 @@ spec:
       ingress:
         enabled: false
       alertmanagerSpec:
+        externalUrl: "https://alertmanager.spack.io"
         alertmanagerConfigSelector:
           matchLabels:
             alertmanagerConfig: spack
@@ -33,6 +38,7 @@ spec:
       ingress:
         enabled: false
       prometheusSpec:
+        externalUrl: "https://prometheus.spack.io"
         storageSpec:
           volumeClaimTemplate:
             spec:
