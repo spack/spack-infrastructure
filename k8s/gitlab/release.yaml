@@ -9,7 +9,7 @@ spec:
   chart:
     name: gitlab
     repository: https://charts.gitlab.io
-    version: 4.8.8 # gitlab@13.8.8
+    version: 5.6.3 # gitlab@14.6.3
 
   values:
     nodeSelector:
@@ -120,7 +120,7 @@ spec:
         image:
           pullPolicy: IfNotPresent
           repository: ghcr.io/spack/gitlab-webservice
-          tag: v13.8.8
+          tag: v14.6.3
         minReplicas: 4
         maxReplicas: 16
         resources:
@@ -146,15 +146,15 @@ spec:
         image:
           pullPolicy: IfNotPresent
           repository: ghcr.io/spack/gitlab-sidekiq
-          tag: v13.8.8
+          tag: v14.6.3
         nodeSelector:
           spack.io/node-pool: gitlab
 
-      task-runner:
+      toolbox:
         image:
           pullPolicy: IfNotPresent
-          repository: ghcr.io/spack/gitlab-task-runner
-          tag: v13.8.8
+          repository: ghcr.io/spack/gitlab-toolbox
+          tag: v14.6.3
         nodeSelector:
           spack.io/node-pool: gitlab
 
@@ -168,5 +168,10 @@ spec:
           spack.io/node-pool: gitlab
 
       migrations:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+    postgresql:
+      master:
         nodeSelector:
           spack.io/node-pool: gitlab

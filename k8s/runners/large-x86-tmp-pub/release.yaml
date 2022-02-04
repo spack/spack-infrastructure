@@ -4,14 +4,16 @@ kind: HelmRelease
 metadata:
   name: runner-large-x86-tmp-pub
   namespace: gitlab
+  annotations:
+      fluxcd.io/ignore: "true"
 spec:
   releaseName: large-x86-tmp-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
-    version: 0.25.0  # gitlab-runner@13.8.0
+    version: 0.37.1  # gitlab-runner@bleeding-edge
   values:
-    image: gitlab/gitlab-runner:alpine-v13.8.0
+    image: gitlab/gitlab-runner:alpine-v14.7.0
     imagePullPolicy: IfNotPresent
 
     gitlabUrl: "https://gitlab.spack.io/"
