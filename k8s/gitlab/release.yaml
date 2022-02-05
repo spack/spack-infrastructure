@@ -95,7 +95,7 @@ spec:
       nodeSelector:
         spack.io/node-pool: gitlab
       persistence:
-        size: 500Gi
+        size: 1000Gi
 
     registry:
       ingress:
@@ -175,3 +175,5 @@ spec:
       master:
         nodeSelector:
           spack.io/node-pool: gitlab
+      persistence:
+        size: 100Gi
