@@ -72,3 +72,5 @@ data:
       value: 3
     - op: remove
       path: /spec/values/gitlab/gitlab-shell/service
+    - op: remove
+      path: /spec/values/postgresql/persistence
