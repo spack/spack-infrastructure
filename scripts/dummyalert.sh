@@ -30,8 +30,8 @@ generate_post_data() {
     "source_namespace": "custom"
   },
   "annotations": {
-    "summary": "Dummy Alert",
-    "description": "This is a dummy alert for ${name}.  Please Ignore."
+    "summary": "A test alert",
+    "description": "This is a dummy alert for ${name}.  Please Ignore. Here is some additional text because sometimes descriptions are longer."
   },
   "generatorURL": "http://nota.realdomain.com/$name"
   $2
