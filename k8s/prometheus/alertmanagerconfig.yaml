@@ -7,7 +7,7 @@ metadata:
     alertmanagerConfig: spack
 spec:
   route:
-    groupBy: ['job']
+    groupBy: ['alertname']
     groupWait: 30s
     groupInterval: 5m
     repeatInterval: 12h
@@ -16,17 +16,16 @@ spec:
   - name: 'slack'
     slackConfigs:
       - channel: '#monitoring-alerts'
-        sendResolved: true
         apiURL:
           name: slack-webhook-alertmanager
           key: webhook
-        title: '[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] Monitoring Event Notification'
-        text: >-
+        iconEmoji: ':warning:'
+        title: |-
+          [{{ .CommonLabels.severity }}] {{ .GroupLabels.alertname }} ({{ .Alerts.Firing | len }}) - {{ .CommonAnnotations.summary }}
+        text: |-
+          {{ .CommonAnnotations.description }}
           {{ range .Alerts }}
-              *Alert:* {{ .Annotations.summary }} - `{{ .Labels.severity }}`
-              *Description:* {{ .Annotations.description }}
-              *Graph:* <{{ .GeneratorURL }}|:chart_with_upwards_trend:> *Runbook:* <{{ .Annotations.runbook }}|:spiral_note_pad:>
-              *Details:*
-                  {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
-                  {{ end }}
+          *{{.Labels.alertname}}* ({{ .Fingerprint }}): <{{ .GeneratorURL }}|:chart_with_upwards_trend:>
+          {{.Annotations.description}}
+
           {{ end }}

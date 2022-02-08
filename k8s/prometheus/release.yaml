@@ -9,13 +9,25 @@ spec:
   chart:
     name: kube-prometheus-stack
     repository: https://prometheus-community.github.io/helm-charts
-    version: 19.2.2
+    version: 32.0.2
   values:
+    defaultRules:
+#  Appears to be broken in production -  Does not validate.
+#  See: https://github.com/prometheus-community/helm-charts/issues/1718
+#      disabled:
+#        # Both of these services are handled by EKS
+#        KubeSchedulerDown: true
+#        KubeControllerManagerDown: true
+      additionalRuleLabels:
+        namespace: monitoring
+        source_namespace: '{{ $labels.namespace }}'
+
     namespaceOverride: monitoring
     alertmanager:
       ingress:
         enabled: false
       alertmanagerSpec:
+        externalUrl: "https://alertmanager.spack.io"
         alertmanagerConfigSelector:
           matchLabels:
             alertmanagerConfig: spack
@@ -28,6 +40,7 @@ spec:
       ingress:
         enabled: false
       prometheusSpec:
+        externalUrl: "https://prometheus.spack.io"
         storageSpec:
           volumeClaimTemplate:
             spec:
