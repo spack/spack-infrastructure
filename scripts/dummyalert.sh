@@ -21,18 +21,19 @@ generate_post_data() {
 [{
   "status": "$1",
   "labels": {
-    "job": "DummyAlert",
-    "alertname": "${name}",
+    "alertname": "DummyAlert",
+    "name": "${name}",
     "service": "my-service",
     "severity":"warning",
     "instance": "${name}.example.net",
     "namespace": "monitoring",
-    "label_costcentre": "FOO"
+    "source_namespace": "custom"
   },
   "annotations": {
-    "summary": "This is a dummy alert used for debugging. Please Ignore."
+    "summary": "A test alert",
+    "description": "This is a dummy alert for ${name}.  Please Ignore. Here is some additional text because sometimes descriptions are longer."
   },
-  "generatorURL": "http://local-example-alert/$name"
+  "generatorURL": "http://nota.realdomain.com/$name"
   $2
   $3
 }]
