@@ -11,7 +11,7 @@ spec:
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
-    version: 0.37.1  # gitlab-runner@bleeding-edge
+    version: 0.37.2  # gitlab-runner@14.7.0
   values:
     image: gitlab/gitlab-runner:alpine-v14.7.0
     imagePullPolicy: IfNotPresent
