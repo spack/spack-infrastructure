@@ -39,7 +39,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: clear-admin-keys
-            image: spack/ci-key-clear:0.0.1
+            image: ghcr.io/spack/ci-key-clear:0.0.1
             imagePullPolicy: IfNotPresent
           nodeSelector:
             spack.io/node-pool: base
