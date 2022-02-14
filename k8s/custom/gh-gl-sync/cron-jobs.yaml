@@ -8,6 +8,7 @@ spec:
   schedule: "*/3 * * * *"
   jobTemplate:
     spec:
+      backoffLimit: 0
       template:
         spec:
           serviceAccountName: gh-gl-sync
