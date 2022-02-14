@@ -31,26 +31,27 @@ spec:
     runners:
       config: |
         [[runners]]
+          requestConcurrency =  20
+          output_limit = 4096
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
+          [runners.kubernetes]
+            privileged = false
+            cpu_request = "1050m"
+            namespace = "pipeline"
+            pollTimeout = 600  # ten minutes
+            service_account = "runner"
+            [runners.kubernetes.node_selector]
+              "kubernetes.io/arch" = "amd64"
+              "spack.io/node-pool" = "glr-medium-pub"
 
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
-      requestConcurrency: 20
       locked: false
 
       tags: "x86_64,avx,medium,public,aws,spack"
       runUntagged: false
-      privileged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
-
-      namespace: pipeline
-      pollTimeout: 600  # ten minutes
-
-      # build log size limit
-      outputLimit: 4096
-
-      serviceAccountName: runner
 
       # Distributed runners caching
       # TODO(opadron): Look into this after setting up stand-alone minio service
@@ -74,9 +75,6 @@ spec:
         ## Use this line for access using google-application-credentials file
         # secretName: google-application-credentials
 
-      builds:
-        cpuRequests: 1050m
-
       services: {}
       # cpuRequests: 50m
       # cpuLimit: 50m
@@ -88,10 +86,6 @@ spec:
       # cpuLimit: 50m
       # memoryRequests: 144Mi
       # memoryLimit: 144Mi
-
-      nodeSelector:
-        spack.io/node-pool: glr-medium-pub  # pool for jobs
-        kubernetes.io/arch: amd64
 
     nodeSelector:
       spack.io/node-pool: base  # pool for the runner
