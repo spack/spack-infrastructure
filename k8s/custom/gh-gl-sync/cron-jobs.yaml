@@ -1,5 +1,5 @@
 ---
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: gh-gl-sync
@@ -8,6 +8,7 @@ spec:
   schedule: "*/3 * * * *"
   jobTemplate:
     spec:
+      backoffLimit: 0
       template:
         spec:
           serviceAccountName: gh-gl-sync

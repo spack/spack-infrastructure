@@ -1,4 +1,4 @@
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: rotate-gitlab-aws-access-keys
@@ -24,7 +24,7 @@ spec:
           nodeSelector:
             spack.io/node-pool: base
 ---
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: clear-admin-keys
@@ -39,7 +39,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: clear-admin-keys
-            image: spack/ci-key-clear:0.0.1
+            image: ghcr.io/spack/ci-key-clear:0.0.1
             imagePullPolicy: IfNotPresent
           nodeSelector:
             spack.io/node-pool: base
