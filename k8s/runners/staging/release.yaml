@@ -33,14 +33,24 @@ data:
       path: /spec/values/checkInterval
       value: 1
     - op: replace
-      path: /spec/values/runners/requestConcurrency
-      value: 3
-    - op: replace
       path: /spec/values/runners/tags
       value: "x86_64,avx,avx2,avx512,{ENV},public,aws,spack"
     - op: replace
       path: /spec/values/runners/secret
       value: gitlab-{ENV}-gitlab-runner-secret
     - op: replace
-      path: /spec/values/runners/namespace
-      value: gitlab
+      path: /spec/values/runners/config
+      value: |
+          [[runners]]
+          requestConcurrency =  3
+          output_limit = 4096
+          environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
+          [runners.kubernetes]
+            privileged = false
+            cpu_request = "9000m"
+            namespace = "gitlab"
+            pollTimeout = 600  # ten minutes
+            service_account = "runner"
+            [runners.kubernetes.node_selector]
+              "kubernetes.io/arch" = "amd64"
+              "spack.io/node-pool" = "glr-xlarge-pub"
