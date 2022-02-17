@@ -39,7 +39,7 @@ spec:
             cpu_request = "46000m"
             memory_request = "88Gi"
             namespace = "pipeline"
-            pollTimeout = 600  # ten minutes
+            poll_timeout = 600  # ten minutes
             service_account = "runner"
             [runners.kubernetes.pod_annotations]
               "gitlab-ci/ci_pipeline_url" = "$CI_PIPELINE_URL"
