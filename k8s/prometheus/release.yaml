@@ -51,3 +51,7 @@ spec:
                   storage: 200Gi
         nodeSelector:
           spack.io/node-pool: beefy
+
+    kube-state-metrics:
+      metricLabelsAllowlist:
+        - pods=[metrics/*]
