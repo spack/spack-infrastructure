@@ -39,7 +39,7 @@ spec:
             privileged = false
             cpu_request = "9000m"
             namespace = "pipeline"
-            pollTimeout = 600  # ten minutes
+            poll_timeout = 600  # ten minutes
             service_account = "runner"
             [runners.kubernetes.pod_annotations]
               "gitlab-ci/ci_pipeline_url" = "$CI_PIPELINE_URL"
