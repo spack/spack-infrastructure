@@ -31,7 +31,6 @@ spec:
     runners:
       config: |
         [[runners]]
-          requestConcurrency =  20
           output_limit = 4096
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
@@ -40,8 +39,23 @@ spec:
             cpu_request = "46000m"
             memory_request = "88Gi"
             namespace = "pipeline"
-            pollTimeout = 600  # ten minutes
+            poll_timeout = 600  # ten minutes
             service_account = "runner"
+            [runners.kubernetes.pod_annotations]
+              "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
+              "gitlab/ci_job_url" = "$CI_JOB_URL"
+              "gitlab/ci_project_url" = "$CI_PROJECT_URL"
+              "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
+              "gitlab/ci_job_id" = "$CI_JOB_ID"
+            [runners.kubernetes.pod_labels]
+              "metrics/gitlab_ci_pipeline_id" = "$CI_PIPELINE_ID"
+              "metrics/gitlab_ci_project_namespace" = "$CI_PROJECT_NAMESPACE"
+              "metrics/gitlab_ci_project_name" = "$CI_PROJECT_NAME"
+              "metrics/gitlab_ci_job_stage" = "$CI_JOB_STAGE"
+              "metrics/gitlab_ci_commit_ref_name" = "$CI_COMMIT_REF_NAME"
+              "metrics/spack_ci_stack_name" = "$SPACK_CI_STACK_NAME"
+              "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
+              "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
               "kubernetes.io/arch" = "arm64"
               "spack.io/node-pool" = "glr-huge-pub"
