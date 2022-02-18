@@ -33,7 +33,6 @@ spec:
     runners:
       config: |
         [[runners]]
-          requestConcurrency =  10
           output_limit = 4096
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
