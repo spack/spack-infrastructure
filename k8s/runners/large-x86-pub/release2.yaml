@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-large-arm-pub
+  name: runner-large-x86-pub-2
   namespace: gitlab
 spec:
-  releaseName: large-arm-pub
+  releaseName: large-x86-pub-2
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -34,7 +34,6 @@ spec:
           output_limit = 4096
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
-            helper_image = "gitlab/gitlab-runner-helper:arm-latest"
             privileged = false
             cpu_request = "1500m"
             namespace = "pipeline"
@@ -56,7 +55,7 @@ spec:
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
-              "kubernetes.io/arch" = "arm64"
+              "kubernetes.io/arch" = "amd64"
               "spack.io/node-pool" = "glr-large-pub"
 
       # default image
@@ -64,11 +63,9 @@ spec:
       imagePullPolicy: "if-not-present"
       locked: false
 
-      tags: "arm,aarch64,graviton,graviton2,large,public,aws,spack"
+      tags: "x86_64,avx,avx2,avx512,large,public,aws,spack"
       runUntagged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
-
-      serviceAccountName: runner
 
       # Distributed runners caching
       # TODO(opadron): Look into this after setting up stand-alone minio service
@@ -93,6 +90,12 @@ spec:
         # secretName: google-application-credentials
 
       services: {}
+      # cpuRequests: 50m
+      # cpuLimit: 50m
+      # memoryRequests: 144Mi
+      # memoryLimit: 144Mi
+
+      helpers: {}
       # cpuRequests: 50m
       # cpuLimit: 50m
       # memoryRequests: 144Mi
