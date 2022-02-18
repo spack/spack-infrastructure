@@ -17,7 +17,7 @@ spec:
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600  # six hours
-    concurrent: 20
+    concurrent: 80
     checkInterval: 30
     # preEntrypointScript: |
     #   echo "Hello, from large-pub runner"
@@ -31,12 +31,11 @@ spec:
     runners:
       config: |
         [[runners]]
-          requestConcurrency =  20
           output_limit = 4096
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
             privileged = false
-            cpu_request = "5000m"
+            cpu_request = "1500m"
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
             service_account = "runner"

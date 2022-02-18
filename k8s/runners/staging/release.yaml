@@ -42,7 +42,6 @@ data:
       path: /spec/values/runners/config
       value: |
           [[runners]]
-          requestConcurrency =  3
           output_limit = 4096
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
