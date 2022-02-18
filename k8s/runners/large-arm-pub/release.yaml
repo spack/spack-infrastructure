@@ -37,7 +37,7 @@ spec:
           [runners.kubernetes]
             helper_image = "gitlab/gitlab-runner-helper:arm-latest"
             privileged = false
-            cpu_request = "1500m"
+            cpu_request = "5000m"
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
             service_account = "runner"

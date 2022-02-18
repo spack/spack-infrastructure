@@ -36,7 +36,7 @@ spec:
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
             privileged = false
-            cpu_request = "1500m"
+            cpu_request = "5000m"
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
             service_account = "runner"
