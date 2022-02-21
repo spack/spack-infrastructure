@@ -21,12 +21,18 @@ spec:
     spec:
       containers:
       - name: web
-        image: "ghcr.io/spack/spack-bot:e3405654bb"
+        image: "ghcr.io/spack/spack-bot:latest"
         imagePullPolicy: Always
         ports:
         - name: http
           containerPort: 8080
         env:
+        - name: SPACKBOTLOGLEVEL
+          value: "INFO"
+        - name: REDIS_HOST
+          value: pr-binary-graduation-task-queue.cev8lh.ng.0001.use1.cache.amazonaws.com
+        - name: REDIS_PORT
+          value: "6379"
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: GITHUB_APP_IDENTIFIER
@@ -48,5 +54,61 @@ spec:
             secretKeyRef:
               name: spack-bot-credentials
               key: github_webhook_secret
+      nodeSelector:
+        spack.io/node-pool: base
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spackbot-workers
+  namespace: spack
+  labels:
+    app: spackbot-workers
+    svc: workers
+spec:
+  selector:
+    matchLabels:
+      app: spackbot-workers
+      svc: workers
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: spackbot-workers
+        svc: workers
+    spec:
+      containers:
+      - name: worker
+        image: "ghcr.io/spack/spackbot-workers:latest"
+        imagePullPolicy: Always
+        # Mount secrets to non-existing location
+        volumeMounts:
+          - mountPath: "/git_rsa"
+            name: spack-bot-dev-idrsa
+            readOnly: true
+        env:
+        - name: SPACKBOTLOGLEVEL
+          value: "INFO"
+        - name: REDIS_HOST
+          value: pr-binary-graduation-task-queue.cev8lh.ng.0001.use1.cache.amazonaws.com
+        - name: REDIS_PORT
+          value: "6379"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: GITHUB_APP_IDENTIFIER
+          value: "123749"
+        - name: GITHUB_APP_REQUESTER
+          value: "spackbot"
+        - name: GITLAB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-credentials
+              key: gitlab_token
+      volumes:
+        - name: spack-bot-dev-idrsa
+          secret:
+            secretName: spack-bot-dev-idrsa
+            defaultMode: 0600
       nodeSelector:
         spack.io/node-pool: base
