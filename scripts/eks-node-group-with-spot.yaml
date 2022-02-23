@@ -1,0 +1,314 @@
+# Tweaked version of the EKS cloud formation template.
+#
+# The original is split into three:
+#
+#  1 - one for creating a security group.
+#
+#  2 - one for creating a node IAM role and instance profile.
+#
+#  3 - one for creating and managing a pool of nodes in an autoscaling group.
+#      The nodes in the autoscaling group will use a security group created
+#      using the first script, and an IAM role and instance profile created
+#      using the second script.
+#
+#  This is the third (3rd) script.
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Amazon EKS - Node Group
+
+Parameters:
+
+  NodeImageId:
+    Description: AMI id for the node instances.
+    Type: AWS::EC2::Image::Id
+
+  NodeInstanceType:
+    Description: EC2 instance type for the node instances
+    Type: String
+    Default: t3.medium
+    ConstraintDescription: Must be a valid EC2 instance type
+
+  NodeInstanceArch:
+    Description: EC2 instance architecture
+    Type: String
+    Default: amd64
+    AllowedValues:
+      - amd64
+      - arm64
+
+  NodeGPUCount:
+    Description: Number of GPUs per instance.
+    Type: Number
+    Default: 0
+
+  NodeAutoScalingGroupMinSize:
+    Description: Minimum size of the Node Group.
+    Type: Number
+    Default: 0
+
+  NodeAutoScalingGroupMaxSize:
+    Description: Maximum size of the Node Group.
+    ConstraintDescription: |
+        If equal to minimum size, then cluster
+        autoscaler will be disabled for this group.
+    Type: Number
+    Default: 3
+
+  NodeVolumeSize:
+    Description: Node volume size (in GB)
+    Type: Number
+    Default: 20
+
+  OnDemandAllocationStrategy:
+    Description: AllocationStrategy for On-Demand instances
+    Type: String
+    Default: prioritized
+    AllowedValues:
+      - prioritized
+      - lowest-price
+
+  SpotAllocationStrategy:
+    Description: AllocationStrategy for Spot instances
+    Type: String
+    Default: lowest-price
+    AllowedValues:
+      - capacity-optimized
+      - lowest-price
+      - capacity-optimized-prioritized
+
+  OnDemandBaseCapacity:
+    Description: On-Demand instance base capacity
+    ConstraintDescription: |
+      The minimum amount of the Auto Scaling group's capacity
+      that must be fulfilled by On-Demand Instances.
+    Type: Number
+    Default: 0
+
+  OnDemandPercentageAboveBaseCapacity:
+    Description: Percentage of On-Demand instances
+    ConstraintDescription: |
+      Controls the percentages of On-Demand Instances and Spot Instances
+      for your additional capacity beyond OnDemandBaseCapacity (for example,
+      20 specifies 20% On-Demand Instances, 80% Spot Instances).
+    Type: Number
+    Default: 0
+
+  SpotInstancePools:
+    Description: Number of Spot instance pools
+    Type: Number
+    Default: 2
+
+  SpotMaxPrice:
+    Description: Maximum price paid for Spot instances
+    Type: String
+
+  ClusterName:
+    Description: The cluster name provided when the cluster was created.
+    ConstraintDescription: |
+      If it is incorrect, nodes will
+      not be able to join the cluster.
+    Type: String
+
+  NodeGroupName:
+    Description: Unique identifier for the Node Group.
+    Type: String
+
+  NodeInstanceProfile:
+    Description: IAM profile for node instances.
+    Type: String
+
+  NodeSecurityGroup:
+    Description: Security for the nodes in the cluster.
+    Type: String
+
+  Subnets:
+    Description: The subnets where workers can be created.
+    Type: List<AWS::EC2::Subnet::Id>
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: EKS Cluster
+        Parameters:
+          - ClusterName
+
+      - Label:
+          default: Group Configuration
+        Parameters:
+          - NodeGroupName
+          - NodeAutoScalingGroupMinSize
+          - NodeAutoScalingGroupMaxSize
+
+      - Label:
+          default: Instance Configuration
+        Parameters:
+          - NodeInstanceType
+          - NodeInstanceArch
+          - NodeGPUCount
+          - NodeInstanceProfile
+          - NodeImageId
+          - NodeVolumeSize
+
+    - Label:
+          default: Spot Allocation Configuration
+        Parameters:
+          - OnDemandAllocationStrategy
+          - SpotAllocationStrategy
+          - OnDemandBaseCapacity
+          - OnDemandPercentageAboveBaseCapacity
+          - SpotInstancePools
+          - SpotMaxPrice
+
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - NodeSecurityGroup
+          - Subnets
+
+Conditions:
+  DisableClusterAutoscaling:
+    !Equals [!Ref NodeAutoScalingGroupMinSize, !Ref NodeAutoScalingGroupMaxSize]
+
+Resources:
+  NodeGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      DesiredCapacity: !Ref NodeAutoScalingGroupMinSize
+      MinSize: !Ref NodeAutoScalingGroupMinSize
+      MaxSize: !Ref NodeAutoScalingGroupMaxSize
+      MixedInstancesPolicy:
+        InstancesDistribution:
+          OnDemandAllocationStrategy: !Ref OnDemandAllocationStrategy
+          OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
+          OnDemandPercentageAboveBaseCapacity: !Ref OnDemandPercentageAboveBaseCapacity
+          SpotAllocationStrategy: !Ref SpotAllocationStrategy
+          SpotInstancePools: !Ref SpotInstancePools
+          SpotMaxPrice: !Ref SpotMaxPrice
+        LaunchTemplate:
+          LaunchTemplateSpecification:
+            LaunchTemplateId: !Ref NodeLaunchTemplate
+            Version: !GetAtt NodeLaunchTemplate.LatestVersionNumber
+      VPCZoneIdentifier: !Ref Subnets
+      Tags:
+        - Key: Name
+          Value: !Sub ${ClusterName}-${NodeGroupName}-Node
+          PropagateAtLaunch: true
+        - Key: !Sub kubernetes.io/cluster/${ClusterName}
+          Value: owned
+          PropagateAtLaunch: true
+        - Key: eks:cluster-name
+          Value: !Ref ClusterName
+          PropagateAtLaunch: true
+        - Key: eks:nodegroup-name
+          Value: !Ref NodeGroupName
+          PropagateAtLaunch: true
+        - Key: k8s.io/cluster-autoscaler/enabled
+          Value: !If [ DisableClusterAutoscaling, "false", "true" ]
+          PropagateAtLaunch: true
+        - Key: !Sub k8s.io/cluster-autoscaler/${ClusterName}
+          Value: owned
+          PropagateAtLaunch: true
+        - Key: "\
+            k8s.io/cluster-autoscaler/node-template/label\
+            /spack.io/node-pool"
+          Value: !Ref NodeGroupName
+          PropagateAtLaunch: true
+        - Key: "\
+            k8s.io/cluster-autoscaler/node-template/label\
+            /kubernetes.io/arch"
+          Value: !Ref NodeInstanceArch
+          PropagateAtLaunch: true
+        - Key: "\
+            k8s.io/cluster-autoscaler/node-template/resources\
+            /spack.io/node-share"
+          Value: 1Gi
+          PropagateAtLaunch: true
+        - Key: "\
+            k8s.io/cluster-autoscaler/node-template/resources\
+            /nvidia.com/gpu"
+          Value: !Ref NodeGPUCount
+          PropagateAtLaunch: true
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 1
+        MinInstancesInService: !Ref NodeAutoScalingGroupMinSize
+        PauseTime: PT5M
+
+  NodeLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "eksLaunchTemplate-${AWS::StackName}"
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Name: !Ref NodeInstanceProfile
+        ImageId: !Ref NodeImageId
+        InstanceType: !Ref NodeInstanceType
+
+        # NOTE(opadron): Since we specify a network interface with a security
+        #                group below, we must *not* provide a security group at
+        #                the LaunchTemplate level.
+        #
+        #                See: https://github.com/hashicorp/
+        #                     terraform-provider-aws/issues
+        #                     /4570#issuecomment-418083797
+        #
+        # SecurityGroups:
+        # - !Ref NodeSecurityGroup
+
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref NodeVolumeSize
+              VolumeType: gp2
+              DeleteOnTermination: true
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: false
+            Groups:
+              - !Ref NodeSecurityGroup
+        UserData:
+          # Custom code to convert cloudformation stack tags to kubernetes node
+          # labels.  Since it's python, it should run on most architectures w/out
+          # problems.  This runs on the instance as a systemd unit when the instance
+          # starts up.
+          Fn::Base64:
+            !Sub |
+              #!/bin/bash
+              cat > script.py << EOF
+              import json, sys
+              tags = json.load(sys.stdin)
+              tags = (tags.get("Stacks", []) + [{}])[0].get("Tags", [])
+              print(",".join(
+                  "{}={}".format(key[10:], value)
+                  for key, value in (
+                      (x.get("Key", ""), x.get("Value", ""))
+                      for x in tags
+                  )
+                  if key.startswith("k8s-label/")))
+              EOF
+
+              labels="$(
+                  aws cloudformation describe-stacks \
+                      --region ${AWS::Region} \
+                      --stack-name ${AWS::StackName} | python3 script.py )"
+
+              set -o xtrace
+
+              /etc/eks/bootstrap.sh ${ClusterName} \
+                  --kubelet-extra-args "--node-labels=$labels"
+
+              /opt/aws/bin/cfn-signal --exit-code $? \
+                       --stack  ${AWS::StackName} \
+                       --resource NodeGroup  \
+                       --region ${AWS::Region} || true
+
+Outputs:
+
+  NodeGroup:
+    Description: The node autoscaling group
+    Value: !Ref NodeGroup
+
+  NodeLaunchTemplate:
+    Description: The node autoscaling group launch template
+    Value: !Ref NodeLaunchTemplate
