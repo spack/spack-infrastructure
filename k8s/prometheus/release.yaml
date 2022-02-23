@@ -54,4 +54,33 @@ spec:
 
     kube-state-metrics:
       metricLabelsAllowlist:
-        - pods=[metrics/*]
+        - pods=[metrics/gitlab_ci_commit_ref_name,metrics/gitlab_ci_job_stage,metrics/gitlab_ci_pipeline_id,metrics/gitlab_ci_project_name,metrics/gitlab_ci_project_namespace,metrics/spack_ci_stack_name,metrics/spack_job_spec_pkg_name,metrics/spack_spec_needs_rebuild]
+# NOTE:
+#
+# Currently it is not possible to pass kube-state-metrics partial wild card
+# matches for whitelisted labels (i.e. metrics/* will not work). The other
+# option - to grab all labels with the generic wild card (i.e. *) and use
+# prometheus metric_relabel_configs to handle filtering. This _should_ be
+# possible using something like the configuration below, however it turns out it
+# is not CURRENTLY possible (2022-02-23) because labelmap validation of
+# ServiceMonitor CRD's is incorrect in the prometheus-operator (v.54.0). There
+# is a merged PR in prometheus-operator:release-0.54 but a new patch release
+# (i.e. v0.54.1) has not been cut yet. Once it is (and that propigates into the
+# helm chart - or we forcibly set the image to
+# quay.io/prometheus-operator/prometheus-operator:v0.54.1) Then we should be
+# able to "correctly" handle this labeling issue.
+#
+# See: https://github.com/prometheus-operator/prometheus-operator/pull/4574
+#
+#        - pods=[*]
+#
+#      prometheus:
+#        monitor:
+#          metricRelabelings:
+#            # create new labels like the following:
+#            # lable_metrics_gitlab_ci_commit_ref_name=test-ci -> gitlab_ci_commit_ref_name=test-ci
+#            # Note that the original label_metrics_* labels will still exist
+#            - action: labelmap
+#              regex: "label_metrics_(.+)"
+#            - action: labeldrop
+#              regex: "label_*"
