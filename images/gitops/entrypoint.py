@@ -212,6 +212,8 @@ def iter_manifests(path, repo, env):
             with open(filepath) as f:
                 try:
                     for obj in yaml.full_load_all(f):
+                        if not isinstance(obj, dict):
+                            continue
                         yield ParsedEntry(obj, env)
                 except yaml.scanner.ScannerError as e:
                     warn(f'file failed to parse')
