@@ -22,6 +22,7 @@ def test_list_github_prs(capfd):
     github_pr_response = [
         AttrDict({
             "number": 1,
+            "draft": False,
             "merge_commit_sha": "aaaaaaaa",
             "head": {
                 "ref": "improve_docs",
@@ -33,6 +34,7 @@ def test_list_github_prs(capfd):
         }),
         AttrDict({
             "number": 2,
+            "draft": False,
             "merge_commit_sha": "bbbbbbbb",
             "head": {
                 "ref": "fix_test",
@@ -40,6 +42,18 @@ def test_list_github_prs(capfd):
             },
             "base": {
                 "sha": "shafaz"
+            }
+        }),
+        AttrDict({
+            "number": 3,
+            "draft": True,
+            "merge_commit_sha": "cccccccc",
+            "head": {
+                "ref": "wip",
+                "sha": "shafff"
+            },
+            "base": {
+                "sha": "shaggg"
             }
         }),
     ]
@@ -64,6 +78,7 @@ def test_list_github_prs(capfd):
     out, err = capfd.readouterr()
     expected = """Rate limit after get_pulls(): 5000
 Skip pushing pr2_fix_test because GitLab already has HEAD shagah
+Skipping draft PR 3 (wip)
 All Open PRs:
     pr1_improve_docs
     pr2_fix_test
@@ -458,6 +473,7 @@ def test_pipeline_status_backlogged_by_checks(capfd):
         github_pr_response = [
             AttrDict({
                 "number": 1,
+                "draft": False,
                 "merge_commit_sha": "aaaaaaaa",
                 "head": {
                     "ref": "improve_docs",

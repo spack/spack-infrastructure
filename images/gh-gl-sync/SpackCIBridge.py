@@ -114,6 +114,9 @@ class SpackCIBridge(object):
         pulls = self.py_gh_repo.get_pulls(state="open")
         print("Rate limit after get_pulls(): {}".format(self.py_github.rate_limiting[0]))
         for pull in pulls:
+            if pull.draft:
+                print("Skipping draft PR {0} ({1})".format(pull.number, pull.head.ref))
+                continue
             if not pull.merge_commit_sha:
                 print("PR {0} ({1}) has no 'merge_commit_sha', skipping".format(pull.number, pull.head.ref))
                 self.unmergeable_shas.append(pull.head.sha)
