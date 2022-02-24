@@ -104,6 +104,7 @@ class SpackCIBridge(object):
             one for all open PRs, and one for open PRs that are not up-to-date on GitLab."""
         pr_dict = {}
         pulls = self.py_gh_repo.get_pulls(state="open")
+        print("Rate limit after get_pulls(): {}".format(self.py_github.rate_limiting[0]))
         for pull in pulls:
             if not pull.merge_commit_sha:
                 print("PR {0} ({1}) has no 'merge_commit_sha', skipping".format(pull.number, pull.head.ref))
@@ -178,11 +179,13 @@ class SpackCIBridge(object):
         print("Filtered Open PRs:")
         for pr_string in filtered_open_prs['pr_strings']:
             print("    {0}".format(pr_string))
+        print("Rate limit at the end of list_github_prs(): {}".format(self.py_github.rate_limiting[0]))
         return [all_open_prs, filtered_open_prs]
 
     def list_github_protected_branches(self):
         """ Return a list of protected branch names from GitHub."""
         branches = self.py_gh_repo.get_branches()
+        print("Rate limit after get_branches(): {}".format(self.py_github.rate_limiting[0]))
         protected_branches = [br.name for br in branches if br.protected]
         protected_branches = sorted(protected_branches)
         if self.currently_running_sha:
@@ -197,6 +200,7 @@ class SpackCIBridge(object):
     def list_github_tags(self):
         """ Return a list of tag names from GitHub."""
         tag_list = self.py_gh_repo.get_tags()
+        print("Rate limit after get_tags(): {}".format(self.py_github.rate_limiting[0]))
         tags = sorted([tag.name for tag in tag_list])
         print("Tags:")
         for tag in tags:
@@ -439,6 +443,7 @@ class SpackCIBridge(object):
         return self.dedupe_pipelines(pipelines)
 
     def post_pipeline_status(self, open_prs, protected_branches):
+        print("Rate limit at the beginning of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
         pipeline_branches = []
         backlog_branches = []
         # Split up the open_prs branches into two piles: branches we force-pushed to gitlab
@@ -530,6 +535,7 @@ class SpackCIBridge(object):
             except Exception as e_inst:
                 print('Caught exception posting status for unmergeable sha {0}'.format(sha))
                 print(e_inst)
+        print("Rate limit at the end of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
 
     def delete_pr_mirrors(self, closed_refspecs):
         if closed_refspecs:
@@ -544,6 +550,9 @@ class SpackCIBridge(object):
 
     def sync(self):
         """Synchronize pull requests from GitHub as branches on GitLab."""
+
+        print("Initial rate limit: {}".format(self.py_github.rate_limiting[0]))
+
         # Setup SSH command for communicating with GitLab.
         os.environ["GIT_SSH_COMMAND"] = "ssh -F /dev/null -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
