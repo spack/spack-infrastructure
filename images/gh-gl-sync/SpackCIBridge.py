@@ -25,7 +25,6 @@ class SpackCIBridge(object):
         self.github_project = github_project
         github_token = os.environ.get('GITHUB_TOKEN')
         self.github_repo = "https://{0}@github.com/{1}.git".format(github_token, self.github_project)
-
         self.py_github = Github(github_token)
         self.py_gh_repo = self.py_github.get_repo(self.github_project, lazy=True)
 
@@ -57,6 +56,8 @@ class SpackCIBridge(object):
         self.commit_api_template += "/api/v4/projects/"
         self.commit_api_template += urllib.parse.quote_plus(gitlab_project)
         self.commit_api_template += "/repository/commits/{0}"
+
+        self.cached_commits = {}
 
     @atexit.register
     def cleanup():
@@ -99,6 +100,13 @@ class SpackCIBridge(object):
             fp.seek(0)
             subprocess.run(["ssh-add", fp.name], check=True)
 
+    def get_commit(self, commit):
+        """ Check our cache for a commit on GitHub.
+            If we don't have it yet, use the GitHub API to retrieve it."""
+        if commit not in self.cached_commits:
+            self.cached_commits[commit] = self.py_gh_repo.get_commit(sha=commit)
+        return self.cached_commits[commit]
+
     def list_github_prs(self):
         """ Return two dicts of data about open PRs on GitHub:
             one for all open PRs, and one for open PRs that are not up-to-date on GitLab."""
@@ -139,7 +147,7 @@ class SpackCIBridge(object):
                 if self.prereq_checks:
                     checks_desc = "waiting for {} check to succeed"
                     checks_to_verify = self.prereq_checks.copy()
-                    pr_check_runs = self.py_gh_repo.get_commit(sha=pull.head.sha).get_check_runs()
+                    pr_check_runs = self.get_commit(pull.head.sha).get_check_runs()
                     for check in pr_check_runs:
                         if check.name in checks_to_verify:
                             checks_to_verify.remove(check.name)
@@ -479,7 +487,7 @@ class SpackCIBridge(object):
                     pr_sha = sha
                 print("  {0} -> {1}".format(branch, pr_sha))
                 try:
-                    status_response = self.py_gh_repo.get_commit(sha=pr_sha).create_status(
+                    status_response = self.get_commit(pr_sha).create_status(
                         state=post_data["state"],
                         target_url=post_data["target_url"],
                         description=post_data["description"],
@@ -505,7 +513,7 @@ class SpackCIBridge(object):
                 else:
                     desc = reason
                     url = ""
-                status_response = self.py_gh_repo.get_commit(sha=head_sha).create_status(
+                status_response = self.get_commit(head_sha).create_status(
                     state="pending",
                     target_url=url,
                     description=desc,
@@ -524,7 +532,7 @@ class SpackCIBridge(object):
             print('  {0}'.format(sha))
             commit_state = "error"
             try:
-                status_response = self.py_gh_repo.get_commit(sha=sha).create_status(
+                status_response = self.get_commit(sha).create_status(
                     state=commit_state,
                     description="PR could not be merged with base",
                     context="ci/gitlab-ci"
