@@ -376,7 +376,6 @@ class SpackCIBridge(object):
             post_data["description"] = "Pipeline succeeded"
 
         post_data["target_url"] = pipeline["web_url"]
-        post_data["context"] = "ci/gitlab-ci"
         return post_data
 
     def dedupe_pipelines(self, api_response):
@@ -485,65 +484,58 @@ class SpackCIBridge(object):
                     print('Could not find github PR sha for tested commit: {0}'.format(sha))
                     print('Using tested commit to post status')
                     pr_sha = sha
-                print("  {0} -> {1}".format(branch, pr_sha))
-                try:
-                    status_response = self.get_commit(pr_sha).create_status(
-                        state=post_data["state"],
-                        target_url=post_data["target_url"],
-                        description=post_data["description"],
-                        context=post_data["context"]
-                    )
-                    if status_response.state != post_data["state"]:
-                        print("Expected CommitStatus state {0}, got {1}".format(
-                            post_data["state"], status_response.state))
-                except Exception as e_inst:
-                    print('Caught exception posting status for {0}/{1}'.format(branch, pr_sha))
-                    print(e_inst)
+                self.create_status_for_commit(pr_sha,
+                                              branch,
+                                              post_data["state"],
+                                              post_data["target_url"],
+                                              post_data["description"])
 
         # Post a status of pending/backlogged for branches we deferred pushing
         print('Posting backlogged status to the following:')
         base_backlog_desc = \
             "waiting for base {} commit pipeline to succeed".format(self.main_branch)
         for branch, head_sha, reason in backlog_branches:
-            try:
-                print('  {0} -> {1}'.format(branch, head_sha))
-                if reason == "base":
-                    desc = base_backlog_desc
-                    url = self.currently_running_url
-                else:
-                    desc = reason
-                    url = ""
-                status_response = self.get_commit(head_sha).create_status(
-                    state="pending",
-                    target_url=url,
-                    description=desc,
-                    context="ci/gitlab-ci"
-                )
-                if status_response.state != "pending":
-                    print("Expected CommitStatus state pending, got {}".format(status_response.state))
-            except Exception as e_inst:
-                print('Caught exception posting status for {0}/{1}'.format(branch, head_sha))
-                print(e_inst)
+            if reason == "base":
+                desc = base_backlog_desc
+                url = self.currently_running_url
+            else:
+                desc = reason
+                url = ""
+            self.create_status_for_commit(head_sha, branch, "pending", url, desc)
 
         # Post errors to any PRs that we found didn't have a merge_commit_sha, and
         # thus were likely unmergeable.
         print('Posting unmergeable status to the following:')
         for sha in self.unmergeable_shas:
             print('  {0}'.format(sha))
-            commit_state = "error"
-            try:
-                status_response = self.get_commit(sha).create_status(
-                    state=commit_state,
-                    description="PR could not be merged with base",
-                    context="ci/gitlab-ci"
-                )
-                if status_response.state != commit_state:
-                    print("Expected CommitStatus state {0}, got {1}".format(
-                        commit_state, status_response.state))
-            except Exception as e_inst:
-                print('Caught exception posting status for unmergeable sha {0}'.format(sha))
-                print(e_inst)
+            self.create_status_for_commit(sha, "", "error", "", "PR could not be merged with base")
         print("Rate limit at the end of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
+
+    def create_status_for_commit(self, sha, branch, state, target_url, description):
+        context = "ci/gitlab-ci"
+        commit = self.get_commit(sha)
+        existing_statuses = commit.get_combined_status()
+        for status in existing_statuses.statuses:
+            if (status.context == context and
+                    status.state == state and
+                    status.description == description and
+                    status.target_url == target_url):
+                print("Not posting duplicate status to {} / {}".format(branch, sha))
+                return
+        try:
+            status_response = self.get_commit(sha).create_status(
+                state=state,
+                target_url=target_url,
+                description=description,
+                context=context
+            )
+            if status_response.state != state:
+                print("Expected CommitStatus state {0}, got {1}".format(
+                    state, status_response.state))
+        except Exception as e_inst:
+            print('Caught exception posting status for {0}/{1}'.format(branch, sha))
+            print(e_inst)
+        print("  {0} -> {1}".format(branch, sha))
 
     def delete_pr_mirrors(self, closed_refspecs):
         if closed_refspecs:
