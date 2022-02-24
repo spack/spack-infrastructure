@@ -5,7 +5,7 @@ metadata:
   name: gh-gl-sync
   namespace: custom
 spec:
-  schedule: "*/3 * * * *"
+  schedule: "*/4 * * * *"
   jobTemplate:
     spec:
       backoffLimit: 0
