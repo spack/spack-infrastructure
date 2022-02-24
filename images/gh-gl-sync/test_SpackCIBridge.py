@@ -3,6 +3,9 @@ from unittest.mock import create_autospec, patch, Mock
 
 import SpackCIBridge
 
+py_github = Mock()
+py_github.rate_limiting = (5000, 5000)
+
 
 class AttrDict(dict):
     def __init__(self, iterable, **kwargs):
@@ -44,6 +47,7 @@ def test_list_github_prs(capfd):
     gh_repo.get_pulls.return_value = github_pr_response
     bridge = SpackCIBridge.SpackCIBridge()
     bridge.py_gh_repo = gh_repo
+    bridge.py_github = py_github
 
     import subprocess
     actual_run_method = subprocess.run
@@ -58,12 +62,14 @@ def test_list_github_prs(capfd):
     assert github_prs["merge_commit_shas"] == ["aaaaaaaa", "bbbbbbbb"]
     assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
-    expected = """Skip pushing pr2_fix_test because GitLab already has HEAD shagah
+    expected = """Rate limit after get_pulls(): 5000
+Skip pushing pr2_fix_test because GitLab already has HEAD shagah
 All Open PRs:
     pr1_improve_docs
     pr2_fix_test
 Filtered Open PRs:
     pr1_improve_docs
+Rate limit at the end of list_github_prs(): 5000
 """
     assert out == expected
 
@@ -370,6 +376,7 @@ def test_post_pipeline_status(capfd):
 
     gh_commit = Mock()
     gh_commit.create_status.return_value = AttrDict({"state": "error"})
+    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
     gh_repo = Mock()
     gh_repo.get_commit.return_value = gh_commit
 
@@ -412,6 +419,7 @@ def test_pipeline_status_backlogged_by_main_branch(capfd):
     }
 
     gh_commit = Mock()
+    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
     gh_commit.create_status.return_value = AttrDict({"state": "pending"})
     gh_repo = Mock()
     gh_repo.get_commit.return_value = gh_commit
@@ -464,6 +472,7 @@ def test_pipeline_status_backlogged_by_checks(capfd):
         gh_commit = Mock()
         gh_commit.get_check_runs.return_value = checks_return_value
         gh_commit.create_status.return_value = AttrDict({"state": "pending"})
+        gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
 
         gh_repo = Mock()
         gh_repo.get_pulls.return_value = github_pr_response
