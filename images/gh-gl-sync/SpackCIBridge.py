@@ -126,7 +126,8 @@ class SpackCIBridge(object):
             push = True
             log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
             try:
-                merge_commit_msg = subprocess.run(log_args, check=True, stdout=subprocess.PIPE).stdout
+                merge_commit_msg = subprocess.run(
+                    log_args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
                 match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
                 if match and match.group(1) == pull.head.sha:
                     print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
