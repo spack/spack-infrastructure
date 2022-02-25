@@ -72,8 +72,8 @@ def test_list_github_prs(capfd):
     subprocess.run = actual_run_method
 
     github_prs = retval[0]
-    assert github_prs["pr_strings"] == ["pr1_improve_docs", "pr2_fix_test"]
-    assert github_prs["merge_commit_shas"] == ["aaaaaaaa", "bbbbbbbb"]
+    assert github_prs["pr_strings"] == ["pr1_improve_docs", "pr2_fix_test", "pr3_wip"]
+    assert github_prs["merge_commit_shas"] == ["aaaaaaaa", "bbbbbbbb", "cccccccc"]
     assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
     expected = """Rate limit after get_pulls(): 5000
@@ -82,6 +82,7 @@ Skipping draft PR 3 (wip)
 All Open PRs:
     pr1_improve_docs
     pr2_fix_test
+    pr3_wip
 Filtered Open PRs:
     pr1_improve_docs
 Rate limit at the end of list_github_prs(): 5000
@@ -543,3 +544,43 @@ def test_pipeline_status_backlogged_by_checks(capfd):
     # Verify backlogged status when the required check is missing from the API's response.
     checks_api_response = []
     verify_backlogged_by_checks(capfd, checks_api_response)
+
+
+def test_pipeline_status_backlogged_for_draft_PR(capfd):
+    """Test the post_pipeline_status method for a PR that is backlogged because it is marked as a draft."""
+    open_prs = {
+        "pr_strings": ["pr1_readme"],
+        "merge_commit_shas": ["aaaaaaaa"],
+        "base_shas": ["shafoo"],
+        "head_shas": ["shabaz"],
+        "backlogged": ["draft"]
+    }
+
+    gh_commit = Mock()
+    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
+    gh_commit.create_status.return_value = AttrDict({"state": "pending"})
+    gh_repo = Mock()
+    gh_repo.get_commit.return_value = gh_commit
+
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
+                                         gitlab_project="zack/my_test_proj",
+                                         github_project="zack/my_test_proj",
+                                         main_branch="develop")
+    bridge.py_gh_repo = gh_repo
+    os.environ["GITHUB_TOKEN"] = "my_github_token"
+
+    expected_desc = "GitLab CI is disabled for draft PRs"
+
+    bridge.post_pipeline_status(open_prs, [])
+    assert gh_commit.create_status.call_count == 1
+    gh_commit.create_status.assert_called_with(
+        state="pending",
+        context="ci/gitlab-ci",
+        description=expected_desc,
+        target_url=""
+    )
+    out, err = capfd.readouterr()
+    expected_content = """Posting backlogged status to the following:
+  pr1_readme -> shabaz"""
+    assert expected_content in out
+    del os.environ["GITHUB_TOKEN"]

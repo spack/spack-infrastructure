@@ -20,7 +20,8 @@ import urllib.request
 class SpackCIBridge(object):
 
     def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
-                 disable_status_post=True, pr_mirror_bucket=None, main_branch=None, prereq_checks=[]):
+                 disable_status_post=True, sync_draft_prs=False, pr_mirror_bucket=None,
+                 main_branch=None, prereq_checks=[]):
         self.gitlab_repo = gitlab_repo
         self.github_project = github_project
         github_token = os.environ.get('GITHUB_TOKEN')
@@ -32,6 +33,7 @@ class SpackCIBridge(object):
         self.unmergeable_shas = []
 
         self.post_status = not disable_status_post
+        self.sync_draft_prs = sync_draft_prs
         self.pr_mirror_bucket = pr_mirror_bucket
         self.main_branch = main_branch
         self.currently_running_sha = None
@@ -114,38 +116,41 @@ class SpackCIBridge(object):
         pulls = self.py_gh_repo.get_pulls(state="open")
         print("Rate limit after get_pulls(): {}".format(self.py_github.rate_limiting[0]))
         for pull in pulls:
-            if pull.draft:
-                print("Skipping draft PR {0} ({1})".format(pull.number, pull.head.ref))
-                continue
             if not pull.merge_commit_sha:
                 print("PR {0} ({1}) has no 'merge_commit_sha', skipping".format(pull.number, pull.head.ref))
                 self.unmergeable_shas.append(pull.head.sha)
                 continue
-            pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
-
-            # Determine what PRs need to be pushed to GitLab. This happens in one of two cases:
-            # 1) we have never pushed it before
-            # 2) we have pushed it before, but the HEAD sha has changed since we pushed it last
-            push = True
-            log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
-            try:
-                merge_commit_msg = subprocess.run(
-                    log_args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
-                match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
-                if match and match.group(1) == pull.head.sha:
-                    print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
-                    push = False
-
-            except subprocess.CalledProcessError:
-                # This occurs when it's a new PR that hasn't been pushed to GitLab yet.
-                pass
 
             backlogged = False
+            push = True
+            if pull.draft and not self.sync_draft_prs:
+                print("Skipping draft PR {0} ({1})".format(pull.number, pull.head.ref))
+                backlogged = "draft"
+                push = False
+            pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
+
+            if push:
+                # Determine if this PR still needs to be pushed to GitLab. This happens in one of two cases:
+                # 1) we have never pushed it before
+                # 2) we have pushed it before, but the HEAD sha has changed since we pushed it last
+                log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
+                try:
+                    merge_commit_msg = subprocess.run(
+                        log_args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+                    match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
+                    if match and match.group(1) == pull.head.sha:
+                        print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
+                        push = False
+                except subprocess.CalledProcessError:
+                    # This occurs when it's a new PR that hasn't been pushed to GitLab yet.
+                    pass
+
             if push:
                 # Check the PRs-to-be-pushed to see if any of them should be considered "backlogged".
-                # We currently recognize two types of backlogged PRs:
+                # We currently recognize three types of backlogged PRs:
                 # 1) The PR is based on a version of the "main branch" that's currently being tested
                 # 2) Some required "prerequisite checks" have not yet completed successfully.
+                # 3) Draft PRs. Handled earlier in this function.
                 if self.currently_running_sha and self.currently_running_sha == pull.base.sha:
                     backlogged = "base"
                 if self.prereq_checks:
@@ -294,6 +299,8 @@ class SpackCIBridge(object):
                     # them to gitlab for a time when there is not a main branch pipeline running
                     # on one of their parent commits.
                     print("  defer pushing {0} (based on {1})".format(open_pr, base_sha))
+                elif backlog == "draft":
+                    print("  defer pushing draft PR {0}".format(open_pr))
                 else:
                     print("  defer pushing {0} (based on checks)".format(open_pr))
         return open_refspecs, fetch_refspecs
@@ -502,6 +509,9 @@ class SpackCIBridge(object):
             if reason == "base":
                 desc = base_backlog_desc
                 url = self.currently_running_url
+            elif reason == "draft":
+                desc = "GitLab CI is disabled for draft PRs"
+                url = ""
             else:
                 desc = reason
                 url = ""
@@ -630,6 +640,8 @@ if __name__ == "__main__":
     parser.add_argument("gitlab_project", help="GitLab project (org/repo or user/repo)")
     parser.add_argument("--disable-status-post", action="store_true", default=False,
                         help="Do not post pipeline status to each GitHub PR")
+    parser.add_argument("--sync-draft-prs", action="store_true", default=False,
+                        help="Copy draft PRs from GitHub to GitLab")
     parser.add_argument("--pr-mirror-bucket", default=None,
                         help="Delete mirrors for closed PRs from the specified S3 bucket")
     parser.add_argument("--main-branch", default=None,
@@ -653,6 +665,7 @@ pipeline on this branch, and then PR branch merge commits having that sha as a p
                            gitlab_project=args.gitlab_project,
                            github_project=args.github_project,
                            disable_status_post=args.disable_status_post,
+                           sync_draft_prs=args.sync_draft_prs,
                            pr_mirror_bucket=args.pr_mirror_bucket,
                            main_branch=args.main_branch,
                            prereq_checks=args.prereq_check)
