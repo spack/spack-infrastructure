@@ -150,7 +150,7 @@ Metadata:
           - NodeImageId
           - NodeVolumeSize
 
-    - Label:
+      - Label:
           default: Spot Allocation Configuration
         Parameters:
           - OnDemandAllocationStrategy
