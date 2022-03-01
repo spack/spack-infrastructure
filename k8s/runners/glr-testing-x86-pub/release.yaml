@@ -2,12 +2,12 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-glr-test
+  name: runner-glr-testing-x86-pub
   namespace: gitlab
   annotations:
     fluxcd.io/ignore: "true"
 spec:
-  releaseName: glr-test
+  releaseName: glr-testing-x86-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -56,7 +56,7 @@ spec:
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
               "kubernetes.io/arch" = "x86_64"
-              "spack.io/node-pool" = "glr-glr-test"
+              "spack.io/node-pool" = "glr-glr-testing"
 
       # default image
       image: "busybox:1.32.0"
