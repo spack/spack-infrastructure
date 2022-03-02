@@ -55,7 +55,7 @@ spec:
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
-              "kubernetes.io/arch" = "x86_64"
+              "kubernetes.io/arch" = "amd64"
               "spack.io/node-pool" = "glr-glr-testing"
 
       # default image
@@ -63,7 +63,7 @@ spec:
       imagePullPolicy: "if-not-present"
       locked: false
 
-      tags: "x86_64,glr-test,public,aws,spack"
+      tags: "glr-testing"
       runUntagged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
 
