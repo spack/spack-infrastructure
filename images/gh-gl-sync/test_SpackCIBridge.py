@@ -3,6 +3,9 @@ from unittest.mock import create_autospec, patch, Mock
 
 import SpackCIBridge
 
+py_github = Mock()
+py_github.rate_limiting = (5000, 5000)
+
 
 class AttrDict(dict):
     def __init__(self, iterable, **kwargs):
@@ -19,6 +22,7 @@ def test_list_github_prs(capfd):
     github_pr_response = [
         AttrDict({
             "number": 1,
+            "draft": False,
             "merge_commit_sha": "aaaaaaaa",
             "head": {
                 "ref": "improve_docs",
@@ -30,6 +34,7 @@ def test_list_github_prs(capfd):
         }),
         AttrDict({
             "number": 2,
+            "draft": False,
             "merge_commit_sha": "bbbbbbbb",
             "head": {
                 "ref": "fix_test",
@@ -39,11 +44,24 @@ def test_list_github_prs(capfd):
                 "sha": "shafaz"
             }
         }),
+        AttrDict({
+            "number": 3,
+            "draft": True,
+            "merge_commit_sha": "cccccccc",
+            "head": {
+                "ref": "wip",
+                "sha": "shafff"
+            },
+            "base": {
+                "sha": "shaggg"
+            }
+        }),
     ]
     gh_repo = Mock()
     gh_repo.get_pulls.return_value = github_pr_response
     bridge = SpackCIBridge.SpackCIBridge()
     bridge.py_gh_repo = gh_repo
+    bridge.py_github = py_github
 
     import subprocess
     actual_run_method = subprocess.run
@@ -54,16 +72,20 @@ def test_list_github_prs(capfd):
     subprocess.run = actual_run_method
 
     github_prs = retval[0]
-    assert github_prs["pr_strings"] == ["pr1_improve_docs", "pr2_fix_test"]
-    assert github_prs["merge_commit_shas"] == ["aaaaaaaa", "bbbbbbbb"]
+    assert github_prs["pr_strings"] == ["pr1_improve_docs", "pr2_fix_test", "pr3_wip"]
+    assert github_prs["merge_commit_shas"] == ["aaaaaaaa", "bbbbbbbb", "cccccccc"]
     assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
-    expected = """Skip pushing pr2_fix_test because GitLab already has HEAD shagah
+    expected = """Rate limit after get_pulls(): 5000
+Skip pushing pr2_fix_test because GitLab already has HEAD shagah
+Skipping draft PR 3 (wip)
 All Open PRs:
     pr1_improve_docs
     pr2_fix_test
+    pr3_wip
 Filtered Open PRs:
     pr1_improve_docs
+Rate limit at the end of list_github_prs(): 5000
 """
     assert out == expected
 
@@ -370,6 +392,7 @@ def test_post_pipeline_status(capfd):
 
     gh_commit = Mock()
     gh_commit.create_status.return_value = AttrDict({"state": "error"})
+    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
     gh_repo = Mock()
     gh_repo.get_commit.return_value = gh_commit
 
@@ -412,6 +435,7 @@ def test_pipeline_status_backlogged_by_main_branch(capfd):
     }
 
     gh_commit = Mock()
+    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
     gh_commit.create_status.return_value = AttrDict({"state": "pending"})
     gh_repo = Mock()
     gh_repo.get_commit.return_value = gh_commit
@@ -450,6 +474,7 @@ def test_pipeline_status_backlogged_by_checks(capfd):
         github_pr_response = [
             AttrDict({
                 "number": 1,
+                "draft": False,
                 "merge_commit_sha": "aaaaaaaa",
                 "head": {
                     "ref": "improve_docs",
@@ -464,6 +489,7 @@ def test_pipeline_status_backlogged_by_checks(capfd):
         gh_commit = Mock()
         gh_commit.get_check_runs.return_value = checks_return_value
         gh_commit.create_status.return_value = AttrDict({"state": "pending"})
+        gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
 
         gh_repo = Mock()
         gh_repo.get_pulls.return_value = github_pr_response
@@ -518,3 +544,43 @@ def test_pipeline_status_backlogged_by_checks(capfd):
     # Verify backlogged status when the required check is missing from the API's response.
     checks_api_response = []
     verify_backlogged_by_checks(capfd, checks_api_response)
+
+
+def test_pipeline_status_backlogged_for_draft_PR(capfd):
+    """Test the post_pipeline_status method for a PR that is backlogged because it is marked as a draft."""
+    open_prs = {
+        "pr_strings": ["pr1_readme"],
+        "merge_commit_shas": ["aaaaaaaa"],
+        "base_shas": ["shafoo"],
+        "head_shas": ["shabaz"],
+        "backlogged": ["draft"]
+    }
+
+    gh_commit = Mock()
+    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
+    gh_commit.create_status.return_value = AttrDict({"state": "pending"})
+    gh_repo = Mock()
+    gh_repo.get_commit.return_value = gh_commit
+
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
+                                         gitlab_project="zack/my_test_proj",
+                                         github_project="zack/my_test_proj",
+                                         main_branch="develop")
+    bridge.py_gh_repo = gh_repo
+    os.environ["GITHUB_TOKEN"] = "my_github_token"
+
+    expected_desc = "GitLab CI is disabled for draft PRs"
+
+    bridge.post_pipeline_status(open_prs, [])
+    assert gh_commit.create_status.call_count == 1
+    gh_commit.create_status.assert_called_with(
+        state="pending",
+        context="ci/gitlab-ci",
+        description=expected_desc,
+        target_url=""
+    )
+    out, err = capfd.readouterr()
+    expected_content = """Posting backlogged status to the following:
+  pr1_readme -> shabaz"""
+    assert expected_content in out
+    del os.environ["GITHUB_TOKEN"]

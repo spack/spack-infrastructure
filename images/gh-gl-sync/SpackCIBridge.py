@@ -20,12 +20,12 @@ import urllib.request
 class SpackCIBridge(object):
 
     def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
-                 disable_status_post=True, pr_mirror_bucket=None, main_branch=None, prereq_checks=[]):
+                 disable_status_post=True, sync_draft_prs=False, pr_mirror_bucket=None,
+                 main_branch=None, prereq_checks=[]):
         self.gitlab_repo = gitlab_repo
         self.github_project = github_project
         github_token = os.environ.get('GITHUB_TOKEN')
         self.github_repo = "https://{0}@github.com/{1}.git".format(github_token, self.github_project)
-
         self.py_github = Github(github_token)
         self.py_gh_repo = self.py_github.get_repo(self.github_project, lazy=True)
 
@@ -33,6 +33,7 @@ class SpackCIBridge(object):
         self.unmergeable_shas = []
 
         self.post_status = not disable_status_post
+        self.sync_draft_prs = sync_draft_prs
         self.pr_mirror_bucket = pr_mirror_bucket
         self.main_branch = main_branch
         self.currently_running_sha = None
@@ -57,6 +58,8 @@ class SpackCIBridge(object):
         self.commit_api_template += "/api/v4/projects/"
         self.commit_api_template += urllib.parse.quote_plus(gitlab_project)
         self.commit_api_template += "/repository/commits/{0}"
+
+        self.cached_commits = {}
 
     @atexit.register
     def cleanup():
@@ -99,46 +102,61 @@ class SpackCIBridge(object):
             fp.seek(0)
             subprocess.run(["ssh-add", fp.name], check=True)
 
+    def get_commit(self, commit):
+        """ Check our cache for a commit on GitHub.
+            If we don't have it yet, use the GitHub API to retrieve it."""
+        if commit not in self.cached_commits:
+            self.cached_commits[commit] = self.py_gh_repo.get_commit(sha=commit)
+        return self.cached_commits[commit]
+
     def list_github_prs(self):
         """ Return two dicts of data about open PRs on GitHub:
             one for all open PRs, and one for open PRs that are not up-to-date on GitLab."""
         pr_dict = {}
         pulls = self.py_gh_repo.get_pulls(state="open")
+        print("Rate limit after get_pulls(): {}".format(self.py_github.rate_limiting[0]))
         for pull in pulls:
             if not pull.merge_commit_sha:
                 print("PR {0} ({1}) has no 'merge_commit_sha', skipping".format(pull.number, pull.head.ref))
                 self.unmergeable_shas.append(pull.head.sha)
                 continue
-            pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
-
-            # Determine what PRs need to be pushed to GitLab. This happens in one of two cases:
-            # 1) we have never pushed it before
-            # 2) we have pushed it before, but the HEAD sha has changed since we pushed it last
-            push = True
-            log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
-            try:
-                merge_commit_msg = subprocess.run(log_args, check=True, stdout=subprocess.PIPE).stdout
-                match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
-                if match and match.group(1) == pull.head.sha:
-                    print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
-                    push = False
-
-            except subprocess.CalledProcessError:
-                # This occurs when it's a new PR that hasn't been pushed to GitLab yet.
-                pass
 
             backlogged = False
+            push = True
+            if pull.draft and not self.sync_draft_prs:
+                print("Skipping draft PR {0} ({1})".format(pull.number, pull.head.ref))
+                backlogged = "draft"
+                push = False
+            pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
+
+            if push:
+                # Determine if this PR still needs to be pushed to GitLab. This happens in one of two cases:
+                # 1) we have never pushed it before
+                # 2) we have pushed it before, but the HEAD sha has changed since we pushed it last
+                log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
+                try:
+                    merge_commit_msg = subprocess.run(
+                        log_args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+                    match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
+                    if match and match.group(1) == pull.head.sha:
+                        print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
+                        push = False
+                except subprocess.CalledProcessError:
+                    # This occurs when it's a new PR that hasn't been pushed to GitLab yet.
+                    pass
+
             if push:
                 # Check the PRs-to-be-pushed to see if any of them should be considered "backlogged".
-                # We currently recognize two types of backlogged PRs:
+                # We currently recognize three types of backlogged PRs:
                 # 1) The PR is based on a version of the "main branch" that's currently being tested
                 # 2) Some required "prerequisite checks" have not yet completed successfully.
+                # 3) Draft PRs. Handled earlier in this function.
                 if self.currently_running_sha and self.currently_running_sha == pull.base.sha:
                     backlogged = "base"
                 if self.prereq_checks:
                     checks_desc = "waiting for {} check to succeed"
                     checks_to_verify = self.prereq_checks.copy()
-                    pr_check_runs = self.py_gh_repo.get_commit(sha=pull.head.sha).get_check_runs()
+                    pr_check_runs = self.get_commit(pull.head.sha).get_check_runs()
                     for check in pr_check_runs:
                         if check.name in checks_to_verify:
                             checks_to_verify.remove(check.name)
@@ -178,11 +196,13 @@ class SpackCIBridge(object):
         print("Filtered Open PRs:")
         for pr_string in filtered_open_prs['pr_strings']:
             print("    {0}".format(pr_string))
+        print("Rate limit at the end of list_github_prs(): {}".format(self.py_github.rate_limiting[0]))
         return [all_open_prs, filtered_open_prs]
 
     def list_github_protected_branches(self):
         """ Return a list of protected branch names from GitHub."""
         branches = self.py_gh_repo.get_branches()
+        print("Rate limit after get_branches(): {}".format(self.py_github.rate_limiting[0]))
         protected_branches = [br.name for br in branches if br.protected]
         protected_branches = sorted(protected_branches)
         if self.currently_running_sha:
@@ -197,6 +217,7 @@ class SpackCIBridge(object):
     def list_github_tags(self):
         """ Return a list of tag names from GitHub."""
         tag_list = self.py_gh_repo.get_tags()
+        print("Rate limit after get_tags(): {}".format(self.py_github.rate_limiting[0]))
         tags = sorted([tag.name for tag in tag_list])
         print("Tags:")
         for tag in tags:
@@ -278,6 +299,8 @@ class SpackCIBridge(object):
                     # them to gitlab for a time when there is not a main branch pipeline running
                     # on one of their parent commits.
                     print("  defer pushing {0} (based on {1})".format(open_pr, base_sha))
+                elif backlog == "draft":
+                    print("  defer pushing draft PR {0}".format(open_pr))
                 else:
                     print("  defer pushing {0} (based on checks)".format(open_pr))
         return open_refspecs, fetch_refspecs
@@ -364,7 +387,6 @@ class SpackCIBridge(object):
             post_data["description"] = "Pipeline succeeded"
 
         post_data["target_url"] = pipeline["web_url"]
-        post_data["context"] = "ci/gitlab-ci"
         return post_data
 
     def dedupe_pipelines(self, api_response):
@@ -439,6 +461,7 @@ class SpackCIBridge(object):
         return self.dedupe_pipelines(pipelines)
 
     def post_pipeline_status(self, open_prs, protected_branches):
+        print("Rate limit at the beginning of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
         pipeline_branches = []
         backlog_branches = []
         # Split up the open_prs branches into two piles: branches we force-pushed to gitlab
@@ -472,64 +495,61 @@ class SpackCIBridge(object):
                     print('Could not find github PR sha for tested commit: {0}'.format(sha))
                     print('Using tested commit to post status')
                     pr_sha = sha
-                print("  {0} -> {1}".format(branch, pr_sha))
-                try:
-                    status_response = self.py_gh_repo.get_commit(sha=pr_sha).create_status(
-                        state=post_data["state"],
-                        target_url=post_data["target_url"],
-                        description=post_data["description"],
-                        context=post_data["context"]
-                    )
-                    if status_response.state != post_data["state"]:
-                        print("Expected CommitStatus state {0}, got {1}".format(
-                            post_data["state"], status_response.state))
-                except Exception as e_inst:
-                    print('Caught exception posting status for {0}/{1}'.format(branch, pr_sha))
-                    print(e_inst)
+                self.create_status_for_commit(pr_sha,
+                                              branch,
+                                              post_data["state"],
+                                              post_data["target_url"],
+                                              post_data["description"])
 
         # Post a status of pending/backlogged for branches we deferred pushing
         print('Posting backlogged status to the following:')
         base_backlog_desc = \
             "waiting for base {} commit pipeline to succeed".format(self.main_branch)
         for branch, head_sha, reason in backlog_branches:
-            try:
-                print('  {0} -> {1}'.format(branch, head_sha))
-                if reason == "base":
-                    desc = base_backlog_desc
-                    url = self.currently_running_url
-                else:
-                    desc = reason
-                    url = ""
-                status_response = self.py_gh_repo.get_commit(sha=head_sha).create_status(
-                    state="pending",
-                    target_url=url,
-                    description=desc,
-                    context="ci/gitlab-ci"
-                )
-                if status_response.state != "pending":
-                    print("Expected CommitStatus state pending, got {}".format(status_response.state))
-            except Exception as e_inst:
-                print('Caught exception posting status for {0}/{1}'.format(branch, head_sha))
-                print(e_inst)
+            if reason == "base":
+                desc = base_backlog_desc
+                url = self.currently_running_url
+            elif reason == "draft":
+                desc = "GitLab CI is disabled for draft PRs"
+                url = ""
+            else:
+                desc = reason
+                url = ""
+            self.create_status_for_commit(head_sha, branch, "pending", url, desc)
 
         # Post errors to any PRs that we found didn't have a merge_commit_sha, and
         # thus were likely unmergeable.
         print('Posting unmergeable status to the following:')
         for sha in self.unmergeable_shas:
             print('  {0}'.format(sha))
-            commit_state = "error"
-            try:
-                status_response = self.py_gh_repo.get_commit(sha=sha).create_status(
-                    state=commit_state,
-                    description="PR could not be merged with base",
-                    context="ci/gitlab-ci"
-                )
-                if status_response.state != commit_state:
-                    print("Expected CommitStatus state {0}, got {1}".format(
-                        commit_state, status_response.state))
-            except Exception as e_inst:
-                print('Caught exception posting status for unmergeable sha {0}'.format(sha))
-                print(e_inst)
+            self.create_status_for_commit(sha, "", "error", "", "PR could not be merged with base")
+        print("Rate limit at the end of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
+
+    def create_status_for_commit(self, sha, branch, state, target_url, description):
+        context = "ci/gitlab-ci"
+        commit = self.get_commit(sha)
+        existing_statuses = commit.get_combined_status()
+        for status in existing_statuses.statuses:
+            if (status.context == context and
+                    status.state == state and
+                    status.description == description and
+                    status.target_url == target_url):
+                print("Not posting duplicate status to {} / {}".format(branch, sha))
+                return
+        try:
+            status_response = self.get_commit(sha).create_status(
+                state=state,
+                target_url=target_url,
+                description=description,
+                context=context
+            )
+            if status_response.state != state:
+                print("Expected CommitStatus state {0}, got {1}".format(
+                    state, status_response.state))
+        except Exception as e_inst:
+            print('Caught exception posting status for {0}/{1}'.format(branch, sha))
+            print(e_inst)
+        print("  {0} -> {1}".format(branch, sha))
 
     def delete_pr_mirrors(self, closed_refspecs):
         if closed_refspecs:
@@ -544,6 +564,9 @@ class SpackCIBridge(object):
 
     def sync(self):
         """Synchronize pull requests from GitHub as branches on GitLab."""
+
+        print("Initial rate limit: {}".format(self.py_github.rate_limiting[0]))
+
         # Setup SSH command for communicating with GitLab.
         os.environ["GIT_SSH_COMMAND"] = "ssh -F /dev/null -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
@@ -617,6 +640,8 @@ if __name__ == "__main__":
     parser.add_argument("gitlab_project", help="GitLab project (org/repo or user/repo)")
     parser.add_argument("--disable-status-post", action="store_true", default=False,
                         help="Do not post pipeline status to each GitHub PR")
+    parser.add_argument("--sync-draft-prs", action="store_true", default=False,
+                        help="Copy draft PRs from GitHub to GitLab")
     parser.add_argument("--pr-mirror-bucket", default=None,
                         help="Delete mirrors for closed PRs from the specified S3 bucket")
     parser.add_argument("--main-branch", default=None,
@@ -640,6 +665,7 @@ pipeline on this branch, and then PR branch merge commits having that sha as a p
                            gitlab_project=args.gitlab_project,
                            github_project=args.github_project,
                            disable_status_post=args.disable_status_post,
+                           sync_draft_prs=args.sync_draft_prs,
                            pr_mirror_bucket=args.pr_mirror_bucket,
                            main_branch=args.main_branch,
                            prereq_checks=args.prereq_check)
