@@ -5,7 +5,7 @@ metadata:
   name: gh-gl-sync
   namespace: custom
 spec:
-  schedule: "*/3 * * * *"
+  schedule: "*/4 * * * *"
   jobTemplate:
     spec:
       backoffLimit: 0
@@ -15,7 +15,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: sync
-            image: ghcr.io/spack/ci-bridge:0.0.24
+            image: ghcr.io/spack/ci-bridge:0.0.25
             imagePullPolicy: IfNotPresent
             env:
             - name: GITHUB_TOKEN
