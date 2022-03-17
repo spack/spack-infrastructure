@@ -35,7 +35,18 @@ spec:
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
             privileged = false
-            cpu_request = "1500m"
+            cpu_request = "750m"
+            cpu_request_overwrite_max_allowed = "16000m"
+            # cpu_limit =
+            # cpu_limit_overwrite_max_allowed =
+
+            memory_request = "1000M"
+            memory_request_overwrite_max_allowed = "50000M"
+
+            # memory_limit =
+            # memory_limit_overwrite_max_allowed =
+
+
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
             service_account = "runner"
