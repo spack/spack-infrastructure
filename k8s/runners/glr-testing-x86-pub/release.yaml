@@ -15,11 +15,12 @@ spec:
   values:
     image: gitlab/gitlab-runner:alpine-v14.7.0
     imagePullPolicy: IfNotPresent
+    replicas: 2
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600  # six hours
-    concurrent: 5
+    concurrent: 25
     checkInterval: 30
 
     metrics:
@@ -37,14 +38,13 @@ spec:
             privileged = false
             cpu_request = "750m"
             cpu_request_overwrite_max_allowed = "16000m"
-            # cpu_limit =
-            # cpu_limit_overwrite_max_allowed =
+            cpu_limit = "16000m"
+            cpu_limit_overwrite_max_allowed = "16000m"
 
-            memory_request = "1000M"
+            memory_request = "2000M"
             memory_request_overwrite_max_allowed = "50000M"
-
-            # memory_limit =
-            # memory_limit_overwrite_max_allowed =
+            memory_limit = "50000M"
+            memory_limit_overwrite_max_allowed = "50000M"
 
 
             namespace = "pipeline"
@@ -52,11 +52,12 @@ spec:
             service_account = "runner"
             [runners.kubernetes.pod_annotations]
               "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
-              "gitlab/ci_job_url" = "$CI_JOB_URL"
-              "gitlab/ci_project_url" = "$CI_PROJECT_URL"
-              "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
               "gitlab/ci_job_id" = "$CI_JOB_ID"
+              "gitlab/ci_project_url" = "$CI_PROJECT_URL"
+              "gitlab/ci_job_url" = "$CI_JOB_URL"
+              "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
             [runners.kubernetes.pod_labels]
+              "gitlab/ci_job_size" = "$CI_JOB_SIZE"
               "metrics/gitlab_ci_pipeline_id" = "$CI_PIPELINE_ID"
               "metrics/gitlab_ci_project_namespace" = "$CI_PROJECT_NAMESPACE"
               "metrics/gitlab_ci_project_name" = "$CI_PROJECT_NAME"
