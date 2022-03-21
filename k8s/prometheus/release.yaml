@@ -55,6 +55,7 @@ spec:
     kube-state-metrics:
       metricLabelsAllowlist:
         - pods=[metrics/gitlab_ci_commit_ref_name,metrics/gitlab_ci_job_stage,metrics/gitlab_ci_pipeline_id,metrics/gitlab_ci_project_name,metrics/gitlab_ci_project_namespace,metrics/spack_ci_stack_name,metrics/spack_job_spec_pkg_name,metrics/spack_spec_needs_rebuild]
+        - nodes=[beta.kubernetes.io/instance-type,spack.io/instance-cost,spack.io/node-pool, spack.io/pipeline]
 # NOTE:
 #
 # Currently it is not possible to pass kube-state-metrics partial wild card
