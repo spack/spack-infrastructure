@@ -1,0 +1,25 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stuckpod-controller
+  namespace: custom
+  labels:
+    app: stuckpod-controller
+spec:
+  selector:
+    matchLabels:
+      app: stuckpod-controller
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: stuckpod-controller
+    spec:
+      serviceAccountName: stuckpod-controller
+      containers:
+        - name: deletor
+          image: ghcr.io/spack/stuckpods:0.0.1
+          imagePullPolicy: Always
+      nodeSelector:
+        spack.io/node-pool: base
