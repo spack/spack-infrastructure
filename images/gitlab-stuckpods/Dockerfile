@@ -8,12 +8,7 @@ RUN apt-get -yqq update \
     locales \
     openssh-client \
     curl \
-    parallel \
     jq \
-#        python3 \
-#        python3-pip \
-#        python3-setuptools \
-#        ipython3 \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
  && locale-gen en_US.UTF-8

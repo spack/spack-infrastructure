@@ -2,7 +2,6 @@
 
 command -v curl &> /dev/null || { echo "curl required, exiting."; exit 1; }
 command -v jq &> /dev/null || { echo "jq required, exiting."; exit 1; }
-command -v parallel &> /dev/null || { echo "parallel required, exiting."; exit 1; }
 command -v kubectl &> /dev/null || { echo "kubectl required, exiting."; exit 1; }
 
 read -r -d '' JQ_PROG <<'EOF'

@@ -205,3 +205,29 @@ jobs:
       -
         name: Image digest
         run: echo ${{ steps.docker_build_gitops.outputs.digest }}
+
+  gitlab-stuckpods:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Login to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Build and push gitops
+        id: docker_build_gitops
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: ./images/gitlab-stuckpods
+          file: ./images/gitlab-stuckpods/Dockerfile
+          push: true
+          tags: ghcr.io/spack/stuckpods:0.0.1
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build_gitops.outputs.digest }}
