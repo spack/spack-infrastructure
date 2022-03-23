@@ -36,6 +36,11 @@ Parameters:
       - amd64
       - arm64
 
+  NodeGPUCount:
+    Description: Number of GPUs per instance.
+    Type: Number
+    Default: 0
+
   NodeAutoScalingGroupMinSize:
     Description: Minimum size of the Node Group.
     Type: Number
@@ -54,6 +59,58 @@ Parameters:
     Type: Number
     Default: 20
 
+  NodeVolumeType:
+    Description: Storage type for node volume
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - gp3
+
+  OnDemandAllocationStrategy:
+    Description: AllocationStrategy for On-Demand instances
+    Type: String
+    Default: prioritized
+    AllowedValues:
+      - prioritized
+      - lowest-price
+
+  SpotAllocationStrategy:
+    Description: AllocationStrategy for Spot instances
+    Type: String
+    Default: lowest-price
+    AllowedValues:
+      - capacity-optimized
+      - lowest-price
+
+  OnDemandBaseCapacity:
+    Description: On-Demand instance base capacity
+    ConstraintDescription: |
+      The minimum amount of the Auto Scaling group's capacity
+      that must be fulfilled by On-Demand Instances.
+    Type: Number
+    Default: 0
+
+  OnDemandPercentageAboveBaseCapacity:
+    Description: Percentage of On-Demand instances
+    ConstraintDescription: |
+      Controls the percentages of On-Demand Instances and Spot Instances
+      for your additional capacity beyond OnDemandBaseCapacity (for example,
+      20 specifies 20% On-Demand Instances, 80% Spot Instances).
+    Type: Number
+    Default: 0
+
+  SpotInstancePools:
+    Description: |
+      (For "lowest-price" spot allocation strategy) Number of Spot instance
+      pools
+    Type: Number
+    Default: 2
+
+  SpotMaxPrice:
+    Description: Maximum price paid for Spot instances
+    Type: String
+
   ClusterName:
     Description: The cluster name provided when the cluster was created.
     ConstraintDescription: |
@@ -69,6 +126,14 @@ Parameters:
     Description: IAM profile for node instances.
     Type: String
 
+  ASGAutoAssignPublicIp:
+    Type: String
+    Description: "auto assign public IP address for ASG instances"
+    AllowedValues:
+      - "yes"
+      - "no"
+    Default: "no"
+
   NodeSecurityGroup:
     Description: Security for the nodes in the cluster.
     Type: String
@@ -76,6 +141,23 @@ Parameters:
   Subnets:
     Description: The subnets where workers can be created.
     Type: List<AWS::EC2::Subnet::Id>
+
+  UseSSHKey:
+    Description: Whether the nodes should be launched with an SSH key set.
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+
+  KeyName:
+    Description: |
+      The EC2 Key Pair to allow SSH access to the nodes (ignored if UseSSHKey ==
+      false).
+
+      Unfortunately, a key *must* be provided, even if UseSSHKey == false.  If
+      you have no keys, create one using the EC2 dashboard.
+    Type: "AWS::EC2::KeyPair::KeyName"
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -97,28 +179,66 @@ Metadata:
         Parameters:
           - NodeInstanceType
           - NodeInstanceArch
+          - NodeGPUCount
           - NodeInstanceProfile
           - NodeImageId
           - NodeVolumeSize
+          - NodeVolumeType
+          - UseSSHKey
+          - KeyName
+
+      - Label:
+          default: Spot Allocation Configuration
+        Parameters:
+          - OnDemandAllocationStrategy
+          - SpotAllocationStrategy
+          - OnDemandBaseCapacity
+          - OnDemandPercentageAboveBaseCapacity
+          - SpotInstancePools
+          - SpotMaxPrice
 
       - Label:
           default: Network Configuration
         Parameters:
           - NodeSecurityGroup
           - Subnets
+          - ASGAutoAssignPublicIp
 
 Conditions:
   DisableClusterAutoscaling:
     !Equals [!Ref NodeAutoScalingGroupMinSize, !Ref NodeAutoScalingGroupMaxSize]
+  LowestPriceSpotAllocationStrategy:
+    !Equals [!Ref SpotAllocationStrategy, "lowest-price"]
+  NoGPU:
+    !Equals [!Ref NodeGPUCount, 0]
+  HasSSHKey:
+    !Equals [!Ref UseSSHKey, "true"]
+  IsASGAutoAssignPublicIp:
+    !Equals [ !Ref ASGAutoAssignPublicIp , "yes" ]
 
 Resources:
   NodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       DesiredCapacity: !Ref NodeAutoScalingGroupMinSize
-      LaunchConfigurationName: !Ref NodeLaunchConfig
       MinSize: !Ref NodeAutoScalingGroupMinSize
       MaxSize: !Ref NodeAutoScalingGroupMaxSize
+      MixedInstancesPolicy:
+        InstancesDistribution:
+          OnDemandAllocationStrategy: !Ref OnDemandAllocationStrategy
+          OnDemandBaseCapacity: !Ref OnDemandBaseCapacity
+          OnDemandPercentageAboveBaseCapacity: !Ref OnDemandPercentageAboveBaseCapacity
+          SpotAllocationStrategy: !Ref SpotAllocationStrategy
+          SpotInstancePools:
+            Fn::If:
+              - LowestPriceSpotAllocationStrategy
+              - !Ref SpotInstancePools
+              - !Ref "AWS::NoValue"
+          SpotMaxPrice: !Ref SpotMaxPrice
+        LaunchTemplate:
+          LaunchTemplateSpecification:
+            LaunchTemplateId: !Ref NodeLaunchTemplate
+            Version: !GetAtt NodeLaunchTemplate.LatestVersionNumber
       VPCZoneIdentifier: !Ref Subnets
       Tags:
         - Key: Name
@@ -154,62 +274,126 @@ Resources:
             /spack.io/node-share"
           Value: 1Gi
           PropagateAtLaunch: true
+        - Fn::If:
+          - NoGPU
+          - !Ref "AWS::NoValue"
+          - Key: "\
+              k8s.io/cluster-autoscaler/node-template/resources/nvidia.com/gpu"
+            Value: !Ref NodeGPUCount
+            PropagateAtLaunch: true
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MaxBatchSize: 1
         MinInstancesInService: !Ref NodeAutoScalingGroupMinSize
         PauseTime: PT5M
 
-  NodeLaunchConfig:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  NodeLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
     Properties:
-      AssociatePublicIpAddress: true
-      IamInstanceProfile: !Ref NodeInstanceProfile
-      ImageId: !Ref NodeImageId
-      InstanceType: !Ref NodeInstanceType
-      SecurityGroups:
-        - !Ref NodeSecurityGroup
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: !Ref NodeVolumeSize
-            VolumeType: gp2
-            DeleteOnTermination: true
-      UserData:
-        # Custom code to convert cloudformation stack tags to kubernetes node
-        # labels.  Since it's python, it should run on most architectures w/out
-        # problems.  This runs on the instance as a systemd unit when the instance
-        # starts up.
-        Fn::Base64:
-          !Sub |
-            #!/bin/bash
-            cat > script.py << EOF
-            import json, sys
-            tags = json.load(sys.stdin)
-            tags = (tags.get("Stacks", []) + [{}])[0].get("Tags", [])
-            print(",".join(
-                "{}={}".format(key[10:], value)
-                for key, value in (
-                    (x.get("Key", ""), x.get("Value", ""))
-                    for x in tags
-                )
-                if key.startswith("k8s-label/")))
-            EOF
+      LaunchTemplateName: !Sub "eksLaunchTemplate-${AWS::StackName}"
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Name: !Ref NodeInstanceProfile
+        ImageId: !Ref NodeImageId
+        InstanceType: !Ref NodeInstanceType
 
-            labels="$(
-                aws cloudformation describe-stacks \
-                    --region ${AWS::Region} \
-                    --stack-name ${AWS::StackName} | python script.py )"
+        KeyName:
+          Fn::If:
+            - HasSSHKey
+            - !Ref KeyName
+            - !Ref "AWS::NoValue"
 
-            set -o xtrace
+        # NOTE(opadron): Since we specify a network interface with a security
+        #                group below, we must *not* provide a security group at
+        #                the LaunchTemplate level.
+        #
+        #                See: https://github.com/hashicorp/
+        #                     terraform-provider-aws/issues
+        #                     /4570#issuecomment-418083797
+        #
+        # SecurityGroups:
+        # - !Ref NodeSecurityGroup
 
-            /etc/eks/bootstrap.sh ${ClusterName} \
-                --kubelet-extra-args "--node-labels=$labels"
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref NodeVolumeSize
+              VolumeType: !Ref NodeVolumeType
+              DeleteOnTermination: true
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress:
+              Fn::If:
+                - IsASGAutoAssignPublicIp
+                - true
+                - false
+            Groups:
+              - !Ref NodeSecurityGroup
+        UserData:
+          # Custom code to convert cloudformation stack tags to kubernetes node
+          # labels.  Since it's python, it should run on most architectures
+          # w/out problems.  This runs on the instance as a systemd unit when
+          # the instance starts up.
+          Fn::Base64:
+            !Sub |
+              #!/bin/bash
+              cat > script.py << EOF
+              import json, sys
+              tags = json.load(sys.stdin)
+              tags = (tags.get("Stacks", []) + [{}])[0].get("Tags", [])
+              print(",".join(
+                  "{}={}".format(key[10:], value)
+                  for key, value in (
+                      (x.get("Key", ""), x.get("Value", ""))
+                      for x in tags
+                  )
+                  if key.startswith("k8s-label/")))
+              EOF
 
-            /opt/aws/bin/cfn-signal --exit-code $? \
-                     --stack  ${AWS::StackName} \
-                     --resource NodeGroup  \
-                     --region ${AWS::Region} || true
+              # Set up user-level logging.
+              # (From https://forums.aws.amazon.com/thread.jspa?threadID=149759)
+              exec > >(tee /var/log/user-data.log|logger -t user-data ) 2>&1
+              echo BEGIN "$( date '+%Y-%m-%d %H:%M:%S' )"
+              set -o xtrace
+
+              labels="$(
+                  aws cloudformation describe-stacks \
+                      --region ${AWS::Region} \
+                      --stack-name ${AWS::StackName} | python3 script.py )"
+
+              kubelet_extra_args=""
+
+              instance_id=$(
+                  curl -s http://169.254.169.254/latest/meta-data/instance-id )
+              export AWS_DEFAULT_REGION=${AWS::Region}
+              lifecycle_query='Reservations[0].Instances[0].InstanceLifecycle'
+              instance_lifecycle="$( aws ec2 describe-instances \
+                                         --instance-ids "$instance_id" \
+                                         --query "$lifecycle_query" \
+                                         --output text )"
+
+              lifecycle_tag='OnDemand'
+              if [ "$instance_lifecycle" '=' 'spot' ] ; then
+                  lifecycle_tag='Ec2Spot'
+                  spot_taint="spotInstance=true:PreferNoSchedule"
+                  kubelet_extra_args="--register-with-taints=$spot_taint"
+              fi
+
+              sep=""
+              if [ -n "$labels" ] ; then
+                  sep=","
+              fi
+
+              labels="${!labels}${!sep}lifecycle=${!lifecycle_tag}"
+
+              /etc/eks/bootstrap.sh ${ClusterName} \
+                  --kubelet-extra-args \
+                      "--node-labels=$labels $kubelet_extra_args"
+
+              /opt/aws/bin/cfn-signal --exit-code $? \
+                       --stack  ${AWS::StackName} \
+                       --resource NodeGroup  \
+                       --region ${AWS::Region} || true
 
 Outputs:
 
@@ -217,6 +401,6 @@ Outputs:
     Description: The node autoscaling group
     Value: !Ref NodeGroup
 
-  NodeLaunchConfig:
-    Description: The node autoscaling group launch configuration
-    Value: !Ref NodeLaunchConfig
+  NodeLaunchTemplate:
+    Description: The node autoscaling group launch template
+    Value: !Ref NodeLaunchTemplate
