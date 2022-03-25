@@ -107,6 +107,26 @@ Parameters:
     Type: Number
     Default: 2
 
+  AlternateInstanceType0:
+    Type: String
+    Description: additional alternate instance type
+    Default: ""
+
+  AlternateInstanceType1:
+    Type: String
+    Description: additional alternate instance type
+    Default: ""
+
+  AlternateInstanceType2:
+    Type: String
+    Description: additional alternate instance type
+    Default: ""
+
+  AlternateInstanceType3:
+    Type: String
+    Description: additional alternate instance type
+    Default: ""
+
   SpotMaxPrice:
     Description: Maximum price paid for Spot instances
     Type: String
@@ -159,6 +179,18 @@ Parameters:
       you have no keys, create one using the EC2 dashboard.
     Type: "AWS::EC2::KeyPair::KeyName"
 
+  CustomStartupPayload:
+    Description: Base64-encoded script to run at instance startup
+    Type: String
+    AllowedPattern: "\
+      ^([a-zA-Z0-9\\+/]{4})*\
+      (\
+        ([a-zA-Z0-9\\+/]{3}=)|\
+        ([a-zA-Z0-9\\+/]{2}==)|\
+        ([a-zA-Z0-9\\+/]===)\
+      )?$"
+    ConstraintDescription: Must be a valid base64-encoded string
+
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -186,6 +218,7 @@ Metadata:
           - NodeVolumeType
           - UseSSHKey
           - KeyName
+          - CustomStartupPayload
 
       - Label:
           default: Spot Allocation Configuration
@@ -195,6 +228,10 @@ Metadata:
           - OnDemandBaseCapacity
           - OnDemandPercentageAboveBaseCapacity
           - SpotInstancePools
+          - AlternateInstanceType0
+          - AlternateInstanceType1
+          - AlternateInstanceType2
+          - AlternateInstanceType3
           - SpotMaxPrice
 
       - Label:
@@ -215,6 +252,14 @@ Conditions:
     !Equals [!Ref UseSSHKey, "true"]
   IsASGAutoAssignPublicIp:
     !Equals [ !Ref ASGAutoAssignPublicIp , "yes" ]
+  NoAlternateInstanceType0:
+    !Equals [ !Ref AlternateInstanceType0 , "" ]
+  NoAlternateInstanceType1:
+    !Equals [ !Ref AlternateInstanceType1 , "" ]
+  NoAlternateInstanceType2:
+    !Equals [ !Ref AlternateInstanceType2 , "" ]
+  NoAlternateInstanceType3:
+    !Equals [ !Ref AlternateInstanceType3 , "" ]
 
 Resources:
   NodeGroup:
@@ -239,6 +284,25 @@ Resources:
           LaunchTemplateSpecification:
             LaunchTemplateId: !Ref NodeLaunchTemplate
             Version: !GetAtt NodeLaunchTemplate.LatestVersionNumber
+          Overrides:
+            - InstanceType: !Ref NodeInstanceType
+            - Fn::If:
+              - NoAlternateInstanceType0
+              - !Ref "AWS::NoValue"
+              - InstanceType: !Ref AlternateInstanceType0
+            - Fn::If:
+              - NoAlternateInstanceType1
+              - !Ref "AWS::NoValue"
+              - InstanceType: !Ref AlternateInstanceType1
+            - Fn::If:
+              - NoAlternateInstanceType2
+              - !Ref "AWS::NoValue"
+              - InstanceType: !Ref AlternateInstanceType2
+            - Fn::If:
+              - NoAlternateInstanceType3
+              - !Ref "AWS::NoValue"
+              - InstanceType: !Ref AlternateInstanceType3
+
       VPCZoneIdentifier: !Ref Subnets
       Tags:
         - Key: Name
@@ -286,6 +350,15 @@ Resources:
         MaxBatchSize: 1
         MinInstancesInService: !Ref NodeAutoScalingGroupMinSize
         PauseTime: PT5M
+
+  LCH:
+    Type: AWS::AutoScaling::LifecycleHook
+    Properties:
+      AutoScalingGroupName: !Ref NodeGroup
+      HeartbeatTimeout: 60
+      DefaultResult: CONTINUE
+      LifecycleHookName: !Sub "${NodeGroupName}-LCH"
+      LifecycleTransition: autoscaling:EC2_INSTANCE_TERMINATING
 
   NodeLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
@@ -385,6 +458,20 @@ Resources:
               fi
 
               labels="${!labels}${!sep}lifecycle=${!lifecycle_tag}"
+
+              set +o xtrace
+              payload="${CustomStartupPayload}"
+              if [ -n "$payload" ] ; then
+                  echo 'Executing custom startup payload'
+                  payload="$( echo "$payload" | base64 -d )"
+                  if [ "$?" '=' '0' ] ; then
+                      eval $'set -o xtrace\n'"$payload"$'\nset +o xtrace'
+                      echo 'Done executing custom startup payload'
+                  else
+                      echo 'Error: startup payload failed to decode' >&2
+                  fi
+              fi
+              set -o xtrace
 
               /etc/eks/bootstrap.sh ${ClusterName} \
                   --kubelet-extra-args \
