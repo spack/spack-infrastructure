@@ -13,6 +13,7 @@ spec:
   values:
     image: gitlab/gitlab-runner:alpine-v14.7.0
     imagePullPolicy: IfNotPresent
+    replicas: 4
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
@@ -35,7 +36,8 @@ spec:
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
             privileged = false
-            cpu_request = "1500m"
+            cpu_request = "750m"
+            memory_request = "2Gi"
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
             service_account = "runner"

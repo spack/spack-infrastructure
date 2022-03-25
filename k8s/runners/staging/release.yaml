@@ -9,7 +9,7 @@ metadata:
 data:
   apiVersion: helm.fluxcd.io/v1
   kind: HelmRelease
-  name: runner-xlarge-x86-pub
+  name: runner-large-x86-pub
   patch: |
     - op: replace
       path: /metadata/name
@@ -46,7 +46,8 @@ data:
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
             privileged = false
-            cpu_request = "9000m"
+            cpu_request = "750m"
+            memory_request = "2Gi"
             namespace = "gitlab"
             poll_timeout = 600  # ten minutes
             service_account = "runner"
@@ -67,4 +68,4 @@ data:
               "gitlab-ci/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
               "kubernetes.io/arch" = "amd64"
-              "spack.io/node-pool" = "glr-xlarge-pub"
+              "spack.io/node-pool" = "glr-large-testing-pub"
