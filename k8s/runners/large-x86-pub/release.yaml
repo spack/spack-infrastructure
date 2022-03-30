@@ -13,7 +13,7 @@ spec:
   values:
     image: gitlab/gitlab-runner:alpine-v14.7.0
     imagePullPolicy: IfNotPresent
-    replicas: 4
+    replicas: 6
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
