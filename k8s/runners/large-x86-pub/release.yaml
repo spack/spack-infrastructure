@@ -36,8 +36,17 @@ spec:
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
             privileged = false
+
             cpu_request = "750m"
-            memory_request = "2Gi"
+            cpu_request_overwrite_max_allowed = "16"
+            cpu_limit = "16"
+            cpu_limit_overwrite_max_allowed = "16"
+
+            memory_request = "2G"
+            memory_request_overwrite_max_allowed = "64G"
+            memory_limit = "64G"
+            memory_limit_overwrite_max_allowed = "64G"
+
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
             service_account = "runner"
@@ -48,6 +57,7 @@ spec:
               "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
               "gitlab/ci_job_id" = "$CI_JOB_ID"
             [runners.kubernetes.pod_labels]
+              "gitlab/ci_job_size" = "$CI_JOB_SIZE"
               "metrics/gitlab_ci_pipeline_id" = "$CI_PIPELINE_ID"
               "metrics/gitlab_ci_project_namespace" = "$CI_PROJECT_NAMESPACE"
               "metrics/gitlab_ci_project_name" = "$CI_PROJECT_NAME"
