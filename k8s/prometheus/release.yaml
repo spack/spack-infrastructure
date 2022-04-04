@@ -35,6 +35,46 @@ spec:
     grafana:
       ingress:
         enabled: false
+      admin:
+        existingSecret: "kube-prometheus-stack-grafana" # See: secrets.yaml
+        userKey: admin-user
+        passwordKey: admin-password
+      grafana.ini:
+        paths:
+          data: /var/lib/grafana/
+          logs: /var/log/grafana
+          plugins: /var/lib/grafana/plugins
+          provisioning: /etc/grafana/provisioning
+        analytics:
+          check_for_updates: true
+        log:
+          mode: console
+        grafana_net:
+          url: https://grafana.net
+        server:
+          root_url: https://grafana.spack.io
+        auth.github:
+          enabled: true
+          allow_sign_up: true
+          scopes: user:email,read:org
+          auth_url: https://github.com/login/oauth/authorize
+          token_url: https://github.com/login/oauth/access_token
+          api_url: https://api.github.com/user
+#          team_ids:
+          allowed_organizations: spack
+          client_id: DEADBEEF # Will be overriden by environment vars
+          client_secret: DEADBEEF # Will be overriden by environment vars
+
+      envValueFrom:
+        GF_AUTH_GITHUB_CLIENT_ID:
+          secretKeyRef:
+            name: grafana-github-oauth-client
+            key: client-id
+        GF_AUTH_GITHUB_CLIENT_SECRET:
+          secretKeyRef:
+            name: grafana-github-oauth-client
+            key: client-secret
+
 
     prometheus:
       ingress:
