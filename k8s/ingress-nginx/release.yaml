@@ -77,6 +77,9 @@ spec:
 
         serviceMonitor:
           enabled: true
+          additionalLabels:
+            # must match the name of the prometheus release
+            release: kube-prometheus-stack
 
     ## Default 404 backend
     defaultBackend:

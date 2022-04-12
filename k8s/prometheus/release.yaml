@@ -89,6 +89,8 @@ spec:
               resources:
                 requests:
                   storage: 200Gi
+        podMonitorSelectorNilUsesHelmValues: false
+        serviceMonitorSelectorNilUsesHelmValues: false
         nodeSelector:
           spack.io/node-pool: beefy
 
