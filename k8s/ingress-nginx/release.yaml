@@ -77,6 +77,7 @@ spec:
 
         serviceMonitor:
           enabled: true
+          namespace: monitoring
           additionalLabels:
             # must match the name of the prometheus release
             release: kube-prometheus-stack
