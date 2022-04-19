@@ -75,7 +75,7 @@ spec:
       imagePullPolicy: "if-not-present"
       locked: false
 
-      tags: "x86_64,avx,avx2,avx512,large,public,aws,spack"
+      tags: "x86_64,avx,avx2,avx512,small,medium,large,huge,public,aws,spack"
       runUntagged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
 
