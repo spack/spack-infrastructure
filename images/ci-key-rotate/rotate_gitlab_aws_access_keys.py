@@ -65,4 +65,5 @@ if __name__ == '__main__':
         raise Exception('GITLAB_TOKEN environment is not set')
 
     rotate_iam_keys('pull-requests-binary-mirror', gitlab_variable_prefix='PR_')
+    rotate_iam_keys('protected-binary-mirror', gitlab_variable_prefix='PROTECTED_')
     rotate_iam_keys('develop-binary-mirror')
