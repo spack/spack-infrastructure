@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-large-arm-pub
+  name: runner-large-x86-testing-pub
   namespace: gitlab
 spec:
-  releaseName: large-arm-pub
+  releaseName: large-x86-testing-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -17,7 +17,7 @@ spec:
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600  # six hours
-    concurrent: 20
+    concurrent: 5
     checkInterval: 30
     # preEntrypointScript: |
     #   echo "Hello, from large-pub runner"
@@ -34,9 +34,18 @@ spec:
           output_limit = 4096
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
-            helper_image = "gitlab/gitlab-runner-helper:arm-latest"
             privileged = false
-            cpu_request = "1500m"
+
+            cpu_request = "750m"
+            cpu_request_overwrite_max_allowed = "16"
+            cpu_limit = "16"
+            cpu_limit_overwrite_max_allowed = "16"
+
+            memory_request = "2G"
+            memory_request_overwrite_max_allowed = "64G"
+            memory_limit = "64G"
+            memory_limit_overwrite_max_allowed = "64G"
+
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
             service_account = "runner"
@@ -47,6 +56,7 @@ spec:
               "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
               "gitlab/ci_job_id" = "$CI_JOB_ID"
             [runners.kubernetes.pod_labels]
+              "gitlab/ci_job_size" = "$CI_JOB_SIZE"
               "metrics/gitlab_ci_pipeline_id" = "$CI_PIPELINE_ID"
               "metrics/gitlab_ci_project_namespace" = "$CI_PROJECT_NAMESPACE"
               "metrics/gitlab_ci_project_name" = "$CI_PROJECT_NAME"
@@ -56,19 +66,17 @@ spec:
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
-              "kubernetes.io/arch" = "arm64"
-              "spack.io/node-pool" = "glr-large-pub"
+              "kubernetes.io/arch" = "amd64"
+              "spack.io/node-pool" = "glr-large-testing-pub"
 
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
       locked: false
 
-      tags: "arm,aarch64,graviton,graviton2,large,public,aws,spack"
+      tags: "x86_64,avx,avx2,avx512,large,public,aws,spack,testing"
       runUntagged: false
       secret: gitlab-gitlab-runner-secret  # from gitlab release
-
-      serviceAccountName: runner
 
       # Distributed runners caching
       # TODO(opadron): Look into this after setting up stand-alone minio service
@@ -93,6 +101,12 @@ spec:
         # secretName: google-application-credentials
 
       services: {}
+      # cpuRequests: 50m
+      # cpuLimit: 50m
+      # memoryRequests: 144Mi
+      # memoryLimit: 144Mi
+
+      helpers: {}
       # cpuRequests: 50m
       # cpuLimit: 50m
       # memoryRequests: 144Mi
