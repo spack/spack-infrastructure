@@ -44,8 +44,8 @@ class SpackCIBridge(object):
         dt = datetime.now(timezone.utc) + timedelta(minutes=-60)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
-        # We use a longer time threshold to find the currently running main branch pipeline.
-        dt = datetime.now(timezone.utc) + timedelta(minutes=-1440)
+        # We use a longer time threshold (36 hours) to find the currently running main branch pipeline.
+        dt = datetime.now(timezone.utc) + timedelta(minutes=-2160)
         self.time_threshold_long = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
         self.pipeline_api_template = gitlab_host
@@ -130,8 +130,8 @@ class SpackCIBridge(object):
 
             pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
 
-            if push and pull.updated_at < datetime.now() + timedelta(minutes=-1440):
-                # Skip further analysis of this PR if it hasn't been updated in 24 hours.
+            if push and pull.updated_at < datetime.now() + timedelta(minutes=-2880):
+                # Skip further analysis of this PR if it hasn't been updated in 48 hours.
                 # This helps us avoid wasting our rate limit on PRs with merge conflicts.
                 print("Skip pushing stale PR {0}".format(pr_string))
                 push = False
