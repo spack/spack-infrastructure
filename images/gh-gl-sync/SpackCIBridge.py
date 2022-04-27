@@ -127,7 +127,15 @@ class SpackCIBridge(object):
                 print("Skipping draft PR {0} ({1})".format(pull.number, pull.head.ref))
                 backlogged = "draft"
                 push = False
+
             pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
+
+            if push and pull.updated_at < datetime.now() + timedelta(minutes=-1440):
+                # Skip further analysis of this PR if it hasn't been updated in 24 hours.
+                # This helps us avoid wasting our rate limit on PRs with merge conflicts.
+                print("Skip pushing stale PR {0}".format(pr_string))
+                push = False
+                backlogged = "stale"
 
             if push:
                 # Determine if this PR still needs to be pushed to GitLab. This happens in one of two cases:
@@ -502,11 +510,14 @@ class SpackCIBridge(object):
                                               post_data["description"])
 
         # Post a status of pending/backlogged for branches we deferred pushing
-        print('Posting backlogged status to the following:')
+        print("Posting backlogged status to the following:")
         base_backlog_desc = \
             "waiting for base {} commit pipeline to succeed".format(self.main_branch)
         for branch, head_sha, reason in backlog_branches:
-            if reason == "base":
+            if reason == "stale":
+                print("Skip posting status for {} because it has not been updated recently".format(branch))
+                continue
+            elif reason == "base":
                 desc = base_backlog_desc
                 url = self.currently_running_url
             elif reason == "draft":
@@ -566,6 +577,8 @@ class SpackCIBridge(object):
         """Synchronize pull requests from GitHub as branches on GitLab."""
 
         print("Initial rate limit: {}".format(self.py_github.rate_limiting[0]))
+        reset_time = datetime.utcfromtimestamp(self.py_github.rate_limiting_resettime).strftime('%Y-%m-%d %H:%M:%S')
+        print("Rate limit will refresh at: {} UTC".format(reset_time))
 
         # Setup SSH command for communicating with GitLab.
         os.environ["GIT_SSH_COMMAND"] = "ssh -F /dev/null -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"

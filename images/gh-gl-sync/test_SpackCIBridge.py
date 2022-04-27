@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from unittest.mock import create_autospec, patch, Mock
 
 import SpackCIBridge
@@ -19,11 +20,13 @@ class AttrDict(dict):
 
 def test_list_github_prs(capfd):
     """Test the list_github_prs method."""
+    dt = datetime.now()
     github_pr_response = [
         AttrDict({
             "number": 1,
             "draft": False,
             "merge_commit_sha": "aaaaaaaa",
+            "updated_at": dt,
             "head": {
                 "ref": "improve_docs",
                 "sha": "shafoo"
@@ -36,6 +39,7 @@ def test_list_github_prs(capfd):
             "number": 2,
             "draft": False,
             "merge_commit_sha": "bbbbbbbb",
+            "updated_at": dt,
             "head": {
                 "ref": "fix_test",
                 "sha": "shagah"
@@ -48,6 +52,7 @@ def test_list_github_prs(capfd):
             "number": 3,
             "draft": True,
             "merge_commit_sha": "cccccccc",
+            "updated_at": dt,
             "head": {
                 "ref": "wip",
                 "sha": "shafff"
@@ -471,11 +476,13 @@ def test_pipeline_status_backlogged_by_checks(capfd):
 
     """Helper function to parameterize the test"""
     def verify_backlogged_by_checks(capfd, checks_return_value):
+        dt = datetime.now()
         github_pr_response = [
             AttrDict({
                 "number": 1,
                 "draft": False,
                 "merge_commit_sha": "aaaaaaaa",
+                "updated_at": dt,
                 "head": {
                     "ref": "improve_docs",
                     "sha": "shafoo"
