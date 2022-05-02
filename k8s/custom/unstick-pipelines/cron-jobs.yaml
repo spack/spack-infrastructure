@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cancel-and-restart-stuck-pipelines
+  namespace: custom
+spec:
+  schedule: "0 */3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: cancel-and-restart-stuck-pipelines
+            image: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-clear-pipelines
+                  key: gitlab-token
+            args:
+              - "--num-days"
+              - "0"
+          nodeSelector:
+            spack.io/node-pool: base

@@ -17,3 +17,5 @@ spec:
     # annotations with all the node metadata gathered from IMDS will be
     # attached to each event
     emitKubernetesEvents: true
+    enablePrometheusServer: true
+    prometheusServerPort: 9092

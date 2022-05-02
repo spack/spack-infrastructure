@@ -26,7 +26,7 @@ jobs:
           context: ./images/gh-gl-sync
           file: ./images/gh-gl-sync/Dockerfile
           push: true
-          tags: ghcr.io/spack/ci-bridge:0.0.25
+          tags: ghcr.io/spack/ci-bridge:0.0.26
       -
         name: Image digest
         run: echo ${{ steps.docker_build_sync.outputs.digest }}
@@ -231,3 +231,29 @@ jobs:
       -
         name: Image digest
         run: echo ${{ steps.docker_build_gitops.outputs.digest }}
+
+  unstick-pipelines:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Login to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Build and push gitlab-clear-pipelines
+        id: docker_build_gitlab_clear_pipelines
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: ./images/gitlab-clear-pipelines
+          file: ./images/gitlab-clear-pipelines/Dockerfile
+          push: true
+          tags: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build_gitlab_clear_pipelines.outputs.digest }}

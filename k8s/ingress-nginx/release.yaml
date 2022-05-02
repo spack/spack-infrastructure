@@ -75,9 +75,6 @@ spec:
           type: ClusterIP
           servicePort: 9913
 
-        serviceMonitor:
-          enabled: true
-
     ## Default 404 backend
     defaultBackend:
       enabled: true
