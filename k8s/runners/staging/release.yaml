@@ -21,6 +21,9 @@ data:
       path: /spec/releaseName
       value: runner-{ENV}
     - op: replace
+      path: /spec/values/replicas
+      value: 1
+    - op: replace
       path: /spec/values/gitlabUrl
       value: "https://gitlab.{ENV}.spack.io/"
     - op: replace
@@ -34,7 +37,7 @@ data:
       value: 1
     - op: replace
       path: /spec/values/runners/tags
-      value: "x86_64,avx,avx2,avx512,{ENV},public,aws,spack"
+      value: "x86_64,avx,avx2,avx512,small,medium,large,huge,{ENV},public,aws,spack"
     - op: replace
       path: /spec/values/runners/secret
       value: gitlab-{ENV}-gitlab-runner-secret
