@@ -223,5 +223,5 @@ spec:
         nodeSelector:
           spack.io/node-pool: gitlab
       persistence:
-        # storageClass: storageClassName
+        storageClass: gp3
         size: 100Gi
