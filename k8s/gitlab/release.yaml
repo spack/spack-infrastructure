@@ -172,8 +172,56 @@ spec:
           spack.io/node-pool: gitlab
 
     postgresql:
+      replication:
+        enabled: true
+        slaveReplicas: 4
+        synchronousCommit: "on"
+      shmVolume:
+        enabled: true
       master:
+        podLabels:
+          spack.io/environment: production
+          spack.io/release: gitlab
+          spack.io/app: postgresql
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchExpressions:
+                    - key: spack.io/environment
+                      operator: In
+                      values: [production]
+                    - key: spack.io/release
+                      operator: In
+                      values: [gitlab]
+                    - key: spack.io/app
+                      operator: In
+                      values: [postgresql]
+        nodeSelector:
+          spack.io/node-pool: gitlab
+      slave:
+        podLabels:
+          spack.io/environment: production
+          spack.io/release: gitlab
+          spack.io/app: postgresql
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchExpressions:
+                    - key: spack.io/environment
+                      operator: In
+                      values: [production]
+                    - key: spack.io/release
+                      operator: In
+                      values: [gitlab]
+                    - key: spack.io/app
+                      operator: In
+                      values: [postgresql]
         nodeSelector:
           spack.io/node-pool: gitlab
       persistence:
+        # storageClass: storageClassName
         size: 100Gi
