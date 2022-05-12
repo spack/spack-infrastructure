@@ -42,7 +42,7 @@ spec:
             memory_limit = "64G"
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
-            service_account = "runner"
+            service_account = "notary"
 
             # TODO Change to actual image before merge
             allowed_images = ["ghcr.io/kotfic/notary:*"]
@@ -74,7 +74,7 @@ spec:
 
             [[runners.kubernetes.volumes.secret]]
               name = "spack-signing-key-encrypted"
-              mount_path = "/mnt/key/"
+              mount_path = "/mnt/keys/signing"
               read_only = true
 
             [[runners.kubernetes.volumes.empty_dir]]
@@ -83,9 +83,9 @@ spec:
               medium = "Memory"
 
       # default image
-      image: "busybox:1.32.0"
-      imagePullPolicy: "if-not-present"
-      tags: "notary"
+      image: "ghcr.io/kotfic/notary:latest"
+      imagePullPolicy: "always"
+      tags: "notary,aws,protected"
 
       locked: true
       protected: true
