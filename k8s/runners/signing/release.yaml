@@ -45,7 +45,7 @@ spec:
             service_account = "notary"
 
             # TODO Change to actual image before merge
-            allowed_images = ["ghcr.io/kotfic/notary:*"]
+            allowed_images = ["ghcr.io/spack/notary:*"]
             allowed_services = [""]
 
             # TODO Set up security contexts with the image
@@ -83,7 +83,7 @@ spec:
               medium = "Memory"
 
       # default image
-      image: "ghcr.io/kotfic/notary:latest"
+      image: "ghcr.io/spack/notary:latest"
       imagePullPolicy: "always"
       tags: "notary,aws,protected"
 
