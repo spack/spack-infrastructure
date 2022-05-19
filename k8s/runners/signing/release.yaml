@@ -85,7 +85,7 @@ spec:
       # default image
       image: "ghcr.io/spack/notary:latest"
       imagePullPolicy: "always"
-      tags: "notary,aws,protected"
+      tags: "spack,notary,aws,protected"
 
       locked: true
       protected: true
