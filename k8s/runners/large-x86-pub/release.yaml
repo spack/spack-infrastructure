@@ -38,14 +38,14 @@ spec:
             privileged = false
 
             cpu_request = "750m"
-            cpu_request_overwrite_max_allowed = "16"
-            cpu_limit = "16"
-            cpu_limit_overwrite_max_allowed = "16"
+            cpu_request_overwrite_max_allowed = "12"
+            cpu_limit = "12"
+            cpu_limit_overwrite_max_allowed = "12"
 
             memory_request = "2G"
-            memory_request_overwrite_max_allowed = "64G"
-            memory_limit = "64G"
-            memory_limit_overwrite_max_allowed = "64G"
+            memory_request_overwrite_max_allowed = "48G"
+            memory_limit = "48G"
+            memory_limit_overwrite_max_allowed = "48G"
 
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
