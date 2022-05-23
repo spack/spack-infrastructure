@@ -96,8 +96,6 @@ spec:
         spack.io/node-pool: gitlab
       persistence:
         size: 1000Gi
-      mode: distributed
-      replicas: 4
 
     registry:
       ingress:
