@@ -141,7 +141,7 @@ class SpackCIBridge(object):
                 # Determine if this PR still needs to be pushed to GitLab. This happens in one of two cases:
                 # 1) we have never pushed it before
                 # 2) we have pushed it before, but the HEAD sha has changed since we pushed it last
-                log_args = ["git", "log", "--pretty=%s", "gitlab/github/{0}".format(pr_string)]
+                log_args = ["git", "log", "--pretty=%s", "gitlab/{0}".format(pr_string)]
                 try:
                     merge_commit_msg = subprocess.run(
                         log_args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
@@ -242,9 +242,9 @@ class SpackCIBridge(object):
 
     def get_gitlab_pr_branches(self):
         """Query GitLab for branches that have already been copied over from GitHub PRs.
-        Return the string output of `git branch --remotes --list gitlab/github/pr*`.
+        Return the string output of `git branch --remotes --list gitlab/pr*`.
         """
-        branch_args = ["git", "branch", "--remotes", "--list", "gitlab/github/pr*"]
+        branch_args = ["git", "branch", "--remotes", "--list", "gitlab/pr*"]
         self.gitlab_pr_output = \
             subprocess.run(branch_args, check=True, stdout=subprocess.PIPE).stdout
 
@@ -258,9 +258,9 @@ class SpackCIBridge(object):
         self.get_gitlab_pr_branches()
         synced_prs = []
         for line in self.gitlab_pr_output.split(b"\n"):
-            if line.find(b"gitlab/github/") == -1:
+            if line.find(b"gitlab/") == -1:
                 continue
-            synced_pr = line.strip().replace(b"gitlab/github/", b"").decode("utf-8")
+            synced_pr = line.strip().replace(b"gitlab/", b"").decode("utf-8")
             synced_prs.append(synced_pr)
         print("Synced PRs:")
         for pr in synced_prs:
@@ -269,7 +269,7 @@ class SpackCIBridge(object):
 
     def get_prs_to_delete(self, open_prs, synced_prs):
         """Find PRs that have already been synchronized to GitLab that are no longer open on GitHub.
-        Return a list of strings in the format of ":github/<branch_name" that will be used
+        Return a list of strings in the format of ":<branch_name" that will be used
         to delete these branches from GitLab.
         """
         prs_to_delete = []
@@ -280,7 +280,7 @@ class SpackCIBridge(object):
         closed_refspecs = []
         for pr in prs_to_delete:
             print("    {0}".format(pr))
-            closed_refspecs.append(":github/{0}".format(pr))
+            closed_refspecs.append(":{0}".format(pr))
         return closed_refspecs
 
     def get_open_refspecs(self, open_prs):
@@ -296,10 +296,10 @@ class SpackCIBridge(object):
                                                                 merge_commit_shas,
                                                                 base_shas,
                                                                 backlogged):
-            fetch_refspecs.append("+{0}:refs/remotes/github/{1}".format(
+            fetch_refspecs.append("+{0}:refs/remotes/{1}".format(
                 merge_commit_sha, open_pr))
             if not backlog:
-                open_refspecs.append("github/{0}:github/{0}".format(open_pr))
+                open_refspecs.append("{0}:{0}".format(open_pr))
                 print("  pushing {0} (based on {1})".format(open_pr, base_sha))
             else:
                 if backlog == "base":
@@ -316,8 +316,8 @@ class SpackCIBridge(object):
     def update_refspecs_for_protected_branches(self, protected_branches, open_refspecs, fetch_refspecs):
         """Update our refspecs lists for protected branches from GitHub."""
         for protected_branch in protected_branches:
-            fetch_refspecs.append("+refs/heads/{0}:refs/remotes/github/{0}".format(protected_branch))
-            open_refspecs.append("github/{0}:github/{0}".format(protected_branch))
+            fetch_refspecs.append("+refs/heads/{0}:refs/remotes/{0}".format(protected_branch))
+            open_refspecs.append("{0}:{0}".format(protected_branch))
         return open_refspecs, fetch_refspecs
 
     def update_refspecs_for_tags(self, tags, open_refspecs, fetch_refspecs):
@@ -337,7 +337,7 @@ class SpackCIBridge(object):
         """Create local branches for a list of open PRs and protected branches."""
         print("Building local branches for open PRs and protected branches")
         for branch in open_prs["pr_strings"] + protected_branches:
-            branch_name = "github/{0}".format(branch)
+            branch_name = "{0}".format(branch)
             subprocess.run(["git", "branch", "-q", branch_name, branch_name], check=True)
 
     def make_status_for_pipeline(self, pipeline):
@@ -448,7 +448,7 @@ class SpackCIBridge(object):
         # Use gitlab's API to get pipeline results for the corresponding ref.
         api_url = self.pipeline_api_template.format(
             time_threshold,
-            urllib.parse.quote_plus("github/" + branch)
+            urllib.parse.quote_plus(branch)
         )
         try:
             request = urllib.request.Request(api_url)

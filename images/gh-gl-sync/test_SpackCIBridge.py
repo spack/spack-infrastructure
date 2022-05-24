@@ -141,8 +141,8 @@ def test_get_synced_prs(capfd):
     bridge = SpackCIBridge.SpackCIBridge()
     bridge.get_gitlab_pr_branches = lambda *args: None
     bridge.gitlab_pr_output = b"""
-  gitlab/github/pr1_example
-  gitlab/github/pr2_another_try
+  gitlab/pr1_example
+  gitlab/pr2_another_try
     """
     assert bridge.get_synced_prs() == ["pr1_example", "pr2_another_try"]
     out, err = capfd.readouterr()
@@ -155,7 +155,7 @@ def test_get_prs_to_delete(capfd):
     synced_prs = ["pr1_first_try", "pr2_different_approach", "pr3_try_this"]
     bridge = SpackCIBridge.SpackCIBridge()
     closed_refspecs = bridge.get_prs_to_delete(open_prs, synced_prs)
-    assert closed_refspecs == [":github/pr1_first_try", ":github/pr2_different_approach"]
+    assert closed_refspecs == [":pr1_first_try", ":pr2_different_approach"]
     out, err = capfd.readouterr()
     assert out == "Synced Closed PRs:\n    pr1_first_try\n    pr2_different_approach\n"
 
@@ -172,27 +172,27 @@ def test_get_open_refspecs():
     bridge = SpackCIBridge.SpackCIBridge()
     open_refspecs, fetch_refspecs = bridge.get_open_refspecs(open_prs)
     assert open_refspecs == [
-        "github/pr1_this:github/pr1_this",
-        "github/pr2_that:github/pr2_that"
+        "pr1_this:pr1_this",
+        "pr2_that:pr2_that"
     ]
     assert fetch_refspecs == [
-        "+aaaaaaaa:refs/remotes/github/pr1_this",
-        "+bbbbbbbb:refs/remotes/github/pr2_that"
+        "+aaaaaaaa:refs/remotes/pr1_this",
+        "+bbbbbbbb:refs/remotes/pr2_that"
     ]
 
     protected_branches = ["develop", "master"]
     bridge.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
     assert open_refspecs == [
-        "github/pr1_this:github/pr1_this",
-        "github/pr2_that:github/pr2_that",
-        "github/develop:github/develop",
-        "github/master:github/master",
+        "pr1_this:pr1_this",
+        "pr2_that:pr2_that",
+        "develop:develop",
+        "master:master",
     ]
     assert fetch_refspecs == [
-        "+aaaaaaaa:refs/remotes/github/pr1_this",
-        "+bbbbbbbb:refs/remotes/github/pr2_that",
-        "+refs/heads/develop:refs/remotes/github/develop",
-        "+refs/heads/master:refs/remotes/github/master"
+        "+aaaaaaaa:refs/remotes/pr1_this",
+        "+bbbbbbbb:refs/remotes/pr2_that",
+        "+refs/heads/develop:refs/remotes/develop",
+        "+refs/heads/master:refs/remotes/master"
     ]
 
 
@@ -251,7 +251,7 @@ def test_dedupe_pipelines():
         {
             "id": 1,
             "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "ref": "github/pr1_readme",
+            "ref": "pr1_readme",
             "status": "failed",
             "created_at": "2020-08-26T17:26:30.216Z",
             "updated_at": "2020-08-26T17:26:36.807Z",
@@ -260,7 +260,7 @@ def test_dedupe_pipelines():
         {
             "id": 2,
             "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "ref": "github/pr1_readme",
+            "ref": "pr1_readme",
             "status": "passed",
             "created_at": "2020-08-27T17:27:30.216Z",
             "updated_at": "2020-08-27T17:27:36.807Z",
@@ -269,7 +269,7 @@ def test_dedupe_pipelines():
         {
             "id": 3,
             "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "ref": "github/pr2_todo",
+            "ref": "pr2_todo",
             "status": "failed",
             "created_at": "2020-08-26T17:26:30.216Z",
             "updated_at": "2020-08-26T17:26:36.807Z",
@@ -280,7 +280,7 @@ def test_dedupe_pipelines():
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
             "id": 2,
             "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "ref": "github/pr1_readme",
+            "ref": "pr1_readme",
             "status": "passed",
             "created_at": "2020-08-27T17:27:30.216Z",
             "updated_at": "2020-08-27T17:27:36.807Z",
@@ -289,7 +289,7 @@ def test_dedupe_pipelines():
         "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": {
             "id": 3,
             "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "ref": "github/pr2_todo",
+            "ref": "pr2_todo",
             "status": "failed",
             "created_at": "2020-08-26T17:26:30.216Z",
             "updated_at": "2020-08-26T17:26:36.807Z",
@@ -411,7 +411,7 @@ def test_post_pipeline_status(capfd):
         {
             "id": 1,
             "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "ref": "github/pr1_readme",
+            "ref": "pr1_readme",
             "status": "failed",
             "created_at": "2020-08-26T17:26:30.216Z",
             "updated_at": "2020-08-26T17:26:36.807Z",
