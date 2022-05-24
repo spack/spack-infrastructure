@@ -20,7 +20,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Build and push ci-bridge
-        id: docker_build_sync
+        id: docker_build_ci_bridge
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ./images/gh-gl-sync
@@ -29,7 +29,7 @@ jobs:
           tags: ghcr.io/spack/ci-bridge:0.0.26
       -
         name: Image digest
-        run: echo ${{ steps.docker_build_sync.outputs.digest }}
+        run: echo ${{ steps.docker_build_ci_bridge.outputs.digest }}
   scrape:
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +45,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       -
         name: Build and push gitlab-api-scrape
-        id: docker_build_scrape
+        id: docker_build_gitlab_api_scrape
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ./images/gitlab-api-scrape
@@ -54,7 +54,7 @@ jobs:
           tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
       -
         name: Image digest
-        run: echo ${{ steps.docker_build_scrape.outputs.digest }}
+        run: echo ${{ steps.docker_build_gitlab_api_scrape.outputs.digest }}
   rotate-aws-keys:
     runs-on: ubuntu-latest
     steps:
@@ -69,8 +69,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Build and push rotate-aws-keys
-        id: docker_build_rotate_aws_keys
+        name: Build and push ci-key-rotate
+        id: docker_build_ci_key_rotate
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ./images/ci-key-rotate
@@ -79,7 +79,7 @@ jobs:
           tags: ghcr.io/spack/ci-key-rotate:0.0.2
       -
         name: Image digest
-        run: echo ${{ steps.docker_build_rotate_aws_keys.outputs.digest }}
+        run: echo ${{ steps.docker_build_ci_key_rotate.outputs.digest }}
   clear-admin-keys:
     runs-on: ubuntu-latest
     steps:
@@ -94,8 +94,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Build and push clear-admin-keys
-        id: docker_build_clear_admin_keys
+        name: Build and push ci-key-clear
+        id: docker_build_ci_key_clear
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ./images/ci-key-clear
@@ -104,7 +104,7 @@ jobs:
           tags: ghcr.io/spack/ci-key-clear:0.0.1
       -
         name: Image digest
-        run: echo ${{ steps.docker_build_clear_admin_keys.outputs.digest }}
+        run: echo ${{ steps.docker_build_ci_key_clear.outputs.digest }}
   gitlab-webservice:
     runs-on: ubuntu-latest
     steps:
@@ -220,8 +220,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Build and push gitops
-        id: docker_build_gitops
+        name: Build and push stuckpods
+        id: docker_build_stuckpods
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ./images/gitlab-stuckpods
@@ -230,7 +230,7 @@ jobs:
           tags: ghcr.io/spack/stuckpods:0.0.1
       -
         name: Image digest
-        run: echo ${{ steps.docker_build_gitops.outputs.digest }}
+        run: echo ${{ steps.docker_build_stuckpods.outputs.digest }}
 
   unstick-pipelines:
     runs-on: ubuntu-latest
@@ -272,8 +272,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Build and push gitops
-        id: docker_build_gitops
+        name: Build and push notary
+        id: docker_build_notary
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ./images/notary
@@ -282,7 +282,7 @@ jobs:
           tags: ghcr.io/spack/notary:latest
       -
         name: Image digest
-        run: echo ${{ steps.docker_build_gitops.outputs.digest }}
+        run: echo ${{ steps.docker_build_notary.outputs.digest }}
 
   python-aws-bash:
     runs-on: ubuntu-latest
@@ -298,8 +298,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Build and push gitops
-        id: docker_build_gitops
+        name: Build and push python-aws-bash
+        id: docker_build_python_aws_bash
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ./images/python-aws-bash
@@ -308,4 +308,4 @@ jobs:
           tags: ghcr.io/spack/python-aws-bash:0.0.1
       -
         name: Image digest
-        run: echo ${{ steps.docker_build_gitops.outputs.digest }}
+        run: echo ${{ steps.docker_build_python_aws_bash.outputs.digest }}
