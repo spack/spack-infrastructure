@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-large-x86-testing-pub
+  name: runner-large-x86-prot
   namespace: gitlab
 spec:
-  releaseName: large-x86-testing-pub
+  releaseName: large-x86-prot
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -13,11 +13,12 @@ spec:
   values:
     image: gitlab/gitlab-runner:alpine-v14.7.0
     imagePullPolicy: IfNotPresent
+    replicas: 6
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600  # six hours
-    concurrent: 5
+    concurrent: 20
     checkInterval: 30
     # preEntrypointScript: |
     #   echo "Hello, from large-pub runner"
@@ -37,14 +38,14 @@ spec:
             privileged = false
 
             cpu_request = "750m"
-            cpu_request_overwrite_max_allowed = "12"
-            cpu_limit = "12"
-            cpu_limit_overwrite_max_allowed = "12"
+            cpu_request_overwrite_max_allowed = "16"
+            cpu_limit = "16"
+            cpu_limit_overwrite_max_allowed = "16"
 
             memory_request = "2G"
-            memory_request_overwrite_max_allowed = "48G"
-            memory_limit = "48G"
-            memory_limit_overwrite_max_allowed = "48G"
+            memory_request_overwrite_max_allowed = "64G"
+            memory_limit = "64G"
+            memory_limit_overwrite_max_allowed = "64G"
 
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
@@ -67,16 +68,26 @@ spec:
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
               "kubernetes.io/arch" = "amd64"
-              "spack.io/node-pool" = "glr-large-testing-pub"
+              "spack.io/node-pool" = "glr-large-pub"
+
+            [[runners.kubernetes.volumes.secret]]
+              name = "spack-intermediate-ci-signing-key"
+              mount_path = "/mnt/key/"
+              read_only = true
+
 
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
-      locked: false
 
-      tags: "testing"
+      locked: true
+      protected: true
       runUntagged: false
-      secret: gitlab-gitlab-runner-secret  # from gitlab release
+
+      tags: "x86_64,avx,avx2,avx512,small,medium,large,huge,protected,aws,spack"
+      secret: spack-project-runner-registration-token
+
+      serviceAccountName: runner
 
       # Distributed runners caching
       # TODO(opadron): Look into this after setting up stand-alone minio service
