@@ -26,7 +26,7 @@ jobs:
           context: ./images/gh-gl-sync
           file: ./images/gh-gl-sync/Dockerfile
           push: true
-          tags: ghcr.io/spack/ci-bridge:0.0.27
+          tags: ghcr.io/spack/ci-bridge:0.0.28
       -
         name: Image digest
         run: echo ${{ steps.docker_build_ci_bridge.outputs.digest }}
