@@ -317,7 +317,7 @@ class SpackCIBridge(object):
         """Update our refspecs lists for protected branches from GitHub."""
         for protected_branch in protected_branches:
             fetch_refspecs.append("+refs/heads/{0}:refs/remotes/{0}".format(protected_branch))
-            open_refspecs.append("{0}:{0}".format(protected_branch))
+            open_refspecs.append("refs/heads/{0}:refs/heads/{0}".format(protected_branch))
         return open_refspecs, fetch_refspecs
 
     def update_refspecs_for_tags(self, tags, open_refspecs, fetch_refspecs):
@@ -337,8 +337,9 @@ class SpackCIBridge(object):
         """Create local branches for a list of open PRs and protected branches."""
         print("Building local branches for open PRs and protected branches")
         for branch in open_prs["pr_strings"] + protected_branches:
-            branch_name = "{0}".format(branch)
-            subprocess.run(["git", "branch", "-q", branch_name, branch_name], check=True)
+            local_branch_name = "{0}".format(branch)
+            remote_branch_name = "refs/remotes/{0}".format(branch)
+            subprocess.run(["git", "branch", "-q", local_branch_name, remote_branch_name], check=True)
 
     def make_status_for_pipeline(self, pipeline):
         """Generate POST data to create a GitHub status from a GitLab pipeline

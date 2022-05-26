@@ -185,8 +185,8 @@ def test_get_open_refspecs():
     assert open_refspecs == [
         "pr1_this:pr1_this",
         "pr2_that:pr2_that",
-        "develop:develop",
-        "master:master",
+        "refs/heads/develop:refs/heads/develop",
+        "refs/heads/master:refs/heads/master",
     ]
     assert fetch_refspecs == [
         "+aaaaaaaa:refs/remotes/pr1_this",
