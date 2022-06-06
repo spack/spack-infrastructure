@@ -23,9 +23,20 @@ spec:
       - name: web
         image: "ghcr.io/spack/spack-bot:e3405654bb"
         imagePullPolicy: Always
+        command:
+          - sh
+          - -c
+          - |
+            cd /app/spackbot
+            patch -p1 < /patch/patch
+            cd /
+            exec python3 -m spackbot
         ports:
         - name: http
           containerPort: 8080
+        volumeMounts:
+          - name: patch
+            mountPath: "/patch"
         env:
         - name: PYTHONUNBUFFERED
           value: "1"
@@ -48,5 +59,9 @@ spec:
             secretKeyRef:
               name: spack-bot-credentials
               key: github_webhook_secret
+      volumes:
+        - name: patch
+          configMap:
+            name: spackbot-hotfix-patch
       nodeSelector:
         spack.io/node-pool: base
