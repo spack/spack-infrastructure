@@ -72,8 +72,12 @@ data:
       value: 3
     - op: remove
       path: /spec/values/gitlab/gitlab-shell/service
-    - op: remove
-      path: /spec/values/postgresql/persistence
+    - op: replace
+      path: /spec/values/postgresql/persistence/size
+      value: 8Gi
+    - op: replace
+      path: /spec/values/postgresql/persistence/storageClass
+      value: gp3-small
     - op: replace
       path: /spec/values/postgresql/master/podLabels/spack.io~1environment
       value: "{ENV}"
