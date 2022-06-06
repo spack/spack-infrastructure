@@ -74,3 +74,21 @@ data:
       path: /spec/values/gitlab/gitlab-shell/service
     - op: remove
       path: /spec/values/postgresql/persistence
+    - op: replace
+      path: /spec/values/postgresql/master/podLabels/spack.io~1environment
+      value: "{ENV}"
+    - op: replace
+      path: "\
+         /spec/values/postgresql/master/affinity/podAntiAffinity\
+         /requiredDuringSchedulingIgnoredDuringExecution/0/labelSelector\
+         /matchExpressions/0/values/0"
+      value: "{ENV}"
+    - op: replace
+      path: /spec/values/postgresql/slave/podLabels/spack.io~1environment
+      value: "{ENV}"
+    - op: replace
+      path: "\
+         /spec/values/postgresql/slave/affinity/podAntiAffinity\
+         /requiredDuringSchedulingIgnoredDuringExecution/0/labelSelector\
+         /matchExpressions/0/values/0"
+      value: "{ENV}"
