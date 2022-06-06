@@ -375,8 +375,8 @@ def main(inputf):
 
     # query new PVC metadata
     proc = kubectl(
-            ['get', 'persistentvolumeclaim', orig_pvc_name,
-              '-o', 'jsonpath={.metadata}'],
+            ['get', 'persistentvolumeclaim', '--namespace', namespace,
+                orig_pvc_name, '-o', 'jsonpath={.metadata}'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     outs, errs = proc.communicate()
 
@@ -426,7 +426,6 @@ def main(inputf):
             break
 
         time.sleep(5)
-
 
     if old_pv_reclaim_policy != 'Retain':
         # restore original PV retention policy
@@ -499,8 +498,8 @@ def main(inputf):
 
         # query new PVC metadata
         proc = kubectl(
-                ['get', 'persistentvolumeclaim', answer,
-                  '-o', 'jsonpath={.metadata}'],
+                ['get', 'persistentvolumeclaim', '--namespace', namespace,
+                    answer, '-o', 'jsonpath={.metadata}'],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         outs, errs = proc.communicate()
 
