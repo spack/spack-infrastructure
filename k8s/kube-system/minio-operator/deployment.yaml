@@ -1,0 +1,95 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio-operator
+  namespace: kube-system
+  annotations:
+    operator.min.io/authors: MinIO, Inc.
+    operator.min.io/license: AGPLv3
+    operator.min.io/support: https://subnet.min.io
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: minio-operator
+  template:
+    metadata:
+      annotations:
+        operator.min.io/authors: MinIO, Inc.
+        operator.min.io/license: AGPLv3
+        operator.min.io/support: https://subnet.min.io
+      labels:
+        name: minio-operator
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: name
+                operator: In
+                values:
+                - minio-operator
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - env:
+        - name: CLUSTER_DOMAIN
+          value: cluster.local
+        image: minio/operator:v4.4.16
+        imagePullPolicy: IfNotPresent
+        name: minio-operator
+        resources:
+          requests:
+            cpu: 200m
+            ephemeral-storage: 500Mi
+            memory: 256Mi
+        securityContext:
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+      serviceAccountName: minio-operator
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: console
+  namespace: kube-system
+  annotations:
+    operator.min.io/authors: MinIO, Inc.
+    operator.min.io/license: AGPLv3
+    operator.min.io/support: https://subnet.min.io
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: console
+  template:
+    metadata:
+      annotations:
+        operator.min.io/authors: MinIO, Inc.
+        operator.min.io/license: AGPLv3
+        operator.min.io/support: https://subnet.min.io
+      labels:
+        app: console
+    spec:
+      containers:
+      - args:
+        - server
+        env:
+        - name: CONSOLE_OPERATOR_MODE
+          value: "on"
+        image: minio/console:v0.15.13
+        imagePullPolicy: IfNotPresent
+        name: console
+        ports:
+        - containerPort: 9090
+          name: http
+        - containerPort: 9433
+          name: https
+        securityContext:
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 1000
+      serviceAccountName: console-sa

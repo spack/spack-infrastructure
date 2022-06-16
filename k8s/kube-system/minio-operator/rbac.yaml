@@ -1,0 +1,435 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: minio-operator
+  namespace: kube-system
+  annotations:
+    operator.min.io/authors: MinIO, Inc.
+    operator.min.io/license: AGPLv3
+    operator.min.io/support: https://subnet.min.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: minio-operator-role
+  annotations:
+    operator.min.io/authors: MinIO, Inc.
+    operator.min.io/license: AGPLv3
+    operator.min.io/support: https://subnet.min.io
+rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - update
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - nodes
+  verbs:
+  - get
+  - watch
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - events
+  - configmaps
+  verbs:
+  - get
+  - watch
+  - create
+  - list
+  - delete
+  - deletecollection
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - watch
+  - create
+  - update
+  - list
+  - delete
+  - deletecollection
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  - deployments
+  - deployments/finalizers
+  verbs:
+  - get
+  - create
+  - list
+  - patch
+  - watch
+  - update
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - create
+  - list
+  - patch
+  - watch
+  - update
+  - delete
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  - certificatesigningrequests/approval
+  - certificatesigningrequests/status
+  verbs:
+  - update
+  - create
+  - get
+  - delete
+- apiGroups:
+  - certificates.k8s.io
+  resourceNames:
+  - kubernetes.io/legacy-unknown
+  - kubernetes.io/kube-apiserver-client
+  - kubernetes.io/kubelet-serving
+  - beta.eks.amazonaws.com/app-serving
+  resources:
+  - signers
+  verbs:
+  - approve
+  - sign
+- apiGroups:
+  - minio.min.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - min.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - prometheuses
+  verbs:
+  - '*'
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - update
+  - create
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: minio-operator-binding
+  annotations:
+    operator.min.io/authors: MinIO, Inc.
+    operator.min.io/license: AGPLv3
+    operator.min.io/support: https://subnet.min.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: minio-operator-role
+subjects:
+- kind: ServiceAccount
+  name: minio-operator
+  namespace: kube-system
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: console-sa
+  namespace: kube-system
+  annotations:
+    operator.min.io/authors: MinIO, Inc.
+    operator.min.io/license: AGPLv3
+    operator.min.io/support: https://subnet.min.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: console-sa-role
+  annotations:
+    operator.min.io/authors: MinIO, Inc.
+    operator.min.io/license: AGPLv3
+    operator.min.io/support: https://subnet.min.io
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - watch
+  - create
+  - list
+  - patch
+  - update
+  - deletecollection
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - services
+  - events
+  - resourcequotas
+  - nodes
+  verbs:
+  - get
+  - watch
+  - create
+  - list
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - watch
+  - create
+  - list
+  - patch
+  - delete
+  - deletecollection
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - deletecollection
+  - list
+  - get
+  - watch
+  - update
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - get
+  - watch
+  - create
+  - list
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  - deployments
+  verbs:
+  - get
+  - create
+  - list
+  - patch
+  - watch
+  - update
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - create
+  - list
+  - patch
+  - watch
+  - update
+  - delete
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  - certificatesigningrequests/approval
+  - certificatesigningrequests/status
+  verbs:
+  - update
+  - create
+  - get
+- apiGroups:
+  - minio.min.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - min.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotcontents
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csinodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - volumeattachments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - direct.csi.min.io
+  resources:
+  - volumes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - direct.csi.min.io
+  resources:
+  - directcsidrives
+  - directcsivolumes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - pod
+  - pods/log
+  verbs:
+  - get
+  - list
+  - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: console-sa-binding
+  annotations:
+    operator.min.io/authors: MinIO, Inc.
+    operator.min.io/license: AGPLv3
+    operator.min.io/support: https://subnet.min.io
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: console-sa-role
+subjects:
+- kind: ServiceAccount
+  name: console-sa
+  namespace: kube-system
