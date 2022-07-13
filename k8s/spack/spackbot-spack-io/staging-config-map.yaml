@@ -1,0 +1,70 @@
+# NOTE(opadron): to test:
+#
+#  ./scripts/gitops-patch.py -e STAGING -p 1 \
+#      ./k8s/spack/spackbot-spack-io/deployments.yaml \
+#      ./k8s/spack/spackbot-spack-io/staging-config-map.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spackbot-non-production
+  namespace: spack
+  annotations:
+    cd.spack.io/staged-resource: "1"
+data:
+  apiVersion: cert-manager.io/v1alpha2
+  kind: Certificate
+  name: tls-spackbot
+  patch: |
+    - op: replace
+      path: /metadata/name
+      value: tls-spackbot-{ENV}
+    - op: replace
+      path: /spec/secretName
+      value: tls-spackbot-{ENV}
+
+      # NOTE(opadron): make sure to set the correct hostname in the github app
+    - op: replace
+      path: /spec/commonName
+      value: spackbot.{ENV}.spack.io
+
+    - op: replace
+      path: /spec/dnsNames/0
+      value: spackbot.{ENV}.spack.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spackbot-deployment-test
+  namespace: spack
+  annotations:
+    cd.spack.io/staged-resource: "1"
+data:
+  apiVersion: apps/v1
+  kind: Deployment
+  name: spackbot-spack-io
+  patch: |
+    # NOTE(opadron): here are some other examples of adding content
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: SPACKBOT_NAME
+        value: "@spackbot-test"
+
+    - op: add
+      path: /spec/template/spec/containers/0/env/4
+      value:
+        some-other-key: some-other-value
+
+    - op: set
+      path: /spec/template/spec/containers/0/env/4/some-other-key1
+      value: some-other-value1
+
+    - op: set
+      path: /spec/template/spec/containers/0/env/4/some-other-key2
+      value: some-other-value2
+
+    - op: set
+      path: /spec/template/spec/containers/0/env/4/some-other-key3
+      value: some-other-value3
