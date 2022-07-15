@@ -112,12 +112,12 @@ spec:
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: spack-bot-dev-credentials
+              name: spack-bot-credentials
               key: github_private_key
         - name: GITHUB_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
-              name: spack-bot-dev-credentials
+              name: spack-bot-credentials
               key: github_webhook_secret
       volumes:
         - name: spack-bot-idrsa
