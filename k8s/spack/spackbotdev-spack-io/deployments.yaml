@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: spackbot-spack-io
+  name: spackbotdev-spack-io
   namespace: spack
   labels:
-    app: spackbot-spack-io
+    app: spackbotdev-spack-io
     svc: web
 spec:
   selector:
     matchLabels:
-      app: spackbot-spack-io
+      app: spackbotdev-spack-io
       svc: web
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
-        app: spackbot-spack-io
+        app: spackbotdev-spack-io
         svc: web
     spec:
       containers:
@@ -28,7 +28,7 @@ spec:
           containerPort: 8080
         env:
         - name: SPACKBOT_LOG_LEVEL
-          value: "INFO"
+          value: "DEBUG"
         - name: REDIS_HOST
           value: pr-binary-graduation-task-queue.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
@@ -38,23 +38,25 @@ spec:
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: GITHUB_APP_IDENTIFIER
-          value: "123749"
+          value: "126480"
         - name: GITHUB_APP_REQUESTER
-          value: "spackbot"
+          value: "spack-test"
+        - name: SPACKBOT_NAME
+          value: "@spackbot-test"
         - name: GITLAB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-dev-credentials
               key: gitlab_token
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-dev-credentials
               key: github_private_key
         - name: GITHUB_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-dev-credentials
               key: github_webhook_secret
       nodeSelector:
         spack.io/node-pool: base
@@ -63,21 +65,21 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: spackbot-workers
+  name: spackbotdev-workers
   namespace: spack
   labels:
-    app: spackbot-workers
+    app: spackbotdev-workers
     svc: workers
 spec:
   selector:
     matchLabels:
-      app: spackbot-workers
+      app: spackbotdev-workers
       svc: workers
   replicas: 1
   template:
     metadata:
       labels:
-        app: spackbot-workers
+        app: spackbotdev-workers
         svc: workers
     spec:
       containers:
@@ -87,11 +89,11 @@ spec:
         # Mount secrets to non-existing location
         volumeMounts:
           - mountPath: "/git_rsa"
-            name: spack-bot-idrsa
+            name: spack-bot-dev-idrsa
             readOnly: true
         env:
         - name: SPACKBOT_LOG_LEVEL
-          value: "INFO"
+          value: "DEBUG"
         - name: REDIS_HOST
           value: pr-binary-graduation-task-queue.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
@@ -101,13 +103,15 @@ spec:
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: GITHUB_APP_IDENTIFIER
-          value: "123749"
+          value: "126480"
         - name: GITHUB_APP_REQUESTER
-          value: "spackbot"
+          value: "spack-test"
+        - name: SPACKBOT_NAME
+          value: "@spackbot-test"
         - name: GITLAB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-dev-credentials
               key: gitlab_token
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
@@ -120,9 +124,10 @@ spec:
               name: spack-bot-dev-credentials
               key: github_webhook_secret
       volumes:
-        - name: spack-bot-idrsa
+        - name: spack-bot-dev-idrsa
           secret:
-            secretName: spack-bot-idrsa
+            secretName: spack-bot-dev-idrsa
             defaultMode: 0600
       nodeSelector:
         spack.io/node-pool: base
+
