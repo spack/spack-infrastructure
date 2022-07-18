@@ -1,6 +1,6 @@
 name: spack_ci_bridge
 
-on: [push, pull_request]
+on: pull_request
 
 jobs:
   spack_ci_bridge:
