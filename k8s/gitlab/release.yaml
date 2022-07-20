@@ -60,7 +60,15 @@ spec:
 
       psql:
         connectTimeout:
-        password: {}
+        host:
+          secret: gitlab-secrets
+          key: postgres-hostname
+        password:
+          secret: gitlab-secrets
+          key: postgres-password
+        port: 5432
+        database: gitlabhq_production
+        username: gitlab
 
       redis:
         password:
@@ -172,56 +180,4 @@ spec:
           spack.io/node-pool: gitlab
 
     postgresql:
-      replication:
-        enabled: true
-        slaveReplicas: 4
-        synchronousCommit: "on"
-      shmVolume:
-        enabled: true
-      master:
-        podLabels:
-          spack.io/environment: production
-          spack.io/release: gitlab
-          spack.io/app: postgresql
-        affinity:
-          podAntiAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              - topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchExpressions:
-                    - key: spack.io/environment
-                      operator: In
-                      values: [production]
-                    - key: spack.io/release
-                      operator: In
-                      values: [gitlab]
-                    - key: spack.io/app
-                      operator: In
-                      values: [postgresql]
-        nodeSelector:
-          spack.io/node-pool: gitlab
-      slave:
-        podLabels:
-          spack.io/environment: production
-          spack.io/release: gitlab
-          spack.io/app: postgresql
-        affinity:
-          podAntiAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              - topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchExpressions:
-                    - key: spack.io/environment
-                      operator: In
-                      values: [production]
-                    - key: spack.io/release
-                      operator: In
-                      values: [gitlab]
-                    - key: spack.io/app
-                      operator: In
-                      values: [postgresql]
-        nodeSelector:
-          spack.io/node-pool: gitlab
-      persistence:
-        storageClass: gp3
-        size: 100Gi
+      install: false
