@@ -6,11 +6,10 @@ The development version of the app is registered as `spack-bot-test` under the [
 
 ## Workflow for testing with the development verion
 
-To experiment with your spackbot changes, you must first temporarily disable flux from interfering with your changes.  This is accomplished by annotating the `spackbotdev-workers` and `spackbotdev-spack-io` pods.  Here's an example command that will do that for an imaginary `spackbotdev-workers` pod:
+To experiment with your spackbot changes, you must first temporarily disable flux from interfering with your changes.  This is accomplished by annotating the `spackbotdev-workers` and `spackbotdev-spack-io` deployments as follows:
 
-    kubectl annotate pod -n spack spackbotdev-workers-566c5b6779-92c8h fluxcd.io/ignore="true"
-
-Do the same for the `spackbotdev-spack-io` pod.
+    kubectl annotate deployment -n spack spackbotdev-spack-io fluxcd.io/ignore="true"
+    kubectl annotate deployment -n spack spackbotdev-workers fluxcd.io/ignore="true"
 
 Now the development/test work cycle proceeds like this:
 
@@ -33,9 +32,10 @@ or:
 
 This will ensure that the running cluster picks up the new `latest` image tags from `ghcr.io/spack`.
 
-When you're happy with your changes, whether you need to merge any changes to this repo (`spack/spack-infrastructure`) or not, do not forget to remove the annotation telling flux to ignore the `spackbotdev` pods.  Here's an example command doing that for an imaginary `spackbotdev-workers` pod.
+When you're happy with your changes, whether you need to merge any changes to this repo (`spack/spack-infrastructure`) or not, do not forget to remove the annotation telling flux to ignore the `spackbotdev` deployments.  This can be accomplished by issuing the following commands:
 
-    kubectl annotate pod -n spack spackbotdev-workers-566c5b6779-92c8h fluxcd.io/ignore-
+    kubectl annotate deployment -n spack spackbotdev-spack-io fluxcd.io/ignore-
+    kubectl annotate deployment -n spack spackbotdev-workers fluxcd.io/ignore-
 
 ## Keeping development version of spackbot up to date
 
