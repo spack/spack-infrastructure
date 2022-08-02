@@ -71,7 +71,7 @@ data:
     - op: remove
       path: /spec/values/gitlab/gitlab-shell/service
     - op: replace
-      path: /spec/values/global/psql/host/secret
+      path: /spec/valuesFrom/name
       value: gitlab-{ENV}-secrets
     - op: replace
       path: /spec/values/global/psql/password/secret
