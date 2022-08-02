@@ -5,307 +5,68 @@ on:
     branches: main
 
 jobs:
-  sync:
+  publish:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        docker-image:
+          - gh-gl-sync
+          - gitlab-api-scrape
+          - ci-key-rotate
+          - ci-key-clear
+          - gitlab-webservice
+          - gitlab-sidekiq
+          - gitlab-toolbox
+          - gitops
+          - gitlab-stuckpods
+          - gitlab-clear-pipelines
+          - notary
+          - python-aws-bash
+        include:
+          - docker-image: gh-gl-sync
+            image-tags: ghcr.io/spack/ci-bridge:0.0.28
+          - docker-image: gitlab-api-scrape
+            image-tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
+          - docker-image: ci-key-rotate
+            image-tags: ghcr.io/spack/ci-key-rotate:0.0.2
+          - docker-image: ci-key-clear
+            image-tags: ghcr.io/spack/ci-key-clear:0.0.1
+          - docker-image: gitlab-webservice
+            image-tags: ghcr.io/spack/gitlab-webservice:v14.6.3
+          - docker-image: gitlab-sidekiq
+            image-tags: ghcr.io/spack/gitlab-sidekiq:v14.6.3
+          - docker-image: gitlab-toolbox
+            image-tags: ghcr.io/spack/gitlab-toolbox:v14.6.3
+          - docker-image: gitops
+            image-tags: ghcr.io/spack/gitops:0.0.4
+          - docker-image: gitlab-stuckpods
+            image-tags: ghcr.io/spack/stuckpods:0.0.1
+          - docker-image: gitlab-clear-pipelines
+            image-tags: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
+          - docker-image: notary
+            image-tags: ghcr.io/spack/notary:latest
+          - docker-image: python-aws-bash
+            image-tags: ghcr.io/spack/python-aws-bash:0.0.1
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v2
-      -
-        name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push ci-bridge
-        id: docker_build_ci_bridge
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/gh-gl-sync
-          file: ./images/gh-gl-sync/Dockerfile
-          push: true
-          tags: ghcr.io/spack/ci-bridge:0.0.28
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_ci_bridge.outputs.digest }}
-  scrape:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push gitlab-api-scrape
-        id: docker_build_gitlab_api_scrape
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/gitlab-api-scrape
-          file: ./images/gitlab-api-scrape/Dockerfile
-          push: true
-          tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_gitlab_api_scrape.outputs.digest }}
-  rotate-aws-keys:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push ci-key-rotate
-        id: docker_build_ci_key_rotate
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/ci-key-rotate
-          file: ./images/ci-key-rotate/Dockerfile
-          push: true
-          tags: ghcr.io/spack/ci-key-rotate:0.0.2
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_ci_key_rotate.outputs.digest }}
-  clear-admin-keys:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push ci-key-clear
-        id: docker_build_ci_key_clear
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/ci-key-clear
-          file: ./images/ci-key-clear/Dockerfile
-          push: true
-          tags: ghcr.io/spack/ci-key-clear:0.0.1
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_ci_key_clear.outputs.digest }}
-  gitlab-webservice:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push gitlab-webservice
-        id: docker_build_gitlab_webservice
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/gitlab-webservice
-          file: ./images/gitlab-webservice/Dockerfile
-          push: true
-          tags: ghcr.io/spack/gitlab-webservice:v14.6.3
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_gitlab_webservice.outputs.digest }}
-  gitlab-sidekiq:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push gitlab-sidekiq
-        id: docker_build_gitlab_sideqkiq
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/gitlab-sidekiq
-          file: ./images/gitlab-sidekiq/Dockerfile
-          push: true
-          tags: ghcr.io/spack/gitlab-sidekiq:v14.6.3
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_gitlab_sideqkiq.outputs.digest }}
-  gitlab-toolbox:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push gitlab-toolbox
-        id: docker_build_gitlab_toolbox
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/gitlab-toolbox
-          file: ./images/gitlab-toolbox/Dockerfile
-          push: true
-          tags: ghcr.io/spack/gitlab-toolbox:v14.6.3
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_gitlab_toolbox.outputs.digest }}
-  gitops:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push gitops
-        id: docker_build_gitops
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/gitops
-          file: ./images/gitops/Dockerfile
-          push: true
-          tags: ghcr.io/spack/gitops:0.0.4
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_gitops.outputs.digest }}
 
-  gitlab-stuckpods:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
+      - name: Log in to the Container registry
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push stuckpods
-        id: docker_build_stuckpods
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/gitlab-stuckpods
-          file: ./images/gitlab-stuckpods/Dockerfile
-          push: true
-          tags: ghcr.io/spack/stuckpods:0.0.1
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_stuckpods.outputs.digest }}
 
-  unstick-pipelines:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push gitlab-clear-pipelines
-        id: docker_build_gitlab_clear_pipelines
+      - name: Build and push ${{ matrix.docker-image }}
+        id: docker-build-push
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
-          context: ./images/gitlab-clear-pipelines
-          file: ./images/gitlab-clear-pipelines/Dockerfile
+          context: ./images/${{ matrix.docker-image }}
+          file: ./images/${{ matrix.docker-image }}/Dockerfile
           push: true
-          tags: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_gitlab_clear_pipelines.outputs.digest }}
+          tags: ${{ matrix.image-tags }}
 
-  gitlab-notary:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push notary
-        id: docker_build_notary
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/notary
-          file: ./images/notary/Dockerfile
-          push: true
-          tags: ghcr.io/spack/notary:latest
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_notary.outputs.digest }}
-
-  python-aws-bash:
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      -
-        name: Login to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push python-aws-bash
-        id: docker_build_python_aws_bash
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: ./images/python-aws-bash
-          file: ./images/python-aws-bash/Dockerfile
-          push: true
-          tags: ghcr.io/spack/python-aws-bash:0.0.1
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build_python_aws_bash.outputs.digest }}
+      - name: Image digest
+        run: echo ${{ steps.docker-build-push.outputs.digest }}
