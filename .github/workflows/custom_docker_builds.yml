@@ -50,10 +50,10 @@ jobs:
             image-tags: ghcr.io/spack/python-aws-bash:0.0.1
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@d398f07826957cd0a18ea1b059cf1207835e60bc
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -61,7 +61,7 @@ jobs:
 
       - name: Build and push ${{ matrix.docker-image }}
         id: docker-build-push
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        uses: docker/build-push-action@67af6dc1d38f334ae6935c94587e8a5b45a81a0e
         with:
           context: ./images/${{ matrix.docker-image }}
           file: ./images/${{ matrix.docker-image }}/Dockerfile
