@@ -149,6 +149,8 @@ stringData:
         AWS_Auth        On
         AWS_Region      us-east-1
         Retry_Limit     6
+        Replace_Dots    On
+        Trace_Error     On
 
 ---
 apiVersion: apps/v1
