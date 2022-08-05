@@ -68,6 +68,8 @@ data:
         Mem_Buf_Limit     50MB
         Skip_Long_Lines   On
         Refresh_Interval  10
+        multiline.parser  cri, docker, python
+        Mem_Buf_Limit     10MB
 
   filter-kubernetes.conf: |
     [FILTER]
@@ -149,6 +151,8 @@ stringData:
         AWS_Auth        On
         AWS_Region      us-east-1
         Retry_Limit     6
+        Replace_Dots    On
+        Trace_Error     On
 
 ---
 apiVersion: apps/v1
@@ -178,10 +182,13 @@ spec:
     spec:
       containers:
       - name: fluent-bit
-        image: amazon/aws-for-fluent-bit:2.5.0
+        image: amazon/aws-for-fluent-bit:2.27.0
         imagePullPolicy: Always
         ports:
           - containerPort: 2020
+        resources:
+          requests:
+            memory: "36Mi"
         volumeMounts:
         - name: varlog
           mountPath: /var/log
