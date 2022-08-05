@@ -69,6 +69,7 @@ data:
         Skip_Long_Lines   On
         Refresh_Interval  10
         multiline.parser  cri, docker, python
+        Mem_Buf_Limit     10MB
 
   filter-kubernetes.conf: |
     [FILTER]
@@ -185,6 +186,9 @@ spec:
         imagePullPolicy: Always
         ports:
           - containerPort: 2020
+        resources:
+          requests:
+            memory: "36Mi"
         volumeMounts:
         - name: varlog
           mountPath: /var/log
