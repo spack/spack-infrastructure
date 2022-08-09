@@ -11,6 +11,13 @@ spec:
     repository: https://charts.gitlab.io
     version: 5.6.3 # gitlab@14.6.3
 
+  valuesFrom:
+    - secretKeyRef:
+        name: gitlab-secrets
+        namespace: gitlab
+        key: values.yaml
+        optional: false
+
   values:
     nodeSelector:
       spack.io/node-pool: gitlab
@@ -60,7 +67,6 @@ spec:
 
       psql:
         connectTimeout:
-        host: production-db.example.com # TODO: set up the prod DB and specify its hostname here
         password:
           secret: gitlab-secrets
           key: postgres-password
