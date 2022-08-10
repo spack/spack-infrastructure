@@ -81,9 +81,10 @@ data:
     - op: replace
       path: /spec/values/global/psql/password
       value: {}
-    - op: add
+    - op: replace
       path: /spec/values/postgresql
       value:
+        install: true
         replication:
           enabled: true
           slaveReplicas: 4
