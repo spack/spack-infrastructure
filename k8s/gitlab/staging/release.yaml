@@ -70,9 +70,70 @@ data:
       value: 3
     - op: remove
       path: /spec/values/gitlab/gitlab-shell/service
+    - op: remove
+      path: /spec/valuesFrom/0/secretKeyRef
+    - op: remove
+      path: /spec/values/global/psql/port
+    - op: remove
+      path: /spec/values/global/psql/database
+    - op: remove
+      path: /spec/values/global/psql/username
     - op: replace
-      path: /spec/valuesFrom/0/secretKeyRef/name
-      value: gitlab-{ENV}-secrets
-    - op: replace
-      path: /spec/values/global/psql/password/secret
-      value: gitlab-{ENV}-secrets
+      path: /spec/values/global/psql/password
+      value: {}
+    - op: add
+      path: /spec/values/postgresql
+      value:
+        replication:
+          enabled: true
+          slaveReplicas: 4
+          synchronousCommit: "on"
+        shmVolume:
+          enabled: true
+        master:
+          podLabels:
+            spack.io/environment: "{ENV}"
+            spack.io/release: "gitlab"
+            spack.io/app: "postgresql"
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: "kubernetes.io/hostname"
+                  labelSelector:
+                    matchExpressions:
+                      - key: "spack.io/environment"
+                        operator: In
+                        values: ["{ENV}"]
+                      - key: "spack.io/release"
+                        operator: In
+                        values: [gitlab]
+                      - key: "spack.io/app"
+                        operator: In
+                        values: [postgresql]
+          nodeSelector:
+            spack.io/node-pool: gitlab
+        slave:
+          podLabels:
+            spack.io/environment: "{ENV}"
+            spack.io/release: gitlab
+            spack.io/app: postgresql
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: "kubernetes.io/hostname"
+                  labelSelector:
+                    matchExpressions:
+                      - key: spack.io/environment
+                        operator: In
+                        values: ["{ENV}"]
+                      - key: spack.io/release
+                        operator: In
+                        values: [gitlab]
+                      - key: spack.io/app
+                        operator: In
+                        values: [postgresql]
+          nodeSelector:
+            spack.io/node-pool: gitlab
+        persistence:
+          storageClass: gp3
+          size: 100Gi
