@@ -38,8 +38,6 @@ data:
       path: /spec/values/global/email/reply_to
       value: noreply@gitlab.{ENV}.spack.io
     - op: remove
-      path: /spec/values/global/psql
-    - op: remove
       path: /spec/values/global/redis
     - op: remove
       path: /spec/values/global/minio
@@ -73,26 +71,8 @@ data:
     - op: remove
       path: /spec/values/gitlab/gitlab-shell/service
     - op: replace
-      path: /spec/values/postgresql/persistence/size
-      value: 8Gi
+      path: /spec/valuesFrom/0/secretKeyRef/name
+      value: gitlab-{ENV}-secrets
     - op: replace
-      path: /spec/values/postgresql/persistence/storageClass
-      value: gp3-small
-    - op: replace
-      path: /spec/values/postgresql/master/podLabels/spack.io~1environment
-      value: "{ENV}"
-    - op: replace
-      path: "\
-         /spec/values/postgresql/master/affinity/podAntiAffinity\
-         /requiredDuringSchedulingIgnoredDuringExecution/0/labelSelector\
-         /matchExpressions/0/values/0"
-      value: "{ENV}"
-    - op: replace
-      path: /spec/values/postgresql/slave/podLabels/spack.io~1environment
-      value: "{ENV}"
-    - op: replace
-      path: "\
-         /spec/values/postgresql/slave/affinity/podAntiAffinity\
-         /requiredDuringSchedulingIgnoredDuringExecution/0/labelSelector\
-         /matchExpressions/0/values/0"
-      value: "{ENV}"
+      path: /spec/values/global/psql/password/secret
+      value: gitlab-{ENV}-secrets
