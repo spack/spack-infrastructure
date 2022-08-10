@@ -137,6 +137,8 @@ kind: Secret
 metadata:
   name: fluent-bit-secrets
   namespace: logging
+  annotations:
+    fluxcd.io/ignore: "true"
   labels:
     k8s-app: fluent-bit
 type: Opaque
