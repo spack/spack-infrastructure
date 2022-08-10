@@ -132,6 +132,7 @@ with f:
         e.problem_mark.name = f_name
         print(e)
         sys.stdout.write('\x1b[0m')
+        exit(1)
 
 # some sanity checks
 if patch['apiVersion'] != 'v1':
@@ -166,6 +167,7 @@ except (yaml.parser.ParserError, yaml.scanner.ScannerError) as e:
     sys.stdout.write('\x1b[1;31m')
     print(e)
     sys.stdout.write('\x1b[0m')
+    exit(1)
 
 orig_file = open(args.orig_file)
 orig_file_name = args.orig_file
@@ -181,6 +183,7 @@ with orig_file:
         e.problem_mark.name = orig_file_name
         print(e)
         sys.stdout.write('\x1b[0m')
+        exit(1)
 
 patch = process_patch(patch, env=args.environment)
 apply_patch(target, patch)
