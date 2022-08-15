@@ -25,6 +25,10 @@ spec:
       containers:
         - name: controller
           image: ghcr.io/spack/gitops:0.0.4
+          resources:
+            requests:
+              cpu: 250m
+              memory: 50M
           args:
             - --repo
             - ssh://git@github.com/spack/spack-infrastructure

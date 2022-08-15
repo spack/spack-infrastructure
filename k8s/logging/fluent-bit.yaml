@@ -186,6 +186,10 @@ spec:
       - name: fluent-bit
         image: amazon/aws-for-fluent-bit:2.27.0
         imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 150m
+            memory: 500M
         ports:
           - containerPort: 2020
         resources:

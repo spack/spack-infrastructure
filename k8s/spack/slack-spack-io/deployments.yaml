@@ -23,6 +23,10 @@ spec:
       - name: web
         image: "spack/slackin-extended:latest"
         imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 20m
+            memory: 65M
         ports:
         - name: http
           containerPort: 80
