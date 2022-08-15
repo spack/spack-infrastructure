@@ -23,6 +23,10 @@ spec:
       - name: web
         image: "ghcr.io/spack/spack-bot:latest"
         imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 110m
+            memory: 200M
         ports:
         - name: http
           containerPort: 8080
@@ -84,6 +88,10 @@ spec:
       - name: worker
         image: "ghcr.io/spack/spackbot-workers:latest"
         imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 1500m
+            memory: 1.3G
         # Mount secrets to non-existing location
         volumeMounts:
           - mountPath: "/git_rsa"

@@ -19,3 +19,8 @@ spec:
     emitKubernetesEvents: true
     enablePrometheusServer: true
     prometheusServerPort: 9092
+
+    resources:
+      requests:
+        cpu: 10m
+        memory: 200M

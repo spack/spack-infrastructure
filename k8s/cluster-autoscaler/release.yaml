@@ -28,6 +28,11 @@ spec:
     nodeSelector:
       spack.io/node-pool: base
 
+    resources:
+      requests:
+        cpu: 100m
+        memory: 800M
+
     replicaCount: 3
 
     serviceMonitor:

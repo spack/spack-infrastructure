@@ -21,5 +21,9 @@ spec:
         - name: deletor
           image: ghcr.io/spack/stuckpods:0.0.1
           imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 25m
+              memory: 50M
       nodeSelector:
         spack.io/node-pool: base

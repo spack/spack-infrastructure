@@ -18,6 +18,10 @@ spec:
         - name: metabase
           image: metabase/metabase:v0.41.2
           imagePullPolicy: "IfNotPresent"
+          resources:
+            requests:
+              cpu: 350m
+              memory: 2G
           ports:
             - containerPort: 3000
           envFrom:
