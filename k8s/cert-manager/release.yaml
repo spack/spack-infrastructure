@@ -8,13 +8,18 @@ spec:
   releaseName: cert-manager
   chart:
     name: cert-manager
-    repository: https://charts.jetstack.io                        
+    repository: https://charts.jetstack.io
     version: v1.0.2  # cert-manager@1.0.2
   values:
     installCRDs: false
     replicaCount: 3
     nodeSelector:
       spack.io/node-pool: base
+
+    resources:
+      requests:
+        cpu: 50m
+        memory: 300M
 
     extraArgs:
       - --enable-certificate-owner-ref=true
@@ -25,11 +30,18 @@ spec:
 
     webhook:
       replicaCount: 3
+      resources:
+        requests:
+          cpu: 300m
+          memory: 50M
       nodeSelector:
         spack.io/node-pool: base
 
     cainjector:
       enabled: true
       replicaCount: 3
+      requests:
+          cpu: 30m
+          memory: 200M
       nodeSelector:
         spack.io/node-pool: base

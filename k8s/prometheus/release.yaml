@@ -89,8 +89,18 @@ spec:
               resources:
                 requests:
                   storage: 200Gi
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 50G
         nodeSelector:
           spack.io/node-pool: beefy
+
+    prometheusOperator:
+      resources:
+        requests:
+          cpu: 750m
+          memory: 300M
 
     kube-state-metrics:
       metricLabelsAllowlist:

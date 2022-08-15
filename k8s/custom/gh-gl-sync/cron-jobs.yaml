@@ -17,6 +17,10 @@ spec:
           - name: sync
             image: ghcr.io/spack/ci-bridge:0.0.28
             imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 500M
             env:
             - name: GITHUB_TOKEN
               valueFrom:

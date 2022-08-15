@@ -30,6 +30,10 @@ spec:
             exec /bin/bash /docker-entrypoint.sh
         image: kitware/cdash:spack_deploy_v4
         imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 1600m
+            memory: 1G
         ports:
         - containerPort: 80
           name: web
