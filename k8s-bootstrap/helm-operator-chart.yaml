@@ -5,6 +5,10 @@ helm:
   versions: "v3"
 nodeSelector:
   spack.io/node-pool: beefy
+resources:
+  requests:
+    cpu: 2000m
+    memory: 1.5G
 configureRepositories:
   enable: true
   repositories:

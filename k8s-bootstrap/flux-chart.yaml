@@ -20,6 +20,11 @@ clusterRole:
 nodeSelector:
   spack.io/node-pool: base
 
+resources:
+  requests:
+    cpu: 1000m
+    memory: 1G
+
 git:
   url: "ssh://git@github.com/spack/spack-infrastructure"
   branch: "flux"
@@ -36,6 +41,10 @@ syncGarbageCollection:
 
 memcached:
   enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 60M
   nodeSelector:
     spack.io/node-pool: base
 
