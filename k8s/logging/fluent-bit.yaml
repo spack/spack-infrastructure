@@ -189,7 +189,7 @@ spec:
         resources:
           requests:
             cpu: 150m
-            memory: 500M
+            memory: 185M
         ports:
           - containerPort: 2020
         volumeMounts:
