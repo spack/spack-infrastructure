@@ -22,6 +22,8 @@ spec:
       containers:
       - name: web
         image: "ghcr.io/spack/spack-bot:latest"
+        # Can use some other image for testing, see README.md
+        # image: "ghcr.io/scottwittenburg/spackbot:0.0.76"
         imagePullPolicy: Always
         resources:
           requests:
@@ -37,6 +39,8 @@ spec:
           value: pr-binary-graduation-task-queue.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
           value: "6379"
+        - name: TASK_QUEUE_NAME
+          value: "tasksdevelop"
         - name: WORKER_JOB_TIMEOUT
           value: "600"
         - name: PYTHONUNBUFFERED
@@ -89,6 +93,8 @@ spec:
       containers:
       - name: worker
         image: "ghcr.io/spack/spackbot-workers:latest"
+        # Can use some other image for testing, see README.md
+        # image: "ghcr.io/scottwittenburg/spackbot-workers:0.0.76"
         imagePullPolicy: Always
         resources:
           requests:
@@ -106,6 +112,8 @@ spec:
           value: pr-binary-graduation-task-queue.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
           value: "6379"
+        - name: TASK_QUEUE_NAME
+          value: "tasksdevelop"
         - name: WORKER_JOB_TIMEOUT
           value: "600"
         - name: PYTHONUNBUFFERED
