@@ -30,12 +30,9 @@ spec:
         resources:
           requests:
             cpu: 150m
-            memory: 500M
+            memory: 185M
         ports:
           - containerPort: 2020
-        resources:
-          requests:
-            memory: "36Mi"
         volumeMounts:
         - name: varlog
           mountPath: /var/log
