@@ -19,3 +19,8 @@ spec:
              irate(container_network_transmit_bytes_total{namespace="pipeline"}[3m]) == 0
            )
          record: node_namespace_pod_name:pipeline_stuck_pods_info
+
+       - expr: |-
+           sum(irate(nginx_ingress_controller_requests{exported_service="gitlab-webservice-default", status!~"[4-5].*"}[2m])) by (ingress) /
+           sum(irate(nginx_ingress_controller_requests{exported_service="gitlab-webservice-default"}[2m])) by (ingress) * 100
+         record: ingress_error_rate:gitlab_webservice_default
