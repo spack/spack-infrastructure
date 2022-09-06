@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: skipped-pipelines
+  namespace: custom
+spec:
+  schedule: "*/30 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: skipped-pipelines
+            image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.1
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-clear-pipelines
+                  key: gitlab-token
+          nodeSelector:
+            spack.io/node-pool: base
