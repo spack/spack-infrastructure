@@ -12,12 +12,7 @@ spec:
     version: 32.0.2
   values:
     defaultRules:
-#  Appears to be broken in production -  Does not validate.
-#  See: https://github.com/prometheus-community/helm-charts/issues/1718
-#      disabled:
-#        # Both of these services are handled by EKS
-#        KubeSchedulerDown: true
-#        KubeControllerManagerDown: true
+      create: false
       additionalRuleLabels:
         namespace: monitoring
         source_namespace: '{{ $labels.namespace }}'
