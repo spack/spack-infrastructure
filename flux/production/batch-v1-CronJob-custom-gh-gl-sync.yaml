@@ -21,7 +21,7 @@ spec:
             - --main-branch
             - develop
             - --prereq-check
-            - ci / prechecks / style
+            - prechecks / style
             env:
             - name: GITHUB_TOKEN
               valueFrom:
