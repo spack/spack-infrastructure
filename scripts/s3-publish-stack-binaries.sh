@@ -1,20 +1,32 @@
 #!/bin/bash
-set -x
 set -e
 
 # Check that access keys are present
-has_access_key=1
+meets_req=1
 if [[ -z $AWS_ACCESS_KEY_ID ]]; then
   echo "Missing AWS_ACCESS_KEY_ID"
-  has_access_key=0
+  meets_req=0
 fi
 if [[ -z $AWS_SECRET_ACCESS_KEY ]]; then
   echo "Missing AWS_SECRET_ACCESS_KEY"
-  has_access_key=0
+  meets_req=0
 fi
-if [[ $has_access_key == 0 ]]; then
+
+if [[ ! $(command -v spack) ]]; then
+  echo "Cannout find spack"
+  meets_req=0
+fi
+
+if [[ ! $(command -v aws) ]]; then
+  echo "Cannout find aws"
+  meets_req=0
+fi
+
+if [[ $meets_req == 0 ]]; then
   exit 1
 fi
+
+set -x
 
 # Setup the binaries to sync
 if [[ ! -z $1 ]]; then
@@ -39,6 +51,8 @@ stacks=(
   tutorial
 )
 
+exit 0
+
 # Remove all of the old binaries
 aws s3 rm "s3://spack-binaries/${commit_ref_name}" --recursive --exclude *pgp*
 # Copy the binaries from the stack caches with their corresponding sig files
@@ -47,3 +61,4 @@ for stack in "${stacks[@]}"; do
   echo "aws s3 cp 's3://spack-binaries/${commit_ref_name}/${stack}' 's3://spack-binaries/${commit_ref_name}' --recursive --exclude *index.json* --exclude *pgp*"
   aws s3 cp "s3://spack-binaries/${commit_ref_name}/${stack}" "s3://spack-binaries/${commit_ref_name}" --recursive --exclude *index.json* --exclude *pgp*
 done
+spack buildcache update-index --mirror-url "s3://spack-binaries/${commit_ref_name}"
