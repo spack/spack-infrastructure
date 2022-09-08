@@ -51,10 +51,13 @@ stacks=(
   tutorial
 )
 
-exit 0
+exclude_stack_mirrors=
+for stack in "${stacks[@]}"; do
+  exclude_stack_mirrors="--exclude *${stack}* ${exclude_stack_mirrors}"
+done
 
 # Remove all of the old binaries
-aws s3 rm "s3://spack-binaries/${commit_ref_name}" --recursive --exclude *pgp*
+aws s3 rm "s3://spack-binaries/${commit_ref_name}" --recursive --exclude *pgp* ${exclude_stack_mirrors}
 # Copy the binaries from the stack caches with their corresponding sig files
 for stack in "${stacks[@]}"; do
   echo "copy: $stack"
