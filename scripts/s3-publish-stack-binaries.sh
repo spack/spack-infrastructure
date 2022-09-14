@@ -1,6 +1,37 @@
 #!/bin/bash
 set -e
 
+# Script used to brute force the removal of duplicate buildcache entries in
+# the top level buildcache. This cleans up errors introduced by a race condition
+# when updating the .spack files and the .sig files. Ideally, this script should
+# only be run once (8 September 2022).
+
+if [[ "$1" == "-h" ]]; then
+  echo ""
+  echo "Usage:"
+  echo ""
+  echo "    Print this help message:"
+  echo ""
+  echo "        ${0//*\//} -h"
+  echo ""
+  echo "    Update common buildcache for a <commit_ref> (default: 'develop')"
+  echo ""
+  echo "        ${0//*\//} <commit_ref>"
+  echo ""
+  echo "Set environment variables with AWS access secrets"
+  echo ""
+  echo "    export AWS_ACCESS_KEY_ID=<KEY_ID>"
+  echo "    export AWS_SECRET_ACCESS_KEY=<ACCESS_KEY>"
+  echo ""
+  echo "Pre-requisite software:"
+  echo ""
+  echo "    AWS CLI (aws)"
+  echo "    Spack (spack)"
+  echo ""
+
+  exit 0
+fi
+
 # Check that access keys are present
 meets_req=1
 if [[ -z $AWS_ACCESS_KEY_ID ]]; then
