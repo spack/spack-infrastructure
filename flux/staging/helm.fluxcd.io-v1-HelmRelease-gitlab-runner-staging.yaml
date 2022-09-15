@@ -1,0 +1,53 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: runner-staging
+  namespace: gitlab
+spec:
+  chart:
+    name: gitlab-runner
+    repository: https://charts.gitlab.io
+    version: 0.37.2
+  releaseName: runner-staging
+  values:
+    checkInterval: 1
+    concurrent: 3
+    gitlabUrl: https://gitlab.staging.spack.io/
+    image: gitlab/gitlab-runner:alpine-v14.7.0
+    imagePullPolicy: IfNotPresent
+    metrics:
+      enabled: true
+    nodeSelector:
+      spack.io/node-pool: base
+    rbac:
+      serviceAccountName: runner
+    replicas: 1
+    runners:
+      cache: {}
+      config: "[[runners]]\noutput_limit = 4096\nenvironment = [\"FF_GITLAB_REGISTRY_HELPER_IMAGE=1\"\
+        ]\n[runners.kubernetes]\n  privileged = false\n  cpu_request = \"750m\"\n\
+        \  memory_request = \"2Gi\"\n  namespace = \"gitlab\"\n  poll_timeout = 600\
+        \  # ten minutes\n  service_account = \"runner\"\n  [runners.kubernetes.pod_annotations]\n\
+        \    \"gitlab-ci/ci_pipeline_url\" = \"$CI_PIPELINE_URL\"\n    \"gitlab-ci/ci_job_url\"\
+        \ = \"$CI_JOB_URL\"\n    \"gitlab-ci/ci_project_url\" = \"$CI_PROJECT_URL\"\
+        \n    \"gitlab-ci/ci_job_id\" = \"$CI_JOB_ID\"\n    \"gitlab-ci/ci_runner_description\"\
+        \ = \"$CI_RUNNER_DESCRIPTION\"\n  [runners.kubernetes.pod_labels]\n    \"\
+        gitlab-ci/ci_pipeline_id\" = \"$CI_PIPELINE_ID\"\n    \"gitlab-ci/ci_project_namespace\"\
+        \ = \"$CI_PROJECT_NAMESPACE\"\n    \"gitlab-ci/ci_project_name\" = \"$CI_PROJECT_NAME\"\
+        \n    \"gitlab-ci/ci_job_stage\" = \"$CI_JOB_STAGE\"\n    \"gitlab-ci/ci_commit_ref_name\"\
+        \ = \"$CI_COMMIT_REF_NAME\"\n    \"gitlab-ci/spack_ci_stack_name\" = \"$SPACK_CI_STACK_NAME\"\
+        \n    \"gitlab-ci/spack_job_spec_pkg_name\" = \"$SPACK_JOB_SPEC_PKG_NAME\"\
+        \n    \"gitlab-ci/spack_spec_needs_rebuild\" = \"$SPACK_SPEC_NEEDS_REBUILD\"\
+        \n  [runners.kubernetes.node_selector]\n    \"kubernetes.io/arch\" = \"amd64\"\
+        \n    \"spack.io/node-pool\" = \"glr-large-testing-pub\"\n"
+      helpers: {}
+      image: busybox:1.32.0
+      imagePullPolicy: if-not-present
+      locked: false
+      runUntagged: false
+      secret: gitlab-staging-gitlab-runner-secret
+      services: {}
+      tags: x86_64,avx,avx2,avx512,small,medium,large,huge,staging,public,aws,spack
+    terminationGracePeriodSeconds: 300
+    unregisterRunners: true
