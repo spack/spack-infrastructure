@@ -50,6 +50,12 @@ data:
         K8S-Logging.Exclude On
         Buffer_Size         512KB
 
+    [FILTER]
+        # Filter out 'INFO' level logs
+        Name    grep
+        Match   *
+        Exclude $log_processed['severity'] INFO
+
   parsers.conf: |
     [PARSER]
         Name   apache
