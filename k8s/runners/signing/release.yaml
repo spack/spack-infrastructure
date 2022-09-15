@@ -56,6 +56,7 @@ spec:
             # TODO what capabilities can we drop from the container?
             # cap_drop =
             [runners.kubernetes.pod_annotations]
+              "fluentbit.io/exclude" = "true"
               "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
               "gitlab/ci_job_url" = "$CI_JOB_URL"
               "gitlab/ci_project_url" = "$CI_PROJECT_URL"
