@@ -18,11 +18,12 @@ data:
     ]\n      [runners.kubernetes]\n        privileged = false\n        cpu_request\
     \ = \"750m\"\n        memory_request = \"2Gi\"\n        namespace = \"gitlab\"\
     \n        poll_timeout = 600  # ten minutes\n        service_account = \"runner\"\
-    \n        [runners.kubernetes.pod_annotations]\n          \"gitlab-ci/ci_pipeline_url\"\
-    \ = \"$CI_PIPELINE_URL\"\n          \"gitlab-ci/ci_job_url\" = \"$CI_JOB_URL\"\
-    \n          \"gitlab-ci/ci_project_url\" = \"$CI_PROJECT_URL\"\n          \"gitlab-ci/ci_job_id\"\
-    \ = \"$CI_JOB_ID\"\n          \"gitlab-ci/ci_runner_description\" = \"$CI_RUNNER_DESCRIPTION\"\
-    \n        [runners.kubernetes.pod_labels]\n          \"gitlab-ci/ci_pipeline_id\"\
+    \n        [runners.kubernetes.pod_annotations]\n          \"fluentbit.io/exclude\"\
+    \ = \"true\"\n          \"gitlab-ci/ci_pipeline_url\" = \"$CI_PIPELINE_URL\"\n\
+    \          \"gitlab-ci/ci_job_url\" = \"$CI_JOB_URL\"\n          \"gitlab-ci/ci_project_url\"\
+    \ = \"$CI_PROJECT_URL\"\n          \"gitlab-ci/ci_job_id\" = \"$CI_JOB_ID\"\n\
+    \          \"gitlab-ci/ci_runner_description\" = \"$CI_RUNNER_DESCRIPTION\"\n\
+    \        [runners.kubernetes.pod_labels]\n          \"gitlab-ci/ci_pipeline_id\"\
     \ = \"$CI_PIPELINE_ID\"\n          \"gitlab-ci/ci_project_namespace\" = \"$CI_PROJECT_NAMESPACE\"\
     \n          \"gitlab-ci/ci_project_name\" = \"$CI_PROJECT_NAME\"\n          \"\
     gitlab-ci/ci_job_stage\" = \"$CI_JOB_STAGE\"\n          \"gitlab-ci/ci_commit_ref_name\"\

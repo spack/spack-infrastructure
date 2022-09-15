@@ -33,18 +33,19 @@ spec:
         \ = [\"\"]\n\n    # TODO Set up security contexts with the image\n    # pod_security_context\
         \ =\n    # helper_container_security_context =\n    # build_container_security_context\
         \ =\n    #\n    # TODO what capabilities can we drop from the container?\n\
-        \    # cap_drop =\n    [runners.kubernetes.pod_annotations]\n      \"gitlab/ci_pipeline_url\"\
-        \ = \"$CI_PIPELINE_URL\"\n      \"gitlab/ci_job_url\" = \"$CI_JOB_URL\"\n\
-        \      \"gitlab/ci_project_url\" = \"$CI_PROJECT_URL\"\n      \"gitlab/ci_runner_description\"\
-        \ = \"$CI_RUNNER_DESCRIPTION\"\n      \"gitlab/ci_job_id\" = \"$CI_JOB_ID\"\
-        \n    [runners.kubernetes.pod_labels]\n      \"metrics/gitlab_ci_pipeline_id\"\
-        \ = \"$CI_PIPELINE_ID\"\n      \"metrics/gitlab_ci_project_namespace\" = \"\
-        $CI_PROJECT_NAMESPACE\"\n      \"metrics/gitlab_ci_project_name\" = \"$CI_PROJECT_NAME\"\
-        \n      \"metrics/gitlab_ci_job_stage\" = \"$CI_JOB_STAGE\"\n      \"metrics/gitlab_ci_commit_ref_name\"\
-        \ = \"$CI_COMMIT_REF_NAME\"\n      \"metrics/spack_ci_stack_name\" = \"$SPACK_CI_STACK_NAME\"\
-        \n    [runners.kubernetes.node_selector]\n      \"kubernetes.io/arch\" = \"\
-        amd64\"\n      \"spack.io/node-pool\" = \"glr-large-pub\"\n\n    [[runners.kubernetes.volumes.secret]]\n\
-        \      name = \"spack-signing-key-encrypted\"\n      mount_path = \"/mnt/keys/signing\"\
+        \    # cap_drop =\n    [runners.kubernetes.pod_annotations]\n      \"fluentbit.io/exclude\"\
+        \ = \"true\"\n      \"gitlab/ci_pipeline_url\" = \"$CI_PIPELINE_URL\"\n  \
+        \    \"gitlab/ci_job_url\" = \"$CI_JOB_URL\"\n      \"gitlab/ci_project_url\"\
+        \ = \"$CI_PROJECT_URL\"\n      \"gitlab/ci_runner_description\" = \"$CI_RUNNER_DESCRIPTION\"\
+        \n      \"gitlab/ci_job_id\" = \"$CI_JOB_ID\"\n    [runners.kubernetes.pod_labels]\n\
+        \      \"metrics/gitlab_ci_pipeline_id\" = \"$CI_PIPELINE_ID\"\n      \"metrics/gitlab_ci_project_namespace\"\
+        \ = \"$CI_PROJECT_NAMESPACE\"\n      \"metrics/gitlab_ci_project_name\" =\
+        \ \"$CI_PROJECT_NAME\"\n      \"metrics/gitlab_ci_job_stage\" = \"$CI_JOB_STAGE\"\
+        \n      \"metrics/gitlab_ci_commit_ref_name\" = \"$CI_COMMIT_REF_NAME\"\n\
+        \      \"metrics/spack_ci_stack_name\" = \"$SPACK_CI_STACK_NAME\"\n    [runners.kubernetes.node_selector]\n\
+        \      \"kubernetes.io/arch\" = \"amd64\"\n      \"spack.io/node-pool\" =\
+        \ \"glr-large-pub\"\n\n    [[runners.kubernetes.volumes.secret]]\n      name\
+        \ = \"spack-signing-key-encrypted\"\n      mount_path = \"/mnt/keys/signing\"\
         \n      read_only = true\n\n    [[runners.kubernetes.volumes.empty_dir]]\n\
         \      name = \"gnupg\"\n      mount_path = \"/mnt/gnupg\"\n      medium =\
         \ \"Memory\"\n"
