@@ -7,7 +7,9 @@ data:
     \    Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token\n\
     \    Kube_Tag_Prefix     kube.var.log.containers.\n    Merge_Log           On\n\
     \    Merge_Log_Key       log_processed\n    K8S-Logging.Parser  On\n    K8S-Logging.Exclude\
-    \ On\n    Buffer_Size         512KB\n"
+    \ On\n    Buffer_Size         512KB\n\n[FILTER]\n    # Filter out 'INFO' level\
+    \ logs\n    Name    grep\n    Match   *\n    Exclude $log_processed['severity']\
+    \ INFO\n"
   fluent-bit.conf: "[SERVICE]\n    Flush         1\n    Log_Level     info\n    Daemon\
     \        off\n    Parsers_File  parsers.conf\n    HTTP_Server   On\n    HTTP_Listen\
     \   0.0.0.0\n    HTTP_Port     2020\n\n@INCLUDE input-kubernetes.conf\n@INCLUDE\
