@@ -35,14 +35,17 @@ spec:
           - name: PGUSER
             value: postgres
           - name: PGHOST
-            value: gitlab-postgresql
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-postgresql-secrets
+                key: gitlab-postgresql-host
           - name: PGDATABASE
             value: gitlabhq_production
           - name: PGPASSWORD
             valueFrom:
               secretKeyRef:
-                name: gitlab-postgresql-password
-                key: postgresql-postgres-password
+                name: gitlab-postgresql-secrets
+                key: gitlab-postgresql-password
           - name: RO_PGPASSWORD
             valueFrom:
               secretKeyRef:
