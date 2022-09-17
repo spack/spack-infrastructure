@@ -33,7 +33,7 @@ spec:
                 secretKeyRef:
                   key: gitlab-ssh-key
                   name: gh-gl-sync
-            image: ghcr.io/spack/ci-bridge:0.0.28
+            image: ghcr.io/spack/ci-bridge:0.0.29
             imagePullPolicy: IfNotPresent
             name: sync
             resources:
