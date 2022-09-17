@@ -260,7 +260,7 @@ class SpackCIBridge(object):
         for line in self.gitlab_pr_output.split(b"\n"):
             if line.find(b"gitlab/") == -1:
                 continue
-            synced_pr = line.strip().replace(b"gitlab/", b"").decode("utf-8")
+            synced_pr = line.strip().replace(b"gitlab/", b"", 1).decode("utf-8")
             synced_prs.append(synced_pr)
         print("Synced PRs:")
         for pr in synced_prs:
