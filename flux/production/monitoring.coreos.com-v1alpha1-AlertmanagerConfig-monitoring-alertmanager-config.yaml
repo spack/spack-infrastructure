@@ -7,6 +7,15 @@ metadata:
   name: alertmanager-config
   namespace: monitoring
 spec:
+  inhibitRules:
+  - equal:
+    - group
+    sourceMatch:
+    - name: severity
+      value: critical
+    targetMatch:
+    - name: severity
+      value: warning
   receivers:
   - name: slack
     slackConfigs:

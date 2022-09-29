@@ -23,6 +23,7 @@ spec:
       additionalRuleLabels:
         namespace: monitoring
         source_namespace: '{{ $labels.namespace }}'
+      create: false
     grafana:
       admin:
         existingSecret: kube-prometheus-stack-grafana
