@@ -29,3 +29,12 @@ spec:
           {{.Annotations.description}}
 
           {{ end }}
+  inhibitRules:
+    - targetMatch:
+        - name: severity
+          value: warning
+      sourceMatch:
+        - name: severity
+          value: critical
+      equal:
+        - group

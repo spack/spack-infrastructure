@@ -19,6 +19,34 @@ spec:
          expr: node_namespace_pod_name:pipeline_stuck_pods_info == 1
          for: 5m
          labels:
+           group: gitlab_webservice_error_rate
+           severity: warning
+           namespace: monitoring
+           source_namespace: "{{ $labels.namespace }}"
+
+       - alert: GitLabWebServiceErrorRate5Percent
+         annotations:
+           description: 'GitLab Web Service has been seeing a 5% error rate for the last 5 minutes'
+           runbook_url: 'TODO'
+           summary: 'The GitLab web service has seen 4XX/5XX responses for at least 5% of requests over the last 5 minutes.'
+         expr: ingress_error_rate:gitlab_webservice_default <= 95.0
+         for: 5m
+         labels:
+           group: gitlab_webservice_error_rate
+           severity: warning
+           namespace: monitoring
+           source_namespace: "{{ $labels.namespace }}"
+
+
+       - alert: GitLabWebServiceErrorRate10Percent
+         annotations:
+           description: 'GitLab Web Service has been seeing a 10% error rate for the last 2 minutes'
+           runbook_url: 'TODO'
+           summary: 'The GitLab web service has seen 4XX/5XX responses for at least 10% of requests over the last 2 minutes.'
+         expr: ingress_error_rate:gitlab_webservice_default <= 90.0
+         for: 2m
+         labels:
+           group: gitlab_webservice_error_rate
            severity: critical
            namespace: monitoring
            source_namespace: "{{ $labels.namespace }}"
