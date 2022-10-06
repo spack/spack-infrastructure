@@ -1,0 +1,16 @@
+- groups:
+  - system:masters
+  rolearn: arn:aws:iam::588562868276:role/Spack-EKS-Cluster-Access
+  username: admin
+- groups:
+  - system:bootstrappers
+  - system:nodes
+  - system:node-proxier
+  rolearn: arn:aws:iam::588562868276:role/R004-EKS-SELF-MANAGED-NG-IAM-PROF-NodeInstanceRole-SKR87YY9U7QU
+  username: system:node:{{EC2PrivateDNSName}}
+- groups:
+  - system:bootstrappers
+  - system:nodes
+  - system:node-proxier
+  rolearn: arn:aws:iam::588562868276:role/Spack-AmazonEKSFargatePodExecutionRole
+  username: system:node:{{SessionName}}
