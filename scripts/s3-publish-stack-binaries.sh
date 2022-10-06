@@ -82,17 +82,22 @@ stacks=(
   tutorial
 )
 
+dryrun= # "--dryrun"
+
 exclude_stack_mirrors=
 for stack in "${stacks[@]}"; do
   exclude_stack_mirrors="--exclude *${stack}* ${exclude_stack_mirrors}"
 done
 
 # Remove all of the old binaries
-aws s3 rm "s3://spack-binaries/${commit_ref_name}" --recursive --exclude *pgp* ${exclude_stack_mirrors}
+aws s3 rm "s3://spack-binaries/${commit_ref_name}" --recursive --exclude *pgp* ${exclude_stack_mirrors} ${dryrun}
 # Copy the binaries from the stack caches with their corresponding sig files
 for stack in "${stacks[@]}"; do
   echo "copy: $stack"
   echo "aws s3 cp 's3://spack-binaries/${commit_ref_name}/${stack}' 's3://spack-binaries/${commit_ref_name}' --recursive --exclude *index.json* --exclude *pgp*"
-  aws s3 cp "s3://spack-binaries/${commit_ref_name}/${stack}" "s3://spack-binaries/${commit_ref_name}" --recursive --exclude *index.json* --exclude *pgp*
+  aws s3 cp "s3://spack-binaries/${commit_ref_name}/${stack}" "s3://spack-binaries/${commit_ref_name}" --recursive --exclude *index.json* --exclude *pgp* ${dryrun}
 done
-spack buildcache update-index --mirror-url "s3://spack-binaries/${commit_ref_name}"
+
+if [[ -z ${dryrun} ]]; then
+  spack buildcache update-index --mirror-url "s3://spack-binaries/${commit_ref_name}"
+fi
