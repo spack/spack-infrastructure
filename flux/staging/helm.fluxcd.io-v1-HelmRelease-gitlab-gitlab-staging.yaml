@@ -1,0 +1,199 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: gitlab-staging
+  namespace: gitlab
+spec:
+  chart:
+    name: gitlab
+    repository: https://charts.gitlab.io
+    version: 5.6.3
+  releaseName: gitlab-staging
+  values:
+    certmanager:
+      install: false
+    gitlab:
+      gitaly:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+      gitlab-exporter:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+      gitlab-shell:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+      ingress:
+        tls:
+          enabled: true
+      migrations:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+      sidekiq:
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/spack/gitlab-sidekiq
+          tag: v14.6.3
+        nodeSelector:
+          spack.io/node-pool: gitlab
+      toolbox:
+        antiAffinityLabels:
+          matchLabels:
+            app: gitaly
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/spack/gitlab-toolbox
+          tag: v14.6.3
+        nodeSelector:
+          spack.io/node-pool: gitlab
+        replicas: 8
+      webservice:
+        image:
+          pullPolicy: IfNotPresent
+          repository: ghcr.io/spack/gitlab-webservice
+          tag: v14.6.3
+        ingress:
+          enabled: true
+          tls:
+            enabled: true
+            secretName: tls-gitlab-staging-webservice
+        maxReplicas: 3
+        minReplicas: 1
+        nodeSelector:
+          spack.io/node-pool: gitlab
+        resources:
+          limits:
+            cpu: 1500m
+            memory: 3.5G
+          requests:
+            cpu: 550m
+            memory: 2G
+    gitlab-runner:
+      install: false
+    global:
+      antiAffinity: hard
+      common:
+        labels: {}
+      edition: ee
+      email:
+        from: admin@gitlab.staging.spack.io
+        reply_to: noreply@gitlab.staging.spack.io
+      gitlab:
+        license: {}
+      hosts:
+        domain: staging.spack.io
+        gitlab:
+          name: gitlab.staging.spack.io
+        https: true
+        minio:
+          name: minio.gitlab.staging.spack.io
+        registry:
+          name: registry.gitlab.staging.spack.io
+        smartcard:
+          enabled: false
+      ingress:
+        class: nginx
+        configureCertmanager: false
+      initialRootPassword: {}
+      operator:
+        enabled: false
+      psql:
+        connectTimeout: null
+        password: {}
+      smtp:
+        address: email-smtp.us-east-1.amazonaws.com
+        enabled: true
+        password:
+          secret: smtp-password
+        port: 465
+        tls: true
+        user_name: AKIAYSCIUVA2HA4WTV6O
+    grafana:
+      enabled: false
+    minio:
+      ingress:
+        tls:
+          secretName: tls-gitlab-staging-minio
+      nodeSelector:
+        spack.io/node-pool: gitlab
+      persistence:
+        size: 10Gi
+      resources:
+        requests:
+          cpu: 200m
+          memory: 12G
+    nginx-ingress:
+      enabled: false
+    nodeSelector:
+      spack.io/node-pool: gitlab
+    postgresql:
+      install: true
+      master:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: spack.io/environment
+                  operator: In
+                  values:
+                  - staging
+                - key: spack.io/release
+                  operator: In
+                  values:
+                  - gitlab
+                - key: spack.io/app
+                  operator: In
+                  values:
+                  - postgresql
+              topologyKey: kubernetes.io/hostname
+        nodeSelector:
+          spack.io/node-pool: gitlab
+        podLabels:
+          spack.io/app: postgresql
+          spack.io/environment: staging
+          spack.io/release: gitlab
+      persistence:
+        size: 100Gi
+        storageClass: gp3
+      replication:
+        enabled: true
+        slaveReplicas: 4
+        synchronousCommit: 'on'
+      shmVolume:
+        enabled: true
+      slave:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: spack.io/environment
+                  operator: In
+                  values:
+                  - staging
+                - key: spack.io/release
+                  operator: In
+                  values:
+                  - gitlab
+                - key: spack.io/app
+                  operator: In
+                  values:
+                  - postgresql
+              topologyKey: kubernetes.io/hostname
+        nodeSelector:
+          spack.io/node-pool: gitlab
+        podLabels:
+          spack.io/app: postgresql
+          spack.io/environment: staging
+          spack.io/release: gitlab
+    prometheus:
+      install: false
+    registry:
+      ingress:
+        tls:
+          secretName: tls-gitlab-staging-registry
+      nodeSelector:
+        spack.io/node-pool: gitlab
+  valuesFrom:
+  - {}
