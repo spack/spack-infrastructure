@@ -13,13 +13,13 @@ data:
   patch: |
     - op: replace
       path: /metadata/name
-      value: runner-{ENV}
+      value: runner-large-x86-pub-{ENV}
     - op: replace
       path: /spec/chart/version
       value: "0.37.2"  # bleeding edge
     - op: replace
       path: /spec/releaseName
-      value: runner-{ENV}
+      value: runner-large-x86-pub-{ENV}
     - op: replace
       path: /spec/values/replicas
       value: 1
