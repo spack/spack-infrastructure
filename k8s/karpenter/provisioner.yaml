@@ -3,9 +3,8 @@ kind: Provisioner
 metadata:
   name: default
 spec:
-  # Terminate nodes after 30 seconds of idle time
-  # TODO: Change this
-  ttlSecondsAfterEmpty: 30
+  # Terminate nodes after 10 minutes of idle time
+  ttlSecondsAfterEmpty: 600
   providerRef:
     name: default
   requirements:
@@ -34,5 +33,7 @@ spec:
     - key: "karpenter.sh/capacity-type"
       operator: In
       values: ["spot", "on-demand"]
+
+  # Only provision nodes from the glr-large-pub node pool
   labels:
     spack.io/node-pool: glr-large-pub
