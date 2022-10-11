@@ -1,0 +1,75 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runner-arm-staging-patch
+  namespace: gitlab
+  annotations:
+    cd.spack.io/staged-resource: "1"
+data:
+  apiVersion: helm.fluxcd.io/v1
+  kind: HelmRelease
+  name: runner-large-arm-pub
+  patch: |
+    - op: replace
+      path: /metadata/name
+      value: runner-large-arm-pub-{ENV}
+    - op: replace
+      path: /spec/chart/version
+      value: "0.37.2"  # bleeding edge
+    - op: replace
+      path: /spec/releaseName
+      value: runner-large-arm-pub-{ENV}
+    - op: replace
+      path: /spec/values/replicas
+      value: 1
+    - op: replace
+      path: /spec/values/gitlabUrl
+      value: "https://gitlab.{ENV}.spack.io/"
+    - op: replace
+      path: /spec/values/terminationGracePeriodSeconds
+      value: 300  # five minutes
+    - op: replace
+      path: /spec/values/concurrent
+      value: 3
+    - op: replace
+      path: /spec/values/checkInterval
+      value: 1
+    - op: replace
+      path: /spec/values/runners/tags
+      value: "arm,aarch64,graviton,graviton2,small,medium,large,huge,{ENV},public,aws,spack"
+    - op: replace
+      path: /spec/values/runners/secret
+      value: gitlab-{ENV}-gitlab-runner-secret
+    - op: replace
+      path: /spec/values/runners/config
+      value: |
+          [[runners]]
+          output_limit = 4096
+          environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
+          [runners.kubernetes]
+            privileged = false
+            cpu_request = "750m"
+            memory_request = "2Gi"
+            namespace = "gitlab"
+            poll_timeout = 600  # ten minutes
+            service_account = "runner"
+            [runners.kubernetes.pod_annotations]
+              "fluentbit.io/exclude" = "true"
+              "gitlab-ci/ci_pipeline_url" = "$CI_PIPELINE_URL"
+              "gitlab-ci/ci_job_url" = "$CI_JOB_URL"
+              "gitlab-ci/ci_project_url" = "$CI_PROJECT_URL"
+              "gitlab-ci/ci_job_id" = "$CI_JOB_ID"
+              "gitlab-ci/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
+            [runners.kubernetes.pod_labels]
+              "gitlab-ci/ci_pipeline_id" = "$CI_PIPELINE_ID"
+              "gitlab-ci/ci_project_namespace" = "$CI_PROJECT_NAMESPACE"
+              "gitlab-ci/ci_project_name" = "$CI_PROJECT_NAME"
+              "gitlab-ci/ci_job_stage" = "$CI_JOB_STAGE"
+              "gitlab-ci/ci_commit_ref_name" = "$CI_COMMIT_REF_NAME"
+              "gitlab-ci/spack_ci_stack_name" = "$SPACK_CI_STACK_NAME"
+              "gitlab-ci/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
+              "gitlab-ci/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
+            [runners.kubernetes.node_selector]
+              "kubernetes.io/arch" = "arm64"
+              "spack.io/node-pool" = "glr-large-testing-pub"
