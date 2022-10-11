@@ -2,24 +2,24 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: runner-staging-patch
+  name: runner-arm-staging-patch
   namespace: gitlab
   annotations:
     cd.spack.io/staged-resource: "1"
 data:
   apiVersion: helm.fluxcd.io/v1
   kind: HelmRelease
-  name: runner-large-x86-pub
+  name: runner-large-arm-pub
   patch: |
     - op: replace
       path: /metadata/name
-      value: runner-{ENV}
+      value: runner-large-arm-pub-{ENV}
     - op: replace
       path: /spec/chart/version
       value: "0.37.2"  # bleeding edge
     - op: replace
       path: /spec/releaseName
-      value: runner-{ENV}
+      value: runner-large-arm-pub-{ENV}
     - op: replace
       path: /spec/values/replicas
       value: 1
@@ -37,7 +37,7 @@ data:
       value: 1
     - op: replace
       path: /spec/values/runners/tags
-      value: "x86_64,avx,avx2,avx512,small,medium,large,huge,{ENV},public,aws,spack"
+      value: "arm,aarch64,graviton,graviton2,small,medium,large,huge,{ENV},public,aws,spack"
     - op: replace
       path: /spec/values/runners/secret
       value: gitlab-{ENV}-gitlab-runner-secret
@@ -71,5 +71,5 @@ data:
               "gitlab-ci/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "gitlab-ci/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
-              "kubernetes.io/arch" = "amd64"
+              "kubernetes.io/arch" = "arm64"
               "spack.io/node-pool" = "glr-large-testing-pub"
