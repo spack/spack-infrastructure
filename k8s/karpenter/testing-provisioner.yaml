@@ -1,9 +1,10 @@
 apiVersion: karpenter.sh/v1alpha5
 kind: Provisioner
 metadata:
-  name: default
+  name: testing
 spec:
   # Terminate nodes after 30 seconds of idle time
+  # TODO: Change this
   ttlSecondsAfterEmpty: 30
   providerRef:
     name: default
