@@ -7,6 +7,13 @@ spec:
   ttlSecondsAfterEmpty: 600
   providerRef:
     name: default
+
+  # Resource limits for this provisioner only
+  limits:
+    resources:
+      cpu: 5k
+      memory: 20Ti
+
   requirements:
     # Only spin up arm64 nodes
     - key: "kubernetes.io/arch"
