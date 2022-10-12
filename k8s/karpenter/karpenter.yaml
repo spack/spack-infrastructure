@@ -33,6 +33,8 @@ kind: Secret
 metadata:
   name: karpenter-cert
   namespace: karpenter
+  annotations:
+    fluxcd.io/ignore: "true"
   labels:
     helm.sh/chart: karpenter-v0.17.0
     app.kubernetes.io/name: karpenter
