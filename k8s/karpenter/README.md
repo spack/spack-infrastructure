@@ -8,7 +8,7 @@ This will detail the steps necessary to get karpenter running on an existing EKS
 * The cluster has an OIDC provider for service accounts
 
 
-# Steps
+## Getting Started
 
 Follow [this](https://karpenter.sh/v0.17.0/getting-started/migrating-from-cas/) guide, modifying the following steps:
 
@@ -38,3 +38,16 @@ The above guide only creates a default provisioner, however you'll likely need t
 Here are some resources
 * [AWS provisoning docs](https://karpenter.sh/v0.17.0/aws/provisioning/)
 * [Provisioner API docs](https://karpenter.sh/v0.17.0/provisioner/)
+
+
+# Applying this configuration
+
+To deploy Karpenter onto the cluster, simply run (from this directory)
+```
+kubectl apply -f karpenter/
+```
+
+To apply the defined provisioners, node templates, etc. simply run (from this directory)
+```
+kubectl apply -f .
+```
