@@ -1,0 +1,148 @@
+---
+# Source: karpenter/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: karpenter
+  namespace: karpenter
+  labels:
+    helm.sh/chart: karpenter-v0.17.0
+    app.kubernetes.io/name: karpenter
+    app.kubernetes.io/instance: karpenter
+    app.kubernetes.io/version: "0.17.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 2
+  revisionHistoryLimit: 10
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: karpenter
+      app.kubernetes.io/instance: karpenter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: karpenter
+        app.kubernetes.io/instance: karpenter
+    spec:
+      serviceAccountName: karpenter
+      securityContext:
+        fsGroup: 1000
+      priorityClassName: "system-cluster-critical"
+      dnsPolicy: Default
+      containers:
+        - name: controller
+          image: public.ecr.aws/karpenter/controller:v0.17.0@sha256:fdcc960e49135974f3aa3a3d3f658c38c1ef7ff3e393809241c39f23ff856268
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CLUSTER_NAME
+              value: spack
+            - name: CLUSTER_ENDPOINT
+              value: https://4EE4596A78ADAE99BAE77B27930BDC27.gr7.us-east-1.eks.amazonaws.com
+            - name: KARPENTER_SERVICE
+              value: karpenter
+            - name: SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: AWS_DEFAULT_INSTANCE_PROFILE
+              value: KarpenterInstanceProfile
+            - name: MEMORY_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: controller
+                  divisor: "0"
+                  resource: limits.memory
+          ports:
+            - name: http-metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            timeoutSeconds: 30
+            httpGet:
+              path: /readyz
+              port: http
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+            requests:
+              cpu: 1
+              memory: 1Gi
+        - name: webhook
+          image: public.ecr.aws/karpenter/webhook:v0.17.0@sha256:e55a1cf485b0c942afac711dab800275fad9ac3a318f3531a2cefba19ef32b24
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CLUSTER_NAME
+              value: spack
+            - name: KUBERNETES_MIN_VERSION
+              value: "1.19.0-0"
+            - name: CLUSTER_ENDPOINT
+              value: https://4EE4596A78ADAE99BAE77B27930BDC27.gr7.us-east-1.eks.amazonaws.com
+            - name: KARPENTER_SERVICE
+              value: karpenter
+            - name: SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MEMORY_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: webhook
+                  divisor: "0"
+                  resource: limits.memory
+            - name: AWS_DEFAULT_INSTANCE_PROFILE
+              value: KarpenterInstanceProfile
+          args:
+            - -port=8443
+          ports:
+            - name: https-webhook
+              containerPort: 8443
+              protocol: TCP
+          livenessProbe:
+            initialDelaySeconds: 30
+            httpGet:
+              port: https-webhook
+              scheme: HTTPS
+          readinessProbe:
+            httpGet:
+              port: https-webhook
+              scheme: HTTPS
+          resources:
+            limits:
+              cpu: 200m
+              memory: 100Mi
+            requests:
+              cpu: 200m
+              memory: 100Mi
+      nodeSelector:
+        kubernetes.io/os: linux
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: karpenter.sh/provisioner-name
+                    operator: DoesNotExist
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: karpenter
+              app.kubernetes.io/instance: karpenter
