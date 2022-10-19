@@ -13,7 +13,6 @@ jobs:
         docker-image:
           - gh-gl-sync
           - gitlab-api-scrape
-          - ci-key-rotate
           - ci-key-clear
           - gitlab-webservice
           - gitlab-sidekiq
@@ -28,8 +27,6 @@ jobs:
             image-tags: ghcr.io/spack/ci-bridge:0.0.29
           - docker-image: gitlab-api-scrape
             image-tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
-          - docker-image: ci-key-rotate
-            image-tags: ghcr.io/spack/ci-key-rotate:0.0.2
           - docker-image: ci-key-clear
             image-tags: ghcr.io/spack/ci-key-clear:0.0.1
           - docker-image: gitlab-webservice
