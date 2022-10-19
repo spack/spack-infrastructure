@@ -49,7 +49,7 @@ spec:
 
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
-            service_account = "runner"
+            service_account = "spack-binaries-pr-mirror"  # gives write access to PR mirror
             [runners.kubernetes.pod_annotations]
               "fluentbit.io/exclude" = "true"
               "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
