@@ -429,48 +429,6 @@ def test_post_pipeline_status(capfd):
     del os.environ["GITHUB_TOKEN"]
 
 
-def test_pipeline_status_backlogged_by_main_branch(capfd):
-    """Test the post_pipeline_status method for a PR that is backlogged because its base is being tested."""
-    open_prs = {
-        "pr_strings": ["pr1_readme"],
-        "merge_commit_shas": ["aaaaaaaa"],
-        "base_shas": ["shafoo"],
-        "head_shas": ["shabaz"],
-        "backlogged": ["base"]
-    }
-
-    gh_commit = Mock()
-    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
-    gh_commit.create_status.return_value = AttrDict({"state": "pending"})
-    gh_repo = Mock()
-    gh_repo.get_commit.return_value = gh_commit
-
-    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
-                                         gitlab_project="zack/my_test_proj",
-                                         github_project="zack/my_test_proj",
-                                         main_branch="develop")
-    bridge.py_gh_repo = gh_repo
-    os.environ["GITHUB_TOKEN"] = "my_github_token"
-
-    currently_running_url = "https://gitlab.spack.io/zack/my_test_proj/pipelines/4"
-    bridge.currently_running_url = currently_running_url
-    expected_desc = "waiting for base develop commit pipeline to succeed"
-
-    bridge.post_pipeline_status(open_prs, [])
-    assert gh_commit.create_status.call_count == 1
-    gh_commit.create_status.assert_called_with(
-        state="pending",
-        context="ci/gitlab-ci",
-        description=expected_desc,
-        target_url=currently_running_url
-    )
-    out, err = capfd.readouterr()
-    expected_content = """Posting backlogged status to the following:
-  pr1_readme -> shabaz"""
-    assert expected_content in out
-    del os.environ["GITHUB_TOKEN"]
-
-
 def test_pipeline_status_backlogged_by_checks(capfd):
     """Test the post_pipeline_status method for a PR that is backlogged because of a required check."""
 
