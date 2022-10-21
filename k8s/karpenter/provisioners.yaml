@@ -5,10 +5,12 @@ kind: Provisioner
 metadata:
   name: default
 spec:
-  # Terminate nodes after 10 minutes of idle time
-  ttlSecondsAfterEmpty: 600
   providerRef:
     name: default
+
+  # Consolidation will de-provision larger than necessary nodes
+  consolidation:
+    enabled: true
 
   # Resource limits for this provisioner only
   limits:
@@ -47,10 +49,13 @@ kind: Provisioner
 metadata:
   name: testing
 spec:
-  # Terminate nodes after 10 minutes of idle time
-  ttlSecondsAfterEmpty: 600
   providerRef:
     name: default
+
+  # Consolidation will de-provision larger than necessary nodes
+  consolidation:
+    enabled: true
+
   requirements:
     # Only spin up arm64 nodes
     - key: "kubernetes.io/arch"
