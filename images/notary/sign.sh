@@ -31,6 +31,8 @@ SIGNING_KEY_ID=2C8DD3224EF3573A42BD221FA8E0CA3C1C2ADA2F
 INTERMEDIATE_CI_PUBLIC_KEY=/mnt/keys/signing/intermediate_ci_public_key.gpg
 INTERMEDIATE_CI_PUBLIC_KEY_ID=78F3726939CA1B94893B66E8BC86F6FB94429164
 
+UO_INTERMEDIATE_CI_PUBLIC_KEY=/mnt/keys/signing/uo_intermediate_ci_public_key.gpg
+UO_INTERMEDIATE_CI_PUBLIC_KEY_ID=E87D7834F6723210CAC51BD3954DB486ABE5E7AA
 
 
 # Generate temporary directory
@@ -44,10 +46,11 @@ trap "rm -rf $GNUPGHOME" EXIT
 
 # Import public keys
 gpg --no-tty --import $INTERMEDIATE_CI_PUBLIC_KEY
+gpg --no-tty --import $UO_INTERMEDIATE_CI_PUBLIC_KEY
 gpg --no-tty --import $SIGNING_PUBLIC_KEY
 
 # Trust public keys
-gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${SIGNING_KEY_ID}:6:")
+gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${UO_INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${SIGNING_KEY_ID}:6:")
 
 
 # Check downloaded spec files,  die if not signed/verified
