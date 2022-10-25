@@ -1,0 +1,3 @@
+local_id,instance_type,ami
+c5_large,c5.large,ami-09d3b3274b6c5d4aa
+c5_xlarge,c5.xlarge,ami-09d3b3274b6c5d4aa
