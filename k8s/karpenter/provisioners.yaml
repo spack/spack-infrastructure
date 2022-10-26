@@ -17,10 +17,43 @@ spec:
       memory: 20Ti
 
   requirements:
-    # Only spin up arm64 nodes
+    # Only spin up arm64 and amd64 nodes
     - key: "kubernetes.io/arch"
       operator: In
       values: ["arm64", "amd64"]
+
+    # Don't provision nodes from certain instance families.
+    - key: "karpenter.k8s.aws/instance-family"
+      operator: NotIn
+      values:
+        # too old (nehalem)
+        - "m2"
+        - "t1"
+
+        # too old (westmere)
+        - "c1"
+        - "m1"
+
+        # too old (ivybridge)
+        - "c3"
+        - "g2"
+        - "i2"
+        - "m3"
+        - "r3"
+
+        # too big / expensive
+        - "cc2"
+        - "mac1"
+        - "mac2"
+        - "p3dn"
+        - "p4d"
+        - "x1"
+        - "x2idn"
+        - "u-12tb1"
+        - "u-18tb1"
+        - "u-3tb1"
+        - "u-6tb1"
+        - "u-9tb1"
 
     # Availability Zones
     - key: "topology.kubernetes.io/zone"
