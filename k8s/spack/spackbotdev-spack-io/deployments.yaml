@@ -111,9 +111,9 @@ spec:
             memory: 1G
         # Mount secrets to non-existing location
         volumeMounts:
-          - mountPath: "/git_rsa"
-            name: spack-bot-dev-idrsa
-            readOnly: true
+        - mountPath: "/git_rsa"
+          name: spack-bot-dev-idrsa
+          readOnly: true
         env:
         - name: PR_BINARIES_MIRROR_BASE_URL
           value: "s3://spack-binaries-prs/testing"
@@ -159,10 +159,10 @@ spec:
               name: spack-bot-dev-credentials
               key: github_webhook_secret
       volumes:
-        - name: spack-bot-dev-idrsa
-          secret:
-            secretName: spack-bot-dev-idrsa
-            defaultMode: 0600
+      - name: spack-bot-dev-idrsa
+        secret:
+          secretName: spack-bot-dev-idrsa
+          defaultMode: 0600
       nodeSelector:
         spack.io/node-pool: base
 
@@ -189,7 +189,7 @@ spec:
     spec:
       serviceAccountName: spackbotdev-spack-io
       containers:
-      - name: big-worker
+      - name: long-task-worker
         #image: "ghcr.io/spack/spackbot-workers:latest"
         # Can use some other image for testing, see README.md
         image: "ghcr.io/kwryankrattiger/spackbot-workers:0.0.1"
@@ -198,15 +198,11 @@ spec:
           requests:
             cpu: 900m
             memory: 1G
-        # resources:
-        #   requests:
-        #     cpu: 4000m
-        #     memory: 4G
         # Mount secrets to non-existing location
         volumeMounts:
-          - mountPath: "/git_rsa"
-            name: spack-bot-dev-idrsa
-            readOnly: true
+        - mountPath: "/git_rsa"
+          name: spack-bot-dev-idrsa
+          readOnly: true
         env:
         - name: PR_BINARIES_MIRROR_BASE_URL
           value: "s3://spack-binaries-prs/testing"
@@ -250,10 +246,10 @@ spec:
               name: spack-bot-dev-credentials
               key: github_webhook_secret
       volumes:
-        - name: spack-bot-dev-idrsa
-          secret:
-            secretName: spack-bot-dev-idrsa
-            defaultMode: 0600
+      - name: spack-bot-dev-idrsa
+        secret:
+          secretName: spack-bot-dev-idrsa
+          defaultMode: 0600
       nodeSelector:
         spack.io/node-pool: base
 
