@@ -3,7 +3,6 @@
 import argparse
 import atexit
 import base64
-import boto3
 from datetime import datetime, timedelta, timezone
 import dateutil.parser
 from github import Github
