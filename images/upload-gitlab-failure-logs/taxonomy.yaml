@@ -1,0 +1,156 @@
+---
+taxonomy:
+  version: "0.0.0-dev"
+  error_classes:
+    job_log_missing:
+        grep_for:
+          - "ERROR: Got [0-9][0-9][0-9] for"
+          - "ERROR: Log File Empty"
+
+    limit_exceeded:
+      grep_for:
+        - "Job's log exceeded limit of"
+
+    execution_timeout:
+      grep_for:
+        - "ERROR: Job failed: execution took longer than"
+
+    5XX:
+      grep_for:
+        - 'HTTP Error 5[00|02|03]'
+
+    spack_root:
+      grep_for:
+        - 'Error: SPACK_ROOT'
+
+    setup_env:
+      grep_for:
+        - 'setup-env.sh: No such file or directory'
+
+    no_spec:
+      grep_for:
+        - 'SpackError: No installed spec matches the hash'
+
+    build_error:
+      grep_for:
+        - 'error found in build log:'
+        - 'errors found in build log:'
+
+    oom:
+      grep_for:
+        - 'command terminated with exit code 137'
+        - 'ERROR: Job failed: exit code 137'
+
+    gitlab_down:
+      grep_for:
+        - 'fatal: unable to access'
+
+    module_not_found:
+      grep_for:
+        - 'ModuleNotFoundError: No module named'
+
+    artifacts:
+      grep_for:
+        - 'ERROR: Uploading artifacts'
+        - 'ERROR: Downloading artifacts'
+
+    fatal:
+      grep_for:
+        - 'FATAL: invalid argument'
+
+    dial_backend:
+      grep_for:
+        - 'error dialing backend'
+
+    pod_cleanup:
+      grep_for:
+        - 'Error cleaning up pod'
+
+    pod_exec:
+      grep_for:
+        - 'Error response from daemon: No such exec instance'
+
+    cmd_not_found:
+      grep_for:
+        - 'Command exited with status 127'
+
+    db_match:
+      grep_for:
+        - 'Error: Expected database version'
+        - 'spack.store.MatchError:'
+
+    pod_timeout:
+      grep_for:
+        - 'timed out waiting for pod to start'
+
+    docker_daemon:
+      grep_for:
+        - 'Cannot connect to the Docker daemon'
+
+    rcp_failure:
+      grep_for:
+        - 'error: RPC failed'
+
+    spack_error:
+      grep_for:
+        - 'To reproduce this build locally, run:'
+
+    ref_not_found:
+      grep_for:
+        - 'fatal: Remote branch'
+        - 'fatal: couldn.t find remote ref'
+
+    pipeline_generation:
+      grep_for:
+        - 'Error: Pipeline generation failed'
+
+    killed:
+      grep_for:
+        - 'Killed'
+
+    remote_disconnect:
+      grep_for:
+        - 'http.client.RemoteDisconnected'
+
+    db_hash:
+      grep_for:
+        - 'Error: Expected database index keyed by'
+
+    image_pull:
+      grep_for:
+        - 'Job failed (system failure): prepare environment: image pull failed'
+        - 'ERROR: Job failed (system failure): failed to pull image'
+
+  deconflict_order:
+    # API Scrape erorrs
+    - 'job_log_missing'
+    # System Errors
+    - 'oom'
+    - 'gitlab_down'
+    - 'artifacts'
+    - 'fatal'
+    - 'pod_exec'
+    - 'pod_timeout'
+    - 'pod_cleanup'
+    - 'image_pull'
+    - 'docker_daemon'
+    - 'rcp_failure'
+    - '5XX'
+    - 'dial_backend'
+    - 'remote_disconnect'
+    # Spack Errors
+    - 'db_match'
+    - 'db_hash'
+    - 'no_spec'
+    - 'ref_not_found'
+    - 'cmd_not_found'
+    - 'module_not_found'
+    - 'setup_env'
+    - 'spack_root'
+    - 'build_error'
+    - 'spack_error'
+    - 'pipeline_generation'
+    - 'killed'
+    # Other Errors
+    - 'limit_exceeded'
+    - 'execution_timeout'

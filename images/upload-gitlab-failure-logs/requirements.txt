@@ -1,0 +1,3 @@
+opensearch-dsl==2.0.1
+python-gitlab==3.11.0
+PyYAML==6.0
