@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+data:
+  batchIdleDuration: 1s
+  batchMaxDuration: 10s
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: karpenter
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: karpenter
+    app.kubernetes.io/version: 0.17.0
+    helm.sh/chart: karpenter-v0.17.0
+  name: karpenter-global-settings
+  namespace: karpenter

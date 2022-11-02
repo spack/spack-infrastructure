@@ -65,6 +65,7 @@ spec:
           readOnly: true
       nodeSelector:
         spack.io/node-pool: base
+      serviceAccountName: spackbot-spack-io
       volumes:
       - name: spack-bot-idrsa
         secret:

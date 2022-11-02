@@ -1,0 +1,36 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/instance: karpenter
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: karpenter
+    app.kubernetes.io/version: 0.17.0
+    helm.sh/chart: karpenter-v0.17.0
+    rbac.authorization.k8s.io/aggregate-to-admin: 'true'
+  name: karpenter-admin
+rules:
+- apiGroups:
+  - karpenter.sh
+  resources:
+  - provisioners
+  - provisioners/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
+- apiGroups:
+  - karpenter.k8s.aws
+  resources:
+  - awsnodetemplates
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch

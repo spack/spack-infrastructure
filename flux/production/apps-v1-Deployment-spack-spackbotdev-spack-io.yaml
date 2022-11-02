@@ -31,6 +31,8 @@ spec:
           value: tasksdevelop
         - name: WORKER_JOB_TIMEOUT
           value: '600'
+        - name: GITLAB_SPACK_PROJECT_URL
+          value: https://gitlab.spack.io/api/v4/projects/23
         - name: PYTHONUNBUFFERED
           value: '1'
         - name: GITHUB_APP_IDENTIFIER

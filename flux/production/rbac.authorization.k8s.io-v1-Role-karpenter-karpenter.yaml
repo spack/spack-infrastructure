@@ -1,0 +1,74 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/instance: karpenter
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: karpenter
+    app.kubernetes.io/version: 0.17.0
+    helm.sh/chart: karpenter-v0.17.0
+  name: karpenter
+  namespace: karpenter
+rules:
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - namespaces
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resourceNames:
+  - karpenter-cert
+  resources:
+  - secrets
+  verbs:
+  - update
+- apiGroups:
+  - ''
+  resourceNames:
+  - karpenter-global-settings
+  - config-logging
+  resources:
+  - configmaps
+  verbs:
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resourceNames:
+  - karpenter-leader-election
+  - webhook.configmapwebhook.00-of-01
+  - webhook.defaultingwebhook.00-of-01
+  - webhook.validationwebhook.00-of-01
+  - webhook.webhookcertificates.00-of-01
+  resources:
+  - leases
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - create

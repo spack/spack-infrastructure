@@ -1,0 +1,58 @@
+---
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: default
+spec:
+  consolidation:
+    enabled: true
+  labels:
+    spack.io/node-pool: glr-large-pub
+  limits:
+    resources:
+      cpu: 5k
+      memory: 20Ti
+  providerRef:
+    name: default
+  requirements:
+  - key: kubernetes.io/arch
+    operator: In
+    values:
+    - arm64
+    - amd64
+  - key: karpenter.k8s.aws/instance-family
+    operator: NotIn
+    values:
+    - m2
+    - t1
+    - c1
+    - m1
+    - c3
+    - g2
+    - i2
+    - m3
+    - r3
+    - cc2
+    - mac1
+    - mac2
+    - p3dn
+    - p4d
+    - x1
+    - x2idn
+    - u-12tb1
+    - u-18tb1
+    - u-3tb1
+    - u-6tb1
+    - u-9tb1
+  - key: topology.kubernetes.io/zone
+    operator: In
+    values:
+    - us-east-1a
+    - us-east-1b
+    - us-east-1c
+    - us-east-1d
+  - key: karpenter.sh/capacity-type
+    operator: In
+    values:
+    - spot
+    - on-demand

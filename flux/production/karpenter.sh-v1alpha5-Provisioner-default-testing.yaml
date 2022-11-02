@@ -1,0 +1,35 @@
+---
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: testing
+spec:
+  consolidation:
+    enabled: true
+  labels:
+    spack.io/node-pool: glr-large-testing-pub
+  providerRef:
+    name: default
+  requirements:
+  - key: kubernetes.io/arch
+    operator: In
+    values:
+    - arm64
+    - amd64
+  - key: topology.kubernetes.io/zone
+    operator: In
+    values:
+    - us-east-1a
+    - us-east-1b
+    - us-east-1c
+    - us-east-1d
+  - key: node.kubernetes.io/instance-type
+    operator: In
+    values:
+    - m6g.4xlarge
+    - m5zn.3xlarge
+  - key: karpenter.sh/capacity-type
+    operator: In
+    values:
+    - spot
+    - on-demand

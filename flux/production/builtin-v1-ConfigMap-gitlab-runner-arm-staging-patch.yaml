@@ -3,15 +3,16 @@ apiVersion: v1
 data:
   apiVersion: helm.fluxcd.io/v1
   kind: HelmRelease
-  name: runner-large-x86-pub
-  patch: "- op: replace\n  path: /metadata/name\n  value: runner-{ENV}\n- op: replace\n\
-    \  path: /spec/chart/version\n  value: \"0.37.2\"  # bleeding edge\n- op: replace\n\
-    \  path: /spec/releaseName\n  value: runner-{ENV}\n- op: replace\n  path: /spec/values/replicas\n\
-    \  value: 1\n- op: replace\n  path: /spec/values/gitlabUrl\n  value: \"https://gitlab.{ENV}.spack.io/\"\
-    \n- op: replace\n  path: /spec/values/terminationGracePeriodSeconds\n  value:\
-    \ 300  # five minutes\n- op: replace\n  path: /spec/values/concurrent\n  value:\
-    \ 3\n- op: replace\n  path: /spec/values/checkInterval\n  value: 1\n- op: replace\n\
-    \  path: /spec/values/runners/tags\n  value: \"x86_64,avx,avx2,avx512,small,medium,large,huge,{ENV},public,aws,spack\"\
+  name: runner-large-arm-pub
+  patch: "- op: replace\n  path: /metadata/name\n  value: runner-large-arm-pub-{ENV}\n\
+    - op: replace\n  path: /spec/chart/version\n  value: \"0.37.2\"  # bleeding edge\n\
+    - op: replace\n  path: /spec/releaseName\n  value: runner-large-arm-pub-{ENV}\n\
+    - op: replace\n  path: /spec/values/replicas\n  value: 1\n- op: replace\n  path:\
+    \ /spec/values/gitlabUrl\n  value: \"https://gitlab.{ENV}.spack.io/\"\n- op: replace\n\
+    \  path: /spec/values/terminationGracePeriodSeconds\n  value: 300  # five minutes\n\
+    - op: replace\n  path: /spec/values/concurrent\n  value: 3\n- op: replace\n  path:\
+    \ /spec/values/checkInterval\n  value: 1\n- op: replace\n  path: /spec/values/runners/tags\n\
+    \  value: \"arm,aarch64,graviton,graviton2,small,medium,large,huge,{ENV},public,aws,spack\"\
     \n- op: replace\n  path: /spec/values/runners/secret\n  value: gitlab-{ENV}-gitlab-runner-secret\n\
     - op: replace\n  path: /spec/values/runners/config\n  value: |\n      [[runners]]\n\
     \      output_limit = 4096\n      environment = [\"FF_GITLAB_REGISTRY_HELPER_IMAGE=1\"\
@@ -31,10 +32,10 @@ data:
     $SPACK_CI_STACK_NAME\"\n          \"gitlab-ci/spack_job_spec_pkg_name\" = \"$SPACK_JOB_SPEC_PKG_NAME\"\
     \n          \"gitlab-ci/spack_spec_needs_rebuild\" = \"$SPACK_SPEC_NEEDS_REBUILD\"\
     \n        [runners.kubernetes.node_selector]\n          \"kubernetes.io/arch\"\
-    \ = \"amd64\"\n          \"spack.io/node-pool\" = \"glr-large-testing-pub\"\n"
+    \ = \"arm64\"\n          \"spack.io/node-pool\" = \"glr-large-testing-pub\"\n"
 kind: ConfigMap
 metadata:
   annotations:
     cd.spack.io/staged-resource: '1'
-  name: runner-staging-patch
+  name: runner-arm-staging-patch
   namespace: gitlab

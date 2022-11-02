@@ -1,0 +1,16 @@
+---
+apiVersion: karpenter.k8s.aws/v1alpha1
+kind: AWSNodeTemplate
+metadata:
+  name: default
+spec:
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      deleteOnTermination: true
+      volumeSize: 200Gi
+      volumeType: gp3
+  securityGroupSelector:
+    karpenter.sh/discovery: spack
+  subnetSelector:
+    karpenter.sh/discovery: spack
