@@ -86,6 +86,7 @@ spec:
         app: spackbot-workers
         svc: workers
     spec:
+      serviceAccountName: spackbot-spack-io
       containers:
       - name: worker
         image: "ghcr.io/spack/spackbot-workers:latest"

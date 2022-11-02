@@ -155,12 +155,9 @@ class SpackCIBridge(object):
 
             if push:
                 # Check the PRs-to-be-pushed to see if any of them should be considered "backlogged".
-                # We currently recognize three types of backlogged PRs:
-                # 1) The PR is based on a version of the "main branch" that's currently being tested
-                # 2) Some required "prerequisite checks" have not yet completed successfully.
-                # 3) Draft PRs. Handled earlier in this function.
-                if self.currently_running_sha and self.currently_running_sha == pull.base.sha:
-                    backlogged = "base"
+                # We currently recognize two types of backlogged PRs:
+                # 1) Some required "prerequisite checks" have not yet completed successfully.
+                # 2) Draft PRs. Handled earlier in this function.
                 if self.prereq_checks:
                     checks_desc = "waiting for {} check to succeed"
                     checks_to_verify = self.prereq_checks.copy()
@@ -302,12 +299,7 @@ class SpackCIBridge(object):
                 open_refspecs.append("{0}:{0}".format(open_pr))
                 print("  pushing {0} (based on {1})".format(open_pr, base_sha))
             else:
-                if backlog == "base":
-                    # By omitting these branches from "open_refspecs", we will defer pushing
-                    # them to gitlab for a time when there is not a main branch pipeline running
-                    # on one of their parent commits.
-                    print("  defer pushing {0} (based on {1})".format(open_pr, base_sha))
-                elif backlog == "draft":
+                if backlog == "draft":
                     print("  defer pushing draft PR {0}".format(open_pr))
                 else:
                     print("  defer pushing {0} (based on checks)".format(open_pr))
@@ -512,15 +504,10 @@ class SpackCIBridge(object):
 
         # Post a status of pending/backlogged for branches we deferred pushing
         print("Posting backlogged status to the following:")
-        base_backlog_desc = \
-            "waiting for base {} commit pipeline to succeed".format(self.main_branch)
         for branch, head_sha, reason in backlog_branches:
             if reason == "stale":
                 print("Skip posting status for {} because it has not been updated recently".format(branch))
                 continue
-            elif reason == "base":
-                desc = base_backlog_desc
-                url = self.currently_running_url
             elif reason == "draft":
                 desc = "GitLab CI is disabled for draft PRs"
                 url = ""
@@ -659,9 +646,9 @@ if __name__ == "__main__":
     parser.add_argument("--pr-mirror-bucket", default=None,
                         help="Delete mirrors for closed PRs from the specified S3 bucket")
     parser.add_argument("--main-branch", default=None,
-                        help="""If provided, we find the sha of the currently running
-pipeline on this branch, and then PR branch merge commits having that sha as a parent
-(base.sha) will not be synced.""")
+                        help="""If provided, we check if there is a currently running
+pipeline for this branch. If so, we defer syncing any subsequent commits in an effort
+to not interrupt this pipeline.""")
     parser.add_argument("--prereq-check", nargs="+", default=False,
                         help="Only push branches that have already passed this GitHub check")
 

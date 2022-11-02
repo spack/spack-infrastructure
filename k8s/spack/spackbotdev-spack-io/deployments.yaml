@@ -23,7 +23,7 @@ spec:
       - name: web
         image: "ghcr.io/spack/spack-bot:latest"
         # Can use some other image for testing, see README.md
-        # image: "ghcr.io/scottwittenburg/spackbot:0.0.76"
+        # image: "ghcr.io/scottwittenburg/spackbot:0.0.93"
         imagePullPolicy: Always
         resources:
           requests:
@@ -43,6 +43,8 @@ spec:
           value: "tasksdevelop"
         - name: WORKER_JOB_TIMEOUT
           value: "600"
+        - name: GITLAB_SPACK_PROJECT_URL
+          value: https://gitlab.spack.io/api/v4/projects/23
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: GITHUB_APP_IDENTIFIER
@@ -90,11 +92,12 @@ spec:
         app: spackbotdev-workers
         svc: workers
     spec:
+      serviceAccountName: spackbotdev-spack-io
       containers:
       - name: worker
         image: "ghcr.io/spack/spackbot-workers:latest"
         # Can use some other image for testing, see README.md
-        # image: "ghcr.io/scottwittenburg/spackbot-workers:0.0.76"
+        # image: "ghcr.io/scottwittenburg/spackbot-workers:0.0.93"
         imagePullPolicy: Always
         resources:
           requests:
@@ -116,6 +119,8 @@ spec:
           value: "tasksdevelop"
         - name: WORKER_JOB_TIMEOUT
           value: "600"
+        - name: GITLAB_SPACK_PROJECT_URL
+          value: https://gitlab.spack.io/api/v4/projects/23
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: GITHUB_APP_IDENTIFIER
