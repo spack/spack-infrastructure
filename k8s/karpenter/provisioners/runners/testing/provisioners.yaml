@@ -1,0 +1,50 @@
+---
+# Provisioner for testing gitlab runners
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: testing
+spec:
+  providerRef:
+    name: default
+
+  # Consolidation will de-provision larger than necessary nodes
+  consolidation:
+    enabled: true
+
+  # Resource limits for this provisioner only
+  limits:
+    resources:
+      cpu: 80 # 16 vCPUs * 1 replica * 5 concurrent jobs
+      memory: 320Gi # 64 Gi * 1 replica * 5 concurrent jobs
+
+  requirements:
+    # This provisioner provides both arm64 and amd64 nodes
+    - key: "kubernetes.io/arch"
+      operator: In
+      values: ["arm64", "amd64"]
+
+    # Availability Zones
+    - key: "topology.kubernetes.io/zone"
+      operator: In
+      values:
+        - "us-east-1a"
+        - "us-east-1b"
+        - "us-east-1c"
+        - "us-east-1d"
+
+    # Allowed instance types
+    - key: node.kubernetes.io/instance-type
+      operator: In
+      values:
+        - "m6g.4xlarge" # ARM64 instances
+        - "m5zn.3xlarge" # AMD64 instances
+
+    # Try spot, fall over to on-demand
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: ["spot", "on-demand"]
+
+  # Only provision nodes from the glr-large-testing-pub node pool
+  labels:
+    spack.io/node-pool: glr-large-testing-pub
