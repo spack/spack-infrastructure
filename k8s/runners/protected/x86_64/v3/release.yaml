@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-large-x86-prot
+  name: runner-x86-v3-prot
   namespace: gitlab
 spec:
-  releaseName: large-x86-prot
+  releaseName: x86-v3-prot
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -66,8 +66,7 @@ spec:
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
-              "kubernetes.io/arch" = "amd64"
-              "spack.io/node-pool" = "glr-large-pub"
+              "spack.io/node-pool" = "glr-x86-64-v3"
 
             [[runners.kubernetes.volumes.secret]]
               name = "spack-intermediate-ci-signing-key"
@@ -83,7 +82,7 @@ spec:
       protected: true
       runUntagged: false
 
-      tags: "x86_64,x86_64_v2,x86_64_v3,x86_64_v4,avx,avx2,avx512,small,medium,large,huge,protected,aws,spack"
+      tags: "x86_64,x86_64_v2,x86_64_v3,avx,avx2,small,medium,large,huge,protected,aws,spack"
       secret: spack-project-runner-registration-token
 
       serviceAccountName: runner

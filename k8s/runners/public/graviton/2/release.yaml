@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-large-arm-pub
+  name: runner-graviton2-pub
   namespace: gitlab
 spec:
-  releaseName: large-arm-pub
+  releaseName: graviton2-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -67,8 +67,7 @@ spec:
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
-              "kubernetes.io/arch" = "arm64"
-              "spack.io/node-pool" = "glr-large-pub"
+              "spack.io/node-pool" = "glr-graviton2"
 
       # default image
       image: "busybox:1.32.0"
