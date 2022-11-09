@@ -1,0 +1,56 @@
+---
+# Provisioner for x86_64_v2 gitlab runners
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: glr-x86-64-v2
+spec:
+  providerRef:
+    name: default
+
+  # Consolidation will de-provision larger than necessary nodes
+  consolidation:
+    enabled: true
+
+  # Resource limits for this provisioner only
+  limits:
+    resources:
+      cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+      memory: 7680Gi # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+
+  requirements:
+    # Only spin up amd64 nodes
+    - key: "kubernetes.io/arch"
+      operator: In
+      values: ["amd64"]
+
+    # Instance Size
+    - key: "karpenter.k8s.aws/instance-size"
+      operator: In
+      values:
+        - "medium"
+        - "large"
+        - "xlarge"
+        - "2xlarge"
+        - "3xlarge"
+        - "4xlarge"
+        - "6xlarge"
+        - "8xlarge"
+
+    # Availability Zones
+    - key: "topology.kubernetes.io/zone"
+      operator: In
+      values:
+        - "us-east-1a"
+        - "us-east-1b"
+        - "us-east-1c"
+        - "us-east-1d"
+
+    # Try spot, fall over to on-demand
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: ["spot", "on-demand"]
+
+  # Only provision nodes for pods specifying the glr-x86-64-v2 node pool
+  labels:
+    spack.io/node-pool: glr-x86-64-v2

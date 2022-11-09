@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-large-arm-prot
+  name: runner-graviton2-prot
   namespace: gitlab
 spec:
-  releaseName: large-arm-prot
+  releaseName: graviton2-prot
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -20,8 +20,6 @@ spec:
     terminationGracePeriodSeconds: 21600  # six hours
     concurrent: 20
     checkInterval: 30
-    # preEntrypointScript: |
-    #   echo "Hello, from large-prot runner"
 
     metrics:
       enabled: true
@@ -69,8 +67,7 @@ spec:
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
-              "kubernetes.io/arch" = "arm64"
-              "spack.io/node-pool" = "glr-large-pub"
+              "spack.io/node-pool" = "glr-graviton2"
 
             [[runners.kubernetes.volumes.secret]]
               name = "spack-intermediate-ci-signing-key"
@@ -91,33 +88,9 @@ spec:
 
       serviceAccountName: runner
 
-      # Distributed runners caching
-      # TODO(opadron): Look into this after setting up stand-alone minio service
       cache: {}
-        ## General settings
-        # cacheType: s3
-        # cachePath: "gitlab_runner"
-        # cacheShared: true
-
-        ## S3 settings
-        # s3ServerAddress: s3.amazonaws.com
-        # s3BucketName:
-        # s3BucketLocation:
-        # s3CacheInsecure: false
-        # secretName: s3access
-
-        ## GCS settings
-        # gcsBucketName:
-        ## Use this line for access using access-id and private-key
-        # secretName: gcsaccess
-        ## Use this line for access using google-application-credentials file
-        # secretName: google-application-credentials
 
       services: {}
-      # cpuRequests: 50m
-      # cpuLimit: 50m
-      # memoryRequests: 144Mi
-      # memoryLimit: 144Mi
 
     nodeSelector:
       spack.io/node-pool: base  # pool for the runner

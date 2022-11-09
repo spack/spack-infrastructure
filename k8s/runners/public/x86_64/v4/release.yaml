@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-large-x86-prot
+  name: runner-x86-v4-pub
   namespace: gitlab
 spec:
-  releaseName: large-x86-prot
+  releaseName: x86-v4-pub
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -20,8 +20,6 @@ spec:
     terminationGracePeriodSeconds: 21600  # six hours
     concurrent: 20
     checkInterval: 30
-    # preEntrypointScript: |
-    #   echo "Hello, from large-pub runner"
 
     metrics:
       enabled: true
@@ -38,14 +36,14 @@ spec:
             privileged = false
 
             cpu_request = "750m"
-            cpu_request_overwrite_max_allowed = "16"
-            cpu_limit = "16"
-            cpu_limit_overwrite_max_allowed = "16"
+            cpu_request_overwrite_max_allowed = "12"
+            cpu_limit = "12"
+            cpu_limit_overwrite_max_allowed = "12"
 
             memory_request = "2G"
-            memory_request_overwrite_max_allowed = "64G"
-            memory_limit = "64G"
-            memory_limit_overwrite_max_allowed = "64G"
+            memory_request_overwrite_max_allowed = "48G"
+            memory_limit = "48G"
+            memory_limit_overwrite_max_allowed = "48G"
 
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
@@ -68,61 +66,22 @@ spec:
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
-              "kubernetes.io/arch" = "amd64"
-              "spack.io/node-pool" = "glr-large-pub"
-
-            [[runners.kubernetes.volumes.secret]]
-              name = "spack-intermediate-ci-signing-key"
-              mount_path = "/mnt/key/"
-              read_only = true
-
+              "spack.io/node-pool" = "glr-x86-64-v4"
 
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
+      locked: false
 
-      locked: true
-      protected: true
+      tags: "x86_64,x86_64_v2,x86_64_v3,x86_64_v4,avx,avx2,avx512,small,medium,large,huge,public,aws,spack"
       runUntagged: false
+      secret: gitlab-gitlab-runner-secret  # from gitlab release
 
-      tags: "x86_64,x86_64_v2,x86_64_v3,x86_64_v4,avx,avx2,avx512,small,medium,large,huge,protected,aws,spack"
-      secret: spack-project-runner-registration-token
-
-      serviceAccountName: runner
-
-      # Distributed runners caching
-      # TODO(opadron): Look into this after setting up stand-alone minio service
       cache: {}
-        ## General settings
-        # cacheType: s3
-        # cachePath: "gitlab_runner"
-        # cacheShared: true
-
-        ## S3 settings
-        # s3ServerAddress: s3.amazonaws.com
-        # s3BucketName:
-        # s3BucketLocation:
-        # s3CacheInsecure: false
-        # secretName: s3access
-
-        ## GCS settings
-        # gcsBucketName:
-        ## Use this line for access using access-id and private-key
-        # secretName: gcsaccess
-        ## Use this line for access using google-application-credentials file
-        # secretName: google-application-credentials
 
       services: {}
-      # cpuRequests: 50m
-      # cpuLimit: 50m
-      # memoryRequests: 144Mi
-      # memoryLimit: 144Mi
 
       helpers: {}
-      # cpuRequests: 50m
-      # cpuLimit: 50m
-      # memoryRequests: 144Mi
-      # memoryLimit: 144Mi
 
     nodeSelector:
       spack.io/node-pool: base  # pool for the runner

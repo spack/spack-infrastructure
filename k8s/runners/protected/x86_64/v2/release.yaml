@@ -2,10 +2,10 @@
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
-  name: runner-large-arm-pub
+  name: runner-x86-v2-prot
   namespace: gitlab
 spec:
-  releaseName: large-arm-pub
+  releaseName: x86-v2-prot
   chart:
     name: gitlab-runner
     repository: https://charts.gitlab.io
@@ -20,8 +20,6 @@ spec:
     terminationGracePeriodSeconds: 21600  # six hours
     concurrent: 20
     checkInterval: 30
-    # preEntrypointScript: |
-    #   echo "Hello, from large-pub runner"
 
     metrics:
       enabled: true
@@ -35,7 +33,6 @@ spec:
           output_limit = 4096
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
-            helper_image = "gitlab/gitlab-runner-helper:arm-latest"
             privileged = false
 
             cpu_request = "750m"
@@ -69,47 +66,32 @@ spec:
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
-              "kubernetes.io/arch" = "arm64"
-              "spack.io/node-pool" = "glr-large-pub"
+              "spack.io/node-pool" = "glr-x86-64-v2"
+
+            [[runners.kubernetes.volumes.secret]]
+              name = "spack-intermediate-ci-signing-key"
+              mount_path = "/mnt/key/"
+              read_only = true
+
 
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
-      locked: false
 
-      tags: "arm,aarch64,graviton,graviton2,small,medium,large,huge,public,aws,spack"
+      locked: true
+      protected: true
       runUntagged: false
-      secret: gitlab-gitlab-runner-secret  # from gitlab release
+
+      tags: "x86_64,x86_64_v2,small,medium,large,huge,protected,aws,spack"
+      secret: spack-project-runner-registration-token
 
       serviceAccountName: runner
 
-      # Distributed runners caching
-      # TODO(opadron): Look into this after setting up stand-alone minio service
       cache: {}
-        ## General settings
-        # cacheType: s3
-        # cachePath: "gitlab_runner"
-        # cacheShared: true
-
-        ## S3 settings
-        # s3ServerAddress: s3.amazonaws.com
-        # s3BucketName:
-        # s3BucketLocation:
-        # s3CacheInsecure: false
-        # secretName: s3access
-
-        ## GCS settings
-        # gcsBucketName:
-        ## Use this line for access using access-id and private-key
-        # secretName: gcsaccess
-        ## Use this line for access using google-application-credentials file
-        # secretName: google-application-credentials
 
       services: {}
-      # cpuRequests: 50m
-      # cpuLimit: 50m
-      # memoryRequests: 144Mi
-      # memoryLimit: 144Mi
+
+      helpers: {}
 
     nodeSelector:
       spack.io/node-pool: base  # pool for the runner
