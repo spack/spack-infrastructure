@@ -74,6 +74,9 @@ spec:
         - "4xlarge"
         - "6xlarge"
         - "8xlarge"
+        - "10xlarge"
+        - "12xlarge"
+        - "16xlarge"
 
     # Availability Zones
     - key: "topology.kubernetes.io/zone"
