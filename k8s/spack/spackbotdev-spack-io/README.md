@@ -18,7 +18,8 @@ Now the development/test work cycle proceeds like this:
 3. edit `k8s/spack/spackbotdev-spack-io/deployments` and update the `image` of the `spec[template][spec][containers]` elements to refer to the approprate test image tags
 4. run `kubectl apply -f k8s/spack/spackbotdev-spack-io/deployments`
 
-Now you can make a new PR from your fork of `spack-test/spack` or comment on some existing one.
+Now you can make a new PR from your fork of `spack-test/spack` or comment on some existing one. Make sure to force push the current develop to `spack-test/spack` before testing to
+avoid accidently tagging all maintainers in spack on the new/updated PRs.
 
 Once you are happy with your changes to `spack/spackbot`, you can merge your PR on `spack/spackbot`, and updating `main` branch there will trigger new images to be tagged `latest` and pushed.  Once the tag is updated in the registry, undo your edits to the `image` tags in the development version of spackbot (replace tags with the values in production spackbot).
 
