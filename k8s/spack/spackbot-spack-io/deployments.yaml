@@ -99,9 +99,9 @@ spec:
             memory: 1G
         # Mount secrets to non-existing location
         volumeMounts:
-          - mountPath: "/git_rsa"
-            name: spack-bot-idrsa
-            readOnly: true
+        - mountPath: "/git_rsa"
+          name: spack-bot-idrsa
+          readOnly: true
         env:
         - name: SPACKBOT_LOG_LEVEL
           value: "INFO"
@@ -139,10 +139,10 @@ spec:
               name: spack-bot-credentials
               key: github_webhook_secret
       volumes:
-        - name: spack-bot-idrsa
-          secret:
-            secretName: spack-bot-idrsa
-            defaultMode: 0600
+      - name: spack-bot-idrsa
+        secret:
+          secretName: spack-bot-idrsa
+          defaultMode: 0600
       nodeSelector:
         spack.io/node-pool: base
 
@@ -178,9 +178,9 @@ spec:
             memory: 1G
         # Mount secrets to non-existing location
         volumeMounts:
-          - mountPath: "/git_rsa"
-            name: spack-bot-idrsa
-            readOnly: true
+        - mountPath: "/git_rsa"
+          name: spack-bot-idrsa
+          readOnly: true
         env:
         - name: SPACKBOT_LOG_LEVEL
           value: "INFO"
@@ -218,9 +218,9 @@ spec:
               name: spack-bot-credentials
               key: github_webhook_secret
       volumes:
-        - name: spack-bot-idrsa
-          secret:
-            secretName: spack-bot-idrsa
-            defaultMode: 0600
+      - name: spack-bot-idrsa
+        secret:
+          secretName: spack-bot-idrsa
+          defaultMode: 0600
       nodeSelector:
         spack.io/node-pool: base
