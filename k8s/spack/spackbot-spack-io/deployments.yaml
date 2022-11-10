@@ -160,6 +160,7 @@ spec:
     matchLabels:
       app: spackbot-lworkers
       svc: workers
+  # replicas cannot exceed 1 or else...
   replicas: 1
   template:
     metadata:
