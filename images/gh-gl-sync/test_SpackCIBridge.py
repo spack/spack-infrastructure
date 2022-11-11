@@ -136,30 +136,6 @@ def test_list_github_protected_branches(capfd):
     assert expected in out
 
 
-def test_get_synced_prs(capfd):
-    """Test the get_synced_prs method."""
-    bridge = SpackCIBridge.SpackCIBridge()
-    bridge.get_gitlab_pr_branches = lambda *args: None
-    bridge.gitlab_pr_output = b"""
-  gitlab/pr1_example
-  gitlab/pr2_another_try
-    """
-    assert bridge.get_synced_prs() == ["pr1_example", "pr2_another_try"]
-    out, err = capfd.readouterr()
-    assert out == "Synced PRs:\n    pr1_example\n    pr2_another_try\n"
-
-
-def test_get_prs_to_delete(capfd):
-    """Test the get_prs_to_delete method."""
-    open_prs = ["pr3_try_this", "pr4_new_stuff"]
-    synced_prs = ["pr1_first_try", "pr2_different_approach", "pr3_try_this"]
-    bridge = SpackCIBridge.SpackCIBridge()
-    closed_refspecs = bridge.get_prs_to_delete(open_prs, synced_prs)
-    assert closed_refspecs == [":pr1_first_try", ":pr2_different_approach"]
-    out, err = capfd.readouterr()
-    assert out == "Synced Closed PRs:\n    pr1_first_try\n    pr2_different_approach\n"
-
-
 def test_get_open_refspecs():
     """Test the get_open_refspecs and update_refspecs_for_protected_branches methods."""
     open_prs = {

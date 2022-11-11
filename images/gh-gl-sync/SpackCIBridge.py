@@ -3,7 +3,6 @@
 import argparse
 import atexit
 import base64
-import boto3
 from datetime import datetime, timedelta, timezone
 import dateutil.parser
 from github import Github
@@ -20,7 +19,7 @@ import urllib.request
 class SpackCIBridge(object):
 
     def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
-                 disable_status_post=True, sync_draft_prs=False, pr_mirror_bucket=None,
+                 disable_status_post=True, sync_draft_prs=False,
                  main_branch=None, prereq_checks=[]):
         self.gitlab_repo = gitlab_repo
         self.github_project = github_project
@@ -34,7 +33,6 @@ class SpackCIBridge(object):
 
         self.post_status = not disable_status_post
         self.sync_draft_prs = sync_draft_prs
-        self.pr_mirror_bucket = pr_mirror_bucket
         self.main_branch = main_branch
         self.currently_running_sha = None
         self.currently_running_url = None
@@ -249,36 +247,6 @@ class SpackCIBridge(object):
         """Perform a shallow fetch from GitLab"""
         fetch_args = ["git", "fetch", "-q", "--depth=1", "gitlab"]
         subprocess.run(fetch_args, check=True, stdout=subprocess.PIPE).stdout
-
-    def get_synced_prs(self):
-        """Return a list of PR branches that already exist on GitLab."""
-        self.get_gitlab_pr_branches()
-        synced_prs = []
-        for line in self.gitlab_pr_output.split(b"\n"):
-            if line.find(b"gitlab/") == -1:
-                continue
-            synced_pr = line.strip().replace(b"gitlab/", b"", 1).decode("utf-8")
-            synced_prs.append(synced_pr)
-        print("Synced PRs:")
-        for pr in synced_prs:
-            print("    {0}".format(pr))
-        return synced_prs
-
-    def get_prs_to_delete(self, open_prs, synced_prs):
-        """Find PRs that have already been synchronized to GitLab that are no longer open on GitHub.
-        Return a list of strings in the format of ":<branch_name" that will be used
-        to delete these branches from GitLab.
-        """
-        prs_to_delete = []
-        for synced_pr in synced_prs:
-            if synced_pr not in open_prs:
-                prs_to_delete.append(synced_pr)
-        print("Synced Closed PRs:")
-        closed_refspecs = []
-        for pr in prs_to_delete:
-            print("    {0}".format(pr))
-            closed_refspecs.append(":{0}".format(pr))
-        return closed_refspecs
 
     def get_open_refspecs(self, open_prs):
         """Return lists of refspecs for fetch and push given a list of open PRs."""
@@ -550,17 +518,6 @@ class SpackCIBridge(object):
             print(e_inst)
         print("  {0} -> {1}".format(branch, sha))
 
-    def delete_pr_mirrors(self, closed_refspecs):
-        if closed_refspecs:
-            s3 = boto3.resource("s3")
-            bucket = s3.Bucket(self.pr_mirror_bucket)
-
-            print("Deleting mirrors for closed PRs:")
-            for refspec in closed_refspecs:
-                pr_mirror_key = refspec[1:]
-                print("    deleting {0}".format(pr_mirror_key))
-                bucket.objects.filter(Prefix=pr_mirror_key).delete()
-
     def sync(self):
         """Synchronize pull requests from GitHub as branches on GitLab."""
 
@@ -601,13 +558,6 @@ class SpackCIBridge(object):
             # Get tags on GitHub.
             tags = self.list_github_tags()
 
-            # Retrieve PRs that have already been synced to GitLab.
-            synced_prs = self.get_synced_prs()
-
-            # Find closed PRs that are currently synced.
-            # These will be deleted from GitLab.
-            closed_refspecs = self.get_prs_to_delete(all_open_prs["pr_strings"], synced_prs)
-
             # Get refspecs for open PRs and protected branches.
             open_refspecs, fetch_refspecs = self.get_open_refspecs(open_prs)
             self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
@@ -616,15 +566,10 @@ class SpackCIBridge(object):
             # Sync open GitHub PRs and protected branches to GitLab.
             self.fetch_github_branches(fetch_refspecs)
             self.build_local_branches(open_prs, protected_branches)
-            if open_refspecs or closed_refspecs:
+            if open_refspecs:
                 print("Syncing to GitLab")
-                push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + closed_refspecs + open_refspecs
+                push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + open_refspecs
                 subprocess.run(push_args, check=True)
-
-            # Clean up per-PR dedicated mirrors for any closed PRs
-            if self.pr_mirror_bucket:
-                print('Cleaning up per-PR mirrors for closed PRs')
-                self.delete_pr_mirrors(closed_refspecs)
 
             # Post pipeline status to GitHub for each open PR, if enabled
             if self.post_status:
@@ -667,7 +612,6 @@ to not interrupt this pipeline.""")
                            github_project=args.github_project,
                            disable_status_post=args.disable_status_post,
                            sync_draft_prs=args.sync_draft_prs,
-                           pr_mirror_bucket=args.pr_mirror_bucket,
                            main_branch=args.main_branch,
                            prereq_checks=args.prereq_check)
     bridge.setup_ssh(ssh_key_base64)
