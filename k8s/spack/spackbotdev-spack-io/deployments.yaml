@@ -41,7 +41,7 @@ spec:
           value: "6379"
         - name: PR_BINARIES_MIRROR_BASE_URL
           value: "s3://spack-binaries-prs/testing"
-        - name: PR_BINARIES_RETIRE_AFTER_DAYS
+        - name: SHARED_PR_BINARIES_RETIRE_AFTER_DAYS
           value: "9999"
         - name: TASK_QUEUE_SHORT
           value: "tasksdevelop"
@@ -117,7 +117,7 @@ spec:
         env:
         - name: PR_BINARIES_MIRROR_BASE_URL
           value: "s3://spack-binaries-prs/testing"
-        - name: PR_BINARIES_RETIRE_AFTER_DAYS
+        - name: SHARED_PR_BINARIES_RETIRE_AFTER_DAYS
           value: "9999"
         - name: SPACKBOT_LOG_LEVEL
           value: "DEBUG"
@@ -207,7 +207,7 @@ spec:
         env:
         - name: PR_BINARIES_MIRROR_BASE_URL
           value: "s3://spack-binaries-prs/testing"
-        - name: PR_BINARIES_RETIRE_AFTER_DAYS
+        - name: SHARED_PR_BINARIES_RETIRE_AFTER_DAYS
           value: "9999"
         - name: SPACKBOT_LOG_LEVEL
           value: "DEBUG"
