@@ -62,3 +62,8 @@ After you open a PR, avoid merging or rebasing your branch with `develop`
 unless you really need to pull in these newer changes. Rebasing or merging
 develop into your PR branch is likely to cause your GitLab CI pipelines
 to be deferred for a longer period of time.
+
+Note that the "@spackbot run pipeline" and "@spackbot rebuild everything"
+functions now check if your branch on GitLab is up-to-date before triggering
+a pipeline. So if your PR branch is currently ahead of latest-tested-develop
+spackbot will not be able to help you run a new pipeline.
