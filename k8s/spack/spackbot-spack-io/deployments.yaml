@@ -160,7 +160,8 @@ spec:
     matchLabels:
       app: spackbot-lworkers
       svc: workers
-  # replicas cannot exceed 1 or else...
+  # replicas cannot exceed 1 until
+  # rq jobs can be properly sync'd
   replicas: 1
   template:
     metadata:
