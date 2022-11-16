@@ -1,3 +1,5 @@
+# TODO: If gitlab node-pool is ever migrated to karpenter, delete this file.
+# This is still necessary, even with the base node-pool gone, since CAS needs to run somewhere
 ---
 apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
