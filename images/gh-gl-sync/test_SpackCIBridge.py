@@ -25,7 +25,6 @@ def test_list_github_prs(capfd):
         AttrDict({
             "number": 1,
             "draft": False,
-            "merge_commit_sha": "aaaaaaaa",
             "updated_at": dt,
             "head": {
                 "ref": "improve_docs",
@@ -38,7 +37,6 @@ def test_list_github_prs(capfd):
         AttrDict({
             "number": 2,
             "draft": False,
-            "merge_commit_sha": "bbbbbbbb",
             "updated_at": dt,
             "head": {
                 "ref": "fix_test",
@@ -51,7 +49,6 @@ def test_list_github_prs(capfd):
         AttrDict({
             "number": 3,
             "draft": True,
-            "merge_commit_sha": "cccccccc",
             "updated_at": dt,
             "head": {
                 "ref": "wip",
@@ -78,7 +75,6 @@ def test_list_github_prs(capfd):
 
     github_prs = retval[0]
     assert github_prs["pr_strings"] == ["pr1_improve_docs", "pr2_fix_test", "pr3_wip"]
-    assert github_prs["merge_commit_shas"] == ["aaaaaaaa", "bbbbbbbb", "cccccccc"]
     assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
     expected = """Rate limit after get_pulls(): 5000
@@ -140,23 +136,19 @@ def test_get_open_refspecs():
     """Test the get_open_refspecs and update_refspecs_for_protected_branches methods."""
     open_prs = {
         "pr_strings": ["pr1_this", "pr2_that"],
-        "merge_commit_shas": ["aaaaaaaa", "bbbbbbbb"],
         "base_shas": ["shafoo", "shabar"],
         "head_shas": ["shabaz", "shagah"],
         "backlogged": [False, False]
     }
     bridge = SpackCIBridge.SpackCIBridge()
-    open_refspecs, fetch_refspecs = bridge.get_open_refspecs(open_prs)
+    open_refspecs = bridge.get_open_refspecs(open_prs)
     assert open_refspecs == [
         "pr1_this:pr1_this",
         "pr2_that:pr2_that"
     ]
-    assert fetch_refspecs == [
-        "+aaaaaaaa:refs/remotes/pr1_this",
-        "+bbbbbbbb:refs/remotes/pr2_that"
-    ]
 
     protected_branches = ["develop", "master"]
+    fetch_refspecs = []
     bridge.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
     assert open_refspecs == [
         "pr1_this:pr1_this",
@@ -165,8 +157,6 @@ def test_get_open_refspecs():
         "refs/heads/master:refs/heads/master",
     ]
     assert fetch_refspecs == [
-        "+aaaaaaaa:refs/remotes/pr1_this",
-        "+bbbbbbbb:refs/remotes/pr2_that",
         "+refs/heads/develop:refs/remotes/develop",
         "+refs/heads/master:refs/remotes/master"
     ]
@@ -365,7 +355,6 @@ def test_post_pipeline_status(capfd):
     """Test the post_pipeline_status method."""
     open_prs = {
         "pr_strings": ["pr1_readme"],
-        "merge_commit_shas": ["aaaaaaaa"],
         "base_shas": ["shafoo"],
         "head_shas": ["shabaz"],
         "backlogged": [False]
@@ -415,7 +404,6 @@ def test_pipeline_status_backlogged_by_checks(capfd):
             AttrDict({
                 "number": 1,
                 "draft": False,
-                "merge_commit_sha": "aaaaaaaa",
                 "updated_at": dt,
                 "head": {
                     "ref": "improve_docs",
@@ -491,7 +479,6 @@ def test_pipeline_status_backlogged_for_draft_PR(capfd):
     """Test the post_pipeline_status method for a PR that is backlogged because it is marked as a draft."""
     open_prs = {
         "pr_strings": ["pr1_readme"],
-        "merge_commit_shas": ["aaaaaaaa"],
         "base_shas": ["shafoo"],
         "head_shas": ["shabaz"],
         "backlogged": ["draft"]

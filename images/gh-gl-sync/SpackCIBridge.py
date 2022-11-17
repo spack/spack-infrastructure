@@ -35,15 +35,15 @@ class SpackCIBridge(object):
         self.sync_draft_prs = sync_draft_prs
         self.main_branch = main_branch
         self.currently_running_sha = None
-        self.currently_running_url = None
+        self.latest_tested_main_commit = None
 
         self.prereq_checks = prereq_checks
 
         dt = datetime.now(timezone.utc) + timedelta(minutes=-60)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
-        # We use a longer time threshold (36 hours) to find the currently running main branch pipeline.
-        dt = datetime.now(timezone.utc) + timedelta(minutes=-2160)
+        # We use a longer time threshold (72 hours) to find the currently running main branch pipeline.
+        dt = datetime.now(timezone.utc) + timedelta(minutes=-4320)
         self.time_threshold_long = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
         self.pipeline_api_template = gitlab_host
@@ -114,11 +114,6 @@ class SpackCIBridge(object):
         pulls = self.py_gh_repo.get_pulls(state="open")
         print("Rate limit after get_pulls(): {}".format(self.py_github.rate_limiting[0]))
         for pull in pulls:
-            if not pull.merge_commit_sha:
-                print("PR {0} ({1}) has no 'merge_commit_sha', skipping".format(pull.number, pull.head.ref))
-                self.unmergeable_shas.append(pull.head.sha)
-                continue
-
             backlogged = False
             push = True
             if pull.draft and not self.sync_draft_prs:
@@ -153,10 +148,45 @@ class SpackCIBridge(object):
 
             if push:
                 # Check the PRs-to-be-pushed to see if any of them should be considered "backlogged".
-                # We currently recognize two types of backlogged PRs:
-                # 1) Some required "prerequisite checks" have not yet completed successfully.
-                # 2) Draft PRs. Handled earlier in this function.
-                if self.prereq_checks:
+                # We currently recognize three types of backlogged PRs:
+                # 1) The PR is based on a version of the "main branch" that has not yet been tested
+                # 2) Some required "prerequisite checks" have not yet completed successfully.
+                # 3) Draft PRs. Handled earlier in this function.
+                if self.main_branch:
+                    subprocess.run(["git", "fetch", "github", f"refs/pull/{pull.number}/head:{pr_string}"], check=True)
+                    # Get the merge base between this PR and the main branch.
+                    try:
+                        merge_base_sha = subprocess.run(
+                            ["git", "merge-base", pr_string, f"github/{self.main_branch}"],
+                            check=True, stdout=subprocess.PIPE).stdout.strip()
+                    except subprocess.CalledProcessError:
+                        print(f"'git merge-base {pr_string} github/{self.main_branch}' returned non-zero. Skipping")
+                        self.unmergeable_shas.append(pull.head.sha)
+                        continue
+
+                    # Check if our PR's merge base is an ancestor of the latest tested main branch commit.
+                    if subprocess.run(
+                            ["git", "merge-base", "--is-ancestor", merge_base_sha, self.latest_tested_main_commit]
+                            ).returncode == 0:
+                        print(f"{pr_string}'s merge base IS an ancestor of latest_tested_main "
+                              f"{merge_base_sha} vs. {self.latest_tested_main_commit}")
+                        try:
+                            subprocess.run(["git", "checkout", pr_string], check=True)
+                            subprocess.run(
+                                ["git", "merge", "-m", "Merge develop", self.latest_tested_main_commit],
+                                check=True)
+                            print(f"Merge succeeded, ready to push {pr_string} to GitLab for CI pipeline testing")
+                        except subprocess.CalledProcessError:
+                            print("Failed to merge PR {0} ({1}) with latest tested {2} ({3}). Skipping"
+                                  .format(pull.number, pull.head.ref, self.main_branch, self.latest_tested_main_commit))
+                            self.unmergeable_shas.append(pull.head.sha)
+                            continue
+                    else:
+                        print(f"Defer pushing {pr_string} because its merge base is NOT an ancestor of "
+                              "latest_tested_main {merge_base_sha} vs. {self.latest_tested_main_commit}")
+                        backlogged = "base"
+
+                if not backlogged and self.prereq_checks:
                     checks_desc = "waiting for {} check to succeed"
                     checks_to_verify = self.prereq_checks.copy()
                     pr_check_runs = self.get_commit(pull.head.sha).get_check_runs()
@@ -170,7 +200,6 @@ class SpackCIBridge(object):
                         backlogged = checks_desc.format(checks_to_verify[0])
 
             pr_dict[pr_string] = {
-                'merge_commit_sha': pull.merge_commit_sha,
                 'base_sha': pull.base.sha,
                 'head_sha': pull.head.sha,
                 'push': push,
@@ -179,13 +208,11 @@ class SpackCIBridge(object):
 
         def listify_dict(d):
             pr_strings = sorted(d.keys())
-            merge_commit_shas = [d[s]['merge_commit_sha'] for s in pr_strings]
             base_shas = [d[s]['base_sha'] for s in pr_strings]
             head_shas = [d[s]['head_sha'] for s in pr_strings]
             b_logged = [d[s]['backlogged'] for s in pr_strings]
             return {
                 "pr_strings": pr_strings,
-                "merge_commit_shas": merge_commit_shas,
                 "base_shas": base_shas,
                 "head_shas": head_shas,
                 "backlogged": b_logged,
@@ -230,10 +257,13 @@ class SpackCIBridge(object):
     def setup_git_repo(self):
         """Initialize a bare git repository with two remotes:
         one for GitHub and one for GitLab.
+        If main_branch was specified, we also fetch that branch from GitHub.
         """
         subprocess.run(["git", "init"], check=True)
         subprocess.run(["git", "remote", "add", "github", self.github_repo], check=True)
         subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_repo], check=True)
+        if self.main_branch:
+            subprocess.run(["git", "fetch", "github", self.main_branch], check=True)
 
     def get_gitlab_pr_branches(self):
         """Query GitLab for branches that have already been copied over from GitHub PRs.
@@ -249,29 +279,26 @@ class SpackCIBridge(object):
         subprocess.run(fetch_args, check=True, stdout=subprocess.PIPE).stdout
 
     def get_open_refspecs(self, open_prs):
-        """Return lists of refspecs for fetch and push given a list of open PRs."""
+        """Return a list of refspecs to push given a list of open PRs."""
         print("Building initial lists of refspecs to fetch and push")
         pr_strings = open_prs["pr_strings"]
-        merge_commit_shas = open_prs["merge_commit_shas"]
         base_shas = open_prs["base_shas"]
         backlogged = open_prs["backlogged"]
         open_refspecs = []
-        fetch_refspecs = []
-        for open_pr, merge_commit_sha, base_sha, backlog in zip(pr_strings,
-                                                                merge_commit_shas,
-                                                                base_shas,
-                                                                backlogged):
-            fetch_refspecs.append("+{0}:refs/remotes/{1}".format(
-                merge_commit_sha, open_pr))
+        for open_pr, base_sha, backlog in zip(pr_strings, base_shas, backlogged):
             if not backlog:
                 open_refspecs.append("{0}:{0}".format(open_pr))
                 print("  pushing {0} (based on {1})".format(open_pr, base_sha))
             else:
-                if backlog == "draft":
+                if backlog == "base":
+                    # By omitting these branches from "open_refspecs", we will defer pushing
+                    # them to gitlab until their merge base with the main branch has been tested.
+                    print("  defer pushing {0} (merge-base too new)".format(open_pr))
+                elif backlog == "draft":
                     print("  defer pushing draft PR {0}".format(open_pr))
                 else:
                     print("  defer pushing {0} (based on checks)".format(open_pr))
-        return open_refspecs, fetch_refspecs
+        return open_refspecs
 
     def update_refspecs_for_protected_branches(self, protected_branches, open_refspecs, fetch_refspecs):
         """Update our refspecs lists for protected branches from GitHub."""
@@ -293,10 +320,10 @@ class SpackCIBridge(object):
         fetch_args = ["git", "fetch", "-q", "github"] + fetch_refspecs
         subprocess.run(fetch_args, check=True)
 
-    def build_local_branches(self, open_prs, protected_branches):
-        """Create local branches for a list of open PRs and protected branches."""
-        print("Building local branches for open PRs and protected branches")
-        for branch in open_prs["pr_strings"] + protected_branches:
+    def build_local_branches(self, protected_branches):
+        """Create local branches for a list of protected branches."""
+        print("Building local branches for protected branches")
+        for branch in protected_branches:
             local_branch_name = "{0}".format(branch)
             remote_branch_name = "refs/remotes/{0}".format(branch)
             subprocess.run(["git", "branch", "-q", local_branch_name, remote_branch_name], check=True)
@@ -472,10 +499,15 @@ class SpackCIBridge(object):
 
         # Post a status of pending/backlogged for branches we deferred pushing
         print("Posting backlogged status to the following:")
+        base_backlog_desc = \
+            "This branch's merge-base with {} is newer than the latest commit tested by GitLab".format(self.main_branch)
         for branch, head_sha, reason in backlog_branches:
             if reason == "stale":
                 print("Skip posting status for {} because it has not been updated recently".format(branch))
                 continue
+            elif reason == "base":
+                desc = base_backlog_desc
+                url = ""
             elif reason == "draft":
                 desc = "GitLab CI is disabled for draft PRs"
                 url = ""
@@ -484,12 +516,11 @@ class SpackCIBridge(object):
                 url = ""
             self.create_status_for_commit(head_sha, branch, "pending", url, desc)
 
-        # Post errors to any PRs that we found didn't have a merge_commit_sha, and
-        # thus were likely unmergeable.
+        # Post errors to any PRs that we couldn't merge to latest_tested_main_commit.
         print('Posting unmergeable status to the following:')
         for sha in self.unmergeable_shas:
             print('  {0}'.format(sha))
-            self.create_status_for_commit(sha, "", "error", "", "PR could not be merged with base")
+            self.create_status_for_commit(sha, "", "error", "", f"PR could not be merged with {self.main_branch}")
         print("Rate limit at the end of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
 
     def create_status_for_commit(self, sha, branch, state, target_url, description):
@@ -536,14 +567,21 @@ class SpackCIBridge(object):
             self.setup_git_repo()
 
             if self.main_branch:
-                # Find the currently running main branch pipeline, if any, and get the sha
+                # Find the currently running main branch pipeline, if any, and get the sha.
+                # Also get the latest commit on the main branch that has a completed pipeline.
                 main_branch_pipelines = self.get_pipelines_for_branch(self.main_branch, self.time_threshold_long)
                 for sha, pipeline in main_branch_pipelines.items():
-                    if pipeline['status'] == "running":
+                    if self.latest_tested_main_commit is None and \
+                            (pipeline['status'] == "success" or pipeline['status'] == "failed"):
+                        self.latest_tested_main_commit = sha
+
+                    if self.currently_running_sha is None and pipeline['status'] == "running":
                         self.currently_running_sha = sha
-                        self.currently_running_url = pipeline["web_url"]
+
+                    if self.latest_tested_main_commit and self.currently_running_sha:
                         break
 
+            print("Latest completed {0} pipeline: {1}".format(self.main_branch, self.latest_tested_main_commit))
             print("Currently running {0} pipeline: {1}".format(self.main_branch, self.currently_running_sha))
 
             # Shallow fetch from GitLab.
@@ -559,13 +597,14 @@ class SpackCIBridge(object):
             tags = self.list_github_tags()
 
             # Get refspecs for open PRs and protected branches.
-            open_refspecs, fetch_refspecs = self.get_open_refspecs(open_prs)
+            open_refspecs = self.get_open_refspecs(open_prs)
+            fetch_refspecs = []
             self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
             self.update_refspecs_for_tags(tags, open_refspecs, fetch_refspecs)
 
             # Sync open GitHub PRs and protected branches to GitLab.
             self.fetch_github_branches(fetch_refspecs)
-            self.build_local_branches(open_prs, protected_branches)
+            self.build_local_branches(protected_branches)
             if open_refspecs:
                 print("Syncing to GitLab")
                 push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + open_refspecs
@@ -593,7 +632,8 @@ if __name__ == "__main__":
     parser.add_argument("--main-branch", default=None,
                         help="""If provided, we check if there is a currently running
 pipeline for this branch. If so, we defer syncing any subsequent commits in an effort
-to not interrupt this pipeline.""")
+to not interrupt this pipeline. We also defer pushing any PR branches that are based
+on a commit of the main branch that is newer than the latest commit tested by GitLab.""")
     parser.add_argument("--prereq-check", nargs="+", default=False,
                         help="Only push branches that have already passed this GitHub check")
 
