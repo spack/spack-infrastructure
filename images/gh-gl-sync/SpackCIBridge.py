@@ -42,15 +42,10 @@ class SpackCIBridge(object):
         dt = datetime.now(timezone.utc) + timedelta(minutes=-60)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
-        # We use a longer time threshold (72 hours) to find the currently running main branch pipeline.
-        dt = datetime.now(timezone.utc) + timedelta(minutes=-4320)
-        self.time_threshold_long = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
-
         self.pipeline_api_template = gitlab_host
         self.pipeline_api_template += "/api/v4/projects/"
         self.pipeline_api_template += urllib.parse.quote_plus(gitlab_project)
-        self.pipeline_api_template += "/pipelines?updated_after={0}"
-        self.pipeline_api_template += "&ref={1}"
+        self.pipeline_api_template += "/pipelines?ref={0}"
 
         self.commit_api_template = gitlab_host
         self.commit_api_template += "/api/v4/projects/"
@@ -440,12 +435,16 @@ class SpackCIBridge(object):
 
         return m.group(1)
 
-    def get_pipelines_for_branch(self, branch, time_threshold):
+    def get_pipelines_for_branch(self, branch, time_threshold=None):
         # Use gitlab's API to get pipeline results for the corresponding ref.
         api_url = self.pipeline_api_template.format(
-            time_threshold,
             urllib.parse.quote_plus(branch)
         )
+
+        # Optionally constrain the query with the provided time_threshold
+        if time_threshold:
+            api_url = "{0}&updated_after={1}".format(api_url, time_threshold)
+
         try:
             request = urllib.request.Request(api_url)
             if "GITLAB_TOKEN" in os.environ:
@@ -577,7 +576,7 @@ class SpackCIBridge(object):
             if self.main_branch:
                 # Find the currently running main branch pipeline, if any, and get the sha.
                 # Also get the latest commit on the main branch that has a completed pipeline.
-                main_branch_pipelines = self.get_pipelines_for_branch(self.main_branch, self.time_threshold_long)
+                main_branch_pipelines = self.get_pipelines_for_branch(self.main_branch)
                 for sha, pipeline in main_branch_pipelines.items():
                     if self.latest_tested_main_commit is None and \
                             (pipeline['status'] == "success" or pipeline['status'] == "failed"):
