@@ -259,6 +259,8 @@ class SpackCIBridge(object):
         If main_branch was specified, we also fetch that branch from GitHub.
         """
         subprocess.run(["git", "init"], check=True)
+        subprocess.run(["git", "config", "user.email", "noreply@spack.io"], check=True)
+        subprocess.run(["git", "config", "user.name", "spackbot"], check=True)
         subprocess.run(["git", "remote", "add", "github", self.github_repo], check=True)
         subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_repo], check=True)
 
