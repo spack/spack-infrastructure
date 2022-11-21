@@ -182,7 +182,7 @@ class SpackCIBridge(object):
                             continue
                     else:
                         print(f"Defer pushing {pr_string} because its merge base is NOT an ancestor of "
-                              "latest_tested_main {merge_base_sha} vs. {self.latest_tested_main_commit}")
+                              f"latest_tested_main {merge_base_sha} vs. {self.latest_tested_main_commit}")
                         backlogged = "base"
 
                 if not backlogged and self.prereq_checks:
