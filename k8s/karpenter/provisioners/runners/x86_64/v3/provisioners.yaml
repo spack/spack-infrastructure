@@ -1,7 +1,8 @@
 ---
 # Provisioner for x86_64_v3 gitlab runners
 apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner metadata:
+kind: Provisioner
+metadata:
   name: glr-x86-64-v3
 spec:
   providerRef:
@@ -15,7 +16,7 @@ spec:
   limits:
     resources:
       cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
-      memory: 7680Gi # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+      memory: 15Ti # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
 
   requirements:
     # Only spin up amd64 nodes
