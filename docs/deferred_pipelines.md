@@ -53,7 +53,7 @@ For any given PR branch:
 * Get the most recent commit of develop that was tested by GitLab (`latest-tested-develop`).
 * Run `git merge-base <pr-branch> develop` to find the merge base between this PR and develop (`merge-base-sha`).
 * Run `git merge-base --is-ancestor <merge-base-sha> <latest-tested-develop>` to determine if this PR's merge base with develop is an ancestor of `latest-tested-develop`.
-  * If it is, merge this PR branch with `latest-tested-develop` and push it to GitLab for testing
+  * If it is, merge `latest-tested-develop` with this PR branch and push it to GitLab for testing
   * If not, post a status to the `HEAD` commit for this PR on GitHub indicating why the GitLab CI pipelines are not running yet.
 
 ## Tips
