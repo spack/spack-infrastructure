@@ -16,10 +16,10 @@ spec:
   limits:
     resources:
       cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
-      memory: 7680Gi # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+      memory: 15Ti # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
 
   requirements:
-      # Only spin up arm64 nodes
+    # Only spin up arm64 nodes
     - key: "kubernetes.io/arch"
       operator: In
       values: ["arm64"]
