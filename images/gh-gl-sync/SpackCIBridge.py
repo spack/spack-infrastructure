@@ -516,7 +516,7 @@ class SpackCIBridge(object):
                 continue
             elif reason == "base":
                 desc = base_backlog_desc
-                url = ""
+                url = "https://github.com/spack/spack-infrastructure/blob/main/docs/deferred_pipelines.md"
             elif reason == "draft":
                 desc = "GitLab CI is disabled for draft PRs"
                 url = ""
