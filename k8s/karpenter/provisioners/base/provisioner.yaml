@@ -19,7 +19,7 @@ spec:
   requirements:
     - key: "node.kubernetes.io/instance-type"
       operator: In
-      values: ["t3.small"]
+      values: ["t3.small", "t3.medium"]
 
     # Always use on-demand
     - key: "karpenter.sh/capacity-type"
