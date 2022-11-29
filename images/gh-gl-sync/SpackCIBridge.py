@@ -179,6 +179,7 @@ class SpackCIBridge(object):
                             print("Failed to merge PR {0} ({1}) with latest tested {2} ({3}). Skipping"
                                   .format(pull.number, pull.head.ref, self.main_branch, self.latest_tested_main_commit))
                             self.unmergeable_shas.append(pull.head.sha)
+                            subprocess.run(["git", "merge", "--abort"])
                             continue
                     else:
                         print(f"Defer pushing {pr_string} because its merge base is NOT an ancestor of "
@@ -261,6 +262,7 @@ class SpackCIBridge(object):
         subprocess.run(["git", "init"], check=True)
         subprocess.run(["git", "config", "user.email", "noreply@spack.io"], check=True)
         subprocess.run(["git", "config", "user.name", "spackbot"], check=True)
+        subprocess.run(["git", "config", "advice.detachedHead", "false"], check=True)
         subprocess.run(["git", "remote", "add", "github", self.github_repo], check=True)
         subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_repo], check=True)
 
