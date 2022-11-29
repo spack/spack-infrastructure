@@ -1,0 +1,31 @@
+---
+# Provisioner for base pods
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: base
+spec:
+  providerRef:
+    name: default
+
+  # Consolidation will de-provision larger than necessary nodes
+  consolidation:
+    enabled: true
+
+  limits:
+    resources:
+      cpu: 128 # Limit to 64 t3.small nodes (2 vCPUs each)
+
+  requirements:
+    - key: "node.kubernetes.io/instance-type"
+      operator: In
+      values: ["t3.small"]
+
+    # Always use on-demand
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: ["on-demand"]
+
+  # Only provision nodes for pods specifying the base node pool
+  labels:
+    spack.io/node-pool: base
