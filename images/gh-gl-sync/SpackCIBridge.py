@@ -122,8 +122,8 @@ class SpackCIBridge(object):
                 # Skip further analysis of this PR if it hasn't been updated in 48 hours.
                 # This helps us avoid wasting our rate limit on PRs with merge conflicts.
                 print("Skip pushing stale PR {0}".format(pr_string))
-                push = False
                 backlogged = "stale"
+                push = False
 
             if push:
                 # Determine if this PR still needs to be pushed to GitLab. This happens in one of two cases:
@@ -156,9 +156,13 @@ class SpackCIBridge(object):
                             checks_to_verify.remove(check.name)
                             if check.conclusion != "success":
                                 backlogged = checks_desc.format(check.name)
+                                push = False
                                 break
                     if not backlogged and checks_to_verify:
                         backlogged = checks_desc.format(checks_to_verify[0])
+                        push = False
+                    if backlogged:
+                        print("Skip pushing {0} because of {1}".format(pr_string, backlogged))
 
                 if not backlogged and self.main_branch:
                     tmp_pr_branch = f"temporary_{pr_string}"
@@ -193,11 +197,14 @@ class SpackCIBridge(object):
                                   .format(pull.number, pull.head.ref, self.main_branch, self.latest_tested_main_commit))
                             self.unmergeable_shas.append(pull.head.sha)
                             subprocess.run(["git", "merge", "--abort"])
+                            backlogged = "merge conflicts with {}".format(self.main_branch)
+                            push = False
                             continue
                     else:
-                        print(f"Defer pushing {pr_string} because its merge base is NOT an ancestor of "
+                        print(f"Skip pushing {pr_string} because its merge base is NOT an ancestor of "
                               f"latest_tested_main {merge_base_sha} vs. {self.latest_tested_main_commit}")
                         backlogged = "base"
+                        push = False
 
             pr_dict[pr_string] = {
                 'base_sha': pull.base.sha,
@@ -293,18 +300,8 @@ class SpackCIBridge(object):
         backlogged = open_prs["backlogged"]
         open_refspecs = []
         for open_pr, base_sha, backlog in zip(pr_strings, base_shas, backlogged):
-            if not backlog:
-                open_refspecs.append("{0}:{0}".format(open_pr))
-                print("  pushing {0} (based on {1})".format(open_pr, base_sha))
-            else:
-                if backlog == "base":
-                    # By omitting these branches from "open_refspecs", we will defer pushing
-                    # them to gitlab until their merge base with the main branch has been tested.
-                    print("  defer pushing {0} (merge-base too new)".format(open_pr))
-                elif backlog == "draft":
-                    print("  defer pushing draft PR {0}".format(open_pr))
-                else:
-                    print("  defer pushing {0} (based on checks)".format(open_pr))
+            open_refspecs.append("{0}:{0}".format(open_pr))
+            print("  pushing {0} (based on {1})".format(open_pr, base_sha))
         return open_refspecs
 
     def update_refspecs_for_protected_branches(self, protected_branches, open_refspecs, fetch_refspecs):

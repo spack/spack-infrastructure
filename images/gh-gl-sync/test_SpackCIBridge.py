@@ -441,10 +441,10 @@ def test_pipeline_status_backlogged_by_checks(capfd):
 
         os.environ["GITHUB_TOKEN"] = "my_github_token"
 
-        expected_desc = open_prs["backlogged"][0]
+        expected_desc = all_open_prs["backlogged"][0]
         assert expected_desc == "waiting for style check to succeed"
 
-        bridge.post_pipeline_status(open_prs, [])
+        bridge.post_pipeline_status(all_open_prs, [])
         assert gh_commit.create_status.call_count == 1
         gh_commit.create_status.assert_called_with(
             state="pending",
