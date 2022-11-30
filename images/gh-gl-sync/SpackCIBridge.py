@@ -144,10 +144,23 @@ class SpackCIBridge(object):
             if push:
                 # Check the PRs-to-be-pushed to see if any of them should be considered "backlogged".
                 # We currently recognize three types of backlogged PRs:
-                # 1) The PR is based on a version of the "main branch" that has not yet been tested
-                # 2) Some required "prerequisite checks" have not yet completed successfully.
+                # 1) Some required "prerequisite checks" have not yet completed successfully.
+                # 2) The PR is based on a version of the "main branch" that has not yet been tested
                 # 3) Draft PRs. Handled earlier in this function.
-                if self.main_branch:
+                if not backlogged and self.prereq_checks:
+                    checks_desc = "waiting for {} check to succeed"
+                    checks_to_verify = self.prereq_checks.copy()
+                    pr_check_runs = self.get_commit(pull.head.sha).get_check_runs()
+                    for check in pr_check_runs:
+                        if check.name in checks_to_verify:
+                            checks_to_verify.remove(check.name)
+                            if check.conclusion != "success":
+                                backlogged = checks_desc.format(check.name)
+                                break
+                    if not backlogged and checks_to_verify:
+                        backlogged = checks_desc.format(checks_to_verify[0])
+
+                if not backlogged and self.main_branch:
                     tmp_pr_branch = f"temporary_{pr_string}"
                     subprocess.run(["git", "fetch", "--unshallow", "github",
                                    f"refs/pull/{pull.number}/head:{tmp_pr_branch}"], check=True)
@@ -185,19 +198,6 @@ class SpackCIBridge(object):
                         print(f"Defer pushing {pr_string} because its merge base is NOT an ancestor of "
                               f"latest_tested_main {merge_base_sha} vs. {self.latest_tested_main_commit}")
                         backlogged = "base"
-
-                if not backlogged and self.prereq_checks:
-                    checks_desc = "waiting for {} check to succeed"
-                    checks_to_verify = self.prereq_checks.copy()
-                    pr_check_runs = self.get_commit(pull.head.sha).get_check_runs()
-                    for check in pr_check_runs:
-                        if check.name in checks_to_verify:
-                            checks_to_verify.remove(check.name)
-                            if check.conclusion != "success":
-                                backlogged = checks_desc.format(check.name)
-                                break
-                    if not backlogged and checks_to_verify:
-                        backlogged = checks_desc.format(checks_to_verify[0])
 
             pr_dict[pr_string] = {
                 'base_sha': pull.base.sha,
