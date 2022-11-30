@@ -7,6 +7,8 @@ services, including:
 * CDash: [cdash.spack.io](https://cdash.spack.io)
 * GitLab: [gitlab.spack.io](https://gitlab.spack.io)
 
+Why isn't my GitLab CI pipeline running yet? Please see our [Deferred Pipelines Documentation](docs/deferred_pipelines.md)
+
 ## Restoring from Backup
 
 - Delete the persistent volume (PV) and persistent volume claim (PVC) for the old volume that's being replaced.
