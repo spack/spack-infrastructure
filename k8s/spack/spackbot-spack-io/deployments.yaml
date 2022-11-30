@@ -42,7 +42,7 @@ spec:
         - name: TASK_QUEUE_LONG
           value: "tasksproduction_ltask"
         - name: WORKER_JOB_TIMEOUT
-          value: "600"
+          value: "6000"
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: GITHUB_APP_IDENTIFIER
@@ -116,7 +116,7 @@ spec:
         - name: WORKER_TASK_QUEUE
           value: "tasksproduction"
         - name: WORKER_JOB_TIMEOUT
-          value: "600"
+          value: "6000"
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: GITHUB_APP_IDENTIFIER
@@ -197,7 +197,7 @@ spec:
         - name: WORKER_TASK_QUEUE
           value: "tasksproduction_ltask"
         - name: WORKER_JOB_TIMEOUT
-          value: "600"
+          value: "6000"
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: GITHUB_APP_IDENTIFIER
