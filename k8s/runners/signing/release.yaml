@@ -71,7 +71,7 @@ spec:
               "metrics/spack_ci_stack_name" = "$SPACK_CI_STACK_NAME"
             [runners.kubernetes.node_selector]
               "kubernetes.io/arch" = "amd64"
-              "spack.io/node-pool" = "glr-large-pub"
+              "spack.io/node-pool" = "glr-x86-64-v3"
 
             [[runners.kubernetes.volumes.secret]]
               name = "spack-signing-key-encrypted"
