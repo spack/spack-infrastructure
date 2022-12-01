@@ -6,6 +6,7 @@ metadata:
   namespace: custom
 spec:
   schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       backoffLimit: 0
