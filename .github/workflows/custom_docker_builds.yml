@@ -23,6 +23,7 @@ jobs:
           - gitops
           - gitlab-stuckpods
           - gitlab-clear-pipelines
+          - gitlab-skipped-pipelines
           - notary
           - python-aws-bash
         include:
@@ -46,6 +47,8 @@ jobs:
             image-tags: ghcr.io/spack/stuckpods:0.0.1
           - docker-image: gitlab-clear-pipelines
             image-tags: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
+          - docker-image: gitlab-skipped-pipelines
+            image-tags: ghcr.io/spack/gitlab-skipped-pipelines:0.0.1
           - docker-image: notary
             image-tags: ghcr.io/spack/notary:latest
           - docker-image: python-aws-bash
