@@ -36,6 +36,8 @@ spec:
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
             privileged = false
+            helper_memory_request = "512m"
+
             cpu_request = "10"
             cpu_limit = "10"
             memory_request = "8G"
