@@ -54,7 +54,7 @@ jobs:
           - docker-image: python-aws-bash
             image-tags: ghcr.io/spack/python-aws-bash:0.0.1
           - docker-image: opensearch-index-build-logs
-            image-tags: ghcr.io/spack/opensearch-index-build-logs:0.0.1
+            image-tags: ghcr.io/spack/opensearch-index-build-logs:0.0.2
     steps:
       - name: Checkout
         uses: actions/checkout@v3
