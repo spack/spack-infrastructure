@@ -4,7 +4,7 @@ metadata:
   name: opensearch-index-build-logs
   namespace: custom
 spec:
-  schedule: "0 0 * * *"
+  schedule: "0 0 1-31/2 * *"  # Run every other day
   jobTemplate:
     spec:
       template:
