@@ -121,6 +121,10 @@ taxonomy:
         - 'Job failed (system failure): prepare environment: image pull failed'
         - 'ERROR: Job failed (system failure): failed to pull image'
 
+    no_binary_for_spec:
+      grep_for:
+        - 'Error: No binary for .+ found when cache-only specified'
+
   deconflict_order:
     # API Scrape erorrs
     - 'job_log_missing'
@@ -139,6 +143,7 @@ taxonomy:
     - 'dial_backend'
     - 'remote_disconnect'
     # Spack Errors
+    - 'no_binary_for_spec'
     - 'db_match'
     - 'db_hash'
     - 'no_spec'
