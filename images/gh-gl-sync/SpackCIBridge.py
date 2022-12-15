@@ -178,8 +178,20 @@ class SpackCIBridge(object):
                         self.unmergeable_shas.append(pull.head.sha)
                         continue
 
+                    repo_head_sha = subprocess.run(
+                        ["git", "rev-parse", tmp_pr_branch],
+                        check=True, stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
+
+                    if pull.head.sha != repo_head_sha:
+                        # If gh repo and api don't agree on what the head sha is, don't
+                        # push.  Instead log an error message and backlog the PR.
+                        a_sha, r_sha = pull.head.sha[:7], repo_head_sha[:7]
+                        print(f"Skip pushing {pr_string} because api says HEAD is {a_sha}, "
+                              f"while repo says HEAD is {r_sha}")
+                        backlogged = f"GitHub HEAD shas out of sync (repo={r_sha}, API={a_sha})"
+                        push = False
                     # Check if our PR's merge base is an ancestor of the latest tested main branch commit.
-                    if subprocess.run(
+                    elif subprocess.run(
                             ["git", "merge-base", "--is-ancestor", merge_base_sha, self.latest_tested_main_commit]
                             ).returncode == 0:
                         print(f"{tmp_pr_branch}'s merge base IS an ancestor of latest_tested_main "
