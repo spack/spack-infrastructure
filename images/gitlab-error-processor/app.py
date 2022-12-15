@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 
 import yaml
@@ -11,16 +10,6 @@ config.load_incluster_config()
 batch = client.BatchV1Api()
 
 app = FastAPI()
-
-for env_var in (
-    "GITLAB_TOKEN",
-    "GITLAB_URL",
-    "OPENSEARCH_USERNAME",
-    "OPENSEARCH_PASSWORD",
-    "OPENSEARCH_ENDPOINT",
-):
-    if env_var not in os.environ:
-        raise RuntimeError(f'Environment variable "{env_var}" must be set.')
 
 
 @app.post("/")
@@ -42,32 +31,7 @@ async def gitlab_webhook_consumer(request: Request):
 
     for container in job_template["spec"]["template"]["spec"]["containers"]:
         container.setdefault("env", []).extend(
-            [
-                dict(
-                    name="JOB_INPUT_DATA",
-                    value=json.dumps(job_input_data),
-                ),
-                dict(
-                    name="GITLAB_TOKEN",
-                    value=os.environ["GITLAB_TOKEN"],
-                ),
-                dict(
-                    name="GITLAB_URL",
-                    value=os.environ["GITLAB_URL"],
-                ),
-                dict(
-                    name="OPENSEARCH_USERNAME",
-                    value=os.environ["OPENSEARCH_USERNAME"],
-                ),
-                dict(
-                    name="OPENSEARCH_PASSWORD",
-                    value=os.environ["OPENSEARCH_PASSWORD"],
-                ),
-                dict(
-                    name="OPENSEARCH_ENDPOINT",
-                    value=os.environ["OPENSEARCH_ENDPOINT"],
-                ),
-            ]
+            [dict(name="JOB_INPUT_DATA", value=json.dumps(job_input_data))]
         )
 
     job_build_id = str(job_input_data["build_id"])

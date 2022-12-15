@@ -7,10 +7,31 @@ spec:
   ttlSecondsAfterFinished: 7200
   template:
     spec:
+      restartPolicy: OnFailure
       containers:
       - name: gitlab-error-processing-job
         image: ghcr.io/spack/upload-gitlab-failure-logs:0.0.1
         imagePullPolicy: Always
-      restartPolicy: Never
+        env:
+          - name: GITLAB_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-error-processor
+                key: gitlab-token
+          - name: OPENSEARCH_ENDPOINT
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-error-processor
+                key: opensearch-endpoint
+          - name: OPENSEARCH_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-error-processor
+                key: opensearch-username
+          - name: OPENSEARCH_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-error-processor
+                key: opensearch-password
       nodeSelector:
         spack.io/node-pool: base
