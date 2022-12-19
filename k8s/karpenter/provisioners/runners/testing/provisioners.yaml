@@ -48,3 +48,4 @@ spec:
   # Only provision nodes from the glr-large-testing-pub node pool
   labels:
     spack.io/node-pool: glr-large-testing-pub
+    spack.io/pipeline: true
