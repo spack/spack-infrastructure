@@ -57,4 +57,4 @@ spec:
   # Only provision nodes for pods specifying the glr-graviton2 node pool
   labels:
     spack.io/node-pool: glr-graviton2
-    spack.io/pipeline: true
+    spack.io/pipeline: "true"
