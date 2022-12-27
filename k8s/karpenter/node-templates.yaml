@@ -4,9 +4,9 @@ metadata:
   name: default
 spec:
   subnetSelector:
-    karpenter.sh/discovery: spack
+    karpenter.sh/discovery: spack-cluster
   securityGroupSelector:
-    karpenter.sh/discovery: spack
+    karpenter.sh/discovery: spack-cluster
   blockDeviceMappings:
     - deviceName: /dev/xvda
       ebs:
