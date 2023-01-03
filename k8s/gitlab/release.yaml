@@ -59,9 +59,10 @@ spec:
       smtp:
         enabled: true
         address: email-smtp.us-east-1.amazonaws.com
-        user_name: AKIAYSCIUVA2HA4WTV6O
+        user_name: AKIAYSCIUVA2L2NKBRON
         password:
-          secret: smtp-password
+          secret: gitlab-secrets
+          key: smtp-password
         port: 465
         tls: true
 
@@ -72,7 +73,7 @@ spec:
           key: postgres-password
         port: 5432
         database: gitlabhq_production
-        username: gitlab
+        username: postgres
 
       redis:
         password:
