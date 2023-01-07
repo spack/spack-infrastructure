@@ -1,5 +1,5 @@
 ---
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: tls-cdash
@@ -9,6 +9,6 @@ spec:
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer
-  commonName: cdash.spack.io
+  commonName: cdash.test.spack.io
   dnsNames:
-  - cdash.spack.io
+  - cdash.test.spack.io
