@@ -25,11 +25,10 @@ spec:
         name: gitlab
 
   valuesFrom:
-    - secretKeyRef:
-        name: gitlab-secrets
-        namespace: gitlab
-        key: values.yaml
-        optional: false
+    - kind: Secret
+      name: gitlab-secrets
+      valuesKey: values.yaml
+      optional: false
 
   values:
     nodeSelector:
@@ -191,7 +190,7 @@ spec:
         replicas: 8
         antiAffinityLabels:
           matchLabels:
-            app: 'gitaly'
+            app: "gitaly"
 
       gitaly:
         nodeSelector:
