@@ -1,16 +1,22 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: cdash
   namespace: cdash
+  annotations:
+    kubernetes.io/ingress.class: nginx
 spec:
   tls:
   - secretName: tls-cdash
   rules:
-  - host: cdash.spack.io
+  - host: cdash.test.spack.io
     http:
       paths:
       - backend:
-          serviceName: cdash
-          servicePort: 80
+          service:
+            name: cdash
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
