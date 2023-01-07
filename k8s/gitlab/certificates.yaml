@@ -7,7 +7,7 @@ metadata:
 spec:
   secretName: tls-gitlab-webservice
   issuerRef:
-    name: letsencrypt
+    name: letsencrypt-staging
     kind: ClusterIssuer
   dnsNames:
     - gitlab.test.spack.io
@@ -21,7 +21,7 @@ metadata:
 spec:
   secretName: tls-gitlab-registry
   issuerRef:
-    name: letsencrypt
+    name: letsencrypt-staging
     kind: ClusterIssuer
   dnsNames:
     - registry.gitlab.test.spack.io
@@ -35,7 +35,7 @@ metadata:
 spec:
   secretName: tls-gitlab-minio
   issuerRef:
-    name: letsencrypt
+    name: letsencrypt-staging
     kind: ClusterIssuer
   dnsNames:
     - minio.gitlab.test.spack.io
