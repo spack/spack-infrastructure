@@ -10,7 +10,7 @@ spec:
     name: letsencrypt
     kind: ClusterIssuer
   dnsNames:
-    - gitlab.spack.io
+    - gitlab.test.spack.io
 
 ---
 apiVersion: cert-manager.io/v1
@@ -24,7 +24,7 @@ spec:
     name: letsencrypt
     kind: ClusterIssuer
   dnsNames:
-    - registry.gitlab.spack.io
+    - registry.gitlab.test.spack.io
 
 ---
 apiVersion: cert-manager.io/v1
@@ -38,4 +38,4 @@ spec:
     name: letsencrypt
     kind: ClusterIssuer
   dnsNames:
-    - minio.gitlab.spack.io
+    - minio.gitlab.test.spack.io

@@ -1,15 +1,28 @@
 ---
-apiVersion: helm.fluxcd.io/v1
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: gitlab
+  namespace: gitlab
+spec:
+  interval: 10m
+  url: https://charts.gitlab.io
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: gitlab
   namespace: gitlab
 spec:
-  releaseName: gitlab
+  interval: 10m
   chart:
-    name: gitlab
-    repository: https://charts.gitlab.io
-    version: 5.6.3 # gitlab@14.6.3
+    spec:
+      chart: gitlab
+      version: 5.6.3 # gitlab@14.6.3
+      sourceRef:
+        kind: HelmRepository
+        name: gitlab
 
   valuesFrom:
     - secretKeyRef:
