@@ -14,6 +14,14 @@ terraform {
       source  = "gavinbunney/kubectl"
       version = "~> 1.14"
     }
+    flux = {
+      source  = "fluxcd/flux"
+      version = "~> 0.22.2"
+    }
+    github = {
+      source  = "integrations/github"
+      version = "~> 5.13.0"
+    }
   }
 }
 
@@ -45,6 +53,11 @@ provider "kubectl" {
     command     = "aws"
     args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
   }
+}
+
+provider "github" {
+  owner = "mvandenburgh" # TODO: change this
+  token = jsondecode(data.aws_secretsmanager_secret_version.flux_github_token.secret_string).flux_github_token
 }
 
 locals {
