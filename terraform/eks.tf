@@ -12,10 +12,19 @@ module "eks" {
   # Enables OIDC provider for cluster; required for Karpenter
   enable_irsa = true
 
-  create_kms_key = false
+  create_kms_key            = false
   cluster_encryption_config = {}
 
   cluster_endpoint_public_access = true
+
+  manage_aws_auth_configmap = true
+  aws_auth_roles = [
+    {
+      rolearn  = aws_iam_role.eks_cluster_access.arn
+      username = "admin"
+      groups   = ["system:masters"]
+    },
+  ]
 
   node_security_group_additional_rules = {
     ingress_self_all = {
@@ -50,4 +59,31 @@ module "eks" {
       desired_size = 2
     }
   }
+}
+
+resource "aws_iam_role" "eks_cluster_access" {
+  name_prefix = "SpackEKSClusterAccess"
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : [
+            "arn:aws:iam::588562868276:user/scott",
+            "arn:aws:iam::588562868276:user/vsoch",
+            "arn:aws:iam::588562868276:user/jacob",
+            "arn:aws:iam::588562868276:user/chris",
+            "arn:aws:iam::588562868276:user/tgamblin",
+            "arn:aws:iam::588562868276:user/krattiger1",
+            "arn:aws:iam::588562868276:user/mike",
+            "arn:aws:iam::588562868276:user/alecscott",
+            "arn:aws:iam::588562868276:user/zack",
+            "arn:aws:iam::588562868276:user/joesnyder"
+          ]
+        },
+        "Action" : "sts:AssumeRole"
+      }
+    ]
+  })
 }
