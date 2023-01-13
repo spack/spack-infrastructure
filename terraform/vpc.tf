@@ -15,7 +15,7 @@ module "vpc" {
   create_database_subnet_group = true
 
   enable_nat_gateway   = true
-  single_nat_gateway   = false
+  single_nat_gateway   = terraform.workspace != "production"
   enable_dns_hostnames = true
 
   public_subnet_tags = {

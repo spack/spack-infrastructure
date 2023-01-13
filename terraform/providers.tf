@@ -82,7 +82,7 @@ provider "github" {
 }
 
 locals {
-  cluster_name = "spack-cluster"
+  cluster_name = "spack-${terraform.workspace}"
   vpc_cidr     = "10.0.0.0/16"
-  azs          = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  azs          = terraform.workspace == "production" ? ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"] : ["us-east-1a", "us-east-1b"]
 }

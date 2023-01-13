@@ -2,7 +2,7 @@ module "db" {
   source  = "terraform-aws-modules/rds/aws"
   version = "5.2.3"
 
-  identifier = "gitlab"
+  identifier = "gitlab-${terraform.workspace}"
 
   engine               = "postgres"
   engine_version       = "14"
