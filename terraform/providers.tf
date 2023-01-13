@@ -2,10 +2,10 @@ terraform {
   required_version = "~> 1.3.6"
 
   backend "s3" {
-    bucket         = "spack-infrastructure-terraform"
+    bucket         = "spack-terraform-state"
     key            = "terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "terraform-state-locks"
+    dynamodb_table = "spack-terraform-state-locks"
     encrypt        = true
   }
 
