@@ -6,10 +6,21 @@ module "vpc" {
   name = local.cluster_name
   cidr = local.vpc_cidr
 
-  azs              = local.azs
-  public_subnets   = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k)]
-  private_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 3)]
-  database_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 6)]
+  azs = local.azs
+  public_subnets = [
+    "10.0.0.0/19",
+    "10.0.32.0/19",
+  ]
+  private_subnets = [
+    "10.0.64.0/19",
+    "10.0.96.0/19",
+    "10.0.128.0/19",
+    "10.0.160.0/19",
+  ]
+  database_subnets = [
+    "10.0.192.0/19",
+    "10.0.224.0/19",
+  ]
 
   # Create a DB subnet group for RDS (see rds.tf)
   create_database_subnet_group = true
