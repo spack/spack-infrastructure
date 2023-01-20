@@ -1,5 +1,5 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: spackbotdev-spack-io
@@ -12,5 +12,9 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: spackbotdev-spack-io
-          servicePort: 80
+          service:
+            name: spackbotdev-spack-io
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
