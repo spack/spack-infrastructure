@@ -7,10 +7,10 @@ metadata:
 spec:
   secretName: tls-prometheus-webservice
   issuerRef:
-    name: letsencrypt
+    name: letsencrypt-staging
     kind: ClusterIssuer
   dnsNames:
-    - prometheus.spack.io
+    - prometheus.test.spack.io
 
 ---
 apiVersion: cert-manager.io/v1
@@ -21,10 +21,10 @@ metadata:
 spec:
   secretName: tls-grafana-webservice
   issuerRef:
-    name: letsencrypt
+    name: letsencrypt-staging
     kind: ClusterIssuer
   dnsNames:
-    - grafana.spack.io
+    - grafana.test.spack.io
 
 ---
 apiVersion: cert-manager.io/v1
