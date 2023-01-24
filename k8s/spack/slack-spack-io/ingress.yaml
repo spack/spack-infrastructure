@@ -4,6 +4,8 @@ kind: Ingress
 metadata:
   name: slack-spack-io
   namespace: spack
+  annotations:
+    kubernetes.io/ingress.class: nginx
 spec:
   tls:
   - secretName: tls-slack

@@ -4,6 +4,8 @@ kind: Ingress
 metadata:
   name: spackbotdev-spack-io
   namespace: spack
+  annotations:
+    kubernetes.io/ingress.class: nginx
 spec:
   tls:
   - secretName: tls-spackbotdev
