@@ -57,6 +57,7 @@ spec:
         ssh: ssh.gitlab.test.spack.io
 
       ingress:
+        apiVersion: networking.k8s.io/v1
         configureCertmanager: false
         class: nginx
 
