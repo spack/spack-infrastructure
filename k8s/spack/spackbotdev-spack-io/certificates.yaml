@@ -7,8 +7,8 @@ metadata:
 spec:
   secretName: tls-spackbotdev
   issuerRef:
-    name: letsencrypt
+    name: letsencrypt-staging
     kind: ClusterIssuer
-  commonName: spackbotdev.spack.io
+  commonName: spackbotdev.test.spack.io
   dnsNames:
-    - spackbotdev.spack.io
+    - spackbotdev.test.spack.io
