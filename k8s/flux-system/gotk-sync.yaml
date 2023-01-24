@@ -11,7 +11,7 @@ spec:
     branch: flux2
   secretRef:
     name: flux-system
-  url: ssh://git@github.com/mvandenburgh/spack-infrastructure
+  url: https://github.com/mvandenburgh/spack-infrastructure
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
 kind: Kustomization
@@ -20,7 +20,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m0s
-  path: ./k8s
+  path: ./k8s/
   prune: true
   sourceRef:
     kind: GitRepository
