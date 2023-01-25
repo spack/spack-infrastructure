@@ -47,14 +47,14 @@ spec:
         domain: spack.io
         https: true
         gitlab:
-          name: gitlab.test.spack.io
+          name: gitlab.spack.io
         minio:
-          name: minio.gitlab.test.spack.io
+          name: minio.gitlab.spack.io
         registry:
-          name: registry.gitlab.test.spack.io
+          name: registry.gitlab.spack.io
         smartcard:
           enabled: false
-        ssh: ssh.gitlab.test.spack.io
+        ssh: ssh.gitlab.spack.io
 
       ingress:
         apiVersion: networking.k8s.io/v1

@@ -7,8 +7,8 @@ metadata:
 spec:
   secretName: tls-slack
   issuerRef:
-    name: letsencrypt-staging
+    name: letsencrypt
     kind: ClusterIssuer
-  commonName: slack.test.spack.io
+  commonName: slack.spack.io
   dnsNames:
-    - slack.test.spack.io
+    - slack.spack.io

@@ -10,7 +10,7 @@ spec:
   tls:
   - secretName: tls-cdash
   rules:
-  - host: cdash.test.spack.io
+  - host: cdash.spack.io
     http:
       paths:
       - backend:

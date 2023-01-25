@@ -12,7 +12,7 @@ spec:
   tls:
   - secretName: tls-metabase
   rules:
-  - host: metabase.test.spack.io
+  - host: metabase.spack.io
     http:
       paths:
       - backend:

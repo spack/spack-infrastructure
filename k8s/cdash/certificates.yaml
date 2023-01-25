@@ -7,8 +7,8 @@ metadata:
 spec:
   secretName: tls-cdash
   issuerRef:
-    name: letsencrypt-staging
+    name: letsencrypt
     kind: ClusterIssuer
-  commonName: cdash.test.spack.io
+  commonName: cdash.spack.io
   dnsNames:
-  - cdash.test.spack.io
+  - cdash.spack.io
