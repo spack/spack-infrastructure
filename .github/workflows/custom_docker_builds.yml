@@ -28,7 +28,7 @@ jobs:
           - python-aws-bash
         include:
           - docker-image: gh-gl-sync
-            image-tags: ghcr.io/spack/ci-bridge:0.0.35
+            image-tags: ghcr.io/spack/ci-bridge:0.0.36
           - docker-image: gitlab-api-scrape
             image-tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
           - docker-image: ci-key-rotate
