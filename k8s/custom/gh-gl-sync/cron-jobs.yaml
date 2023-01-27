@@ -16,7 +16,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: sync
-            image: ghcr.io/spack/ci-bridge:0.0.35
+            image: ghcr.io/spack/ci-bridge:0.0.36
             imagePullPolicy: IfNotPresent
             resources:
               requests:
