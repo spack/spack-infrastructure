@@ -85,7 +85,7 @@ resource "kubectl_manifest" "karpenter_node_template" {
       securityGroupSelector:
         karpenter.sh/discovery: ${module.eks.cluster_name}
       tags:
-        karpenter.sh/discovery: spack-production
+        karpenter.sh/discovery: ${module.eks.cluster_name}
       blockDeviceMappings:
         - deviceName: /dev/xvda
           ebs:
