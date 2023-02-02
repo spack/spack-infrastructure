@@ -74,6 +74,9 @@ spec:
           client_id: DEADBEEF # Will be overriden by environment vars
           client_secret: DEADBEEF # Will be overriden by environment vars
 
+      # https://github.com/grafana/helm-charts/blob/673566ba032c2df7108514ad8cb51500fdb48de3/charts/grafana/values.yaml#L501-L505
+      plugins: [grafana-opensearch-datasource]
+
       envValueFrom:
         GF_AUTH_GITHUB_CLIENT_ID:
           secretKeyRef:
