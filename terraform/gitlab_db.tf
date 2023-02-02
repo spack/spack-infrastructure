@@ -1,4 +1,4 @@
-module "db" {
+module "gitlab_db" {
   source  = "terraform-aws-modules/rds/aws"
   version = "5.2.3"
 
@@ -23,16 +23,16 @@ module "db" {
   create_cloudwatch_log_group     = true
 
   backup_retention_period = 7
-  skip_final_snapshot     = true
-  deletion_protection     = false
+  skip_final_snapshot     = false
+  deletion_protection     = true
 
   allocated_storage     = 500
   max_allocated_storage = 1000
 
-  vpc_security_group_ids = [module.security_group.security_group_id]
+  vpc_security_group_ids = [module.postgres_security_group.security_group_id]
 }
 
-module "security_group" {
+module "postgres_security_group" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "4.16.2"
 
