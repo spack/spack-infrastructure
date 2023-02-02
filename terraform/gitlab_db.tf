@@ -23,8 +23,8 @@ module "gitlab_db" {
   create_cloudwatch_log_group     = true
 
   backup_retention_period = 7
-  skip_final_snapshot     = true
-  deletion_protection     = false
+  skip_final_snapshot     = false
+  deletion_protection     = true
 
   allocated_storage     = 500
   max_allocated_storage = 1000
