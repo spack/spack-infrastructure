@@ -1,15 +1,28 @@
 ---
-apiVersion: helm.fluxcd.io/v1
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: runner-graviton2-pub
+  namespace: gitlab
+spec:
+  interval: 10m
+  url: https://charts.gitlab.io
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: runner-graviton2-pub
   namespace: gitlab
 spec:
-  releaseName: graviton2-pub
+  interval: 10m
   chart:
-    name: gitlab-runner
-    repository: https://charts.gitlab.io
-    version: 0.37.2  # gitlab-runner@14.7.0
+    spec:
+      chart: gitlab-runner
+      version: 0.37.2  # gitlab-runner@14.7.0
+      sourceRef:
+        kind: HelmRepository
+        name: runner-graviton2-pub
   values:
     image: gitlab/gitlab-runner:alpine-v14.7.0
     imagePullPolicy: IfNotPresent
@@ -39,8 +52,6 @@ spec:
 
             cpu_request = "750m"
             cpu_request_overwrite_max_allowed = "16"
-            cpu_limit = "16"
-            cpu_limit_overwrite_max_allowed = "16"
 
             memory_request = "2G"
             memory_request_overwrite_max_allowed = "64G"

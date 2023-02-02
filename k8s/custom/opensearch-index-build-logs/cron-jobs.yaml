@@ -4,7 +4,7 @@ metadata:
   name: opensearch-index-build-logs
   namespace: custom
 spec:
-  schedule: "0 0 * * *"
+  schedule: "0 0 1-31/2 * *"  # Run every other day
   jobTemplate:
     spec:
       template:
@@ -12,8 +12,8 @@ spec:
           restartPolicy: Never
           containers:
           - name: opensearch-index-build-logs
-            image: ghcr.io/spack/opensearch-index-build-logs:0.0.1
-            imagePullPolicy: IfNotPresent
+            image: ghcr.io/spack/opensearch-index-build-logs:0.0.2
+            imagePullPolicy: Always
             env:
             - name: OPENSEARCH_ENDPOINT
               valueFrom:
@@ -30,5 +30,35 @@ spec:
                 secretKeyRef:
                   name: opensearch-index-build-logs
                   key: opensearch-password
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-index-build-logs
+                  key: gitlab-token
+            - name: GITLAB_PG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-index-build-logs
+                  key: gitlab_pg_host
+            - name: GITLAB_PG_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-index-build-logs
+                  key: gitlab_pg_port
+            - name: GITLAB_PG_DBNAME
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-index-build-logs
+                  key: gitlab_pg_dbname
+            - name: GITLAB_PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-index-build-logs
+                  key: gitlab_pg_user
+            - name: GITLAB_PG_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-index-build-logs
+                  key: gitlab_pg_pass
           nodeSelector:
             spack.io/node-pool: base

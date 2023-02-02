@@ -7,7 +7,7 @@ spec:
   acme:
     # TODO(opadron): switch this back to Todd's email after completing the
     #                migration
-    email: omar.padron@kitware.com
+    email: michael.vandenburgh@kitware.com
     server: https://acme-staging-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-staging

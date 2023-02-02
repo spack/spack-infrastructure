@@ -1,9 +1,11 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: spack-packages
   namespace: spack
+  annotations:
+    kubernetes.io/ingress.class: nginx
 spec:
   tls:
   - secretName: tls-packages
@@ -12,5 +14,9 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: spack-packages
-          servicePort: 80
+          service:
+            name: spack-packages
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific

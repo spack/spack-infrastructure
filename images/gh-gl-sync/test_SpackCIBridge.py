@@ -31,6 +31,7 @@ def test_list_github_prs(capfd):
                 "sha": "shafoo"
             },
             "base": {
+                "ref": "main",
                 "sha": "shabar"
             }
         }),
@@ -43,6 +44,7 @@ def test_list_github_prs(capfd):
                 "sha": "shagah"
             },
             "base": {
+                "ref": "main",
                 "sha": "shafaz"
             }
         }),
@@ -55,6 +57,7 @@ def test_list_github_prs(capfd):
                 "sha": "shafff"
             },
             "base": {
+                "ref": "main",
                 "sha": "shaggg"
             }
         }),
@@ -64,12 +67,33 @@ def test_list_github_prs(capfd):
     bridge = SpackCIBridge.SpackCIBridge()
     bridge.py_gh_repo = gh_repo
     bridge.py_github = py_github
+    bridge.main_branch = "main"
 
     import subprocess
     actual_run_method = subprocess.run
-    mock_run_return = Mock()
-    mock_run_return.stdout = b"Merge shagah into ccccccc"
-    subprocess.run = create_autospec(subprocess.run, return_value=mock_run_return)
+
+    subprocess.run = create_autospec(subprocess.run)
+    subprocess.run.side_effect = [
+        # 1st PR
+        AttrDict({"stdout": b"Merge bbbbbbb into ccccccc"}),  # git log --pretty
+        AttrDict({"stdout":  b""}),                           # git fetch
+        AttrDict({"stdout":  b"shabar", "returncode": 0}),    # git merge-base
+        AttrDict({"stdout":  b"shafoo"}),                     # git rev-parse
+        AttrDict({"returncode": 0}),                          # git merge-base --is-ancestor
+        AttrDict({"stdout":  b""}),                           # git checkout latest_tested
+        AttrDict({"stdout":  b""}),                           # git checkout -b pr_string
+        AttrDict({"stdout":  b""}),                           # git merge
+        # 2nd PR
+        AttrDict({"stdout": b"Merge shagah into ccccccc"}),
+        AttrDict({"stdout":  b""}),
+        AttrDict({"stdout":  b"shafaz", "returndcode": 0}),
+        AttrDict({"stdout":  b"shagah"}),
+        AttrDict({"returncode":  0}),
+        AttrDict({"stdout":  b""}),
+        AttrDict({"stdout":  b""}),
+        AttrDict({"stdout":  b""}),
+    ]
+
     retval = bridge.list_github_prs()
     subprocess.run = actual_run_method
 
@@ -78,6 +102,8 @@ def test_list_github_prs(capfd):
     assert gh_repo.get_pulls.call_count == 1
     out, err = capfd.readouterr()
     expected = """Rate limit after get_pulls(): 5000
+temporary_pr1_improve_docs's merge base IS an ancestor of latest_tested_main b'shabar' vs. None
+Merge succeeded, ready to push pr1_improve_docs to GitLab for CI pipeline testing
 Skip pushing pr2_fix_test because GitLab already has HEAD shagah
 Skipping draft PR 3 (wip)
 All Open PRs:

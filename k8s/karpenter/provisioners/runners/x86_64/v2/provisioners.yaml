@@ -57,3 +57,4 @@ spec:
   # Only provision nodes for pods specifying the glr-x86-64-v2 node pool
   labels:
     spack.io/node-pool: glr-x86-64-v2
+    spack.io/pipeline: "true"

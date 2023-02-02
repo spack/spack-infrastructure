@@ -34,7 +34,7 @@ spec:
         - name: SPACKBOT_LOG_LEVEL
           value: "INFO"
         - name: REDIS_HOST
-          value: pr-binary-graduation-task-queue.cev8lh.ng.0001.use1.cache.amazonaws.com
+          value: pr-binary-graduation-queue-production.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
           value: "6379"
         - name: TASK_QUEUE_SHORT
@@ -106,7 +106,7 @@ spec:
         - name: SPACKBOT_LOG_LEVEL
           value: "INFO"
         - name: REDIS_HOST
-          value: pr-binary-graduation-task-queue.cev8lh.ng.0001.use1.cache.amazonaws.com
+          value: pr-binary-graduation-queue-production.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
           value: "6379"
         - name: TASK_QUEUE_SHORT
@@ -187,7 +187,7 @@ spec:
         - name: SPACKBOT_LOG_LEVEL
           value: "INFO"
         - name: REDIS_HOST
-          value: pr-binary-graduation-task-queue.cev8lh.ng.0001.use1.cache.amazonaws.com
+          value: pr-binary-graduation-queue-production.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
           value: "6379"
         - name: TASK_QUEUE_SHORT

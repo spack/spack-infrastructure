@@ -164,47 +164,76 @@ class SpackCIBridge(object):
                     if backlogged:
                         print("Skip pushing {0} because of {1}".format(pr_string, backlogged))
 
-                if not backlogged and self.main_branch:
-                    tmp_pr_branch = f"temporary_{pr_string}"
-                    subprocess.run(["git", "fetch", "--unshallow", "github",
-                                   f"refs/pull/{pull.number}/head:{tmp_pr_branch}"], check=True)
-                    # Get the merge base between this PR and the main branch.
-                    try:
-                        merge_base_sha = subprocess.run(
-                            ["git", "merge-base", tmp_pr_branch, f"github/{self.main_branch}"],
-                            check=True, stdout=subprocess.PIPE).stdout.strip()
-                    except subprocess.CalledProcessError:
-                        print(f"'git merge-base {tmp_pr_branch} github/{self.main_branch}' returned non-zero. Skipping")
-                        self.unmergeable_shas.append(pull.head.sha)
-                        continue
-
-                    # Check if our PR's merge base is an ancestor of the latest tested main branch commit.
-                    if subprocess.run(
-                            ["git", "merge-base", "--is-ancestor", merge_base_sha, self.latest_tested_main_commit]
-                            ).returncode == 0:
-                        print(f"{tmp_pr_branch}'s merge base IS an ancestor of latest_tested_main "
-                              f"{merge_base_sha} vs. {self.latest_tested_main_commit}")
+                if not backlogged:
+                    if self.main_branch and pull.base.ref == self.main_branch:
+                        # Check if we should defer pushing/testing this PR because it is based on "too new" of a commit
+                        # of the main branch.
+                        tmp_pr_branch = f"temporary_{pr_string}"
+                        subprocess.run(["git", "fetch", "--unshallow", "github",
+                                       f"refs/pull/{pull.number}/head:{tmp_pr_branch}"], check=True)
+                        # Get the merge base between this PR and the main branch.
                         try:
-                            subprocess.run(["git", "checkout", self.latest_tested_main_commit], check=True)
-                            subprocess.run(["git", "checkout", "-b", pr_string], check=True)
-                            commit_msg = f"Merge {pull.head.sha} into {self.latest_tested_main_commit}"
-                            subprocess.run(
-                                ["git", "merge", "--no-ff", "-m", commit_msg, tmp_pr_branch],
-                                check=True)
-                            print(f"Merge succeeded, ready to push {pr_string} to GitLab for CI pipeline testing")
+                            merge_base_sha = subprocess.run(
+                                ["git", "merge-base", tmp_pr_branch, f"github/{self.main_branch}"],
+                                check=True, stdout=subprocess.PIPE).stdout.strip()
                         except subprocess.CalledProcessError:
-                            print("Failed to merge PR {0} ({1}) with latest tested {2} ({3}). Skipping"
-                                  .format(pull.number, pull.head.ref, self.main_branch, self.latest_tested_main_commit))
+                            print(f"'git merge-base {tmp_pr_branch} github/{self.main_branch}' "
+                                  "returned non-zero. Skipping")
                             self.unmergeable_shas.append(pull.head.sha)
-                            subprocess.run(["git", "merge", "--abort"])
-                            backlogged = "merge conflicts with {}".format(self.main_branch)
+                            continue
+
+                        repo_head_sha = subprocess.run(
+                            ["git", "rev-parse", tmp_pr_branch],
+                            check=True, stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
+
+                        if pull.head.sha != repo_head_sha:
+                            # If gh repo and api don't agree on what the head sha is, don't
+                            # push.  Instead log an error message and backlog the PR.
+                            a_sha, r_sha = pull.head.sha[:7], repo_head_sha[:7]
+                            print(f"Skip pushing {pr_string} because api says HEAD is {a_sha}, "
+                                  f"while repo says HEAD is {r_sha}")
+                            backlogged = f"GitHub HEAD shas out of sync (repo={r_sha}, API={a_sha})"
+                            push = False
+                        # Check if our PR's merge base is an ancestor of the latest tested main branch commit.
+                        elif subprocess.run(
+                                ["git", "merge-base", "--is-ancestor", merge_base_sha, self.latest_tested_main_commit]
+                                ).returncode == 0:
+                            print(f"{tmp_pr_branch}'s merge base IS an ancestor of latest_tested_main "
+                                  f"{merge_base_sha} vs. {self.latest_tested_main_commit}")
+                            try:
+                                subprocess.run(["git", "checkout", self.latest_tested_main_commit], check=True)
+                                subprocess.run(["git", "checkout", "-b", pr_string], check=True)
+                                commit_msg = f"Merge {pull.head.sha} into {self.latest_tested_main_commit}"
+                                subprocess.run(
+                                    ["git", "merge", "--no-ff", "-m", commit_msg, tmp_pr_branch],
+                                    check=True)
+                                print(f"Merge succeeded, ready to push {pr_string} to GitLab for CI pipeline testing")
+                            except subprocess.CalledProcessError:
+                                print(f"Failed to merge PR {pull.number} ({pull.head.ref}) with latest tested "
+                                      f"{self.main_branch} ({self.latest_tested_main_commit}). Skipping")
+                                self.unmergeable_shas.append(pull.head.sha)
+                                subprocess.run(["git", "merge", "--abort"])
+                                backlogged = "merge conflicts with {}".format(self.main_branch)
+                                push = False
+                                continue
+                        else:
+                            print(f"Skip pushing {pr_string} because its merge base is NOT an ancestor of "
+                                  f"latest_tested_main {merge_base_sha} vs. {self.latest_tested_main_commit}")
+                            backlogged = "base"
+                            push = False
+                    else:
+                        # If the --main-branch CLI argument wasn't passed, or if this PR doesn't target that branch,
+                        # then we will push the merge commit that was automatically created by GitHub to GitLab
+                        # where it will kick off a CI pipeline.
+                        try:
+                            subprocess.run(["git", "fetch", "--unshallow", "github",
+                                           f"{pull.merge_commit_sha}:{pr_string}"], check=True)
+                        except subprocess.CalledProcessError:
+                            print("Failed to locally checkout PR {0} ({1}). Skipping"
+                                  .format(pull.number, pull.merge_commit_sha))
+                            backlogged = "GitLab failed to checkout this branch"
                             push = False
                             continue
-                    else:
-                        print(f"Skip pushing {pr_string} because its merge base is NOT an ancestor of "
-                              f"latest_tested_main {merge_base_sha} vs. {self.latest_tested_main_commit}")
-                        backlogged = "base"
-                        push = False
 
             pr_dict[pr_string] = {
                 'base_sha': pull.base.sha,
