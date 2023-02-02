@@ -4,6 +4,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: metabase-postgresql
   namespace: monitoring
+  annotations:
+    kustomize.toolkit.fluxcd.io/reconcile: disabled
 spec:
   accessModes:
     - ReadWriteOnce
