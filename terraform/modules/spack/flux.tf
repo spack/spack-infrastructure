@@ -1,8 +1,15 @@
 locals {
-  known_hosts   = "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
-  target_path   = "k8s/"
-  git_repo_name = "spack-infrastructure"
-  git_branch    = "flux2" # TODO: change this
+  known_hosts = "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
+  install = [for v in data.kubectl_file_documents.install.documents : {
+    data : yamldecode(v)
+    content : v
+    }
+  ]
+  sync = [for v in data.kubectl_file_documents.sync.documents : {
+    data : yamldecode(v)
+    content : v
+    }
+  ]
 }
 
 resource "tls_private_key" "main" {
@@ -11,13 +18,13 @@ resource "tls_private_key" "main" {
 }
 
 data "flux_install" "main" {
-  target_path = local.target_path
+  target_path = var.flux_target_path
 }
 
 data "flux_sync" "main" {
-  target_path = local.target_path
-  url         = "https://github.com/mvandenburgh/${local.git_repo_name}" # TODO: change this
-  branch      = local.git_branch
+  target_path = var.flux_target_path
+  url         = "https://github.com/${var.flux_repo_owner}/${var.flux_repo_name}"
+  branch      = var.flux_branch
 }
 
 resource "kubectl_manifest" "flux_system_namespace" {
@@ -35,19 +42,6 @@ data "kubectl_file_documents" "install" {
 
 data "kubectl_file_documents" "sync" {
   content = data.flux_sync.main.content
-}
-
-locals {
-  install = [for v in data.kubectl_file_documents.install.documents : {
-    data : yamldecode(v)
-    content : v
-    }
-  ]
-  sync = [for v in data.kubectl_file_documents.sync.documents : {
-    data : yamldecode(v)
-    content : v
-    }
-  ]
 }
 
 resource "kubectl_manifest" "install" {
@@ -79,30 +73,30 @@ resource "kubectl_manifest" "flux_secret" {
 }
 
 resource "github_branch_default" "main" {
-  repository = local.git_repo_name
-  branch     = local.git_branch
+  repository = var.flux_repo_name
+  branch     = var.flux_branch
 }
 
 resource "github_repository_file" "install" {
-  repository          = local.git_repo_name
+  repository          = var.flux_repo_name
   file                = data.flux_install.main.path
   content             = data.flux_install.main.content
-  branch              = local.git_branch
+  branch              = var.flux_branch
   overwrite_on_create = true
 }
 
 resource "github_repository_file" "sync" {
-  repository          = local.git_repo_name
+  repository          = var.flux_repo_name
   file                = data.flux_sync.main.path
   content             = data.flux_sync.main.content
-  branch              = local.git_branch
+  branch              = var.flux_branch
   overwrite_on_create = true
 }
 
 resource "github_repository_file" "kustomize" {
-  repository          = local.git_repo_name
+  repository          = var.flux_repo_name
   file                = data.flux_sync.main.kustomize_path
   content             = data.flux_sync.main.kustomize_content
-  branch              = local.git_branch
+  branch              = var.flux_branch
   overwrite_on_create = true
 }

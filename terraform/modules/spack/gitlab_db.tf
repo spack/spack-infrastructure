@@ -2,13 +2,13 @@ module "gitlab_db" {
   source  = "terraform-aws-modules/rds/aws"
   version = "5.2.3"
 
-  identifier = "gitlab-${terraform.workspace}"
+  identifier = "gitlab-${var.deployment_name}"
 
   engine               = "postgres"
   engine_version       = "14"
   family               = "postgres14"
   major_engine_version = "14"
-  instance_class       = "db.t3.xlarge"
+  instance_class       = var.gitlab_db_instance_class
 
   db_name  = "gitlabhq_production"
   username = "postgres"
