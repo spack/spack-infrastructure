@@ -28,12 +28,12 @@ spec:
             eval 'CDASH_CONFIG="$(CDASH_CONFIG_TEMPLATE)"' ;
             export CDASH_CONFIG ;
             exec /bin/bash /docker-entrypoint.sh
-        image: kitware/cdash:spack_deploy_v4
+        image: kitware/cdash:spack_deploy_v5
         imagePullPolicy: IfNotPresent
         resources:
           requests:
             cpu: 1600m
-            memory: 1G
+            memory: 2G
         ports:
         - containerPort: 80
           name: web
