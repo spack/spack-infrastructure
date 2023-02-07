@@ -102,6 +102,13 @@ class SpackCIBridge(object):
             self.cached_commits[commit] = self.py_gh_repo.get_commit(sha=commit)
         return self.cached_commits[commit]
 
+    def list_merge_queue_entries(self):
+        """Return info about merge queue entries"""
+        listed_refs = self.py_gh_repo.get_git_matching_refs("heads/gh-readonly-queue")
+        for listed_ref in listed_refs:
+            print(listed_ref)
+
+
     def list_github_prs(self):
         """ Return two dicts of data about open PRs on GitHub:
             one for all open PRs, and one for open PRs that are not up-to-date on GitLab."""
@@ -630,6 +637,9 @@ class SpackCIBridge(object):
             # Get tags on GitHub.
             tags = self.list_github_tags()
 
+            # Get merge queue entry branches.
+            merge_queue_entries = self.list_merge_queue_entries()
+
             # Get refspecs for open PRs and protected branches.
             open_refspecs = self.get_open_refspecs(open_prs)
             fetch_refspecs = []
@@ -642,7 +652,9 @@ class SpackCIBridge(object):
             if open_refspecs:
                 print("Syncing to GitLab")
                 push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + open_refspecs
-                subprocess.run(push_args, check=True)
+                print("Here's what I'd do if were gonna do it:")
+                print(push_args)
+                # subprocess.run(push_args, check=True)
 
             # Post pipeline status to GitHub for each open PR, if enabled
             if self.post_status:
