@@ -72,3 +72,7 @@ for FILE in $WORKINGDIR/*; do
    rm ${FILE}
 done
 
+
+# Armor/export public key into expected location
+mkdir -p /tmp/public_keys
+gpg --export --armor ${SIGNING_KEY_ID} > "/tmp/public_keys/${SIGNING_KEY_ID}.pub"
