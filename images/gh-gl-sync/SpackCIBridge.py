@@ -106,7 +106,7 @@ class SpackCIBridge(object):
         """Return info about merge queue entries"""
         listed_refs = self.py_gh_repo.get_git_matching_refs("heads/gh-readonly-queue")
         for listed_ref in listed_refs:
-            print(listed_ref)
+            print(f"branch: {listed_ref.ref}, sha: {listed_ref.object.sha}")
 
 
     def list_github_prs(self):
@@ -685,9 +685,9 @@ on a commit of the main branch that is newer than the latest commit tested by Gi
 
     args = parser.parse_args()
 
-    # ssh_key_base64 = os.getenv("GITLAB_SSH_KEY_BASE64")
-    # if ssh_key_base64 is None:
-    #     raise Exception("GITLAB_SSH_KEY_BASE64 environment is not set")
+    ssh_key_base64 = os.getenv("GITLAB_SSH_KEY_BASE64")
+    if ssh_key_base64 is None:
+        raise Exception("GITLAB_SSH_KEY_BASE64 environment is not set")
 
     if "GITHUB_TOKEN" not in os.environ:
         raise Exception("GITHUB_TOKEN environment is not set")
@@ -700,5 +700,5 @@ on a commit of the main branch that is newer than the latest commit tested by Gi
                            sync_draft_prs=args.sync_draft_prs,
                            main_branch=args.main_branch,
                            prereq_checks=args.prereq_check)
-    # bridge.setup_ssh(ssh_key_base64)
+    bridge.setup_ssh(ssh_key_base64)
     bridge.sync()
