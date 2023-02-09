@@ -119,7 +119,7 @@ resource "aws_iam_role" "ebs_efs_csi_driver" {
 
 resource "aws_iam_role_policy" "ebs_efs_csi_driver" {
   name = "EbsEFsDriverPolicy-${var.deployment_name}"
-  role        = aws_iam_role.ebs_efs_csi_driver.id
+  role = aws_iam_role.ebs_efs_csi_driver.id
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -253,4 +253,64 @@ resource "aws_iam_role_policy" "ebs_efs_csi_driver" {
       }
     ]
   })
+}
+
+
+resource "aws_iam_role" "secrets_backup" {
+  name = "SecretsBackupRole-${var.deployment_name}"
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "Federated" : module.eks.oidc_provider_arn
+        },
+        "Action" : "sts:AssumeRoleWithWebIdentity",
+        "Condition" : {
+          "StringEquals" : {
+            "${module.eks.oidc_provider}:sub" : "system:serviceaccount:kube-system:ebs-csi-controller-sa",
+            "${module.eks.oidc_provider}:aud" : "sts.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "secrets_backup" {
+  name = "SecretsBackupPolicy-${var.deployment_name}"
+  role = aws_iam_role.secrets_backup.id
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "secretsmanager:CreateSecret",
+          "secretsmanager:DescribeSecret",
+          "secretsmanager:GetSecret",
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:ListSecrets",
+          "secretsmanager:PutSecretValue",
+          "secretsmanager:TagResource",
+          "secretsmanager:UpdateSecret"
+        ],
+        "Resource" : "*"
+      }
+    ]
+  })
+}
+
+# Define a configmap that provides the EKS Cluster name
+resource "kubectl_manifest" "cluster_name_config_map" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+        name: cluster-info
+        namespace: kube-system
+    data:
+        cluster-name: ${module.eks.cluster_name}
+  YAML
 }

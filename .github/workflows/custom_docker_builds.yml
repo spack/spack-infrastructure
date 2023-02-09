@@ -26,6 +26,7 @@ jobs:
           - gitlab-skipped-pipelines
           - notary
           - python-aws-bash
+          - secrets-backup
         include:
           - docker-image: gh-gl-sync
             image-tags: ghcr.io/spack/ci-bridge:0.0.36
@@ -59,6 +60,8 @@ jobs:
             image-tags: ghcr.io/spack/gitlab-error-processor:0.0.1
           - docker-image: upload-gitlab-failure-logs
             image-tags: ghcr.io/spack/upload-gitlab-failure-logs:0.0.1
+          - docker-image: secrets-backup
+            image-tags: ghcr.io/spack/secrets-backup:0.0.1
     steps:
       - name: Checkout
         uses: actions/checkout@v3
