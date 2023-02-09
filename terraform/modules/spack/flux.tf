@@ -72,11 +72,6 @@ resource "kubectl_manifest" "flux_secret" {
   YAML
 }
 
-resource "github_branch_default" "main" {
-  repository = var.flux_repo_name
-  branch     = var.flux_branch
-}
-
 resource "github_repository_file" "install" {
   repository          = var.flux_repo_name
   file                = data.flux_install.main.path
