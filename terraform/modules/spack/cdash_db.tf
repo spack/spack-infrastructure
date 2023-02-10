@@ -2,13 +2,13 @@ module "cdash_db" {
   source  = "terraform-aws-modules/rds/aws"
   version = "5.2.3"
 
-  identifier = "cdash-${terraform.workspace}"
+  identifier = "cdash-${var.deployment_name}"
 
   engine               = "mysql"
   engine_version       = "8.0.28"
   family               = "mysql8.0"
   major_engine_version = "8.0"
-  instance_class       = "db.m6g.large"
+  instance_class       = var.cdash_db_instance_class
 
   username = "admin"
   port     = "3306"

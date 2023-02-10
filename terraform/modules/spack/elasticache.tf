@@ -1,10 +1,10 @@
 resource "aws_elasticache_subnet_group" "pr_binary_graduation_task_queue" {
-  name       = "pr-binary-graduation-task-queue"
+  name       = "pr-binary-graduation-queue-${var.deployment_name}"
   subnet_ids = concat(module.vpc.public_subnets, module.vpc.private_subnets)
 }
 
 resource "aws_elasticache_replication_group" "pr_binary_graduation_task_queue" {
-  replication_group_id = "pr-binary-graduation-queue-${terraform.workspace}"
+  replication_group_id = "pr-binary-graduation-queue-${var.deployment_name}"
   description          = "Used by python RQ module to store pending tasks for workers"
 
   node_type            = "cache.t3.small"
