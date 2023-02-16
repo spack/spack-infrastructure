@@ -26,6 +26,17 @@ module "eks" {
     },
   ]
 
+  node_security_group_additional_rules = {
+    ingress_self_all = {
+      description = "Node to node all ports/protocols"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      self        = true # Only apply this rule to other nodes in this security group
+    }
+  }
+
   node_security_group_tags = {
     # NOTE - if creating multiple security groups with this module, only tag the
     # security group that Karpenter should utilize with the following tag
@@ -108,7 +119,7 @@ resource "aws_iam_role" "ebs_efs_csi_driver" {
 
 resource "aws_iam_role_policy" "ebs_efs_csi_driver" {
   name = "EbsEFsDriverPolicy-${var.deployment_name}"
-  role        = aws_iam_role.ebs_efs_csi_driver.id
+  role = aws_iam_role.ebs_efs_csi_driver.id
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
