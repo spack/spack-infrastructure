@@ -18,9 +18,7 @@ spec:
       serviceAccountName: event-exporter
       containers:
         - name: event-exporter
-          # The good practice would be to pin the version. This is just a reference so that we don't
-          # have to update this file in each release.
-          image: ghcr.io/resmoio/kubernetes-event-exporter:v1.1
+          image: ghcr.io/resmoio/kubernetes-event-exporter@sha256:0fef715460ca7fd1a45f873601f95228c61ba4381cca9e44af29ce5c3fa4238c # v1.1
           imagePullPolicy: IfNotPresent
           args:
             - -conf=/data/config.yaml
@@ -29,8 +27,9 @@ spec:
               name: cfg
       volumes:
         - name: cfg
-          configMap:
-            name: event-exporter-cfg
+          secret:
+            secretName: event-exporter-cfg
+            optional: false
   selector:
     matchLabels:
       app: event-exporter
