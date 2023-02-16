@@ -33,7 +33,7 @@ module "eks" {
       from_port   = 0
       to_port     = 0
       type        = "ingress"
-      self        = true
+      self        = true # Only apply this rule to other nodes in this security group
     }
   }
 
@@ -119,7 +119,7 @@ resource "aws_iam_role" "ebs_efs_csi_driver" {
 
 resource "aws_iam_role_policy" "ebs_efs_csi_driver" {
   name = "EbsEFsDriverPolicy-${var.deployment_name}"
-  role        = aws_iam_role.ebs_efs_csi_driver.id
+  role = aws_iam_role.ebs_efs_csi_driver.id
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
