@@ -72,7 +72,7 @@ spec:
       smtp:
         enabled: true
         address: email-smtp.us-east-1.amazonaws.com
-        user_name: AKIAYSCIUVA2L2NKBRON
+        user_name: AKIAYSCIUVA2PDMR2WN4
         password:
           secret: gitlab-secrets
           key: smtp-password
