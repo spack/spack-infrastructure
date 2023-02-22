@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../production/fluent-bit/release.yaml
+patches:
+  - target:
+      kind: HelmRelease
+      name: fluent-bit
+      namespace: fluent-bit
+    patch: |-
+      - op: replace
+        path: /spec/values/serviceAccount/annotations/eks.amazonaws.com~1role-arn
+        value: arn:aws:iam::588562868276:role/FluentBitRole-staging
