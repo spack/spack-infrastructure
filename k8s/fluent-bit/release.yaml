@@ -28,7 +28,7 @@ spec:
     - kind: Secret
       name: fluent-bit-secrets
       valuesKey: output-elasticsearch.conf
-      targetPath: config
+      targetPath: config.outputs
       optional: false
 
   values:
