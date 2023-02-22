@@ -33,8 +33,10 @@ spec:
 
   values:
     serviceAccount:
-      create: false
+      create: true
       name: fluent-bit
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::588562868276:role/FluentBitRole-production
 
     resources:
       requests:
