@@ -48,11 +48,6 @@ variable "flux_branch" {
   type        = string
 }
 
-variable "flux_target_path" {
-  description = "Path to directory for Flux to watch within the git repo."
-  type        = string
-}
-
 variable "cdash_db_instance_class" {
   description = "AWS RDS DB instance class for the Spack CDash MySQL database."
   type        = string

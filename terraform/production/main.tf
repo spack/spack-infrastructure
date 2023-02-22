@@ -103,7 +103,6 @@ module "production_cluster" {
   flux_repo_name   = "spack-infrastructure"
   flux_repo_owner  = "mvandenburgh"
   flux_branch      = "flux2"
-  flux_target_path = "k8s/"
 
   cdash_db_instance_class  = "db.m6g.large"
   gitlab_db_instance_class = "db.t3.xlarge"
