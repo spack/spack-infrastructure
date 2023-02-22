@@ -62,7 +62,7 @@ module "eks" {
 
   cluster_addons = {
     aws-ebs-csi-driver = {
-      version                  = "v1.14.0-eksbuild.1"
+      addon_version            = "v1.14.0-eksbuild.1"
       service_account_role_arn = aws_iam_role.ebs_efs_csi_driver.arn
     }
   }
