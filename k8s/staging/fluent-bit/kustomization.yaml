@@ -8,9 +8,6 @@ patches:
       name: fluent-bit
       namespace: fluent-bit
     patch: |-
-      spec:
-        values:
-          serviceAccount:
-            $patch: replace
-            annotations:
-              eks.amazonaws.com/role-arn: arn:aws:iam::588562868276:role/FluentBitRole-staging
+      - op: replace
+        path: /spec/values/serviceAccount/annotations/eks.amazonaws.com\/role-arn
+        value: arn:aws:iam::588562868276:role/FluentBitRole-staging
