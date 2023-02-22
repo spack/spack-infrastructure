@@ -104,7 +104,6 @@ module "staging_cluster" {
   flux_repo_name   = "spack-infrastructure"
   flux_repo_owner  = "mvandenburgh"
   flux_branch      = "staging"
-  flux_target_path = "k8s/"
 
   # Use cheap DB instances for staging deployment
   cdash_db_instance_class  = "db.t3.small"

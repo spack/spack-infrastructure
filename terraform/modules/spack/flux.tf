@@ -18,11 +18,11 @@ resource "tls_private_key" "main" {
 }
 
 data "flux_install" "main" {
-  target_path = var.flux_target_path
+  target_path = "k8s/${var.deployment_name}/"
 }
 
 data "flux_sync" "main" {
-  target_path = var.flux_target_path
+  target_path = "k8s/${var.deployment_name}/"
   url         = "https://github.com/${var.flux_repo_owner}/${var.flux_repo_name}"
   branch      = var.flux_branch
 }
