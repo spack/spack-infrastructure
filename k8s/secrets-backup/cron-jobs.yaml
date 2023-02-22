@@ -18,9 +18,9 @@ spec:
           serviceAccountName: secrets-backup
           restartPolicy: OnFailure
           containers:
+          - name: python-backup-script
             image: ghcr.io/spack/secrets-backup:0.0.1
             imagePullPolicy: IfNotPresent
-            name: python-backup-script
             resources:
               requests:
                 cpu: 100m
