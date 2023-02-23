@@ -75,7 +75,11 @@ spec:
           client_secret: DEADBEEF # Will be overriden by environment vars
 
       # https://github.com/grafana/helm-charts/blob/673566ba032c2df7108514ad8cb51500fdb48de3/charts/grafana/values.yaml#L501-L505
-      plugins: [grafana-opensearch-datasource]
+      plugins:
+        # Install OpenSearch plugin
+        - grafana-opensearch-datasource
+
+
 
       envValueFrom:
         GF_AUTH_GITHUB_CLIENT_ID:
@@ -118,6 +122,15 @@ spec:
       metricLabelsAllowlist:
         - pods=[*]
         - nodes=[*]
+
+  # Configure OpenSearch datasource
+  valuesFrom:
+    - kind: Secret
+      name: grafana-additional-datasources
+      valuesKey: values.yaml
+      optional: false
+
+
 # NOTE:
 #
 # Currently it is not possible to pass kube-state-metrics partial wild card
