@@ -269,7 +269,7 @@ resource "aws_iam_role" "secrets_backup" {
         "Action" : "sts:AssumeRoleWithWebIdentity",
         "Condition" : {
           "StringEquals" : {
-            "${module.eks.oidc_provider}:sub" : "system:serviceaccount:kube-system:ebs-csi-controller-sa",
+            "${module.eks.oidc_provider}:sub" : "system:serviceaccount:custom:secrets-backup",
             "${module.eks.oidc_provider}:aud" : "sts.amazonaws.com"
           }
         }
