@@ -89,7 +89,7 @@ provider "kubernetes" {
 
 
 provider "github" {
-  owner = "mvandenburgh" # TODO: change this
+  owner = "spack"
   token = jsondecode(data.aws_secretsmanager_secret_version.flux_github_token.secret_string).flux_github_token
 }
 
@@ -118,9 +118,9 @@ module "staging_cluster" {
   ]
 
   flux_repo_name   = "spack-infrastructure"
-  flux_repo_owner  = "mvandenburgh"
-  flux_branch      = "staging"
-  flux_target_path = "k8s/"
+  flux_repo_owner  = "spack"
+  flux_branch      = "main"
+  flux_target_path = "k8s/staging/"
 
   # Use cheap DB instances for staging deployment
   cdash_db_instance_class  = "db.t3.small"
