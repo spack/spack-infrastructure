@@ -1,0 +1,141 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../production/spack/namespace.yaml
+- ../../production/spack/slack-spack-io/certificates.yaml
+- ../../production/spack/slack-spack-io/deployments.yaml
+- ../../production/spack/slack-spack-io/services.yaml
+- ../../production/spack/slack-spack-io/ingress.yaml
+- ../../production/spack/spackbotdev-spack-io/certificates.yaml
+- ../../production/spack/spackbotdev-spack-io/deployments.yaml
+- ../../production/spack/spackbotdev-spack-io/services.yaml
+- ../../production/spack/spackbotdev-spack-io/ingress.yaml
+- ../../production/spack/spackbotdev-spack-io/service-accounts.yaml
+- ../../production/spack/spackbot-spack-io/certificates.yaml
+- ../../production/spack/spackbot-spack-io/deployments.yaml
+- ../../production/spack/spackbot-spack-io/services.yaml
+- ../../production/spack/spackbot-spack-io/ingress.yaml
+- ../../production/spack/spackbot-spack-io/service-accounts.yaml
+- ../../production/spack/packages-spack-io/certificates.yaml
+- ../../production/spack/packages-spack-io/deployments.yaml
+- ../../production/spack/packages-spack-io/configmaps.yaml
+- ../../production/spack/packages-spack-io/cron-jobs.yaml
+- ../../production/spack/packages-spack-io/services.yaml
+- ../../production/spack/packages-spack-io/ingress.yaml
+- ../../production/spack/packages-spack-io/service-accounts.yaml
+patches:
+  - target:
+      kind: Certificate
+      name: tls-spackbot
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/commonName
+        value: spackbot.staging.spack.io
+      - op: replace
+        path: /spec/dnsNames/0
+        value: spackbot.staging.spack.io
+
+  - target:
+      kind: Ingress
+      name: spackbot-spack-io
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: spackbot.staging.spack.io
+
+  - target:
+      kind: Deployment
+      name: spackbot-spack-io
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: pr-binary-graduation-queue-staging.7ykcsz.ng.0001.usw1.cache.amazonaws.com
+
+  - target:
+      kind: Deployment
+      name: spackbot-workers
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: pr-binary-graduation-queue-staging.7ykcsz.ng.0001.usw1.cache.amazonaws.com
+
+  - target:
+      kind: Deployment
+      name: spackbot-lworkers
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: pr-binary-graduation-queue-staging.7ykcsz.ng.0001.usw1.cache.amazonaws.com
+
+  - target:
+      kind: ServiceAccount
+      name: spackbot-spack-io
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /metadata/annotations/eks.amazonaws.com~1role-arn
+        value: arn:aws:iam::588562868276:role/FullCRUDAccessToBucketSpackBinariesPRs-staging
+
+
+  # Spackbot dev
+  - target:
+      kind: Certificate
+      name: tls-spackbotdev
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/commonName
+        value: spackbotdev.staging.spack.io
+      - op: replace
+        path: /spec/dnsNames/0
+        value: spackbotdev.staging.spack.io
+
+  - target:
+      kind: Ingress
+      name: spackbotdev-spack-io
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: spackbotdev.staging.spack.io
+
+  - target:
+      kind: Deployment
+      name: spackbotdev-spack-io
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: pr-binary-graduation-queue-staging.7ykcsz.ng.0001.usw1.cache.amazonaws.com
+
+  - target:
+      kind: Deployment
+      name: spackbotdev-workers
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/3/value
+        value: pr-binary-graduation-queue-staging.7ykcsz.ng.0001.usw1.cache.amazonaws.com
+
+  - target:
+      kind: Deployment
+      name: spackbotdev-lworkers
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/3/value
+        value: pr-binary-graduation-queue-staging.7ykcsz.ng.0001.usw1.cache.amazonaws.com
+
+  - target:
+      kind: ServiceAccount
+      name: spackbotdev-spack-io
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /metadata/annotations/eks.amazonaws.com~1role-arn
+        value: arn:aws:iam::588562868276:role/FullCRUDAccessToBucketSpackBinariesPRs-staging
