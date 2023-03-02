@@ -11,21 +11,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        docker-image:
-          - gh-gl-sync
-          - gitlab-api-scrape
-          - ci-key-rotate
-          - ci-key-clear
-          - gitlab-webservice
-          - gitlab-sidekiq
-          - gitlab-toolbox
-          - gitops
-          - gitlab-stuckpods
-          - gitlab-clear-pipelines
-          - gitlab-skipped-pipelines
-          - notary
-          - python-aws-bash
-          - secrets-backup
         include:
           - docker-image: gh-gl-sync
             image-tags: ghcr.io/spack/ci-bridge:0.0.36
