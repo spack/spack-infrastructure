@@ -102,12 +102,23 @@ class SpackCIBridge(object):
             self.cached_commits[commit] = self.py_gh_repo.get_commit(sha=commit)
         return self.cached_commits[commit]
 
-    def list_merge_queue_entries(self):
-        """Return info about merge queue entries"""
+    def list_queued_prs(self, all_open_prs):
+        """Return info about the state of the merge queue"""
+        pr_strings_regex = re.compile("^pr([\d]+)_")
+        mq_branches_regex = re.compile("gh-readonly-queue/([^/]+)/pr-([\d]+)-(.+)")
+        open_pr_numbers = [pr_strings_regex.search(s).group(1) for s in all_open_prs["pr_strings"]]
         listed_refs = self.py_gh_repo.get_git_matching_refs("heads/gh-readonly-queue")
+        github_branches = []
+        gitlab_branches = []
         for listed_ref in listed_refs:
-            print(f"branch: {listed_ref.ref}, sha: {listed_ref.object.sha}")
-
+            m = mq_branches_regex.search(listed_ref.ref)
+            if m and m.group(2) in open_pr_numbers:
+                github_branches.append(f"gh-readonly-queue/{m.group(1)}/pr-{m.group(2)}-{m.group(3)}")
+                gitlab_branches.append(f"gh-readonly-queue/{m.group(1)}/pr{m.group(2)}")
+                print(f"github: {github_branches[-1]}, gitlab: {gitlab_branches[-1]}, sha: {listed_ref.object.sha}")
+            else:
+                print(f"{listed_ref.ref} does not correspond to an open PR, skipping")
+        return list(zip(github_branches, gitlab_branches))
 
     def list_github_prs(self):
         """ Return two dicts of data about open PRs on GitHub:
@@ -343,7 +354,14 @@ class SpackCIBridge(object):
     def update_refspecs_for_protected_branches(self, protected_branches, open_refspecs, fetch_refspecs):
         """Update our refspecs lists for protected branches from GitHub."""
         for protected_branch in protected_branches:
+            # This is the list of refsepcs to fetch, so src:dst is remote:local
             fetch_refspecs.append("+refs/heads/{0}:refs/remotes/{0}".format(protected_branch))
+            # This is the list of refspecs to push, so src:dst is local:remote (or
+            # opposite to the refspecs we build just above).  The reason the sources
+            # for pushing, below, don't match the destinations for fetching, above,
+            # is that we do another step in between fetching and pushing.  In the extra
+            # step we build local branches from the "refs/remotes" refs we fetched, which
+            # creates the "refs/heads" locally.
             open_refspecs.append("refs/heads/{0}:refs/heads/{0}".format(protected_branch))
         return open_refspecs, fetch_refspecs
 
@@ -354,18 +372,34 @@ class SpackCIBridge(object):
             open_refspecs.append("refs/tags/{0}:refs/tags/{0}".format(tag))
         return open_refspecs, fetch_refspecs
 
+    def update_refspecs_for_queued_prs(self, queued_prs, open_refspecs, fetch_refspecs):
+        """Update our refspecs lists for merge queue branches from GitHub"""
+        for gh_branch, gl_branch in queued_prs:
+            # Similar to building lists of refspecs for protected branches,
+            # the local ref for fetching doesn't matching the local ref for
+            # pushing here, because we will make local branches in between.
+            fetch_refspecs.append(f"+refs/heads/{gh_branch}:refs/remotes/{gh_branch}")
+            open_refspecs.append(f"refs/heads/{gl_branch}:refs/heads/{gl_branch}")
+
     def fetch_github_branches(self, fetch_refspecs):
         """Perform `git fetch` for a given list of refspecs."""
-        print("Fetching GitHub refs for open PRs")
+        print("Fetching GitHub refs for protected/merqe-queue branches and tags")
         fetch_args = ["git", "fetch", "-q", "--unshallow", "github"] + fetch_refspecs
         subprocess.run(fetch_args, check=True)
 
-    def build_local_branches(self, protected_branches):
+    def build_local_branches(self, protected_branches, queued_prs):
         """Create local branches for a list of protected branches."""
         print("Building local branches for protected branches")
         for branch in protected_branches:
             local_branch_name = "{0}".format(branch)
             remote_branch_name = "refs/remotes/{0}".format(branch)
+            subprocess.run(["git", "branch", "-q", local_branch_name, remote_branch_name], check=True)
+
+        print("Build local branches for merge queue branches")
+        for gh_branch, gl_branch in queued_prs:
+            local_branch_name = gl_branch
+            remote_branch_name = f"refs/remotes/{gh_branch}"
+            print(f"git branch -q {local_branch_name} {remote_branch_name}")
             subprocess.run(["git", "branch", "-q", local_branch_name, remote_branch_name], check=True)
 
     def make_status_for_pipeline(self, pipeline):
@@ -500,7 +534,7 @@ class SpackCIBridge(object):
 
         return self.dedupe_pipelines(pipelines)
 
-    def post_pipeline_status(self, open_prs, protected_branches):
+    def post_pipeline_status(self, open_prs, protected_branches, queued_prs):
         print("Rate limit at the beginning of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
         pipeline_branches = []
         backlog_branches = []
@@ -516,6 +550,7 @@ class SpackCIBridge(object):
                 backlog_branches.append((pr_branch, head_sha, backlog))
 
         pipeline_branches.extend(protected_branches)
+        pipeline_branches.extend([gl_branch for _, gl_branch in queued_prs])
 
         print('Querying pipelines to post status for:')
         for branch in pipeline_branches:
@@ -638,28 +673,30 @@ class SpackCIBridge(object):
             tags = self.list_github_tags()
 
             # Get merge queue entry branches.
-            merge_queue_entries = self.list_merge_queue_entries()
+            queued_prs = self.list_queued_prs(all_open_prs)
 
             # Get refspecs for open PRs and protected branches.
             open_refspecs = self.get_open_refspecs(open_prs)
             fetch_refspecs = []
+            self.update_refspecs_for_queued_prs(queued_prs, open_refspecs, fetch_refspecs)
             self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
             self.update_refspecs_for_tags(tags, open_refspecs, fetch_refspecs)
 
             # Sync open GitHub PRs and protected branches to GitLab.
             self.fetch_github_branches(fetch_refspecs)
-            self.build_local_branches(protected_branches)
+            self.build_local_branches(protected_branches, queued_prs)
+
             if open_refspecs:
                 print("Syncing to GitLab")
                 push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + open_refspecs
-                print("Here's what I'd do if were gonna do it:")
-                print(push_args)
-                # subprocess.run(push_args, check=True)
+                # print("Here's what I'd do if were gonna do it:")
+                # print(push_args)
+                subprocess.run(push_args, check=True)
 
             # Post pipeline status to GitHub for each open PR, if enabled
             if self.post_status:
                 print('Posting pipeline status for open PRs and protected branches')
-                self.post_pipeline_status(all_open_prs, protected_branches)
+                self.post_pipeline_status(all_open_prs, protected_branches, queued_prs)
 
 
 if __name__ == "__main__":
