@@ -524,13 +524,13 @@ class SpackCIBridge(object):
         except OSError as inst:
             print("GitLab API request error accessing {0}".format(api_url))
             print(inst)
-            return None
+            return {}
         try:
             pipelines = json.loads(response.read())
         except json.decoder.JSONDecodeError as inst:
             print("Error parsing response to {0}".format(api_url))
             print(inst)
-            return None
+            return {}
 
         return self.dedupe_pipelines(pipelines)
 
@@ -675,7 +675,7 @@ class SpackCIBridge(object):
             # Get merge queue entry branches.
             queued_prs = self.list_queued_prs(all_open_prs)
 
-            # Get refspecs for open PRs and protected branches.
+            # Get refspecs for open PRs.
             open_refspecs = self.get_open_refspecs(open_prs)
             fetch_refspecs = []
             self.update_refspecs_for_queued_prs(queued_prs, open_refspecs, fetch_refspecs)
