@@ -15,7 +15,7 @@ module "vpc" {
   create_database_subnet_group = true
 
   enable_nat_gateway   = true
-  single_nat_gateway   = var.single_nat_gateway
+  single_nat_gateway   = false
   enable_dns_hostnames = true
 
   public_subnet_tags = {

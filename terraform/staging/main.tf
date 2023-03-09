@@ -81,8 +81,6 @@ module "staging_cluster" {
 
   deployment_name = "staging"
 
-  single_nat_gateway = true
-
   availability_zones = ["us-west-1b", "us-west-1c"]
 
   vpc_cidr = "10.0.0.0/16"
