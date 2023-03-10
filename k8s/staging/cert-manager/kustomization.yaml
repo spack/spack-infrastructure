@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../production/cert-manager/namespace.yaml
+- ../../production/cert-manager/release.yaml
+- ../../production/cert-manager/crds.yaml
+- ../../production/cert-manager/issuers/letsencrypt-staging.yaml
+- ../../production/cert-manager/issuers/letsencrypt.yaml

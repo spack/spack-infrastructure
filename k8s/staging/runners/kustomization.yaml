@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../production/runners/service-accounts.yaml
+- ../../production/runners/namespace.yaml
+- ../../production/runners/public/graviton/3/release.yaml
+- ../../production/runners/public/graviton/2/release.yaml
+- ../../production/runners/public/x86_64/v3/release.yaml
+- ../../production/runners/public/x86_64/v2/release.yaml
+- ../../production/runners/public/x86_64/v4/release.yaml
+- ../../production/runners/testing/graviton/2/release.yaml
+- ../../production/runners/testing/x86_64/v3/release.yaml
+- ../../production/runners/signing/serviceaccount.yaml
+- ../../production/runners/signing/release.yaml
+- ../../production/runners/protected/graviton/3/release.yaml
+- ../../production/runners/protected/graviton/2/release.yaml
+- ../../production/runners/protected/x86_64/v3/release.yaml
+- ../../production/runners/protected/x86_64/v2/release.yaml
+- ../../production/runners/protected/x86_64/v4/release.yaml
