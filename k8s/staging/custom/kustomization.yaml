@@ -19,3 +19,20 @@ resources:
 - ../../production/custom/gitlab-stuckpods/deployment.yaml
 - ../../production/custom/skipped-pipelines/cron-jobs.yaml
 - ../../production/custom/opensearch-index-build-logs/cron-jobs.yaml
+patches:
+  - target:
+      kind: CronJob
+      name: gh-gl-sync
+      namespace: custom
+    patch: |-
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/containers/0/args
+        value:
+          - "spack-test/spack"
+          - "ssh://git@ssh.gitlab.staging.spack.io/spack/spack"
+          - "https://gitlab.staging.spack.io"
+          - "spack/spack"
+          - "--main-branch"
+          - "develop"
+          - "--prereq-check"
+          - "prechecks / style"
