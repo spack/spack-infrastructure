@@ -80,8 +80,6 @@ module "production_cluster" {
 
   deployment_name = "production"
 
-  single_nat_gateway = false
-
   availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
   vpc_cidr = "10.0.0.0/16"

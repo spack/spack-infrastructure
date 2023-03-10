@@ -3,11 +3,6 @@ variable "deployment_name" {
   type        = string
 }
 
-variable "single_nat_gateway" {
-  description = "Should be true if you want to provision a single shared NAT Gateway across all of your private networks."
-  type        = bool
-}
-
 variable "vpc_cidr" {
   description = "CIDR for the VPC."
   type        = string
