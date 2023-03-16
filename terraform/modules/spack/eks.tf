@@ -80,7 +80,6 @@ resource "aws_iam_role" "eks_cluster_access" {
             "arn:aws:iam::588562868276:user/scott",
             "arn:aws:iam::588562868276:user/vsoch",
             "arn:aws:iam::588562868276:user/jacob",
-            "arn:aws:iam::588562868276:user/chris",
             "arn:aws:iam::588562868276:user/tgamblin",
             "arn:aws:iam::588562868276:user/krattiger1",
             "arn:aws:iam::588562868276:user/mike",
