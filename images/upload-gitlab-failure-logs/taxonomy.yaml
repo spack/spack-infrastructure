@@ -125,6 +125,10 @@ taxonomy:
       grep_for:
         - 'Error: No binary for .+ found when cache-only specified'
 
+    checksum_mismatch:
+      grep_for:
+        - 'Error: sha256 checksum failed for .+'
+
   deconflict_order:
     # API Scrape erorrs
     - 'job_log_missing'
@@ -143,6 +147,7 @@ taxonomy:
     - 'dial_backend'
     - 'remote_disconnect'
     # Spack Errors
+    - 'checksum_mismatch'
     - 'no_binary_for_spec'
     - 'db_match'
     - 'db_hash'
