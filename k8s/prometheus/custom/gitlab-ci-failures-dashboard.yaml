@@ -36,7 +36,6 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 30,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -124,7 +123,7 @@ data:
                   "settings": {
                     "min_doc_count": "0",
                     "order": "desc",
-                    "orderBy": "_term",
+                    "orderBy": "_count",
                     "size": "10"
                   },
                   "type": "terms"
@@ -361,6 +360,6 @@ data:
       "timezone": "",
       "title": "GitLab CI Failures",
       "uid": "4o5_AQAVz",
-      "version": 8,
+      "version": 1,
       "weekStart": ""
     }
