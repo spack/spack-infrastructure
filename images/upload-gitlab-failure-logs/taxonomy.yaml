@@ -120,6 +120,7 @@ taxonomy:
       grep_for:
         - 'Job failed (system failure): prepare environment: image pull failed'
         - 'ERROR: Job failed (system failure): failed to pull image'
+        - 'image pull failed: Back-off pulling image'
 
     no_binary_for_spec:
       grep_for:
