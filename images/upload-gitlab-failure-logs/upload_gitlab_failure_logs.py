@@ -63,25 +63,26 @@ def main():
     job = project.jobs.get(job_id)
     job_trace: str = job.trace().decode()  # type: ignore
 
-    job_error_class = None
-
-    matching_patterns = set()
-
-    for error_class, lookups in taxonomy["error_classes"].items():
-        for grep_expr in lookups.get("grep_for", []):
-            if re.compile(grep_expr).search(job_trace):
-                matching_patterns.add(error_class)
-
-    # If the job logs matched any regexes, assign it the taxonomy
-    # with the highest priority in the "deconflict order".
-    # Otherwise, assign it a taxonomy of "other".
-    if len(matching_patterns):
-        for error_class in taxonomy["deconflict_order"]:
-            if error_class in matching_patterns:
-                job_error_class = error_class
-                break
+    if len(job_trace.strip()) == 0:
+        job_error_class = "no_trace"
     else:
-        job_error_class = "other"
+        job_error_class = None
+        matching_patterns = set()
+        for error_class, lookups in taxonomy["error_classes"].items():
+            for grep_expr in lookups.get("grep_for", []):
+                if re.compile(grep_expr).search(job_trace):
+                    matching_patterns.add(error_class)
+
+        # If the job logs matched any regexes, assign it the taxonomy
+        # with the highest priority in the "deconflict order".
+        # Otherwise, assign it a taxonomy of "other".
+        if len(matching_patterns):
+            for error_class in taxonomy["deconflict_order"]:
+                if error_class in matching_patterns:
+                    job_error_class = error_class
+                    break
+        else:
+            job_error_class = "other"
 
     job_input_data["error_taxonomy"] = job_error_class
 
