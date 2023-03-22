@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: gitlab-runner
-      version: 0.37.2  # gitlab-runner@14.7.0
+      version: 0.37.2 # gitlab-runner@14.7.0
       sourceRef:
         kind: HelmRepository
         name: runner-spack-package-signing
@@ -30,7 +30,7 @@ spec:
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
-    terminationGracePeriodSeconds: 21600  # six hours
+    terminationGracePeriodSeconds: 21600 # six hours
     concurrent: 1
     checkInterval: 30
     # preEntrypointScript: |
@@ -72,6 +72,7 @@ spec:
             # cap_drop =
             [runners.kubernetes.pod_annotations]
               "fluentbit.io/exclude" = "true"
+              "karpenter.sh/do-not-evict" = "true"
               "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
               "gitlab/ci_job_url" = "$CI_JOB_URL"
               "gitlab/ci_project_url" = "$CI_PROJECT_URL"
@@ -121,4 +122,4 @@ spec:
       # memoryLimit: 144Mi
 
     nodeSelector:
-      spack.io/node-pool: base  # pool for the runner
+      spack.io/node-pool: base # pool for the runner
