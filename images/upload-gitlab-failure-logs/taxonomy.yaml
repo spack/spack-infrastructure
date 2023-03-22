@@ -113,6 +113,10 @@ taxonomy:
         - 'Error: No version for .+ satisfies'
         - 'Error: errors occurred during concretization of the environment'
 
+    invalid_pipeline_yaml:
+      grep_for:
+        - 'Error:.+ is not valid under any of the given schemas'
+
     ref_not_found:
       grep_for:
         - 'fatal: Remote branch'
@@ -174,6 +178,7 @@ taxonomy:
     - 'dial_backend'
     - 'remote_disconnect'
     # Spack Errors
+    - 'invalid_pipeline_yaml'
     - 'checksum_mismatch'
     - 'no_binary_for_spec'
     - 'db_match'
