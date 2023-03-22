@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: gitlab-runner
-      version: 0.37.2  # gitlab-runner@14.7.0
+      version: 0.37.2 # gitlab-runner@14.7.0
       sourceRef:
         kind: HelmRepository
         name: runner-large-arm-testing-pub
@@ -29,7 +29,7 @@ spec:
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
-    terminationGracePeriodSeconds: 21600  # six hours
+    terminationGracePeriodSeconds: 21600 # six hours
     concurrent: 5
     checkInterval: 30
     # preEntrypointScript: |
@@ -93,31 +93,31 @@ spec:
 
       tags: "testing-arm"
       runUntagged: false
-      secret: gitlab-gitlab-runner-secret  # from gitlab release
+      secret: gitlab-gitlab-runner-secret # from gitlab release
 
       serviceAccountName: runner
 
       # Distributed runners caching
       # TODO(opadron): Look into this after setting up stand-alone minio service
       cache: {}
-        ## General settings
-        # cacheType: s3
-        # cachePath: "gitlab_runner"
-        # cacheShared: true
+      ## General settings
+      # cacheType: s3
+      # cachePath: "gitlab_runner"
+      # cacheShared: true
 
-        ## S3 settings
-        # s3ServerAddress: s3.amazonaws.com
-        # s3BucketName:
-        # s3BucketLocation:
-        # s3CacheInsecure: false
-        # secretName: s3access
+      ## S3 settings
+      # s3ServerAddress: s3.amazonaws.com
+      # s3BucketName:
+      # s3BucketLocation:
+      # s3CacheInsecure: false
+      # secretName: s3access
 
-        ## GCS settings
-        # gcsBucketName:
-        ## Use this line for access using access-id and private-key
-        # secretName: gcsaccess
-        ## Use this line for access using google-application-credentials file
-        # secretName: google-application-credentials
+      ## GCS settings
+      # gcsBucketName:
+      ## Use this line for access using access-id and private-key
+      # secretName: gcsaccess
+      ## Use this line for access using google-application-credentials file
+      # secretName: google-application-credentials
 
       services: {}
       # cpuRequests: 50m
@@ -126,4 +126,4 @@ spec:
       # memoryLimit: 144Mi
 
     nodeSelector:
-      spack.io/node-pool: base  # pool for the runner
+      spack.io/node-pool: base # pool for the runner
