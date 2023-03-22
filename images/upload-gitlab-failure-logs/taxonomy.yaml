@@ -89,7 +89,7 @@ taxonomy:
 
     pod_failed:
       grep_for:
-        - 'ERROR: Job failed: pod .+ status is "Failed"'
+        - 'ERROR: Job failed.+:.+pod .+ status is ("Failed"|failed)'
 
     docker_daemon:
       grep_for:
