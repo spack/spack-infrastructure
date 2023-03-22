@@ -111,6 +111,7 @@ taxonomy:
       grep_for:
         - 'To reproduce this build locally, run:'
         - 'Error: No version for .+ satisfies'
+        - 'Error: errors occurred during concretization of the environment'
 
     ref_not_found:
       grep_for:
