@@ -83,9 +83,21 @@ taxonomy:
       grep_for:
         - 'timed out waiting for pod to start'
 
+    pod_not_found:
+      grep_for:
+        - 'ERROR: Job failed (system failure): pods .+ not found'
+
+    pod_failed:
+      grep_for:
+        - 'ERROR: Job failed: pod .+ status is "Failed"'
+
     docker_daemon:
       grep_for:
         - 'Cannot connect to the Docker daemon'
+
+    docker_format:
+      grep_for:
+        - 'exec /usr/bin/sh: exec format error'
 
     rcp_failure:
       grep_for:
@@ -118,7 +130,7 @@ taxonomy:
 
     image_pull:
       grep_for:
-        - 'Job failed (system failure): prepare environment: image pull failed'
+        - 'ERROR: Job failed.+image pull failed'
         - 'ERROR: Job failed (system failure): failed to pull image'
         - 'image pull failed: Back-off pulling image'
 
@@ -141,8 +153,11 @@ taxonomy:
     - 'pod_exec'
     - 'pod_timeout'
     - 'pod_cleanup'
+    - 'pod_not_found'
+    - 'pod_failed'
     - 'image_pull'
     - 'docker_daemon'
+    - 'docker_format'
     - 'rcp_failure'
     - '5XX'
     - 'dial_backend'
