@@ -69,9 +69,10 @@ def main():
         job_error_class = None
         matching_patterns = set()
         for error_class, lookups in taxonomy["error_classes"].items():
-            for grep_expr in lookups.get("grep_for", []):
-                if re.compile(grep_expr).search(job_trace):
-                    matching_patterns.add(error_class)
+            if lookups:
+                for grep_expr in lookups.get("grep_for", []):
+                    if re.compile(grep_expr).search(job_trace):
+                        matching_patterns.add(error_class)
 
         # If the job logs matched any regexes, assign it the taxonomy
         # with the highest priority in the "deconflict order".
