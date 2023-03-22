@@ -85,7 +85,7 @@ taxonomy:
 
     pod_not_found:
       grep_for:
-        - 'ERROR: Job failed (system failure): pods .+ not found'
+        - 'ERROR: Job failed \(system failure\): pods .+ not found'
 
     pod_failed:
       grep_for:
@@ -131,7 +131,7 @@ taxonomy:
     image_pull:
       grep_for:
         - 'ERROR: Job failed.+image pull failed'
-        - 'ERROR: Job failed (system failure): failed to pull image'
+        - 'ERROR: Job failed \(system failure\): failed to pull image'
         - 'image pull failed: Back-off pulling image'
 
     no_binary_for_spec:
