@@ -110,6 +110,7 @@ taxonomy:
     spack_error:
       grep_for:
         - 'To reproduce this build locally, run:'
+        - 'Error: No version for .+ satisfies'
 
     ref_not_found:
       grep_for:
