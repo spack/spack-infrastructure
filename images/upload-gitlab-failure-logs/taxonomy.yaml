@@ -142,8 +142,9 @@ taxonomy:
       grep_for:
         - 'Error: sha256 checksum failed for .+'
 
-    no_trace: null
-      # See upload_gitlab_failure_logs.py for how this is used
+    # See upload_gitlab_failure_logs.py for how these are used
+    stuck_or_timeout_failure: null
+    scheduler_failure: null
 
   deconflict_order:
     # API Scrape erorrs
