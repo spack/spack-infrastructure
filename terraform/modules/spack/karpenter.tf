@@ -1,6 +1,6 @@
 module "karpenter" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "18.31.0"
+  version = "19.10.1"
 
   cluster_name = module.eks.cluster_name
 
@@ -20,7 +20,7 @@ resource "helm_release" "karpenter" {
   name       = "karpenter"
   repository = "oci://public.ecr.aws/karpenter"
   chart      = "karpenter"
-  version    = "v0.20.0"
+  version    = "v0.27.0"
 
   set {
     name  = "settings.aws.clusterName"
