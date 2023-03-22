@@ -85,7 +85,7 @@ taxonomy:
 
     pod_not_found:
       grep_for:
-        - 'ERROR: Job failed \(system failure\): pods .+ not found'
+        - 'ERROR: Job failed \(system failure\):.+pods .+ not found'
 
     pod_failed:
       grep_for:
