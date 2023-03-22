@@ -91,6 +91,10 @@ taxonomy:
       grep_for:
         - 'ERROR: Job failed.+:.+pod .+ status is ("Failed"|failed)'
 
+    helper_container_not_found:
+      grep_for:
+        - 'ERROR: Job failed.+:.+container helper not found in pod'
+
     docker_daemon:
       grep_for:
         - 'Cannot connect to the Docker daemon'
@@ -159,6 +163,7 @@ taxonomy:
     - 'pod_cleanup'
     - 'pod_not_found'
     - 'pod_failed'
+    - 'helper_container_not_found'
     - 'image_pull'
     - 'docker_daemon'
     - 'docker_format'
