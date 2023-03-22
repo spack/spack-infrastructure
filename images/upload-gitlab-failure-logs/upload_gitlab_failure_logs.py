@@ -63,27 +63,32 @@ def main():
     job = project.jobs.get(job_id)
     job_trace: str = job.trace().decode()  # type: ignore
 
-    if len(job_trace.strip()) == 0:
-        job_error_class = "no_trace"
-    else:
-        job_error_class = None
-        matching_patterns = set()
-        for error_class, lookups in taxonomy["error_classes"].items():
-            if lookups:
-                for grep_expr in lookups.get("grep_for", []):
-                    if re.compile(grep_expr).search(job_trace):
-                        matching_patterns.add(error_class)
+    job_error_class = None
+    matching_patterns = set()
+    for error_class, lookups in taxonomy["error_classes"].items():
+        if lookups:
+            for grep_expr in lookups.get("grep_for", []):
+                if re.compile(grep_expr).search(job_trace):
+                    matching_patterns.add(error_class)
 
-        # If the job logs matched any regexes, assign it the taxonomy
-        # with the highest priority in the "deconflict order".
-        # Otherwise, assign it a taxonomy of "other".
-        if len(matching_patterns):
-            for error_class in taxonomy["deconflict_order"]:
-                if error_class in matching_patterns:
-                    job_error_class = error_class
-                    break
-        else:
-            job_error_class = "other"
+    # If the job logs matched any regexes, assign it the taxonomy
+    # with the highest priority in the "deconflict order".
+    # Otherwise, assign it a taxonomy of "other".
+    if len(matching_patterns):
+        for error_class in taxonomy["deconflict_order"]:
+            if error_class in matching_patterns:
+                job_error_class = error_class
+                break
+    else:
+        job_error_class = "other"
+
+        # If this job timed out or failed to be scheduled by GitLab,
+        # label it as such.
+        if job_input_data["build_failure_reason"] in (
+            "stuck_or_timeout_failure",
+            "scheduler_failure",
+        ):
+            job_error_class = job_input_data["build_failure_reason"]
 
     job_input_data["error_taxonomy"] = job_error_class
 
