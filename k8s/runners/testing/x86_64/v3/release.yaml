@@ -65,6 +65,7 @@ spec:
             service_account = "runner"
             [runners.kubernetes.pod_annotations]
               "fluentbit.io/exclude" = "true"
+              "karpenter.sh/do-not-evict" = "true"
               "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
               "gitlab/ci_job_url" = "$CI_JOB_URL"
               "gitlab/ci_project_url" = "$CI_PROJECT_URL"
