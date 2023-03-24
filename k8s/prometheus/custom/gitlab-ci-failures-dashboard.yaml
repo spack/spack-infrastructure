@@ -87,8 +87,8 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 10,
-            "w": 17,
+            "h": 8,
+            "w": 18,
             "x": 0,
             "y": 0
           },
@@ -151,8 +151,8 @@ data:
         },
         {
           "datasource": {
-            "type": "grafana-opensearch-datasource",
-            "uid": "P9744FCCEAAFBD98F"
+            "type": "postgres",
+            "uid": "Kf0LnP-4z"
           },
           "fieldConfig": {
             "defaults": {
@@ -171,24 +171,21 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 10,
-            "w": 7,
-            "x": 17,
+            "h": 8,
+            "w": 6,
+            "x": 18,
             "y": 0
           },
-          "id": 7,
+          "id": 11,
           "options": {
             "displayLabels": [
-              "value",
-              "name"
+              "name",
+              "percent"
             ],
             "legend": {
               "displayMode": "list",
-              "placement": "right",
-              "showLegend": true,
-              "values": [
-                "percent"
-              ]
+              "placement": "bottom",
+              "showLegend": true
             },
             "pieType": "pie",
             "reduceOptions": {
@@ -196,7 +193,7 @@ data:
                 "lastNotNull"
               ],
               "fields": "",
-              "values": true
+              "values": false
             },
             "tooltip": {
               "mode": "single",
@@ -205,38 +202,67 @@ data:
           },
           "targets": [
             {
-              "alias": "",
-              "bucketAggs": [
-                {
-                  "field": "error_taxonomy.keyword",
-                  "id": "1",
-                  "settings": {
-                    "min_doc_count": "0",
-                    "order": "desc",
-                    "orderBy": "_count",
-                    "size": "10"
-                  },
-                  "type": "terms"
-                }
-              ],
               "datasource": {
-                "type": "grafana-opensearch-datasource",
-                "uid": "P9744FCCEAAFBD98F"
+                "type": "postgres",
+                "uid": "Kf0LnP-4z"
               },
+              "editorMode": "code",
               "format": "table",
-              "metrics": [
-                {
-                  "id": "2",
-                  "type": "count"
-                }
-              ],
-              "query": "",
-              "queryType": "lucene",
-              "refId": "A",
-              "timeField": "timestamp"
+              "hide": false,
+              "rawQuery": true,
+              "rawSql": "SELECT\n  CAST(COUNT(status) as float) as success\n  from ci_builds\n  where $__timeFilter(\"finished_at\") and status = 'success';",
+              "refId": "success",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              },
+              "table": "ci_builds"
+            },
+            {
+              "datasource": {
+                "type": "postgres",
+                "uid": "Kf0LnP-4z"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "hide": false,
+              "rawQuery": true,
+              "rawSql": "SELECT\n  CAST(COUNT(status) as float) as failed\n  from ci_builds\n  where $__timeFilter(\"finished_at\") and status = 'failed';",
+              "refId": "failed",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              },
+              "table": "ci_builds"
             }
           ],
-          "title": "CI Failures by Error Taxonomy",
+          "title": "Status of Completed Jobs",
           "type": "piechart"
         },
         {
@@ -287,10 +313,10 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 10,
-            "w": 17,
+            "h": 8,
+            "w": 18,
             "x": 0,
-            "y": 10
+            "y": 8
           },
           "id": 9,
           "options": {
@@ -351,91 +377,82 @@ data:
         },
         {
           "datasource": {
-            "type": "grafana-opensearch-datasource",
-            "uid": "P9744FCCEAAFBD98F"
+            "type": "postgres",
+            "uid": "Kf0LnP-4z"
           },
-          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
-                "mode": "palette-classic"
+                "mode": "thresholds"
               },
-              "custom": {
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
               },
-              "mappings": []
+              "unit": "locale"
             },
             "overrides": []
           },
           "gridPos": {
-            "h": 10,
-            "w": 7,
-            "x": 17,
-            "y": 10
+            "h": 8,
+            "w": 6,
+            "x": 18,
+            "y": 8
           },
-          "id": 11,
+          "id": 13,
           "options": {
-            "displayLabels": [
-              "value",
-              "name"
-            ],
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "pieType": "pie",
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
             "reduceOptions": {
               "calcs": [
                 "lastNotNull"
               ],
               "fields": "",
-              "values": true
+              "values": false
             },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
+            "textMode": "auto"
           },
+          "pluginVersion": "9.3.1",
           "targets": [
             {
-              "alias": "",
-              "bucketAggs": [
-                {
-                  "field": "build_failure_reason.keyword",
-                  "id": "2",
-                  "settings": {
-                    "min_doc_count": "0",
-                    "order": "desc",
-                    "orderBy": "_count",
-                    "size": "10"
-                  },
-                  "type": "terms"
-                }
-              ],
               "datasource": {
-                "type": "grafana-opensearch-datasource",
-                "uid": "P9744FCCEAAFBD98F"
+                "type": "postgres",
+                "uid": "Kf0LnP-4z"
               },
+              "editorMode": "code",
               "format": "table",
-              "metrics": [
-                {
-                  "id": "1",
-                  "type": "count"
-                }
-              ],
-              "query": "",
-              "queryType": "lucene",
-              "refId": "A",
-              "timeField": "timestamp"
+              "rawQuery": true,
+              "rawSql": "SELECT COUNT(1) FROM ci_builds\nWHERE $__timeFilter(\"finished_at\") AND (status = 'success' OR status = 'failed');",
+              "refId": "jobs",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              }
             }
           ],
-          "title": "CI Failures by GitLab Failure Reason",
-          "type": "piechart"
+          "title": "Number of Completed Jobs",
+          "type": "stat"
         },
         {
           "datasource": {
@@ -498,7 +515,7 @@ data:
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 20
+            "y": 16
           },
           "id": 2,
           "options": {
@@ -561,6 +578,6 @@ data:
       "timezone": "",
       "title": "GitLab CI Failures",
       "uid": "4o5_AQAVz",
-      "version": 5,
+      "version": 6,
       "weekStart": ""
     }
