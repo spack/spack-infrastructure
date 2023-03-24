@@ -99,3 +99,6 @@ spec:
 
     nodeSelector:
       spack.io/node-pool: base # pool for the runner
+
+    podAnnotations:
+      karpenter.sh/do-not-evict: true
