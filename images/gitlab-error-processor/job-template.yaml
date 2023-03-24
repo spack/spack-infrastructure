@@ -3,9 +3,14 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: gitlab-error-processing-job
+  labels:
+    app: gitlab-error-processing-job
 spec:
   ttlSecondsAfterFinished: 7200
   template:
+    metadata:
+      labels:
+        app: gitlab-error-processing-job
     spec:
       restartPolicy: OnFailure
       containers:
