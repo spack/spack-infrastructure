@@ -85,11 +85,15 @@ taxonomy:
 
     pod_not_found:
       grep_for:
-        - 'ERROR: Job failed \(system failure\): pods .+ not found'
+        - 'ERROR: Job failed \(system failure\):.+pods .+ not found'
 
     pod_failed:
       grep_for:
-        - 'ERROR: Job failed: pod .+ status is "Failed"'
+        - 'ERROR: Job failed.+:.+pod .+ status is ("Failed"|failed)'
+
+    helper_container_not_found:
+      grep_for:
+        - 'ERROR: Job failed.+:.+container helper not found in pod'
 
     docker_daemon:
       grep_for:
@@ -106,6 +110,12 @@ taxonomy:
     spack_error:
       grep_for:
         - 'To reproduce this build locally, run:'
+        - 'Error: No version for .+ satisfies'
+        - 'Error: errors occurred during concretization of the environment'
+
+    invalid_pipeline_yaml:
+      grep_for:
+        - 'Error:.+ is not valid under any of the given schemas'
 
     ref_not_found:
       grep_for:
@@ -159,6 +169,7 @@ taxonomy:
     - 'pod_cleanup'
     - 'pod_not_found'
     - 'pod_failed'
+    - 'helper_container_not_found'
     - 'image_pull'
     - 'docker_daemon'
     - 'docker_format'
@@ -167,6 +178,7 @@ taxonomy:
     - 'dial_backend'
     - 'remote_disconnect'
     # Spack Errors
+    - 'invalid_pipeline_yaml'
     - 'checksum_mismatch'
     - 'no_binary_for_spec'
     - 'db_match'
