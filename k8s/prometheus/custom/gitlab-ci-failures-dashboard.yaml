@@ -69,6 +69,13 @@ data:
                   "mode": "off"
                 }
               },
+              "links": [
+                {
+                  "targetBlank": true,
+                  "title": "OpenSearch",
+                  "url": " https://opensearch.spack.io/_dashboards/app/discover#/view/81a77920-be9e-11ed-9686-f3b558bb6f9d?_a=(columns:!(_source),filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:a3cd1530-5947-11ed-8e73-4fb26a200a42,key:error_taxonomy,negate:!f,params:(query:${__data.fields[\"error_taxonomy.keyword\"]}),type:phrase),query:(match_phrase:(error_taxonomy:${__data.fields[\"error_taxonomy.keyword\"]})))),index:a3cd1530-5947-11ed-8e73-4fb26a200a42,interval:auto,query:(language:lucene,query:''),sort:!(!(timestamp,desc)))&_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:'${__from:date:iso}',to:'${__to:date:iso}'))"
+                }
+              ],
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
@@ -578,6 +585,6 @@ data:
       "timezone": "",
       "title": "GitLab CI Failures",
       "uid": "4o5_AQAVz",
-      "version": 6,
+      "version": 7,
       "weekStart": ""
     }
