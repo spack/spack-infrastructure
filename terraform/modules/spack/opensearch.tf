@@ -31,6 +31,9 @@ resource "aws_opensearch_domain" "spack" {
   }
 
   domain_endpoint_options {
+    custom_endpoint_enabled = true
+    custom_endpoint = "opensearch.spack.io"
+    custom_endpoint_certificate_arn = aws_acm_certificate.opensearch.arn
     enforce_https       = true
     tls_security_policy = "Policy-Min-TLS-1-0-2019-07"
   }
@@ -66,8 +69,45 @@ resource "aws_opensearch_domain" "spack" {
   lifecycle {
     prevent_destroy = true
   }
+
+  depends_on = [
+    aws_acm_certificate_validation.opensearch
+  ]
 }
 
+# Configure custom domain name
+resource "aws_acm_certificate" "opensearch" {
+  domain_name       = "opensearch.spack.io"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "opensearch_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.opensearch.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = false
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.spack_io.zone_id
+}
+
+resource "aws_acm_certificate_validation" "opensearch" {
+  certificate_arn         = aws_acm_certificate.opensearch.arn
+  validation_record_fqdns = [for record in aws_route53_record.opensearch_validation : record.fqdn]
+}
+
+# Configure role needed for OpenSearch to interact with Cognito
 data "aws_iam_policy" "amazon_opensearch_service_cognito_access" {
   arn = "arn:aws:iam::aws:policy/AmazonOpenSearchServiceCognitoAccess"
 }
@@ -94,6 +134,7 @@ resource "aws_iam_role_policy_attachment" "opensearch_congito_role_policy_attach
   policy_arn = data.aws_iam_policy.amazon_opensearch_service_cognito_access.arn
 }
 
+# Configure role needed for fluent-bit to post data to OpenSearch
 resource "aws_iam_role" "fluent_bit_role" {
   name        = "FluentBitRole-${var.deployment_name}"
   description = "IAM role that, when associated with a k8s service account, allows a fluent-bit pod to post logs to OpenSearch."
