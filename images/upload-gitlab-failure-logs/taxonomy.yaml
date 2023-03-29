@@ -41,6 +41,10 @@ taxonomy:
         - 'command terminated with exit code 137'
         - 'ERROR: Job failed: exit code 137'
 
+    invalid_access_key:
+      grep_for:
+        - 'The AWS Access Key Id you provided does not exist in our records'
+
     gitlab_down:
       grep_for:
         - 'fatal: unable to access'
@@ -102,6 +106,14 @@ taxonomy:
     rcp_failure:
       grep_for:
         - 'error: RPC failed'
+
+    write_lock_timeout:
+      grep_for:
+        - 'Timed out waiting for a write lock'
+
+    reloc_path_too_long:
+      grep_for:
+        - 'Error: Failed to install.+due to CannotGrowString: Cannot replace.+To fix this, compile with more padding'
 
     spack_error:
       grep_for:
@@ -166,6 +178,7 @@ taxonomy:
     - '5XX'
     - 'dial_backend'
     - 'remote_disconnect'
+    - 'invalid_access_key'
     # Spack Errors
     - 'checksum_mismatch'
     - 'no_binary_for_spec'
@@ -177,6 +190,8 @@ taxonomy:
     - 'module_not_found'
     - 'setup_env'
     - 'spack_root'
+    - 'write_lock_timeout'
+    - 'reloc_path_too_long'
     - 'build_error'
     - 'spack_error'
     - 'pipeline_generation'
