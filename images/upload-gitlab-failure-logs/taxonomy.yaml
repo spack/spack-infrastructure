@@ -2,6 +2,21 @@
 taxonomy:
   version: "0.0.0-dev"
   error_classes:
+    network_timeout:
+      grep_for:
+        - "socket.timeout"
+        - "curl: (28)"
+
+    network_error:
+      grep_for:
+        - "curl: (22)"
+        - "HTTP Error 404"
+        - "curl: (60)"
+
+    concretization_error:
+      grep_for:
+        - "does not satisfy"
+
     job_log_missing:
         grep_for:
           - "ERROR: Got [0-9][0-9][0-9] for"
@@ -129,6 +144,10 @@ taxonomy:
       grep_for:
         - 'Error:.+ is not valid under any of the given schemas'
 
+    file_not_found:
+      grep_for:
+        - "No such file or directory"
+
     ref_not_found:
       grep_for:
         - 'fatal: Remote branch'
@@ -174,11 +193,13 @@ taxonomy:
     # Spack Errors
     - 'invalid_pipeline_yaml'
     - 'checksum_mismatch'
+    - 'concretization_error'
     - 'no_binary_for_spec'
     - 'db_match'
     - 'db_hash'
     - 'no_spec'
     - 'ref_not_found'
+    - 'file_not_found'
     - 'cmd_not_found'
     - 'module_not_found'
     - 'setup_env'
@@ -207,6 +228,8 @@ taxonomy:
     - '5XX'
     - 'dial_backend'
     - 'remote_disconnect'
+    - 'network_timeout'
+    - 'network_error'
     - 'invalid_access_key'
     # Other Errors
     - 'limit_exceeded'
