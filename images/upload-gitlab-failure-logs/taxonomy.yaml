@@ -5,17 +5,20 @@ taxonomy:
     network_timeout:
       grep_for:
         - "socket.timeout"
-        - "curl: (28)"
+        - 'curl: \(28\)'
+        - "The read operation timed out"
 
     network_error:
       grep_for:
-        - "curl: (22)"
+        - 'curl: \(22\)'
         - "HTTP Error 404"
-        - "curl: (60)"
+        - 'curl: \(60\)'
+        - "ConnectionResetError:"
 
     concretization_error:
       grep_for:
         - "does not satisfy"
+        - "Error: errors occurred during concretization"
 
     job_log_missing:
         grep_for:
