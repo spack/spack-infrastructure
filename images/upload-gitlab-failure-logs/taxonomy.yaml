@@ -191,6 +191,9 @@ taxonomy:
     scheduler_failure: null
 
   deconflict_order:
+    # Network errors
+    - 'network_timeout'
+    - 'network_error'
     # API Scrape erorrs
     - 'job_log_missing'
     # Spack Errors
@@ -202,7 +205,6 @@ taxonomy:
     - 'db_hash'
     - 'no_spec'
     - 'ref_not_found'
-    - 'file_not_found'
     - 'cmd_not_found'
     - 'module_not_found'
     - 'setup_env'
@@ -231,9 +233,8 @@ taxonomy:
     - '5XX'
     - 'dial_backend'
     - 'remote_disconnect'
-    - 'network_timeout'
-    - 'network_error'
     - 'invalid_access_key'
     # Other Errors
     - 'limit_exceeded'
     - 'execution_timeout'
+    - 'file_not_found'
