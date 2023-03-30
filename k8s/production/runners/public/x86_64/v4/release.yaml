@@ -63,9 +63,21 @@ spec:
             poll_timeout = 600  # ten minutes
             service_account = "runner"
 
-            # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
-            # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled
             [runners.kubernetes.affinity]
+              # Schedule this pod on any node with x86_64 = v4
+              [runners.kubernetes.affinity.node_affinity]
+              [runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution]
+                [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms]]
+                  [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
+                      key = "spack.io/x86_64"
+                      operator = "In"
+                      values = ["v4"]
+                  [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
+                      key = "spack.io/pipeline"
+                      operator = "Exists"
+
+              # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
+              # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled
               [runners.kubernetes.affinity.pod_affinity]
                 [[runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution]]
                 weight = 1
@@ -97,8 +109,6 @@ spec:
               "metrics/spack_ci_stack_name" = "$SPACK_CI_STACK_NAME"
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
-            [runners.kubernetes.node_selector]
-              "spack.io/node-pool" = "glr-x86-64-v4"
 
       # default image
       image: "busybox:1.32.0"
