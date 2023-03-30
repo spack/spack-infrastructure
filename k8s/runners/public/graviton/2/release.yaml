@@ -61,6 +61,20 @@ spec:
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
             service_account = "runner"
+
+            # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
+            # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled
+            [runners.kubernetes.affinity]
+              [runners.kubernetes.affinity.pod_affinity]
+                [[runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution]]
+                [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term]
+                  topology_key = "topology.kubernetes.io/zone"
+                  [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term.label_selector]
+                    [[runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term.label_selector.match_expressions]]
+                      key = "spack.io/runner"
+                      operator = "In"
+                      values = ["true"]
+
             [runners.kubernetes.pod_annotations]
               "fluentbit.io/exclude" = "true"
               "karpenter.sh/do-not-evict" = "true"
@@ -70,6 +84,7 @@ spec:
               "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
               "gitlab/ci_job_id" = "$CI_JOB_ID"
             [runners.kubernetes.pod_labels]
+              "spack.io/runner" = "true"
               "gitlab/ci_job_size" = "$CI_JOB_SIZE"
               "metrics/gitlab_ci_pipeline_id" = "$CI_PIPELINE_ID"
               "metrics/gitlab_ci_project_namespace" = "$CI_PROJECT_NAMESPACE"
