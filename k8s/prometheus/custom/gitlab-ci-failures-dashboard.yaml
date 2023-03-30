@@ -159,7 +159,7 @@ data:
         {
           "datasource": {
             "type": "postgres",
-            "uid": "Kf0LnP-4z"
+            "uid": "PCC52D03280B7034C"
           },
           "fieldConfig": {
             "defaults": {
@@ -211,7 +211,7 @@ data:
             {
               "datasource": {
                 "type": "postgres",
-                "uid": "Kf0LnP-4z"
+                "uid": "PCC52D03280B7034C"
               },
               "editorMode": "code",
               "format": "table",
@@ -241,7 +241,7 @@ data:
             {
               "datasource": {
                 "type": "postgres",
-                "uid": "Kf0LnP-4z"
+                "uid": "PCC52D03280B7034C"
               },
               "editorMode": "code",
               "format": "table",
@@ -385,7 +385,7 @@ data:
         {
           "datasource": {
             "type": "postgres",
-            "uid": "Kf0LnP-4z"
+            "uid": "PCC52D03280B7034C"
           },
           "fieldConfig": {
             "defaults": {
@@ -432,7 +432,7 @@ data:
             {
               "datasource": {
                 "type": "postgres",
-                "uid": "Kf0LnP-4z"
+                "uid": "PCC52D03280B7034C"
               },
               "editorMode": "code",
               "format": "table",
