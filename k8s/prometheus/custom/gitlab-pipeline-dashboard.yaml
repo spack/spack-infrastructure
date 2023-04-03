@@ -27,7 +27,9 @@ data:
             "target": {
               "limit": 100,
               "matchAny": false,
-              "tags": [],
+              "tags": [
+                "production"
+              ],
               "type": "dashboard"
             },
             "type": "dashboard"
@@ -1278,6 +1280,6 @@ data:
       "timezone": "",
       "title": "Pipeline / Overview",
       "uid": "UMI_eRy7z",
-      "version": 2,
+      "version": 3,
       "weekStart": ""
     }
