@@ -27,9 +27,7 @@ data:
             "target": {
               "limit": 100,
               "matchAny": false,
-              "tags": [
-                "production"
-              ],
+              "tags": [],
               "type": "dashboard"
             },
             "type": "dashboard"
@@ -1249,7 +1247,9 @@ data:
       "refresh": "10s",
       "schemaVersion": 37,
       "style": "dark",
-      "tags": [],
+      "tags": [
+        "production"
+      ],
       "templating": {
         "list": [
           {
