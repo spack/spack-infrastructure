@@ -50,20 +50,30 @@ pg_conn = psycopg2.connect(
 )
 
 
-def job_has_been_retried(job_id: str | int) -> bool:
+def job_retry_data(job_id: str | int, job_name: str) -> tuple[int, bool]:
     with pg_conn:
         cur = pg_conn.cursor()
         cur.execute(
             """
-                SELECT COALESCE(ci_builds.retried, false) FROM ci_builds
-                WHERE ci_builds.id = %(job_id)s;
+            SELECT attempt_number, COALESCE(retried, FALSE) as retried FROM (
+                SELECT ROW_NUMBER() OVER (ORDER BY id) as attempt_number, retried, id
+                FROM ci_builds
+                WHERE
+                    ci_builds.name = %(job_name)s
+                    and ci_builds.stage_id = (
+                        SELECT stage_id from ci_builds WHERE id = %(job_id)s LIMIT 1
+                    )
+                    and ci_builds.status = 'failed'
+            ) as build_attempts
+            WHERE build_attempts.id = %(job_id)s
+            ;
             """,
-            {"job_id": job_id},
+            {"job_id": job_id, "job_name": job_name},
         )
         result = cur.fetchone()
         cur.close()
 
-    return result[0]
+    return result
 
 
 def assign_error_taxonomy(job_input_data: dict):
@@ -114,9 +124,12 @@ def main():
     # Read input data and extract params
     job_input_data = json.loads(os.environ["JOB_INPUT_DATA"])
     job_id = job_input_data["build_id"]
+    job_name = job_input_data["build_name"]
 
     # Annotate if job has been retried
-    job_input_data["retried"] = job_has_been_retried(job_id)
+    attempt_number, retried = job_retry_data(job_id=job_id, job_name=job_name)
+    job_input_data["attempt_number"] = attempt_number
+    job_input_data["retried"] = retried
 
     # Convert all string timestamps in webhook payload to `datetime` objects
     for key, val in job_input_data.items():
