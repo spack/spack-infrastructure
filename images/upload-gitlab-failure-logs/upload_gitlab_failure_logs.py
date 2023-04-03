@@ -4,36 +4,64 @@ import os
 import re
 from pathlib import Path
 
-import gitlab
 import yaml
-from opensearch_dsl import Date, Document, connections
+
+GITLAB_TOKEN = os.environ.get("GITLAB_TOKEN")
+OPENSEARCH_ENDPOINT = os.environ.get("OPENSEARCH_ENDPOINT")
+OPENSEARCH_USERNAME = os.environ.get("OPENSEARCH_USERNAME")
+OPENSEARCH_PASSWORD = os.environ.get("OPENSEARCH_PASSWORD")
 
 
-class JobPayload(Document):
-    timestamp = Date()
-
-    class Index:
-        name = "gitlab-job-failures-*"
-
-    def save(self, **kwargs):
-        # assign now if no timestamp given
-        if not self.timestamp:
-            self.timestamp = datetime.now()
-
-        # override the index to go to the proper timeslot
-        kwargs["index"] = self.timestamp.strftime("gitlab-job-failures-%Y%m%d")
-        return super().save(**kwargs)
+def load_taxonomy():
+    with open(Path(__file__).parent / "taxonomy.yaml") as f:
+        data = yaml.safe_load(f)["taxonomy"]
+    return data
 
 
-GITLAB_TOKEN = os.environ["GITLAB_TOKEN"]
-OPENSEARCH_ENDPOINT = os.environ["OPENSEARCH_ENDPOINT"]
-OPENSEARCH_USERNAME = os.environ["OPENSEARCH_USERNAME"]
-OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
+taxonomy = load_taxonomy()
+
+
+def classify(job_trace: str):
+    job_error_class = None
+    matching_patterns = set()
+    for error_class, lookups in taxonomy["error_classes"].items():
+        if lookups:
+            for grep_expr in lookups.get("grep_for", []):
+                if re.compile(grep_expr).search(job_trace):
+                    matching_patterns.add(error_class)
+
+    # If the job logs matched any regexes, assign it the taxonomy
+    # with the highest priority in the "deconflict order".
+    # Otherwise, assign it a taxonomy of "other".
+    if len(matching_patterns):
+        for error_class in taxonomy["deconflict_order"]:
+            if error_class in matching_patterns:
+                job_error_class = error_class
+                break
+    else:
+        job_error_class = "other"
+
+    return job_error_class
 
 
 def main():
-    with open(Path(__file__).parent / "taxonomy.yaml") as f:
-        taxonomy = yaml.safe_load(f)["taxonomy"]
+    import gitlab
+    from opensearch_dsl import Date, Document, connections
+
+    class JobPayload(Document):
+        timestamp = Date()
+
+        class Index:
+            name = "gitlab-job-failures-*"
+
+        def save(self, **kwargs):
+            # assign now if no timestamp given
+            if not self.timestamp:
+                self.timestamp = datetime.now()
+
+            # override the index to go to the proper timeslot
+            kwargs["index"] = self.timestamp.strftime("gitlab-job-failures-%Y%m%d")
+            return super().save(**kwargs)
 
     job_input_data = json.loads(os.environ["JOB_INPUT_DATA"])
     job_input_data["error_taxonomy_version"] = taxonomy["version"]
@@ -63,25 +91,9 @@ def main():
     job = project.jobs.get(job_id)
     job_trace: str = job.trace().decode()  # type: ignore
 
-    job_error_class = None
-    matching_patterns = set()
-    for error_class, lookups in taxonomy["error_classes"].items():
-        if lookups:
-            for grep_expr in lookups.get("grep_for", []):
-                if re.compile(grep_expr).search(job_trace):
-                    matching_patterns.add(error_class)
+    job_error_class = classify(job_trace)
 
-    # If the job logs matched any regexes, assign it the taxonomy
-    # with the highest priority in the "deconflict order".
-    # Otherwise, assign it a taxonomy of "other".
-    if len(matching_patterns):
-        for error_class in taxonomy["deconflict_order"]:
-            if error_class in matching_patterns:
-                job_error_class = error_class
-                break
-    else:
-        job_error_class = "other"
-
+    if job_error_class == "other":
         # If this job timed out or failed to be scheduled by GitLab,
         # label it as such.
         if job_input_data["build_failure_reason"] in (
