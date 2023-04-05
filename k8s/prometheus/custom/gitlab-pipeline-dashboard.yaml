@@ -867,6 +867,100 @@ data:
           "type": "timeseries"
         },
         {
+          "id": 39,
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 38
+          },
+          "type": "timeseries",
+          "title": "Pod counts for PRs/develop",
+          "datasource": {
+            "uid": "${DS_PROMETHEUS}",
+            "type": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "barAlignment": 0,
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "spanNulls": false,
+                "showPoints": "auto",
+                "pointSize": 5,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisPlacement": "auto",
+                "axisLabel": "",
+                "axisColorMode": "text",
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "axisCenteredZero": false,
+                "hideFrom": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "sum (label_replace(kube_pod_labels{namespace=\"pipeline\",label_metrics_gitlab_ci_commit_ref_name=~\"(pr|develop).*\"}, \"develop_or_pr\", \"$1\", \"label_metrics_gitlab_ci_commit_ref_name\", \"(pr|develop).*\")) by (develop_or_pr)",
+              "interval": "",
+              "legendFormat": "{{label_metrics_gitlab_ci_commit_ref_name}}",
+              "range": true,
+              "refId": "A"
+            }
+          ]
+        },
+        {
           "collapsed": false,
           "datasource": {
             "type": "prometheus",
