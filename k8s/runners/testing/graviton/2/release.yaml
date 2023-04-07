@@ -70,6 +70,7 @@ spec:
             [runners.kubernetes.affinity]
               [runners.kubernetes.affinity.pod_affinity]
                 [[runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution]]
+                weight = 1
                 [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term]
                   topology_key = "topology.kubernetes.io/zone"
                   [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term.label_selector]
