@@ -185,6 +185,10 @@ taxonomy:
     checksum_mismatch:
       grep_for:
         - 'Error: sha256 checksum failed for .+'
+    
+    sha256sum_not_found:
+      grep_for:
+        - 'sha256sum: command not found'
 
     # See upload_gitlab_failure_logs.py for how these are used
     stuck_or_timeout_failure: null
@@ -237,4 +241,5 @@ taxonomy:
     # Other Errors
     - 'limit_exceeded'
     - 'execution_timeout'
+    - 'sha256sum_not_found'
     - 'file_not_found'
