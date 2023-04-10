@@ -123,4 +123,6 @@ module "production_cluster" {
   gitlab_db_instance_class = "db.t3.xlarge"
 
   provision_opensearch_cluster = true
+
+  gitlab_db_master_credentials_secret = "arn:aws:secretsmanager:us-east-1:588562868276:secret:gitlab-prod-master-credentials-96P0Cl"
 }

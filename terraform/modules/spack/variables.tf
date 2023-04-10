@@ -57,3 +57,8 @@ variable "provision_opensearch_cluster" {
   description = "Whether or not to provision an OpenSearch cluster for this deployment."
   type        = bool
 }
+
+variable "gitlab_db_master_credentials_secret" {
+  description = "The arn to the secret in Secrets Manager for the gitlab RDS instance."
+  type        = string
+}
