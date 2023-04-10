@@ -9,3 +9,7 @@ output "cluster_endpoint" {
 output "cluster_ca_certificate" {
     value = base64decode(module.eks.cluster_certificate_authority_data)
 }
+
+output "cluster_access_role_arn" {
+    value = aws_iam_role.eks_cluster_access.arn
+}
