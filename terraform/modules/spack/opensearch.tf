@@ -1,3 +1,7 @@
+locals {
+  endpoint = "opensearch${var.deployment_name == "production" ? "" : ".${var.deployment_name}"}.spack.io"
+}
+
 resource "aws_opensearch_domain" "spack" {
   domain_name = "spack${var.deployment_name == "production" ? "" : "-${var.deployment_name}"}"
 
@@ -31,11 +35,11 @@ resource "aws_opensearch_domain" "spack" {
   }
 
   domain_endpoint_options {
-    custom_endpoint_enabled = true
-    custom_endpoint = "opensearch.spack.io"
+    custom_endpoint_enabled         = true
+    custom_endpoint                 = local.endpoint
     custom_endpoint_certificate_arn = aws_acm_certificate.opensearch.arn
-    enforce_https       = true
-    tls_security_policy = "Policy-Min-TLS-1-0-2019-07"
+    enforce_https                   = true
+    tls_security_policy             = "Policy-Min-TLS-1-0-2019-07"
   }
 
   ebs_options {
@@ -77,7 +81,7 @@ resource "aws_opensearch_domain" "spack" {
 
 # Configure custom domain name
 resource "aws_acm_certificate" "opensearch" {
-  domain_name       = "opensearch.spack.io"
+  domain_name       = local.endpoint
   validation_method = "DNS"
 
   lifecycle {
@@ -169,7 +173,7 @@ resource "aws_iam_role_policy" "fluent_bit_policy" {
         "Action" : [
           "es:ESHttp*"
         ],
-        "Resource" : "arn:aws:es:us-east-1:588562868276:domain/spack",
+        "Resource" : aws_opensearch_domain.spack.arn,
         "Effect" : "Allow"
       }
     ]
