@@ -43,8 +43,14 @@ provider "helm" {
     cluster_ca_certificate = module.staging_cluster.cluster_ca_certificate
     exec {
       api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", module.staging_cluster.cluster_name, "--region", "us-west-1"]
       command     = "aws"
+      args = [
+        "eks",
+        "get-token",
+        "--region", "us-west-1",
+        "--cluster-name", module.staging_cluster.cluster_name,
+        "--role", module.staging_cluster.cluster_access_role_arn
+      ]
     }
   }
 }
@@ -54,8 +60,14 @@ provider "kubectl" {
   cluster_ca_certificate = module.staging_cluster.cluster_ca_certificate
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
-    args        = ["eks", "get-token", "--cluster-name", module.staging_cluster.cluster_name, "--region", "us-west-1"]
     command     = "aws"
+    args = [
+      "eks",
+      "get-token",
+      "--region", "us-west-1",
+      "--cluster-name", module.staging_cluster.cluster_name,
+      "--role", module.staging_cluster.cluster_access_role_arn
+    ]
   }
 }
 
@@ -64,8 +76,14 @@ provider "kubernetes" {
   cluster_ca_certificate = module.staging_cluster.cluster_ca_certificate
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
-    args        = ["eks", "get-token", "--cluster-name", module.staging_cluster.cluster_name, "--region", "us-west-1"]
     command     = "aws"
+    args = [
+      "eks",
+      "get-token",
+      "--region", "us-west-1",
+      "--cluster-name", module.staging_cluster.cluster_name,
+      "--role", module.staging_cluster.cluster_access_role_arn
+    ]
   }
 }
 
