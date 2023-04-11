@@ -17,6 +17,7 @@ module "vpc" {
   enable_nat_gateway   = true
   single_nat_gateway   = false
   enable_dns_hostnames = true
+  one_nat_gateway_per_az = true
 
   public_subnet_tags = {
     "kubernetes.io/role/elb" = 1
