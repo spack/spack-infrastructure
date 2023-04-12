@@ -104,6 +104,7 @@ taxonomy:
     pod_timeout:
       grep_for:
         - 'timed out waiting for pod to start'
+        - 'ERROR: Job failed (system failure): prepare environment: Timeout occurred.'
 
     pod_not_found:
       grep_for:
@@ -111,7 +112,11 @@ taxonomy:
 
     pod_failed:
       grep_for:
-        - 'ERROR: Job failed.+:.+pod .+ status is ("Failed"|failed)'
+        - 'ERROR: Job failed.*:.*pod.+status is ("Failed"|failed)'
+
+    pod_invalid:
+      grep_for:
+        - 'Pod.+is invalid'
 
     helper_container_not_found:
       grep_for:
@@ -182,13 +187,41 @@ taxonomy:
       grep_for:
         - 'Error: No binary for .+ found when cache-only specified'
 
+    deprecated_stack_bug:
+      grep_for:
+        - 'Error: Mirror with name mirror_override already exists.'
+
     checksum_mismatch:
       grep_for:
         - 'Error: sha256 checksum failed for .+'
-    
+
     sha256sum_not_found:
       grep_for:
         - 'sha256sum: command not found'
+
+    unallowed_image:
+      grep_for:
+        - 'The.+image is not present on list of allowed images'
+
+    aborted_terminated:
+      grep_for:
+        - 'ERROR: Job failed \(system failure\): aborted: terminated'
+
+    gpg_fail_open_files:
+      grep_for:
+        - "gpg: can't open '/tmp/*'"
+
+    gpg_no_valid_ids:
+      grep_for:
+        - 'gpg: key.+: no valid user IDs'
+
+    nvidia_detection_error:
+      grep_for:
+        - 'nvidia-container-cli: detection error: nvml error'
+
+    bootstrap_patchelf_failure:
+      grep_for:
+        - 'Error: cannot bootstrap any of the patchelf executables'
 
     # See upload_gitlab_failure_logs.py for how these are used
     stuck_or_timeout_failure: null
@@ -219,6 +252,9 @@ taxonomy:
     - 'spack_error'
     - 'pipeline_generation'
     - 'killed'
+    - 'deprecated_stack_bug'
+    - 'aborted_terminated'
+    - 'bootstrap_patchelf_failure'
     # System Errors
     - 'oom'
     - 'gitlab_down'
@@ -229,6 +265,7 @@ taxonomy:
     - 'pod_cleanup'
     - 'pod_not_found'
     - 'pod_failed'
+    - 'pod_invalid'
     - 'helper_container_not_found'
     - 'image_pull'
     - 'docker_daemon'
@@ -238,7 +275,11 @@ taxonomy:
     - 'dial_backend'
     - 'remote_disconnect'
     - 'invalid_access_key'
+    - 'nvidia_detection_error'
     # Other Errors
+    - 'gpg_fail_open_files'
+    - 'gpg_no_valid_ids'
+    - 'unallowed_image'
     - 'limit_exceeded'
     - 'execution_timeout'
     - 'sha256sum_not_found'
