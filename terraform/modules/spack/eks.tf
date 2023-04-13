@@ -85,7 +85,8 @@ resource "aws_iam_role" "eks_cluster_access" {
             "arn:aws:iam::588562868276:user/mike",
             "arn:aws:iam::588562868276:user/alecscott",
             "arn:aws:iam::588562868276:user/zack",
-            "arn:aws:iam::588562868276:user/joesnyder"
+            "arn:aws:iam::588562868276:user/joesnyder",
+            "arn:aws:iam::588562868276:user/dan"
           ]
         },
         "Action" : "sts:AssumeRole"
