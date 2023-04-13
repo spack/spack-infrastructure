@@ -3,11 +3,20 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
+from time import sleep
+from typing import Any
 
 import gitlab
 import psycopg2
 import yaml
+from kubernetes import client, config
+from kubernetes.client.exceptions import ApiException
+from kubernetes.client.models.v1_pod import V1Pod
+from kubernetes.client.models.v1_pod_status import V1PodStatus
 from opensearch_dsl import Date, Document, connections
+
+config.load_config()
+v1_client = client.CoreV1Api()
 
 
 class JobPayload(Document):
@@ -120,6 +129,45 @@ def assign_error_taxonomy(job_input_data: dict):
     return
 
 
+def collect_pod_status(job_input_data: dict[str, Any]):
+    """Collect k8s info about this job and store it in the OpenSearch record"""
+    project = gl.projects.get(job_input_data["project_id"])
+    job_id = job_input_data["build_id"]
+    job = project.jobs.get(job_id)
+    job_trace: str = job.trace().decode()  # type: ignore
+
+    # Scan job logs to infer the name of the pod this job was executed on
+    runner_name_matches = re.findall(
+        rf"Running on (.+) via {job_input_data['runner']['description']}...",
+        job_trace,
+    )
+    if not len(runner_name_matches):
+        job_input_data["pod_status"] = None
+        return
+
+    pod_name = runner_name_matches[0]
+
+    pod: V1Pod | None = None
+    while True:
+        # Try to fetch pod with kube
+        try:
+            pod = v1_client.read_namespaced_pod(name=pod_name, namespace="pipeline")
+        except ApiException:
+            # If it doesn't work, that means the pod has already been cleaned up.
+            # In that case, we break out of the loop and return.
+            break
+
+        # Check if the pod is still running. If so, keep re-fetching it until it's complete
+        status: V1PodStatus = pod.status
+        if status.phase != "Running":
+            break
+
+        sleep(1)
+
+    if pod:
+        job_input_data["pod_status"] = pod.status.to_dict()
+
+
 def main():
     # Read input data and extract params
     job_input_data = json.loads(os.environ["JOB_INPUT_DATA"])
@@ -138,6 +186,9 @@ def main():
                 job_input_data[key] = datetime.strptime(val, "%Y-%m-%d %H:%M:%S %Z")
         except ValueError:
             continue
+
+    # Get info about the k8s pod this job ran on
+    collect_pod_status(job_input_data)
 
     # Assign any/all relevant errors
     assign_error_taxonomy(job_input_data)
