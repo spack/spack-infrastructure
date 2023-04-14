@@ -1,5 +1,6 @@
 locals {
   domain_endpoint_name = "opensearch.${var.deployment_name == "production" ? "" : "${var.deployment_name}."}spack.io"
+  cognito_enabled = var.deployment_name == "production"
 }
 
 resource "aws_opensearch_domain" "spack" {
@@ -27,11 +28,19 @@ resource "aws_opensearch_domain" "spack" {
     zone_awareness_enabled = true
   }
 
-  cognito_options {
-    enabled          = true
-    identity_pool_id = "us-east-1:ff2664d7-a403-42ba-8407-5d90b3eaa948" # TODO: encode this into terraform
-    role_arn         = aws_iam_role.opensearch_cognito_role.arn
-    user_pool_id     = "us-east-1_k6YnDTVBT" # TODO: encode this into terraform
+  # TODO: our AWS Cognito config for OpenSearch is not encoded in Terraform yet.
+  # We want the existing Cognito set up for our production OpenSearch cluster to
+  # remain in use, so we use a dynamic block to ensure it's ignored for non-production
+  # OpenSearch deployments.
+  dynamic "cognito_options" {
+    for_each = local.cognito_enabled ? [1] : []
+
+    content {
+      enabled          = true
+      identity_pool_id = "us-east-1:ff2664d7-a403-42ba-8407-5d90b3eaa948" # TODO: encode this into terraform
+      role_arn         = aws_iam_role.opensearch_cognito_role.arn
+      user_pool_id     = "us-east-1_k6YnDTVBT" # TODO: encode this into terraform
+    }
   }
 
   domain_endpoint_options {
