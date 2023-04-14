@@ -4,6 +4,8 @@ locals {
 }
 
 resource "aws_opensearch_domain" "spack" {
+  count = var.provision_opensearch_cluster ? 1 : 0
+
   domain_name = "spack${var.deployment_name == "production" ? "" : "-${var.deployment_name}"}"
 
   engine_version = "OpenSearch_1.3"
@@ -38,7 +40,7 @@ resource "aws_opensearch_domain" "spack" {
     content {
       enabled          = true
       identity_pool_id = "us-east-1:ff2664d7-a403-42ba-8407-5d90b3eaa948" # TODO: encode this into terraform
-      role_arn         = aws_iam_role.opensearch_cognito_role.arn
+      role_arn         = aws_iam_role.opensearch_cognito_role[0].arn
       user_pool_id     = "us-east-1_k6YnDTVBT" # TODO: encode this into terraform
     }
   }
@@ -46,7 +48,7 @@ resource "aws_opensearch_domain" "spack" {
   domain_endpoint_options {
     custom_endpoint_enabled = true
     custom_endpoint = local.domain_endpoint_name
-    custom_endpoint_certificate_arn = aws_acm_certificate.opensearch.arn
+    custom_endpoint_certificate_arn = aws_acm_certificate.opensearch[0].arn
     enforce_https       = true
     tls_security_policy = "Policy-Min-TLS-1-0-2019-07"
   }
@@ -90,6 +92,8 @@ resource "aws_opensearch_domain" "spack" {
 
 # Configure custom domain name
 resource "aws_acm_certificate" "opensearch" {
+  count = var.provision_opensearch_cluster ? 1 : 0
+
   domain_name       = local.domain_endpoint_name
   validation_method = "DNS"
 
@@ -99,13 +103,13 @@ resource "aws_acm_certificate" "opensearch" {
 }
 
 resource "aws_route53_record" "opensearch_validation" {
-  for_each = {
-    for dvo in aws_acm_certificate.opensearch.domain_validation_options : dvo.domain_name => {
+  for_each = var.provision_opensearch_cluster ? {
+    for dvo in aws_acm_certificate.opensearch[0].domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
       record = dvo.resource_record_value
       type   = dvo.resource_record_type
     }
-  }
+  } : {}
 
   allow_overwrite = false
   name            = each.value.name
@@ -116,13 +120,17 @@ resource "aws_route53_record" "opensearch_validation" {
 }
 
 resource "aws_acm_certificate_validation" "opensearch" {
-  certificate_arn         = aws_acm_certificate.opensearch.arn
+  count = var.provision_opensearch_cluster ? 1 : 0
+
+  certificate_arn         = aws_acm_certificate.opensearch[0].arn
   validation_record_fqdns = [for record in aws_route53_record.opensearch_validation : record.fqdn]
 }
 
 resource "aws_route53_record" "opensearch" {
+  count = var.provision_opensearch_cluster ? 1 : 0
+
   name    = local.domain_endpoint_name
-  records = [aws_opensearch_domain.spack.endpoint]
+  records = [aws_opensearch_domain.spack[0].endpoint]
   ttl     = 300
   type    = "CNAME"
   zone_id = data.aws_route53_zone.spack_io.zone_id
@@ -134,6 +142,8 @@ data "aws_iam_policy" "amazon_opensearch_service_cognito_access" {
 }
 
 resource "aws_iam_role" "opensearch_cognito_role" {
+  count = var.provision_opensearch_cluster ? 1 : 0
+
   name        = "OpenSearchCognitoAccessRole-${var.deployment_name}"
   description = "IAM role that gives OpenSearch permissions to configure the Amazon Cognito user and identity pools and use them for authentication."
   assume_role_policy = jsonencode({
@@ -151,12 +161,16 @@ resource "aws_iam_role" "opensearch_cognito_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "opensearch_congito_role_policy_attach" {
-  role       = aws_iam_role.opensearch_cognito_role.name
+  count = var.provision_opensearch_cluster ? 1 : 0
+
+  role       = aws_iam_role.opensearch_cognito_role[0].name
   policy_arn = data.aws_iam_policy.amazon_opensearch_service_cognito_access.arn
 }
 
 # Configure role needed for fluent-bit to post data to OpenSearch
 resource "aws_iam_role" "fluent_bit_role" {
+  count = var.provision_opensearch_cluster ? 1 : 0
+
   name        = "FluentBitRole-${var.deployment_name}"
   description = "IAM role that, when associated with a k8s service account, allows a fluent-bit pod to post logs to OpenSearch."
 
@@ -181,8 +195,10 @@ resource "aws_iam_role" "fluent_bit_role" {
 }
 
 resource "aws_iam_role_policy" "fluent_bit_policy" {
+  count = var.provision_opensearch_cluster ? 1 : 0
+
   name = "FluentBitPolicy-${var.deployment_name}"
-  role = aws_iam_role.fluent_bit_role.id
+  role = aws_iam_role.fluent_bit_role[0].id
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -190,7 +206,7 @@ resource "aws_iam_role_policy" "fluent_bit_policy" {
         "Action" : [
           "es:ESHttp*"
         ],
-        "Resource" : aws_opensearch_domain.spack.arn,
+        "Resource" : aws_opensearch_domain.spack[0].arn,
         "Effect" : "Allow"
       }
     ]

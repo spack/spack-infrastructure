@@ -123,4 +123,6 @@ module "production_cluster" {
 
   cdash_db_instance_class  = "db.m6g.large"
   gitlab_db_instance_class = "db.t3.xlarge"
+
+  provision_opensearch_cluster = true
 }

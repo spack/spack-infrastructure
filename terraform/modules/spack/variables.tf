@@ -57,3 +57,8 @@ variable "gitlab_db_instance_class" {
   description = "AWS RDS DB instance class for the Spack GitLab PostgreSQL database."
   type        = string
 }
+
+variable "provision_opensearch_cluster" {
+  description = "Whether or not to provision an OpenSearch cluster for this deployment."
+  type        = bool
+}
