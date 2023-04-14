@@ -1,3 +1,7 @@
+locals {
+  domain_endpoint_name = "opensearch.${var.deployment_name == "production" ? "" : "${var.deployment_name}."}spack.io"
+}
+
 resource "aws_opensearch_domain" "spack" {
   domain_name = "spack${var.deployment_name == "production" ? "" : "-${var.deployment_name}"}"
 
@@ -32,7 +36,7 @@ resource "aws_opensearch_domain" "spack" {
 
   domain_endpoint_options {
     custom_endpoint_enabled = true
-    custom_endpoint = "opensearch.spack.io"
+    custom_endpoint = local.domain_endpoint_name
     custom_endpoint_certificate_arn = aws_acm_certificate.opensearch.arn
     enforce_https       = true
     tls_security_policy = "Policy-Min-TLS-1-0-2019-07"
@@ -77,7 +81,7 @@ resource "aws_opensearch_domain" "spack" {
 
 # Configure custom domain name
 resource "aws_acm_certificate" "opensearch" {
-  domain_name       = "opensearch.spack.io"
+  domain_name       = local.domain_endpoint_name
   validation_method = "DNS"
 
   lifecycle {
@@ -105,6 +109,14 @@ resource "aws_route53_record" "opensearch_validation" {
 resource "aws_acm_certificate_validation" "opensearch" {
   certificate_arn         = aws_acm_certificate.opensearch.arn
   validation_record_fqdns = [for record in aws_route53_record.opensearch_validation : record.fqdn]
+}
+
+resource "aws_route53_record" "opensearch" {
+  name    = local.domain_endpoint_name
+  records = [aws_opensearch_domain.spack.endpoint]
+  ttl     = 300
+  type    = "CNAME"
+  zone_id = data.aws_route53_zone.spack_io.zone_id
 }
 
 # Configure role needed for OpenSearch to interact with Cognito
