@@ -190,7 +190,7 @@ resource "aws_iam_role_policy" "fluent_bit_policy" {
         "Action" : [
           "es:ESHttp*"
         ],
-        "Resource" : "arn:aws:es:us-east-1:588562868276:domain/spack",
+        "Resource" : aws_opensearch_domain.spack.arn,
         "Effect" : "Allow"
       }
     ]
