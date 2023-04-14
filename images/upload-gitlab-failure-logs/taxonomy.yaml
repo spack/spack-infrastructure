@@ -14,11 +14,15 @@ taxonomy:
         - "HTTP Error 404"
         - 'curl: \(60\)'
         - "ConnectionResetError:"
+        - "curl.+SSL_ERROR_SYSCALL"
+        - "Job failed \(system failure\):.+TLS handshake timeout"
+        - "curl: \(6\) Could not resolve host"
 
     concretization_error:
       grep_for:
         - "does not satisfy"
         - "Error: errors occurred during concretization"
+        - "Error: concretization failed for the following reasons"
 
     job_log_missing:
         grep_for:
