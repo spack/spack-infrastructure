@@ -119,7 +119,7 @@ module "staging_cluster" {
 
   flux_repo_name   = "spack-infrastructure"
   flux_repo_owner  = "spack"
-  flux_branch      = "main"
+  flux_branch      = "kustomize"
   flux_target_path = "k8s/staging/"
 
   # Use cheap DB instances for staging deployment
