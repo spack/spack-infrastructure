@@ -569,6 +569,197 @@ data:
           ],
           "title": "Number of CI Failures by Time Unit",
           "type": "timeseries"
+        },
+        {
+          "id": 14,
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 26
+          },
+          "type": "timeseries",
+          "title": "Failed jobs (PR vs protected)",
+          "datasource": {
+            "uid": "PCC52D03280B7034C",
+            "type": "postgres"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "bars",
+                "lineInterpolation": "linear",
+                "barAlignment": 0,
+                "lineWidth": 1,
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "spanNulls": false,
+                "showPoints": "auto",
+                "pointSize": 5,
+                "stacking": {
+                  "mode": "normal",
+                  "group": "A"
+                },
+                "axisPlacement": "auto",
+                "axisLabel": "Number of failures",
+                "axisColorMode": "text",
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "axisCenteredZero": false,
+                "hideFrom": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "color": {
+                "mode": "palette-classic",
+                "seriesBy": "last"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "protected"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "dark-green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "pr"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "super-light-green"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "postgres",
+                "uid": "PCC52D03280B7034C"
+              },
+              "query": "",
+              "queryType": "lucene",
+              "alias": "",
+              "metrics": [
+                {
+                  "type": "count",
+                  "id": "1"
+                }
+              ],
+              "bucketAggs": [
+                {
+                  "type": "date_histogram",
+                  "id": "2",
+                  "settings": {
+                    "interval": "auto"
+                  },
+                  "field": "timestamp"
+                }
+              ],
+              "format": "table",
+              "timeField": "timestamp",
+              "rawSql": "SELECT $__timeGroup(finished_at, $__interval) as time, COUNT(*) as PR from ci_builds\nWHERE \n  $__timeFilter(\"finished_at\")\n  AND status = 'failed'\n  AND stage != 'build'\n  AND ref ~ 'pr[\\d]+_.+'\n  GROUP BY time\n;",
+              "editorMode": "code",
+              "sql": {
+                "columns": [
+                  {
+                    "type": "function",
+                    "parameters": []
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "type": "groupBy",
+                    "property": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "limit": 50
+              },
+              "rawQuery": true
+            },
+            {
+              "datasource": {
+                "uid": "PCC52D03280B7034C",
+                "type": "postgres"
+              },
+              "refId": "B",
+              "hide": false,
+              "format": "table",
+              "rawSql": "SELECT $__timeGroup(finished_at, $__interval) as time, COUNT(*) as protected from ci_builds\nWHERE \n  $__timeFilter(\"finished_at\")\n  AND status = 'failed'\n  AND stage != 'build'\n  AND ref !~ 'pr[\\d]+_.+'\n  GROUP BY time\n;",
+              "editorMode": "code",
+              "sql": {
+                "columns": [
+                  {
+                    "type": "function",
+                    "parameters": []
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "type": "groupBy",
+                    "property": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "limit": 50
+              },
+              "rawQuery": true
+            }
+          ],
+          "interval": "6hr"
         }
       ],
       "schemaVersion": 37,
