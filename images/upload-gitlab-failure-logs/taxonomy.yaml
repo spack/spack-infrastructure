@@ -15,8 +15,8 @@ taxonomy:
         - 'curl: \(60\)'
         - "ConnectionResetError:"
         - "curl.+SSL_ERROR_SYSCALL"
-        - "Job failed \(system failure\):.+TLS handshake timeout"
-        - "curl: \(6\) Could not resolve host"
+        - 'Job failed \(system failure\):.+TLS handshake timeout'
+        - 'curl: \(6\) Could not resolve host'
 
     concretization_error:
       grep_for:
