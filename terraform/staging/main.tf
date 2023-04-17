@@ -125,4 +125,6 @@ module "staging_cluster" {
   # Use cheap DB instances for staging deployment
   cdash_db_instance_class  = "db.t3.small"
   gitlab_db_instance_class = "db.t3.small"
+
+  provision_opensearch_cluster = false
 }
