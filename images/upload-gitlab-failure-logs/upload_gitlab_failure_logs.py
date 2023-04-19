@@ -125,6 +125,15 @@ def assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
 
 def collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
     """Collect k8s info about this job and store it in the OpenSearch record"""
+    # Record whether this job was run on a kubernetes pod or via some other
+    # means (a UO runner, for example)
+    job_input_data["kubernetes_job"] = "Using Kubernetes executor" in job_trace
+
+    # If this job wasn't run on kubernetes, there's no pod to fetch so
+    # we can exit early
+    if not job_input_data["kubernetes_job"]:
+        return
+
     # Scan job logs to infer the name of the pod this job was executed on
     runner_name_matches = re.findall(
         rf"Running on (.+) via {job_input_data['runner']['description']}...",
