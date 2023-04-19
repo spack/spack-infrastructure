@@ -1,0 +1,88 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../production/gitlab/certificates.yaml
+  - ../../production/gitlab/log-cleaner.yaml
+  - ../../production/gitlab/namespace.yaml
+  - ../../production/gitlab/release.yaml
+patches:
+  - target:
+      kind: Certificate
+      name: gitlab-webservice
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: gitlab.staging.spack.io
+
+  - target:
+      kind: Certificate
+      name: gitlab-registry
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: registry.gitlab.staging.spack.io
+
+  - target:
+      kind: Certificate
+      name: gitlab-minio
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: minio.gitlab.staging.spack.io
+
+  - target:
+      kind: HelmRelease
+      name: gitlab
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/global/hosts/domain
+        value: staging.spack.io
+      - op: replace
+        path: /spec/values/global/hosts/gitlab/name
+        value: gitlab.staging.spack.io
+      - op: replace
+        path: /spec/values/global/hosts/minio/name
+        value: minio.gitlab.staging.spack.io
+      - op: replace
+        path: /spec/values/global/hosts/registry/name
+        value: registry.gitlab.staging.spack.io
+      - op: replace
+        path: /spec/values/global/hosts/ssh
+        value: ssh.gitlab.staging.spack.io
+      - op: replace
+        path: /spec/values/global/email/from
+        value: admin@gitlab.staging.spack.io
+      - op: replace
+        path: /spec/values/global/email/reply_to
+        value: noreply@gitlab.staging.spack.io
+      - op: remove
+        path: /spec/values/global/redis
+      - op: remove
+        path: /spec/values/global/minio
+      - op: remove
+        path: /spec/values/global/grafana
+      - op: remove
+        path: /spec/values/global/appConfig
+      - op: replace
+        path: /spec/values/minio/persistence/size
+        value: 10Gi
+      - op: replace
+        path: /spec/values/gitlab/webservice/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/values/gitlab/webservice/maxReplicas
+        value: 3
+      - op: replace
+        path: /spec/values/gitlab/webservice/resources/requests/cpu
+        value: 550m
+      - op: replace
+        path: /spec/values/gitlab/webservice/resources/requests/memory
+        value: 2G
+      - op: replace
+        path: /spec/values/gitlab/toolbox/replicas
+        value: 1

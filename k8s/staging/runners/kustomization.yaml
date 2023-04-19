@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../production/runners/service-accounts.yaml
+- ../../production/runners/namespace.yaml
+- ../../production/runners/public/graviton/2/release.yaml
+- ../../production/runners/public/x86_64/v2/release.yaml
+- ../../production/runners/signing/serviceaccount.yaml
+patches:
+  - target:
+      kind: HelmRelease
+      name: runner-graviton2-pub
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-x86-v2-pub
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
