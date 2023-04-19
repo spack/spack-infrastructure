@@ -85,19 +85,13 @@ def job_retry_data(job_id: str | int, job_name: str) -> tuple[int, bool]:
     return result
 
 
-def assign_error_taxonomy(job_input_data: dict):
-    # Retrieve project and job from gitlab API
-    project = gl.projects.get(job_input_data["project_id"])
-    job_id = job_input_data["build_id"]
-    job = project.jobs.get(job_id)
-
+def assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
     # Read taxonomy file
     with open(Path(__file__).parent / "taxonomy.yaml") as f:
         taxonomy = yaml.safe_load(f)["taxonomy"]
     job_input_data["error_taxonomy_version"] = taxonomy["version"]
 
     # Compile matching patterns from job trace
-    job_trace: str = job.trace().decode()  # type: ignore
     matching_patterns = set()
     for error_class, lookups in taxonomy["error_classes"].items():
         if lookups:
@@ -129,13 +123,8 @@ def assign_error_taxonomy(job_input_data: dict):
     return
 
 
-def collect_pod_status(job_input_data: dict[str, Any]):
+def collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
     """Collect k8s info about this job and store it in the OpenSearch record"""
-    project = gl.projects.get(job_input_data["project_id"])
-    job_id = job_input_data["build_id"]
-    job = project.jobs.get(job_id)
-    job_trace: str = job.trace().decode()  # type: ignore
-
     # Scan job logs to infer the name of the pod this job was executed on
     runner_name_matches = re.findall(
         rf"Running on (.+) via {job_input_data['runner']['description']}...",
@@ -187,11 +176,16 @@ def main():
         except ValueError:
             continue
 
+    # Retrieve project and job from gitlab API
+    project = gl.projects.get(job_input_data["project_id"])
+    job = project.jobs.get(job_input_data["build_id"])
+    job_trace: str = job.trace().decode()  # type: ignore
+
     # Get info about the k8s pod this job ran on
-    collect_pod_status(job_input_data)
+    collect_pod_status(job_input_data, job_trace)
 
     # Assign any/all relevant errors
-    assign_error_taxonomy(job_input_data)
+    assign_error_taxonomy(job_input_data, job_trace)
 
     # Upload to OpenSearch
     connections.create_connection(
