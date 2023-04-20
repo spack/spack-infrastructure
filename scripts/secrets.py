@@ -98,13 +98,10 @@ def get_yaml_reader():
     return yl
 
 
-def sealed_secret_cert_path() -> str:
+def sealed_secret_cert_path(staging: bool) -> str:
+    env = "staging" if staging else "production"
     default_cert = (
-        Path(__file__).parent.parent
-        / "k8s"
-        / "production"
-        / "sealed-secrets"
-        / "cert.pem"
+        Path(__file__).parent.parent / "k8s" / env / "sealed-secrets" / "cert.pem"
     )
 
     cert_path = os.getenv("SEALED_SECRETS_CERT", default_cert)
@@ -118,7 +115,13 @@ def sealed_secret_cert_path() -> str:
 
 @click.command(help="Update an existing secret")
 @click.argument("secrets_file", type=click.Path(exists=True, dir_okay=False))
-def main(secrets_file: str):
+@click.option(
+    "--staging",
+    type=click.BOOL,
+    is_flag=True,
+    help="Use the staging cert file.",
+)
+def main(secrets_file: str, staging: bool):
     # Read in secrets file with comments
     yl = get_yaml_reader()
     with open(secrets_file) as f:
@@ -153,7 +156,9 @@ def main(secrets_file: str):
         key_to_update = click.prompt("Please enter new secret name")
 
     # Retrieve value
-    value = click.prompt("Please enter new secret value")
+    value = click.prompt(
+        "Please enter new secret value", default="", show_default=False
+    )
 
     # Seal value
     p = Popen(
@@ -165,7 +170,7 @@ def main(secrets_file: str):
             "--name",
             secret_name,
             "--cert",
-            sealed_secret_cert_path(),
+            sealed_secret_cert_path(staging=staging),
         ],
         stdin=PIPE,
         stdout=PIPE,
