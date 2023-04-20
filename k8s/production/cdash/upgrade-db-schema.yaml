@@ -5,7 +5,7 @@ metadata:
   name: upgrade-db-schema
   namespace: cdash
   annotations:
-    fluxcd.io/ignore: "true"
+    kustomize.toolkit.fluxcd.io/reconcile: disabled
   labels:
     app: cdash
     svc: web
