@@ -155,6 +155,14 @@ def collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
             # In that case, we break out of the loop and return.
             break
 
+        # Attempt to get & record the type of EC2 instance that this pod ran on.
+        job_input_data["ec2_instance_type"] = "unknown"
+        if pod.spec.node_name:
+            node = v1_client.read_node(pod.spec.node_name)
+            label_key = "beta.kubernetes.io/instance-type"
+            if label_key in node.metadata.labels:
+                job_input_data["ec2_instance_type"] = node.metadata.labels[label_key]
+
         # Check if the pod is still running. If so, keep re-fetching it until it's complete
         status: V1PodStatus = pod.status
         if status.phase != "Running":
