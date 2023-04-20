@@ -6,6 +6,7 @@ resources:
   - ../../production/gitlab/log-cleaner.yaml
   - ../../production/gitlab/namespace.yaml
   - ../../production/gitlab/release.yaml
+  - ../../production/gitlab/sealed-secrets.yaml
 patches:
   - target:
       kind: Certificate
@@ -86,3 +87,18 @@ patches:
       - op: replace
         path: /spec/values/gitlab/toolbox/replicas
         value: 1
+
+  - target:
+      kind: SealedSecret
+      name: gitlab-secrets
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/encryptedData/postgres-password
+        value: AgBrhGn3MnFaDZIyzfLlb32sIczl33zXjQ1HS1LSJ1IXqGO7e4soTGrLjMgI37kr7/1ftPF1Zzmj5Ud3DdDzm2pBpBY9GcOKZgupPdFBnRU6T+wNJ5QbYI/ZihD8QLKHkUojc0oNac3rcK1u9Cqc9lyMU5n0QKXbLODXrggwyDfeccL2EWikOWVsz3gKDZFXB7XNab5WyigDFlf3C4toYypAkXIQhEwOfZ9rAo68KdjkAFcHgWt6Z8ceQU2Ik6c5pdMl88KDZwLA141kQP6Cda8MM9IUdwu8IReNrS/3G7rZoHwJR00CaM6fw3BiNtBDOlDndLMOtGRslU0Xr/PLeUu/EaysEnk2tjydPNImayz2Dm1a1FHcRKBCpZB5hslSs8Crrni04cNrKz6J/SDxNYQw9hQbrruZASjKj4YLamiQPEv1jOIpbzUfGsyDC8uxq0Wsp1l5fW5rtMfqB8rZbXwgCp7lO1Rm3fwEaqX9FuT/lP8RgyCT+cbb6JXrhe+lA9bJgjixpk64QwbSf32KrwopHgd071To3SajxYAnDeOYdaZICxoPj19emPlsu595P24tGKqHk5VgRz/RGcd2TtspO9BR24iTWviDjqxEo+BVk0iC0B9EDAHyuVNWCvE8MgORL/nwChqrHijX06U4/dECz5PBJxQ4TDRc+yOcbDjUEZIZajE2wvnVshezHMHRCJ+GkVbs/fZCpDDb6mLYYnyG0G9Bcw==
+      - op: replace
+        path: /spec/encryptedData/smtp-password
+        value: AgBxq/Exrot6AQ2Ix30FHcv3GLsYD3b2VGGBe2NDD6FuSnW4tNkKsYJkyw9zYVCQoKBM2/YgddQNSJFKKU2VqiIOUo6xQ74nV49A45ADKq9nErXf377TfwDgQCjaxST8HXGrUgUyGHjAoFlYmI5xuA9D8v4DE3HUCHZNBT1XAWyift9A1oE19JO76BpArzNsewn0RoYFIeB2oRIOd2+UZo1mcby6JfjM1sb+bNVHNbqf9SNHxyGsL1J9M3K8pUZUliDOZFlsFukWKUxigb5YV11QTzmPrPOtQCqCvoOGcKw5PqI5wj/EVU7MEqPNkVKZvduNb3YaKnyWkMRp/FkSANQLNoTlxc+bzqFTBeR6/jftVNJrwDbUB41aAPpLbFgzJA/dXMA9oGErlZHVxDSc6vVdha26ZFwpOI/cWh59nVFovV7gkZu5uUjGnUUSeoCVU7YhVE3THu2jeGXz/GXCU0PKdgb2HOEFMYIFdIn2KDzBsBgJzbzppVjuh28NF/38L+Xt++wIR6PznOX2sbVuwrgk6sAgCnrmSrKWDbvyAefm5EwHngfWf4YEE/YLwDZhuYS0o7psllVcQy4b5TTmhTDvdG/s1avGg4/FIpfGJmNqKCki8lunAeunVNvmmyCH18CnwQlbT9J0qLRGJj61OGul+PVpWJE+6wJZMJXqev1V4SFk7GJdZ+aNRQ4rS8lHrDo=
+      - op: replace
+        path: /spec/encryptedData/values.yaml
+        value: AgAU1Bo+WRzvIIp+h0iPJdc5pkT9HBaQprEQ7AbmZcHzVdS7FSde8nNtlWvm13NusXOvKRJLkiZYwfhxy/6BaNFfwFh3f07cQcHLgvr+WgCkXrVnOrAmKgqsmqbt5u4KoZiL+uJl594IlQOyyziUDf+KhBSTFgRs6Wqc9CTjIj/CgBxE3Lm8G2kGAqXmf6Xdsf1qEiYgWZ0JeVDhyDlFOYlIuwV64gqAIOyf4AWi4rvXqN+Qqbv8lqkFaUo/kOItO7FUa/uRXOTWfcu4DepYq55RLo36J/8QJTkwyDWNUdg8WPqY8dkhhLYZ+JoO9fXCdh6Mg6WWzAKxGcmHCRMa2LN7Tfg0PXdwakrCf66W39HTqnK/te3r2+DNkTEKKqq6MF/ajDTIZ2BWkx53w3NoJHQZI0o9Vr5juhtJA2/6XKbLXoFY6+2+at5GZLuvAyF8Nth1vn86urWl7GEXNxRRAniN9N2NelR+2WIadVDIwV9xQMdScb0seslyildWPadktip6ojfY8btQmzDXHA0ZgQSYmflvqFgvSVcFj1mCJH38InOJpXAuRLHayeR8MywMpVRjR3SLnMQ7zB/VSIHCmt4uljkjGP0pBpQ1akfyOyJC5IymATtjRZ2XvSNnHiLPoWLDgE2NrKjafMWhT0Pybb6IWFg4kYDUBw5j+8ySM6wQUeP61V09lqMJpF3MoBFzoRSv8inOaR3Kw0+M4Q18wo7ZX9CGA9QJRAiypYq6dgqrmcNJz+nRIVw5/fADGthbVEY4PqVxCboHz04ZH79CwgYGKaMt5EFW37fDFH5C5wSt+rxx9Ii1
