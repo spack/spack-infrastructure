@@ -8,8 +8,8 @@ The development version of the app is registered as `spack-bot-test` under the [
 
 To experiment with your spackbot changes, you must first temporarily disable flux from interfering with your changes.  This is accomplished by annotating the `spackbotdev-workers` and `spackbotdev-spack-io` deployments as follows:
 
-    kubectl annotate deployment -n spack spackbotdev-spack-io fluxcd.io/ignore="true"
-    kubectl annotate deployment -n spack spackbotdev-workers fluxcd.io/ignore="true"
+    kubectl annotate deployment -n spack spackbotdev-spack-io kustomize.toolkit.fluxcd.io/reconcile="disabled"
+    kubectl annotate deployment -n spack spackbotdev-workers kustomize.toolkit.fluxcd.io/reconcile="disabled"
 
 Now the development/test work cycle proceeds like this:
 
