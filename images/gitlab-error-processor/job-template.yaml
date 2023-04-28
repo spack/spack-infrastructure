@@ -24,7 +24,7 @@ spec:
                 name: gitlab-error-processor
                 key: gitlab-token
 
-          # postgres credentials
+          # read-only postgres credentials
           - name: GITLAB_POSTGRES_HOST
             valueFrom:
               secretKeyRef:
@@ -39,6 +39,22 @@ spec:
               secretKeyRef:
                 name: gitlab-error-processor
                 key: postgresql-gitlab-ro-user-password
+          
+          # Analysis DB postgres credentials
+          - name: ANALYSIS_POSTGRES_HOST
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-error-processor
+                key: analysis-postgres-host
+          - name: ANALYSIS_POSTGRES_DB
+            value: gitlabhq_production
+          - name: ANALYSIS_POSTGRES_USER
+            value: postgres
+          - name: ANALYSIS_POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-error-processor
+                key: analysis-postgres-password
           
           # opensearch credentials
           - name: OPENSEARCH_ENDPOINT

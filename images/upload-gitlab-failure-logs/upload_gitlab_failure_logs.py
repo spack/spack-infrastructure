@@ -36,10 +36,18 @@ class JobPayload(Document):
 
 
 GITLAB_TOKEN = os.environ["GITLAB_TOKEN"]
+
+# Prod DB (read-only)
 GITLAB_POSTGRES_DB = os.environ["GITLAB_POSTGRES_DB"]
 GITLAB_POSTGRES_USER = os.environ["GITLAB_POSTGRES_RO_USER"]
 GITLAB_POSTGRES_PASSWORD = os.environ["GITLAB_POSTGRES_RO_PASSWORD"]
 GITLAB_POSTGRES_HOST = os.environ["GITLAB_POSTGRES_HOST"]
+
+# Analysis DB
+ANALYSIS_POSTGRES_HOST = os.environ["ANALYSIS_POSTGRES_HOST"]
+ANALYSIS_POSTGRES_DB = os.environ["ANALYSIS_POSTGRES_DB"]
+ANALYSIS_POSTGRES_USER = os.environ["ANALYSIS_POSTGRES_USER"]
+ANALYSIS_POSTGRES_PASSWORD = os.environ["ANALYSIS_POSTGRES_PASSWORD"]
 
 OPENSEARCH_ENDPOINT = os.environ["OPENSEARCH_ENDPOINT"]
 OPENSEARCH_USERNAME = os.environ["OPENSEARCH_USERNAME"]
@@ -49,19 +57,26 @@ OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
 # Instantiate gitlab api wrapper
 gl = gitlab.Gitlab("https://gitlab.spack.io", GITLAB_TOKEN)
 
-# Instantiate postgres connection
-pg_conn = psycopg2.connect(
+# Instantiate postgres connections
+ro_pg_conn = psycopg2.connect(
     host=GITLAB_POSTGRES_HOST,
     port="5432",
     dbname=GITLAB_POSTGRES_DB,
     user=GITLAB_POSTGRES_USER,
     password=GITLAB_POSTGRES_PASSWORD,
 )
+analysis_pg_conn = psycopg2.connect(
+    host=ANALYSIS_POSTGRES_HOST,
+    port="5432",
+    dbname=ANALYSIS_POSTGRES_DB,
+    user=ANALYSIS_POSTGRES_USER,
+    password=ANALYSIS_POSTGRES_PASSWORD,
+)
 
 
 def job_retry_data(job_id: str | int, job_name: str) -> tuple[int, bool]:
-    with pg_conn:
-        cur = pg_conn.cursor()
+    with ro_pg_conn:
+        cur = ro_pg_conn.cursor()
         cur.execute(
             """
             SELECT attempt_number, COALESCE(retried, FALSE) as retried FROM (
@@ -166,6 +181,52 @@ def collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
         job_input_data["pod_status"] = pod.status.to_dict()
 
 
+def push_record_to_opensearch(job_input_data: dict):
+    connections.create_connection(
+        hosts=[OPENSEARCH_ENDPOINT],
+        http_auth=(
+            OPENSEARCH_USERNAME,
+            OPENSEARCH_PASSWORD,
+        ),
+    )
+    doc = JobPayload(**job_input_data)
+    doc.save()
+
+
+def push_record_to_postgres(job_input_data: dict, job_trace: str):
+    with analysis_pg_conn:
+        with analysis_pg_conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT into job_logs (
+                    job_id, error_taxonomy, log, attempt_number,
+                    retried, kubernetes_job, pod_status
+                ) VALUES (
+                    %(job_id)s, %(error_taxonomy)s, %(log)s, %(attempt_number)s,
+                    %(retried)s, %(kubernetes_job)s, %(pod_status)s
+                )
+                ON CONFLICT (job_id)
+                DO UPDATE SET
+                    error_taxonomy  = EXCLUDED.error_taxonomy,
+                    log             = EXCLUDED.log,
+                    attempt_number  = EXCLUDED.attempt_number,
+                    retried         = EXCLUDED.retried,
+                    kubernetes_job  = EXCLUDED.kubernetes_job,
+                    pod_status      = EXCLUDED.pod_status
+                ;
+                """,
+                {
+                    "job_id": job_input_data["build_id"],
+                    "error_taxonomy": job_input_data["error_taxonomy"],
+                    "log": job_trace,
+                    "attempt_number": job_input_data["attempt_number"],
+                    "retried": job_input_data["retried"],
+                    "kubernetes_job": job_input_data["kubernetes_job"],
+                    "pod_status": job_input_data["pod_status"],
+                },
+            )
+
+
 def main():
     # Read input data and extract params
     job_input_data = json.loads(os.environ["JOB_INPUT_DATA"])
@@ -196,16 +257,9 @@ def main():
     # Assign any/all relevant errors
     assign_error_taxonomy(job_input_data, job_trace)
 
-    # Upload to OpenSearch
-    connections.create_connection(
-        hosts=[OPENSEARCH_ENDPOINT],
-        http_auth=(
-            OPENSEARCH_USERNAME,
-            OPENSEARCH_PASSWORD,
-        ),
-    )
-    doc = JobPayload(**job_input_data)
-    doc.save()
+    # Push data to outputs
+    push_record_to_opensearch(job_input_data)
+    push_record_to_postgres(job_input_data, job_trace)
 
 
 if __name__ == "__main__":
