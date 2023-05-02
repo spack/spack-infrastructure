@@ -6,14 +6,19 @@ module "vpc" {
   name = "spack-${var.deployment_name}"
   cidr = var.vpc_cidr
 
-  azs              = var.availability_zones
-  public_subnets   = var.public_subnets
-  private_subnets  = var.private_subnets
+  azs             = var.availability_zones
+  public_subnets  = var.public_subnets
+  private_subnets = var.private_subnets
 
-  enable_nat_gateway   = true
-  single_nat_gateway   = false
-  enable_dns_hostnames = true
-  one_nat_gateway_per_az = true
+  enable_nat_gateway           = true
+  single_nat_gateway           = false
+  enable_dns_hostnames         = true
+  one_nat_gateway_per_az       = true
+
+  # Don't create a DB subnet group here, instead
+  # we create it explicitly below so that we can
+  # configure its subnets directly.
+  create_database_subnet_group = false
 
   public_subnet_tags = {
     "kubernetes.io/role/elb" = 1
