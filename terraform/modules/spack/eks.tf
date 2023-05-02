@@ -1,9 +1,13 @@
+locals {
+  cluster_name = "spack-${var.deployment_name}"
+}
+
 module "eks" {
   # https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest
   source  = "terraform-aws-modules/eks/aws"
   version = "19.5.1"
 
-  cluster_name    = "spack-${var.deployment_name}"
+  cluster_name    = local.cluster_name
   cluster_version = "1.24"
 
   vpc_id     = module.vpc.vpc_id
@@ -41,7 +45,7 @@ module "eks" {
     # NOTE - if creating multiple security groups with this module, only tag the
     # security group that Karpenter should utilize with the following tag
     # (i.e. - at most, only one security group should have this tag in your account)
-    "karpenter.sh/discovery" = "spack-${var.deployment_name}"
+    "karpenter.sh/discovery" = local.cluster_name
   }
 
   # Only need one node to get Karpenter up and running.
