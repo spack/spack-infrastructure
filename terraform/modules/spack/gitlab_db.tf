@@ -15,7 +15,7 @@ module "gitlab_db" {
   port     = "5432"
 
   publicly_accessible  = false
-  db_subnet_group_name = module.vpc.database_subnet_group
+  db_subnet_group_name = aws_db_subnet_group.spack.name
 
   maintenance_window              = "Sun:00:00-Sun:03:00"
   backup_window                   = "03:00-06:00"

@@ -9,14 +9,11 @@ module "vpc" {
   azs              = var.availability_zones
   public_subnets   = var.public_subnets
   private_subnets  = var.private_subnets
-  database_subnets = var.database_subnets
-
-  # Create a DB subnet group for RDS (see rds.tf)
-  create_database_subnet_group = true
 
   enable_nat_gateway   = true
   single_nat_gateway   = false
   enable_dns_hostnames = true
+  one_nat_gateway_per_az = true
 
   public_subnet_tags = {
     "kubernetes.io/role/elb" = 1
@@ -33,4 +30,9 @@ module "vpc" {
     # (See karpenter.tf for that value)
     "karpenter.sh/discovery" = var.deployment_name
   }
+}
+
+resource "aws_db_subnet_group" "spack" {
+  name       = "spack-db-subnet-group-${var.deployment_name}"
+  subnet_ids = module.vpc.private_subnets
 }
