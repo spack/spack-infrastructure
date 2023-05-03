@@ -1,12 +1,12 @@
 locals {
-  domain_endpoint_name = "opensearch.${var.deployment_name == "production" ? "" : "${var.deployment_name}."}spack.io"
-  cognito_enabled = var.deployment_name == "production"
+  domain_endpoint_name = "opensearch.${var.deployment_name == "prod" ? "" : "${var.deployment_name}."}spack.io"
+  cognito_enabled = var.deployment_name == "prod"
 }
 
 resource "aws_opensearch_domain" "spack" {
   count = var.provision_opensearch_cluster ? 1 : 0
 
-  domain_name = "spack${var.deployment_name == "production" ? "" : "-${var.deployment_name}"}"
+  domain_name = "spack${var.deployment_name == "prod" ? "" : "-${var.deployment_name}"}"
 
   engine_version = "OpenSearch_1.3"
 

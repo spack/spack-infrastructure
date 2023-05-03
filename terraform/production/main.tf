@@ -96,7 +96,7 @@ provider "github" {
 module "production_cluster" {
   source = "../modules/spack"
 
-  deployment_name = "production"
+  deployment_name = "prod"
 
   availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
