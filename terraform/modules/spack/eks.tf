@@ -8,7 +8,7 @@ module "eks" {
   version = "19.5.1"
 
   cluster_name    = local.cluster_name
-  cluster_version = "1.26"
+  cluster_version = "1.24"
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -66,7 +66,7 @@ module "eks" {
 
   cluster_addons = {
     aws-ebs-csi-driver = {
-      addon_version            = "v1.18.0-eksbuild.1"
+      addon_version            = "v1.15.0-eksbuild.1"
       service_account_role_arn = aws_iam_role.ebs_efs_csi_driver.arn
     }
   }
