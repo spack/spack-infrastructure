@@ -100,7 +100,7 @@ resource "aws_iam_role" "eks_cluster_access" {
 }
 
 resource "aws_iam_role" "ebs_efs_csi_driver" {
-  name = "EbsEFsDriverRole-${var.deployment_name}"
+  name = "EbsEfsDriverRole-${var.deployment_name}"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -122,7 +122,7 @@ resource "aws_iam_role" "ebs_efs_csi_driver" {
 }
 
 resource "aws_iam_role_policy" "ebs_efs_csi_driver" {
-  name = "EbsEFsDriverPolicy-${var.deployment_name}"
+  name = "EbsEfsDriverPolicy-${var.deployment_name}"
   role = aws_iam_role.ebs_efs_csi_driver.id
   policy = jsonencode({
     "Version" : "2012-10-17",
