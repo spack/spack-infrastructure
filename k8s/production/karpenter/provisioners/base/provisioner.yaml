@@ -8,9 +8,8 @@ spec:
   providerRef:
     name: default
 
-  # Consolidation will de-provision larger than necessary nodes
-  consolidation:
-    enabled: true
+  # Terminate nodes after 5 minutes of idle time
+  ttlSecondsAfterEmpty: 300
 
   limits:
     resources:
