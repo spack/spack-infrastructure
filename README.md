@@ -31,6 +31,17 @@ Sealed Secrets are *write only*, and as such, cannot be read directly from the d
 
 **Note**: Due to logistical issues with retrieving it on demand, the public certificate is stored in this repository under `k8s/production/sealed-secrets/cert.pem`. This is the *public* part of the public/private key pair, and is **not** sensitive information. The secrets scripts will use this certificate automatically, but if there is ever a need to use a *different* certificate, it can be set with the `SEALED_SECRETS_CERT` environment variable.
 
+### Fetching the private key
+There are some situations where you need to fetch the private key from the public/private key pair, in order to decode a sealed secret. In this case, the key can be fetched by running the following command:
+
+```
+kubectl get secret -n kube-system sealed-secrets-key-pair -o jsonpath='{.data.tls\.key}' | base64 --decode > private.key
+```
+
+This assumes the name of the key pair is `sealed-secrets-key-pair`, which is currently the case. However, if that changes in the future, you'll need to use the name of the secret which contains this key pair instead.
+
+**NOTE:** This private key should *never* be committed to source control, and should only be retrieved from the cluster if absolutely necessary.
+
 ## Restoring from Backup
 
 - Delete the persistent volume (PV) and persistent volume claim (PVC) for the old volume that's being replaced.
