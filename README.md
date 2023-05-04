@@ -22,7 +22,7 @@ To create a new secret, simply copy and un-comment the SealedSecret template (`k
 Once you have a file containing one or more SealedSecret resources, you'll need to add/update its values. To do so, a helper script has been created, which takes the secret file as an argument. It can be used as followed:
 
 ```
-./scripts/secrets.py k8s/**/sealed-secrets.yaml
+./scripts/secrets/update.py k8s/production/**/sealed-secrets.yaml
 ```
 
 This will prompt you to select the specific secret you want to modify (if several are defined), and which key within the secret's data you want to update (or create a new entry). This prompts you to enter the raw unencrypted value into your shell, which will be sealed, base64 encoded and placed into the file. Comments in the secrets file are not affected by the script, and are encouraged.
