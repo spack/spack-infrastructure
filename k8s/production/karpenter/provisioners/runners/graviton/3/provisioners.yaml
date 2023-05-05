@@ -29,6 +29,8 @@ spec:
       operator: In
       values:
         - "c7g"
+        - "m7g"
+        - "r7g"
 
     # Instance Size
     - key: "karpenter.k8s.aws/instance-size"
