@@ -24,7 +24,7 @@ def select_value(stdscr, values: list[str], titles: list[str] = []):
     curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
 
     # Clear and refresh the screen for a blank canvas
-    stdscr.clear()
+    stdscr.erase()
     stdscr.refresh()
     curses.noecho()
 
@@ -41,7 +41,7 @@ def select_value(stdscr, values: list[str], titles: list[str] = []):
     k = None
     while True:
         # Initialization
-        win.clear()
+        win.erase()
 
         # Check value
         if k == curses.KEY_DOWN:
