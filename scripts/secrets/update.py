@@ -93,6 +93,7 @@ def get_yaml_reader():
         return self.represent_scalar("tag:yaml.org,2002:null", "null")
 
     yl = YAML()
+    yl.preserve_quotes = True
     yl.representer.add_representer(type(None), represent_none)
 
     return yl
