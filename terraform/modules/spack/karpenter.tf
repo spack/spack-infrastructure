@@ -81,7 +81,13 @@ resource "kubectl_manifest" "karpenter_node_template" {
       name: default
     spec:
       subnetSelector:
-        karpenter.sh/discovery: "true"
+        # This value *must* match one of the tags placed on the subnets for this
+        # EKS cluster (see vpc.tf for these).
+        # We use the "deployment_name" variable here instead of the full cluster name
+        # because the full cluster name isn't available at the time that we bootstrap
+        # the VPC resources (including subnets). However, "deployment_name" is also
+        # a unique-per-cluster value, so it should work just as well.
+        karpenter.sh/discovery: ${var.deployment_name}
       securityGroupSelector:
         karpenter.sh/discovery: ${module.eks.cluster_name}
       tags:

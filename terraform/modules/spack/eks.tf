@@ -1,9 +1,13 @@
+locals {
+  cluster_name = "spack-${var.deployment_name}"
+}
+
 module "eks" {
   # https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest
   source  = "terraform-aws-modules/eks/aws"
   version = "19.5.1"
 
-  cluster_name    = "spack-${var.deployment_name}"
+  cluster_name    = local.cluster_name
   cluster_version = "1.24"
 
   vpc_id     = module.vpc.vpc_id
@@ -41,7 +45,7 @@ module "eks" {
     # NOTE - if creating multiple security groups with this module, only tag the
     # security group that Karpenter should utilize with the following tag
     # (i.e. - at most, only one security group should have this tag in your account)
-    "karpenter.sh/discovery" = "spack-${var.deployment_name}"
+    "karpenter.sh/discovery" = local.cluster_name
   }
 
   # Only need one node to get Karpenter up and running.
@@ -96,7 +100,7 @@ resource "aws_iam_role" "eks_cluster_access" {
 }
 
 resource "aws_iam_role" "ebs_efs_csi_driver" {
-  name = "EbsEFsDriverRole-${var.deployment_name}"
+  name = "EbsEfsDriverRole-${var.deployment_name}"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -118,7 +122,7 @@ resource "aws_iam_role" "ebs_efs_csi_driver" {
 }
 
 resource "aws_iam_role_policy" "ebs_efs_csi_driver" {
-  name = "EbsEFsDriverPolicy-${var.deployment_name}"
+  name = "EbsEfsDriverPolicy-${var.deployment_name}"
   role = aws_iam_role.ebs_efs_csi_driver.id
   policy = jsonencode({
     "Version" : "2012-10-17",

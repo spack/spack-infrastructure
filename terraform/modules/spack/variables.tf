@@ -13,11 +13,6 @@ variable "public_subnets" {
   type        = list(string)
 }
 
-variable "database_subnets" {
-  description = "List of database subnets to create inside the VPC"
-  type        = list(string)
-}
-
 variable "private_subnets" {
   description = "List of private subnets to create inside the VPC"
   type        = list(string)
