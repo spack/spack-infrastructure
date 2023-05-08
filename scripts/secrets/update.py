@@ -126,7 +126,12 @@ def sealed_secret_cert_path(staging: bool) -> str:
     is_flag=True,
     help="Use the staging cert file.",
 )
-def main(secrets_file: str, staging: bool):
+@click.option(
+    "--value",
+    type=click.STRING,
+    help="Supply the value for the selected secret as an argument.",
+)
+def main(secrets_file: str, staging: bool, value: str):
     # Read in secrets file with comments
     yl = get_yaml_reader()
     with open(secrets_file) as f:
@@ -161,7 +166,7 @@ def main(secrets_file: str, staging: bool):
         key_to_update = click.prompt("Please enter new secret name")
 
     # Retrieve value
-    value = click.prompt(
+    value = value or click.prompt(
         "Please enter new secret value", default="", show_default=False
     )
 
