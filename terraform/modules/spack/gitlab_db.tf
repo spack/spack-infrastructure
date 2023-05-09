@@ -141,7 +141,7 @@ module "gitlab_db_clone" {
   identifier = "gitlab-${var.deployment_name}-clone"
 
   engine               = "postgres"
-  engine_version       = "14"
+  engine_version       = "14.6"
   family               = "postgres14"
   major_engine_version = "14"
   instance_class       = var.gitlab_db_instance_class
@@ -153,7 +153,8 @@ module "gitlab_db_clone" {
   password               = local.gitlab_db_clone_master_password
 
   publicly_accessible  = false
-  db_subnet_group_name = module.vpc.database_subnet_group
+  db_subnet_group_name = aws_db_subnet_group.spack.name
+
 
   maintenance_window              = "Sun:00:00-Sun:03:00"
   backup_window                   = "03:00-06:00"
@@ -179,7 +180,7 @@ module "database_migration_service" {
   # Subnet group
   repl_subnet_group_name        = "dms-subnet-group"
   repl_subnet_group_description = "DMS Subnet group"
-  repl_subnet_group_subnet_ids  = var.private_subnets
+  repl_subnet_group_subnet_ids  = module.vpc.private_subnets
 
   # Instance
   repl_instance_id                           = "gitlab-db-sync-replication-instance"
