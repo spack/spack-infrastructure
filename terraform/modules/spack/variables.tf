@@ -62,3 +62,8 @@ variable "gitlab_db_master_credentials_secret" {
   description = "The arn to the secret in Secrets Manager for the gitlab RDS instance."
   type        = string
 }
+
+variable "gitlab_db_clone_master_credentials_secret" {
+  description = "The arn to the secret in Secrets Manager for the gitlab clone RDS instance."
+  type        = string
+}

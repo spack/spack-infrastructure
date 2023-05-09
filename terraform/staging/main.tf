@@ -126,5 +126,6 @@ module "staging_cluster" {
 
   provision_opensearch_cluster = false
 
-  gitlab_db_master_credentials_secret = "arn:aws:secretsmanager:us-west-1:588562868276:secret:gitlab-staging-master-credentials-q5Fynz"
+  gitlab_db_master_credentials_secret       = "arn:aws:secretsmanager:us-west-1:588562868276:secret:gitlab-staging-master-credentials-q5Fynz"
+  gitlab_db_clone_master_credentials_secret = "arn:aws:secretsmanager:us-west-1:588562868276:secret:gitlab-staging-clone-master-credentials-BW9ClK"
 }

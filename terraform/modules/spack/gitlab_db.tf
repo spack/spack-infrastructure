@@ -26,6 +26,14 @@ data "aws_secretsmanager_secret_version" "gitlab_db_credentials" {
   secret_id = data.aws_secretsmanager_secret.gitlab_db_credentials.id
 }
 
+# Retrieve the master password for the gitlab clone production database
+data "aws_secretsmanager_secret" "gitlab_db_clone_credentials" {
+  arn = var.gitlab_db_clone_master_credentials_secret
+}
+data "aws_secretsmanager_secret_version" "gitlab_db_clone_credentials" {
+  secret_id = data.aws_secretsmanager_secret.gitlab_db_clone_credentials.id
+}
+
 # Determine the corresponding EC2 instance size, in order to retrieve the memory and vcpu size
 locals {
   gitlab_db_instance_ec2_class = replace(var.gitlab_db_instance_class, "db.", "")
@@ -36,7 +44,8 @@ data "aws_ec2_instance_type" "gitlab_db_instance_type" {
 
 # Compute local values required in the gitlab_db module
 locals {
-  gitlab_db_master_password = jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_credentials.secret_string)["password"]
+  gitlab_db_master_password       = jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_credentials.secret_string)["password"]
+  gitlab_db_clone_master_password = jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_clone_credentials.secret_string)["password"]
 
   # Computed values for the parameters. The formulas for these values are taken from the
   # existing settings, encoding them here as the DSL for RDS parameters is insufficient
@@ -137,9 +146,11 @@ module "gitlab_db_clone" {
   major_engine_version = "14"
   instance_class       = var.gitlab_db_instance_class
 
-  db_name  = "gitlabhq_production"
-  username = "postgres"
-  port     = "5432"
+  db_name                = "gitlabhq_production"
+  username               = "postgres"
+  port                   = "5432"
+  create_random_password = false
+  password               = local.gitlab_db_clone_master_password
 
   publicly_accessible  = false
   db_subnet_group_name = module.vpc.database_subnet_group
@@ -206,7 +217,7 @@ module "database_migration_service" {
       # Optional
       database_name = module.gitlab_db_clone.db_instance_name
       username      = module.gitlab_db_clone.db_instance_username
-      password      = module.gitlab_db_clone.db_instance_password
+      password      = local.gitlab_db_clone_master_password
       port          = module.gitlab_db_clone.db_instance_port
       server_name   = module.gitlab_db_clone.db_instance_address
       tags          = { EndpointType = "destination" }
