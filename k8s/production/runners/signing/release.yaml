@@ -31,7 +31,7 @@ spec:
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600 # six hours
-    concurrent: 1
+    concurrent: 20
     checkInterval: 30
     # preEntrypointScript: |
     #   echo "Hello, from large-pub runner"
