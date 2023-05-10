@@ -33,10 +33,9 @@ spec:
 
   values:
     serviceAccount:
-      create: true
+      # This service account is created by Terraform
+      create: false
       name: fluent-bit
-      annotations:
-        eks.amazonaws.com/role-arn: arn:aws:iam::588562868276:role/FluentBitRole-production
 
     resources:
       requests:
