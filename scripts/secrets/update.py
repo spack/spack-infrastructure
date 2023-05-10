@@ -2,6 +2,8 @@
 
 import curses
 import os
+import subprocess
+import tempfile
 import typing
 from pathlib import Path
 from subprocess import PIPE, Popen
@@ -118,6 +120,20 @@ def sealed_secret_cert_path(staging: bool) -> str:
     return cert_path
 
 
+def get_secret_value():
+    """Open the user configured editor and retrieve the input value."""
+    EDITOR = os.environ.get("EDITOR", "vim")
+    with tempfile.NamedTemporaryFile() as tmp:
+        retcode = subprocess.call([EDITOR, tmp.name])
+        if retcode != 0:
+            raise click.ClickException("Error retrieving secret value")
+
+        tmp.seek(0)
+        val = tmp.read().decode("utf-8")
+
+    return val
+
+
 @click.command(help="Update an existing secret")
 @click.argument("secrets_file", type=click.Path(exists=True, dir_okay=False))
 @click.option(
@@ -166,9 +182,16 @@ def main(secrets_file: str, staging: bool, value: str):
         key_to_update = click.prompt("Please enter new secret name")
 
     # Retrieve value
-    value = value or click.prompt(
-        "Please enter new secret value", default="", show_default=False
-    )
+    value = value or get_secret_value().strip()
+    if value == "":
+        answer = click.prompt(
+            click.style(
+                "Warning: You've entered an empty value, continue? (y/n)", fg="yellow"
+            )
+        )
+        if answer != "y":
+            click.echo(click.style("Exiting...", fg="yellow"))
+            exit(0)
 
     # Seal value
     p = Popen(
