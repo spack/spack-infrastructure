@@ -212,3 +212,17 @@ resource "aws_iam_role_policy" "fluent_bit_policy" {
     ]
   })
 }
+
+resource "kubectl_manifest" "fluent_bit_service_account" {
+  count = var.provision_opensearch_cluster ? 1 : 0
+
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: fluent-bit
+      namespace: fluent-bit
+      annotations:
+        eks.amazonaws.com/role-arn: ${aws_iam_role.fluent_bit_role[0].arn}
+  YAML
+}
