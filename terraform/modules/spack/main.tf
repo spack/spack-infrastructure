@@ -22,3 +22,6 @@ terraform {
     }
   }
 }
+
+# Data source that allows us to dynamically determine the current AWS region
+data "aws_region" "current" {}

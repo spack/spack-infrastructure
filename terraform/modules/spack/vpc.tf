@@ -41,3 +41,13 @@ resource "aws_db_subnet_group" "spack" {
   name       = "spack-db-subnet-group-${var.deployment_name}"
   subnet_ids = module.vpc.private_subnets
 }
+
+# S3 Gateway Endpoint to allow cheaper traffic between our
+# public/private subnets and S3.
+# https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html
+resource "aws_vpc_endpoint" "s3_gateway" {
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
+  vpc_endpoint_type = "Gateway"
+  vpc_id            = module.vpc.vpc_id
+  route_table_ids   = concat(module.vpc.private_route_table_ids, module.vpc.public_route_table_ids)
+}
