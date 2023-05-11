@@ -26,6 +26,6 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: gh-gl-sync
-                  key: github-access-token
+                  key: github-public-repo-token
           nodeSelector:
             spack.io/node-pool: base
