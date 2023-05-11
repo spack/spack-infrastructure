@@ -34,7 +34,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-west-1"
+  region = "us-west-2"
 }
 
 provider "helm" {
@@ -47,7 +47,7 @@ provider "helm" {
       args = [
         "eks",
         "get-token",
-        "--region", "us-west-1",
+        "--region", "us-west-2",
         "--cluster-name", module.staging_cluster.cluster_name,
         "--role", module.staging_cluster.cluster_access_role_arn
       ]
@@ -64,7 +64,7 @@ provider "kubectl" {
     args = [
       "eks",
       "get-token",
-      "--region", "us-west-1",
+      "--region", "us-west-2",
       "--cluster-name", module.staging_cluster.cluster_name,
       "--role", module.staging_cluster.cluster_access_role_arn
     ]
@@ -80,7 +80,7 @@ provider "kubernetes" {
     args = [
       "eks",
       "get-token",
-      "--region", "us-west-1",
+      "--region", "us-west-2",
       "--cluster-name", module.staging_cluster.cluster_name,
       "--role", module.staging_cluster.cluster_access_role_arn
     ]
@@ -99,22 +99,20 @@ module "staging_cluster" {
 
   deployment_name = "staging"
 
-  availability_zones = ["us-west-1b", "us-west-1c"]
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
 
-  vpc_cidr = "10.0.0.0/16"
+  vpc_cidr = "192.168.0.0/16"
   public_subnets = [
-    "10.0.0.0/19",
-    "10.0.32.0/19",
+    "192.168.0.0/19",
+    "192.168.32.0/19",
+    "192.168.64.0/19",
+    "192.168.96.0/19",
   ]
   private_subnets = [
-    "10.0.64.0/19",
-    "10.0.96.0/19",
-    "10.0.128.0/19",
-    "10.0.160.0/19",
-  ]
-  database_subnets = [
-    "10.0.192.0/19",
-    "10.0.224.0/19",
+    "192.168.128.0/19",
+    "192.168.160.0/19",
+    "192.168.192.0/19",
+    "192.168.224.0/19",
   ]
 
   flux_repo_name   = "spack-infrastructure"
