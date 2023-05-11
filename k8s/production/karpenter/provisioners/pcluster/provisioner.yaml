@@ -1,0 +1,27 @@
+---
+# Provisioner for gitlab pods
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: pcluster
+spec:
+  providerRef:
+    name: pcluster
+
+  # Terminate nodes after 5 minutes of idle time
+  ttlSecondsAfterEmpty: 300
+
+  # TODO: Not sure what requirements there are
+  # requirements:
+  #   - key: "node.kubernetes.io/instance-type"
+  #     operator: In
+  #     values: ["t3.xlarge"]
+
+  #   # Always use on-demand
+  #   - key: "karpenter.sh/capacity-type"
+  #     operator: In
+  #     values: ["on-demand"]
+
+  # Only provision nodes for pods specifying the gitlab node pool
+  labels:
+    spack.io/node-pool: pcluster
