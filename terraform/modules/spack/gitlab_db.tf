@@ -235,13 +235,24 @@ module "database_migration_service" {
         "rules" : [
           {
             "rule-type" : "selection",
-            "rule-id" : "149415118",
+            "rule-id" : "1",
             "rule-name" : "select-all-tables",
             "object-locator" : {
               "schema-name" : "public",
               "table-name" : "%"
             },
             "rule-action" : "include",
+            "filters" : []
+          },
+          {
+            "rule-type" : "selection",
+            "rule-id" : "2",
+            "rule-name" : "exclude-ci-build-needs",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "ci_build_needs"
+            },
+            "rule-action" : "exclude",
             "filters" : []
           }
         ]
