@@ -238,7 +238,7 @@ module "database_migration_service" {
             "rule-id" : "149415118",
             "rule-name" : "select-all-tables",
             "object-locator" : {
-              "schema-name" : "%",
+              "schema-name" : "public",
               "table-name" : "%"
             },
             "rule-action" : "include",
