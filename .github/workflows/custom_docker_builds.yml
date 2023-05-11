@@ -46,6 +46,8 @@ jobs:
             image-tags: ghcr.io/spack/gitlab-error-processor:0.0.1
           - docker-image: upload-gitlab-failure-logs
             image-tags: ghcr.io/spack/upload-gitlab-failure-logs:0.0.1
+          - docker-image: snapshot-release-tags
+            image-tags: ghcr.io/spack/snapshot-release-tags:0.0.1
     steps:
       - name: Checkout
         uses: actions/checkout@v3
