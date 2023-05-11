@@ -15,7 +15,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/requirements/2/values
-        value: ["us-west-1b", "us-west-1c"]
+        value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
 
   - target:
       kind: Provisioner
@@ -23,4 +23,4 @@ patches:
     patch: |-
       - op: replace
         path: /spec/requirements/2/values
-        value: ["us-west-1b", "us-west-1c"]
+        value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
