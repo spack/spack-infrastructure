@@ -51,11 +51,14 @@ spec:
     # Availability Zones
     - key: "topology.kubernetes.io/zone"
       operator: In
-      values:
-        - "us-east-1a"
-        - "us-east-1b"
-        - "us-east-1c"
-        - "us-east-1d"
+      value:
+      - "us-west-1b"
+      - "us-west-1c"
+      # values:
+      #   - "us-east-1a"
+      #   - "us-east-1b"
+      #   - "us-east-1c"
+      #   - "us-east-1d"
 
     # Only use spot instances for runners
     - key: "karpenter.sh/capacity-type"
