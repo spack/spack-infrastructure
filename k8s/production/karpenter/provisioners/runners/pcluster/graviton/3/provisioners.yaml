@@ -51,7 +51,7 @@ spec:
     # Availability Zones
     - key: "topology.kubernetes.io/zone"
       operator: In
-      value:
+      values:
       - "us-west-1b"
       - "us-west-1c"
       # values:

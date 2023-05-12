@@ -127,7 +127,7 @@ resource "kubectl_manifest" "karpenter_pcluster_node_template" {
         karpenter.sh/discovery: ${module.eks.cluster_name}
       tags:
         karpenter.sh/discovery: ${module.eks.cluster_name}
-        spack.io/pcluster: true
+        spack.io/pcluster: "true"
       blockDeviceMappings:
         - deviceName: /dev/xvda
           ebs:
