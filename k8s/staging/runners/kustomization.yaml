@@ -1,10 +1,15 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+- ../../production/runners/sealed-secrets.yaml
 - ../../production/runners/service-accounts.yaml
 - ../../production/runners/namespace.yaml
 - ../../production/runners/public/graviton/2/release.yaml
 - ../../production/runners/public/x86_64/v2/release.yaml
+
+patchesStrategicMerge:
+  - rm-secrets.yaml
+
 patches:
   - target:
       kind: SealedSecret
