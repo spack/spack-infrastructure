@@ -114,7 +114,7 @@ resource "kubectl_manifest" "karpenter_pcluster_node_template" {
     spec:
       amiSelector:
         # aws-parallelcluster-3.5.1-amzn2-hvm-arm64-202303171148 2023-03-17T11-52-32.544Z
-        aws::ids: "ami-0d87b43677ef96ab9"
+        "aws::ids": "ami-0d87b43677ef96ab9"
       subnetSelector:
         # This value *must* match one of the tags placed on the subnets for this
         # EKS cluster (see vpc.tf for these).
