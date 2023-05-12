@@ -6,6 +6,10 @@ resources:
 - ../../production/runners/namespace.yaml
 - ../../production/runners/public/graviton/2/release.yaml
 - ../../production/runners/public/x86_64/v2/release.yaml
+
+patchesStrategicMerge:
+  - rm-secrets.yaml
+
 patches:
   - target:
       kind: SealedSecret
