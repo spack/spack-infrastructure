@@ -21,6 +21,8 @@ patches:
       - op: replace
         path: /spec/encryptedData/runner-registration-token
         value: AgCKxELkUvJn6kiM3qYso1hthNrxu0QglCpQUEzSpAQZxXRM9TAzVuKPvH7Ek4a4ce1ce2Qt2a6EWw3MuMilBsiAok0kwHidGBi1a4JgzIuv5f1mtBJFWUSH3dt9jvZbx8siRa0K8B62xJhSoGQiBTVvYXRg6apemAcfDbmvHm5v7DPiBxHf60r2Zbk/GBCdksLuQOrO9Rfzb/Kz8A3tRl0BazUBU5kF725pWi5ligTTiM+NKOmLBphpQuLgFRnyKs6LcuHnHFg1Ep3FChRFlq1kpHu/NfLAmV//1qZ9JtJZBCzXD9C4MUSFeiJn9mQM+akq+tOPhzsePebQP7Hfbbuxq01WQg7t9O4O/y/1J42pICrjIZEdZLZjaeleyEJ/KC9JpHeENMuqOjLoWe50gDDAbGq4PNRPdLwHb9r6VacgIjMIDya/B/0qPQ0c4JHth6VnFSd5yhBJ4QwOsyoEqVVrZ/2Qq3hrASKQwqw9ggLvXOzIkbrzj7ghOGFWDx0xk89bJ49ZWUxB+jMkUFcZfkwqoCdcxE0ani9uTJtSK40rGX6DIn+C6zpB2MWjDniAsNhnazKUwKVMv40f4ke2kEAq6AWtRqBD9ecw/c+nYWbtCFYDGHNWsSiGYYXBaqsqYd2q9QCM5mf/Wse7RlWsesUSWwM4d4Zi+G1Q15MJCSa+heO4fP4qg3ZxXK6qIxbePwy6Uyg5nCJ2edOYIf/cGorylYWVpw==
+      - op: remove
+        path: /spec/encryptedData/runner-token
 
   - target:
       kind: HelmRelease
