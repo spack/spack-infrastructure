@@ -130,11 +130,12 @@ resource "aws_iam_role_policy" "delete_spack_binaries_prs" {
 }
 
 resource "kubectl_manifest" "spackbot_service_account" {
+  for_each  = toset(["spackbot", "spackbotdev"])
   yaml_body = <<-YAML
     apiVersion: v1
     kind: ServiceAccount
     metadata:
-      name: spackbot-spack-io
+      name: ${each.value}-spack-io
       namespace: spack
       annotations:
         eks.amazonaws.com/role-arn: ${aws_iam_role.full_crud_access_spack_binaries_prs.arn}
