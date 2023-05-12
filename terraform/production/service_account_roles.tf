@@ -100,9 +100,8 @@ resource "aws_iam_role" "full_crud_access_spack_binaries_prs" {
 }
 
 resource "aws_iam_role_policy" "put_spack_binaries_prs" {
-  name        = "PutObjectsInBucketSpackBinariesPRs"
-  description = "Managed by Terraform. Grants permission to PutObject for any object in the spack-binaries-prs bucket."
-  role        = aws_iam_role.full_crud_access_spack_binaries_prs.id
+  name = "PutObjectsInBucketSpackBinariesPRs"
+  role = aws_iam_role.full_crud_access_spack_binaries_prs.id
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -116,9 +115,8 @@ resource "aws_iam_role_policy" "put_spack_binaries_prs" {
 }
 
 resource "aws_iam_role_policy" "delete_spack_binaries_prs" {
-  name        = "DeleteObjectsFromBucketSpackBinariesPRs	"
-  description = "Managed by Terraform. Grants permission to DeleteObject for any object in the spack-binaries-prs bucket."
-  role        = aws_iam_role.full_crud_access_spack_binaries_prs.id
+  name = "DeleteObjectsFromBucketSpackBinariesPRs"
+  role = aws_iam_role.full_crud_access_spack_binaries_prs.id
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -144,5 +142,58 @@ resource "kubectl_manifest" "spackbot_service_account" {
   depends_on = [
     aws_iam_role_policy.put_spack_binaries_prs,
     aws_iam_role_policy.delete_spack_binaries_prs
+  ]
+}
+
+resource "aws_iam_role" "put_object_in_pipeline_statistics" {
+  name        = "PutObjectInPipelineStatistics"
+  description = "Managed by Terraform. Grant access to write to the pipeline-statistics folder of the spack-logs bucket."
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "Federated" : module.production_cluster.oidc_provider_arn
+        },
+        "Action" : "sts:AssumeRoleWithWebIdentity",
+        "Condition" : {
+          "StringEquals" : {
+            "${module.production_cluster.oidc_provider}:aud" : "sts.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "put_object_in_pipeline_statistics" {
+  name = "PutObjectInPipelineStatistics"
+  role = aws_iam_role.full_crud_access_spack_binaries_prs.id
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : "s3:PutObject",
+        "Resource" : "arn:aws:s3:::spack-logs/pipeline-statistics/*"
+      }
+    ]
+  })
+}
+
+# The ServiceAccount to be used by the gitlab pipeline stats job
+resource "kubectl_manifest" "gitlab_api_scrape_service_account" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: gitlab-api-scrape
+      namespace: custom
+      annotations:
+        eks.amazonaws.com/role-arn: ${aws_iam_role.put_object_in_pipeline_statistics.arn}
+  YAML
+  depends_on = [
+    aws_iam_role_policy.put_object_in_pipeline_statistics
   ]
 }
