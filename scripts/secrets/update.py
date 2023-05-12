@@ -104,11 +104,7 @@ def get_yaml_reader():
 def sealed_secret_cert_path(staging: bool) -> str:
     env = "staging" if staging else "production"
     default_cert = (
-        Path(__file__).parent.parent.parent
-        / "k8s"
-        / env
-        / "sealed-secrets"
-        / "cert.pem"
+        Path(__file__).parents[2] / "k8s" / env / "sealed-secrets" / "cert.pem"
     )
 
     cert_path = os.getenv("SEALED_SECRETS_CERT", default_cert)
