@@ -170,7 +170,7 @@ resource "aws_iam_role" "put_object_in_pipeline_statistics" {
 
 resource "aws_iam_role_policy" "put_object_in_pipeline_statistics" {
   name = "PutObjectInPipelineStatistics"
-  role = aws_iam_role.full_crud_access_spack_binaries_prs.id
+  role = aws_iam_role.put_object_in_pipeline_statistics.id
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
