@@ -124,7 +124,7 @@ spec:
       protected: true
       runUntagged: false
 
-      tags: "arm,aarch64,graviton,graviton2,graviton3,small,medium,large,huge,protected,aws,spack"
+      tags: "arm,aarch64,graviton,graviton2,graviton3,small,medium,large,huge,protected,aws,spack,pcluster"
       secret: spack-project-runner-registration-token
 
       serviceAccountName: runner
