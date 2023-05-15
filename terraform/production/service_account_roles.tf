@@ -69,6 +69,7 @@ resource "kubectl_manifest" "notary_service_account" {
       name: notary
       namespace: pipeline
       annotations:
+        # NotaryRole
         eks.amazonaws.com/role-arn: ${aws_iam_role.notary.arn}
   YAML
   depends_on = [
@@ -138,6 +139,7 @@ resource "kubectl_manifest" "spackbot_service_account" {
       name: ${each.value}-spack-io
       namespace: spack
       annotations:
+        # FullCRUDAccessToBucketSpackBinariesPRs
         eks.amazonaws.com/role-arn: ${aws_iam_role.full_crud_access_spack_binaries_prs.arn}
   YAML
   depends_on = [
@@ -192,6 +194,7 @@ resource "kubectl_manifest" "gitlab_api_scrape_service_account" {
       name: gitlab-api-scrape
       namespace: custom
       annotations:
+        # PutObjectInPipelineStatistics
         eks.amazonaws.com/role-arn: ${aws_iam_role.put_object_in_pipeline_statistics.arn}
   YAML
   depends_on = [
