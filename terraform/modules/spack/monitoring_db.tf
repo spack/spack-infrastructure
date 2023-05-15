@@ -137,6 +137,18 @@ module "database_migration_service" {
             },
             "rule-action" : "exclude",
             "filters" : []
+          },
+          {
+            "rule-type" : "selection",
+            "rule-id" : "3",
+            "rule-name" : "exclude-users-*",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "user%"
+            },
+            "rule-action" : "exclude",
+            # TODO: Could include users table and just exclude sensitive columns
+            "filters" : []
           }
         ]
       })
