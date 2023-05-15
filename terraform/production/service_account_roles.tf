@@ -130,6 +130,7 @@ resource "aws_iam_role_policy" "delete_spack_binaries_prs" {
   })
 }
 
+# Create the spackbot-spack-io and spackbotdev-spack-io ServiceAccounts
 resource "kubectl_manifest" "spackbot_service_account" {
   for_each  = toset(["spackbot", "spackbotdev"])
   yaml_body = <<-YAML
