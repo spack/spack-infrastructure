@@ -8,13 +8,14 @@ data "aws_secretsmanager_secret_version" "gitlab_db_clone_credentials" {
 
 # Compute local values required in the gitlab_db module
 locals {
-  gitlab_db_master_password       = jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_credentials.secret_string)["password"]
   gitlab_db_clone_master_password = jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_clone_credentials.secret_string)["password"]
 }
 
 
 # The definition for the RDS instance that clones from the main gitlab RDS instance
 module "gitlab_db_clone" {
+  count = var.provision_monitoring_db ? 1 : 0
+
   source  = "terraform-aws-modules/rds/aws"
   version = "5.2.3"
 
@@ -54,6 +55,8 @@ module "gitlab_db_clone" {
 
 # Defines the Change Data Capture migration between the source and clone RDS instances
 module "database_migration_service" {
+  count = var.provision_monitoring_db ? 1 : 0
+
   source  = "terraform-aws-modules/dms/aws"
   version = "~> 1.6"
 
@@ -96,11 +99,11 @@ module "database_migration_service" {
       endpoint_type = "target"
       engine_name   = "postgres"
       # Optional
-      database_name = module.gitlab_db_clone.db_instance_name
-      username      = module.gitlab_db_clone.db_instance_username
+      database_name = module.gitlab_db_clone[0].db_instance_name
+      username      = module.gitlab_db_clone[0].db_instance_username
       password      = local.gitlab_db_clone_master_password
-      port          = module.gitlab_db_clone.db_instance_port
-      server_name   = module.gitlab_db_clone.db_instance_address
+      port          = module.gitlab_db_clone[0].db_instance_port
+      server_name   = module.gitlab_db_clone[0].db_instance_address
       tags          = { EndpointType = "destination" }
     }
   }

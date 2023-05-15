@@ -58,12 +58,20 @@ variable "provision_opensearch_cluster" {
   type        = bool
 }
 
+
+variable "provision_monitoring_db" {
+  description = "Whether or not to provision a cloned DB and migration task, for analytics."
+  type        = bool
+  default     = false
+}
+
 variable "gitlab_db_master_credentials_secret" {
   description = "The arn to the secret in Secrets Manager for the gitlab RDS instance."
   type        = string
 }
 
 variable "gitlab_db_clone_master_credentials_secret" {
-  description = "The arn to the secret in Secrets Manager for the gitlab clone RDS instance."
+  description = "The arn to the secret in Secrets Manager for the gitlab clone RDS instance. Required if `provision_monitoring_db` is set to `true`."
   type        = string
+  default     = ""
 }
