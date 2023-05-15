@@ -102,7 +102,7 @@ resource "aws_iam_role" "full_crud_access_spack_binaries_prs" {
 
 resource "aws_iam_policy" "put_spack_binaries_prs" {
   name = "PutObjectsInBucketSpackBinariesPRs"
-  description = "Grant permission to PutObject for any object in the spack-binaries-prs bucket"
+  description = "Managed by Terraform. Grant permission to PutObject for any object in the spack-binaries-prs bucket"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -181,7 +181,7 @@ resource "aws_iam_role" "put_object_in_pipeline_statistics" {
 
 resource "aws_iam_policy" "put_object_in_pipeline_statistics" {
   name        = "PutObjectInPipelineStatistics"
-  description = "Managed by Terraform. Grant ability to write logs to pipeline-statistics folder of llnl-aws-39-logs bucket"
+  description = "Managed by Terraform. Grant ability to write logs to pipeline-statistics prefix of spack-logs bucket"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
