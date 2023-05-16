@@ -39,12 +39,16 @@ if __name__ == "__main__":
     py_gh_repo = py_github.get_repo("spack/spack", lazy=True)
     spackbot_author = InputGitAuthor("spackbot", "noreply@spack.io")
     print(f"Pushing tag {tag_name} for commit {sha}")
-    py_gh_repo.create_git_tag_and_release(
+
+    tag = py_gh_repo.create_git_tag(
         tag=tag_name,
-        tag_message=tag_msg,
-        release_name=tag_name,
-        release_message=tag_msg,
+        message=tag_msg,
         object=sha,
         type="commit",
         tagger=spackbot_author)
+
+    py_gh_repo.create_git_ref(
+        ref=f"refs/tags/{tag_name}",
+        sha=tag.sha)
+
     print("Push done!")
