@@ -26,7 +26,7 @@ spec:
   values:
     image: gitlab/gitlab-runner:alpine-v14.7.0
     imagePullPolicy: IfNotPresent
-    replicas: 6
+    replicas: 2
 
     gitlabUrl: "https://gitlab.staging.spack.io/"
     #gitlabUrl: "https://gitlab.spack.io/"
@@ -60,7 +60,8 @@ spec:
             memory_limit_overwrite_max_allowed = "64G"
 
             namespace = "pipeline"
-            poll_timeout = 600  # ten minutes
+            # poll_timeout = 600  # ten minutes
+            poll_timeout = 3600  # 1 hour
             service_account = "runner"
 
             # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
