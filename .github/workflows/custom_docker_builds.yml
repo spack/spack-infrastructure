@@ -19,7 +19,7 @@ jobs:
           - docker-image: gitlab-api-scrape
             image-tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
           - docker-image: ci-key-rotate
-            image-tags: ghcr.io/spack/ci-key-rotate:0.0.2
+            image-tags: ghcr.io/spack/ci-key-rotate:0.0.3
           - docker-image: ci-key-clear
             image-tags: ghcr.io/spack/ci-key-clear:0.0.1
           - docker-image: gitlab-webservice
