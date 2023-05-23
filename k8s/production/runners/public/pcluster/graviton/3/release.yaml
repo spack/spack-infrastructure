@@ -28,8 +28,7 @@ spec:
     imagePullPolicy: IfNotPresent
     replicas: 2
 
-    gitlabUrl: "https://gitlab.staging.spack.io/"
-    #gitlabUrl: "https://gitlab.spack.io/"
+    gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600 # six hours
     concurrent: 20

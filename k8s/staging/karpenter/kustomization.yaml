@@ -5,6 +5,7 @@ resources:
 - ../../production/karpenter/provisioners/runners/testing/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/graviton/2/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/x86_64/v2/provisioners.yaml
+- ../../production/karpenter/provisioners/runners/pcluster/graviton/3/provisioners.yaml
 - ../../production/karpenter/provisioners/gitlab/provisioner.yaml
 - ../../production/karpenter/provisioners/beefy/provisioner.yaml
 - ../../production/karpenter/provisioners/base/provisioner.yaml
@@ -24,3 +25,11 @@ patches:
       - op: replace
         path: /spec/requirements/2/values
         value: ["us-west-1b", "us-west-1c"]
+
+  - target:
+      kind: Provisioner
+      name: pcluster-amzn2-glr-graviton3
+    patch: |-
+      - op: replace
+        path: /spec/requirements/2/values
+        value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
