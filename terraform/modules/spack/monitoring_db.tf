@@ -127,9 +127,54 @@ module "database_migration_service" {
             "rule-action" : "include",
             "filters" : []
           },
+          # ########################################
+          # Drop sensitive columns from users tables
+          # ########################################
+          {
+            "rule-type" : "transformation",
+            "rule-id" : "2",
+            "rule-name" : "remove-users-sensitive-columns-1",
+            "rule-action" : "remove-column",
+            "rule-target" : "column",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "users",
+              "column-name" : "%encrypted%"
+            },
+            "filters" : []
+          },
+          {
+            "rule-type" : "transformation",
+            "rule-id" : "3",
+            "rule-name" : "remove-users-sensitive-columns-2",
+            "rule-action" : "remove-column",
+            "rule-target" : "column",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "users",
+              "column-name" : "%token%"
+            },
+            "filters" : []
+          },
+          {
+            "rule-type" : "transformation",
+            "rule-id" : "4",
+            "rule-name" : "remove-users-sensitive-columns-3",
+            "rule-action" : "remove-column",
+            "rule-target" : "column",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "users",
+              "column-name" : "%ip%"
+            },
+            "filters" : []
+          },
+          # ##########################
+          # Exclude unnecessary tables
+          # ##########################
           {
             "rule-type" : "selection",
-            "rule-id" : "2",
+            "rule-id" : "5",
             "rule-name" : "exclude-ci-build-needs",
             "object-locator" : {
               "schema-name" : "public",
@@ -140,14 +185,68 @@ module "database_migration_service" {
           },
           {
             "rule-type" : "selection",
-            "rule-id" : "3",
-            "rule-name" : "exclude-users-*",
+            "rule-id" : "6",
+            "rule-name" : "exclude-ci-builds-metadata",
             "object-locator" : {
               "schema-name" : "public",
-              "table-name" : "user%"
+              "table-name" : "ci_builds_metadata"
             },
             "rule-action" : "exclude",
-            # TODO: Could include users table and just exclude sensitive columns
+            "filters" : []
+          },
+          {
+            "rule-type" : "selection",
+            "rule-id" : "7",
+            "rule-name" : "exclude-ci-build-trace-metadata",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "ci_build_trace_metadata"
+            },
+            "rule-action" : "exclude",
+            "filters" : []
+          },
+          {
+            "rule-type" : "selection",
+            "rule-id" : "8",
+            "rule-name" : "exclude-ci-job-artifacts",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "ci_job_artifacts"
+            },
+            "rule-action" : "exclude",
+            "filters" : []
+          },
+          {
+            "rule-type" : "selection",
+            "rule-id" : "9",
+            "rule-name" : "exclude-ci-pipeline-variables",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "ci_pipeline_variables"
+            },
+            "rule-action" : "exclude",
+            "filters" : []
+          },
+          {
+            "rule-type" : "selection",
+            "rule-id" : "10",
+            "rule-name" : "exclude-loose-foreign-keys",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "loose_foreign_keys_deleted_records"
+            },
+            "rule-action" : "exclude",
+            "filters" : []
+          },
+          {
+            "rule-type" : "selection",
+            "rule-id" : "11",
+            "rule-name" : "exclude-web-hook-logs",
+            "object-locator" : {
+              "schema-name" : "public",
+              "table-name" : "web_hook_logs"
+            },
+            "rule-action" : "exclude",
             "filters" : []
           }
         ]
