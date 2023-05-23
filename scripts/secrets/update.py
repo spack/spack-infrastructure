@@ -2,6 +2,8 @@
 
 import curses
 import os
+import subprocess
+import tempfile
 import typing
 from pathlib import Path
 from subprocess import PIPE, Popen
@@ -24,7 +26,7 @@ def select_value(stdscr, values: list[str], titles: list[str] = []):
     curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
 
     # Clear and refresh the screen for a blank canvas
-    stdscr.clear()
+    stdscr.erase()
     stdscr.refresh()
     curses.noecho()
 
@@ -41,7 +43,7 @@ def select_value(stdscr, values: list[str], titles: list[str] = []):
     k = None
     while True:
         # Initialization
-        win.clear()
+        win.erase()
 
         # Check value
         if k == curses.KEY_DOWN:
@@ -102,7 +104,7 @@ def get_yaml_reader():
 def sealed_secret_cert_path(staging: bool) -> str:
     env = "staging" if staging else "production"
     default_cert = (
-        Path(__file__).parent.parent / "k8s" / env / "sealed-secrets" / "cert.pem"
+        Path(__file__).parents[2] / "k8s" / env / "sealed-secrets" / "cert.pem"
     )
 
     cert_path = os.getenv("SEALED_SECRETS_CERT", default_cert)
@@ -114,6 +116,20 @@ def sealed_secret_cert_path(staging: bool) -> str:
     return cert_path
 
 
+def get_secret_value():
+    """Open the user configured editor and retrieve the input value."""
+    EDITOR = os.environ.get("EDITOR", "vim")
+    with tempfile.NamedTemporaryFile() as tmp:
+        retcode = subprocess.call([EDITOR, tmp.name])
+        if retcode != 0:
+            raise click.ClickException("Error retrieving secret value")
+
+        tmp.seek(0)
+        val = tmp.read().decode("utf-8")
+
+    return val
+
+
 @click.command(help="Update an existing secret")
 @click.argument("secrets_file", type=click.Path(exists=True, dir_okay=False))
 @click.option(
@@ -122,7 +138,12 @@ def sealed_secret_cert_path(staging: bool) -> str:
     is_flag=True,
     help="Use the staging cert file.",
 )
-def main(secrets_file: str, staging: bool):
+@click.option(
+    "--value",
+    type=click.STRING,
+    help="Supply the value for the selected secret as an argument.",
+)
+def main(secrets_file: str, staging: bool, value: str):
     # Read in secrets file with comments
     yl = get_yaml_reader()
     with open(secrets_file) as f:
@@ -157,9 +178,16 @@ def main(secrets_file: str, staging: bool):
         key_to_update = click.prompt("Please enter new secret name")
 
     # Retrieve value
-    value = click.prompt(
-        "Please enter new secret value", default="", show_default=False
-    )
+    value = value or get_secret_value().strip()
+    if value == "":
+        answer = click.prompt(
+            click.style(
+                "Warning: You've entered an empty value, continue? (y/n)", fg="yellow"
+            )
+        )
+        if answer != "y":
+            click.echo(click.style("Exiting...", fg="yellow"))
+            exit(0)
 
     # Seal value
     p = Popen(

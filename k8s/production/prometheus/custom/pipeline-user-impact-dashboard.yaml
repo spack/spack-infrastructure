@@ -125,6 +125,122 @@ data:
         },
         {
           "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "displayName": "${__series.name}",
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 6,
+            "y": 0
+          },
+          "id": 8,
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "values": [
+                "percent"
+              ]
+            },
+            "pieType": "pie",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum by (label_metrics_spack_job_spec_pkg_name) (\n    rate(container_cpu_usage_seconds_total{namespace=\"pipeline\", container=\"build\"}[$__rate_interval])\n    * on(pod) group_left(\n        label_metrics_gitlab_ci_pipeline_id,\n        label_metrics_gitlab_ci_job_stage,\n        label_metrics_gitlab_ci_commit_ref_name,\n        label_metrics_spack_ci_stack_name,\n        label_metrics_spack_job_spec_pkg_name\n    )\n    kube_pod_labels{namespace=\"pipeline\", label_metrics_spack_job_spec_pkg_name!=\"\"}\n)",
+              "legendFormat": "{{label_metrics_spack_job_spec_pkg_name}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Top 10 Packages by CPU build time",
+          "transformations": [
+            {
+              "id": "seriesToRows",
+              "options": {}
+            },
+            {
+              "id": "groupBy",
+              "options": {
+                "fields": {
+                  "Metric": {
+                    "aggregations": [],
+                    "operation": "groupby"
+                  },
+                  "Value": {
+                    "aggregations": [
+                      "sum"
+                    ],
+                    "operation": "aggregate"
+                  }
+                }
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "desc": true,
+                    "field": "Value (sum)"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "limit",
+              "options": {
+                "limitField": 10
+              }
+            },
+            {
+              "id": "partitionByValues",
+              "options": {
+                "fields": [
+                  "Metric"
+                ]
+              }
+            }
+          ],
+          "type": "piechart"
+        },
+        {
+          "datasource": {
             "type": "grafana-opensearch-datasource",
             "uid": "P9744FCCEAAFBD98F"
           },

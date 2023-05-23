@@ -19,7 +19,7 @@ jobs:
           - docker-image: gitlab-api-scrape
             image-tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
           - docker-image: ci-key-rotate
-            image-tags: ghcr.io/spack/ci-key-rotate:0.0.2
+            image-tags: ghcr.io/spack/ci-key-rotate:0.0.3
           - docker-image: ci-key-clear
             image-tags: ghcr.io/spack/ci-key-clear:0.0.1
           - docker-image: gitlab-webservice
@@ -47,7 +47,7 @@ jobs:
           - docker-image: upload-gitlab-failure-logs
             image-tags: ghcr.io/spack/upload-gitlab-failure-logs:0.0.1
           - docker-image: snapshot-release-tags
-            image-tags: ghcr.io/spack/snapshot-release-tags:0.0.1
+            image-tags: ghcr.io/spack/snapshot-release-tags:0.0.2
     steps:
       - name: Checkout
         uses: actions/checkout@v3
