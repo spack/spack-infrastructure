@@ -105,6 +105,13 @@ resource "kubectl_manifest" "karpenter_node_template" {
   ]
 }
 
+locals {
+  pcluster_ami_id = {
+    "prod": "ami-00b2c701206072ffc"
+    "staging": "ami-0e2c34d361e37afa2"
+  }
+}
+
 resource "kubectl_manifest" "karpenter_pcluster_node_template" {
   yaml_body = <<-YAML
     apiVersion: karpenter.k8s.aws/v1alpha1
@@ -113,10 +120,8 @@ resource "kubectl_manifest" "karpenter_pcluster_node_template" {
       name: pcluster-amzn2-arm64
     spec:
       amiSelector:
-        "aws::name": "aws-parallelcluster-3.5.1-amzn2-hvm-arm64-202303171148 2023-03-17T11-52-32.544Z"
-        "aws::owner": "247102896272"
-        # "aws::ids": "ami-0d87b43677ef96ab9" # us-east-1
-        # "aws::ids": "ami-0597a0565f343efb8" # us-west-2
+        # Custom parallel cluster AMI
+        "aws-ids": ${local.pcluster_ami_id[var.deployment_name]}
       subnetSelector:
         # This value *must* match one of the tags placed on the subnets for this
         # EKS cluster (see vpc.tf for these).
@@ -127,13 +132,6 @@ resource "kubectl_manifest" "karpenter_pcluster_node_template" {
         karpenter.sh/discovery: ${var.deployment_name}
       securityGroupSelector:
         karpenter.sh/discovery: ${module.eks.cluster_name}
-      # Install and start docker for Kubernetes
-      userData: |
-        #!/bin/bash
-        yum -y install docker
-        systemctl start docker
-        # groupadd docker
-        usermod -aG docker ec2-user
       tags:
         karpenter.sh/discovery: ${module.eks.cluster_name}
         spack.io/pcluster: "true"
