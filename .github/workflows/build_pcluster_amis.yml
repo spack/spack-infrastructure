@@ -1,0 +1,97 @@
+name: Build pcluster AMIs
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Cancel any workflows that are already running
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    name: Build AMI [${{ matrix.architecture }}, ${{ matrix.aws-region }}]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64
+            source-ami-id: ami-011244318c573c915
+            aws-region: us-east-1
+          - architecture: arm64
+            source-ami-id: ami-0d87b43677ef96ab9
+            aws-region: us-east-1
+          - architecture: x86_64
+            source-ami-id: ami-08f1611028f2254b3
+            aws-region: us-west-2
+          - architecture: arm64
+            source-ami-id: ami-0597a0565f343efb8
+            aws-region: us-west-2
+    steps:
+      - name: Checkout `spack-infrastructure` repo
+        uses: actions/checkout@v3
+
+      - name: Checkout `awslabs/amazon-eks-ami` repo
+        uses: actions/checkout@v3
+        with:
+          repository: awslabs/amazon-eks-ami
+          path: amazon-eks-ami
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2.0.0
+        with:
+          role-to-assume: arn:aws:iam::588562868276:role/GitHubActionsRole
+          aws-region: ${{ matrix.aws-region }}
+
+      - name: Setup packer
+        uses: hashicorp/setup-packer@v2.0.0
+        with:
+          version: latest
+
+      - name: Setup terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          # Disable the github actions "wrapper" for Terraform
+          # because it transforms the output such that it can't
+          # be read by `jq`.
+          terraform_wrapper: false
+
+      - name: Initialize terraform
+        working-directory: terraform/production
+        run: terraform init -input=false
+
+      - name: Get k8s version from terraform state
+        working-directory: terraform/production
+        run: |
+          K8S_VERSION=$(terraform show -json | jq '.values.root_module.child_modules[] | select(.address == "module.production_cluster") | .child_modules[] | select(.address == "module.production_cluster.module.eks") | .resources[] | select(.address == "module.production_cluster.module.eks.aws_eks_cluster.this[0]") | .values.version')
+          K8S_VERSION=$(echo $K8S_VERSION | tr -d '"') # Remove inlined quotes
+          echo "K8S_VERSION=$K8S_VERSION" >> $GITHUB_ENV
+
+      - name: Build AMI with packer if it doesn't exist
+        working-directory: amazon-eks-ami
+        run: |
+          IMAGE_NAME="pcluster_${{ matrix.architecture }}_${{ env.K8S_VERSION }}"
+          FOUND_AMIS=$(aws ec2 describe-images --filters "Name=name,Values=$IMAGE_NAME" | jq '.Images | length')
+
+          # Only build the AMI if it doesn't exist
+          if [ $FOUND_AMIS -eq 0 ]; then
+            make ${{ env.K8S_VERSION }} \
+              arch="${{ matrix.architecture }}" \
+              name="$IMAGE_NAME" \
+              ami_name="$IMAGE_NAME" \
+              aws_region="${{ matrix.aws-region }}" \
+              source_ami_filter_name="aws-parallelcluster-*" \
+              source_ami_id="${{ matrix.source-ami-id }}" \
+              source_ami_owners="247102896272" \
+              launch_block_device_mappings_volume_size=35
+          else
+            echo 'AMI "$IMAGE_NAME" already exists.'
+          fi
