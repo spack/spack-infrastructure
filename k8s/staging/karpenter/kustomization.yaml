@@ -31,5 +31,5 @@ patches:
       name: pcluster-amzn2-glr-graviton3
     patch: |-
       - op: replace
-        path: /spec/requirements/2/values
+        path: /spec/requirements/3/values
         value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
