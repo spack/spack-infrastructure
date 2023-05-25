@@ -104,3 +104,46 @@ resource "kubectl_manifest" "karpenter_node_template" {
     helm_release.karpenter
   ]
 }
+
+locals {
+  pcluster_ami_id = {
+    "prod": "ami-00b2c701206072ffc"
+    "staging": "ami-0e2c34d361e37afa2"
+  }
+}
+
+resource "kubectl_manifest" "karpenter_pcluster_node_template" {
+  yaml_body = <<-YAML
+    apiVersion: karpenter.k8s.aws/v1alpha1
+    kind: AWSNodeTemplate
+    metadata:
+      name: pcluster-amzn2-arm64
+    spec:
+      amiSelector:
+        # Custom parallel cluster AMI
+        "aws-ids": ${local.pcluster_ami_id[var.deployment_name]}
+      subnetSelector:
+        # This value *must* match one of the tags placed on the subnets for this
+        # EKS cluster (see vpc.tf for these).
+        # We use the "deployment_name" variable here instead of the full cluster name
+        # because the full cluster name isn't available at the time that we bootstrap
+        # the VPC resources (including subnets). However, "deployment_name" is also
+        # a unique-per-cluster value, so it should work just as well.
+        karpenter.sh/discovery: ${var.deployment_name}
+      securityGroupSelector:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+      tags:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+        spack.io/pcluster: "true"
+      blockDeviceMappings:
+        - deviceName: /dev/xvda
+          ebs:
+            volumeSize: 200Gi
+            volumeType: gp3
+            deleteOnTermination: true
+  YAML
+
+  depends_on = [
+    helm_release.karpenter
+  ]
+}

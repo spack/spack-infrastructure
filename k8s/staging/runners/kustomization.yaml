@@ -5,6 +5,7 @@ resources:
 - ../../production/runners/service-accounts.yaml
 - ../../production/runners/namespace.yaml
 - ../../production/runners/public/graviton/2/release.yaml
+- ../../production/runners/public/pcluster/graviton/3/release.yaml
 - ../../production/runners/public/x86_64/v2/release.yaml
 
 patchesStrategicMerge:
@@ -36,6 +37,15 @@ patches:
   - target:
       kind: HelmRelease
       name: runner-x86-v2-pub
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-graviton3-pcluster-pub
       namespace: gitlab
     patch: |-
       - op: replace
