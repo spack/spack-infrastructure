@@ -124,6 +124,9 @@ def reindex(dry_run: bool, days: int, error_taxonomy: str | None):
         job = project.jobs.get(job_id)
         job_trace: str = job.trace().decode()  # type: ignore
 
+        # NOTE: The code below could be out of date, and should be checked against the code in
+        # images/upload-gitlab-failure-logs/upload_gitlab_failure_logs.py
+
         matching_patterns = set()
         for error_class, lookups in taxonomy["error_classes"].items():
             if lookups:
