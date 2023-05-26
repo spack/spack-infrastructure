@@ -107,10 +107,6 @@ spec:
               mount_path = "/opt"
               read_only = true
             [[runners.kubernetes.volumes.host_path]]
-              name = "keys"
-              mount_path = "/mnt/key"
-              read_only = true
-            [[runners.kubernetes.volumes.host_path]]
               name = "modules"
               mount_path = "/usr/share/Modules/modulefiles"
               read_only = true
