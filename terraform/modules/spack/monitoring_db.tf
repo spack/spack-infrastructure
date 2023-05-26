@@ -1,14 +1,16 @@
 # Retrieve the master password for the gitlab clone production database
 data "aws_secretsmanager_secret" "gitlab_db_clone_credentials" {
-  arn = var.gitlab_db_clone_master_credentials_secret
+  count = var.gitlab_db_clone_master_credentials_secret == "" ? 0 : 1
+  arn   = var.gitlab_db_clone_master_credentials_secret
 }
 data "aws_secretsmanager_secret_version" "gitlab_db_clone_credentials" {
-  secret_id = data.aws_secretsmanager_secret.gitlab_db_clone_credentials.id
+  count     = var.gitlab_db_clone_master_credentials_secret == "" ? 0 : 1
+  secret_id = data.aws_secretsmanager_secret.gitlab_db_clone_credentials[0].id
 }
 
 # Compute local values required in the gitlab_db module
 locals {
-  gitlab_db_clone_master_password = jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_clone_credentials.secret_string)["password"]
+  gitlab_db_clone_master_password = var.gitlab_db_clone_master_credentials_secret == "" ? "" : jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_clone_credentials[0].secret_string)["password"]
 }
 
 
