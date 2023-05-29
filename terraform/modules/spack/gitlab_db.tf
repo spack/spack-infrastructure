@@ -43,46 +43,9 @@ locals {
   autovacuum_max_workers          = max(local.instance_type_memory_bytes / 64371566592, 3)
   max_parallel_workers            = max(data.aws_ec2_instance_type.gitlab_db_instance_type.default_vcpus / 2, 8)
   max_worker_processes            = sum([local.max_logical_replication_workers, local.autovacuum_max_workers, local.max_parallel_workers])
-}
 
-module "gitlab_db" {
-  source  = "terraform-aws-modules/rds/aws"
-  version = "5.2.3"
-
-  identifier = "gitlab-${var.deployment_name}"
-
-  engine               = "postgres"
-  engine_version       = "14.3"
-  family               = "postgres14"
-  major_engine_version = "14"
-  instance_class       = var.gitlab_db_instance_class
-
-  db_name                = "gitlabhq_production"
-  username               = "postgres"
-  port                   = "5432"
-  create_random_password = false
-  password               = local.gitlab_db_master_password
-
-  publicly_accessible  = false
-  db_subnet_group_name = aws_db_subnet_group.spack.name
-
-  maintenance_window              = "Sun:00:00-Sun:03:00"
-  backup_window                   = "03:00-06:00"
-  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
-  create_cloudwatch_log_group     = true
-
-  backup_retention_period = 7
-  skip_final_snapshot     = false
-  deletion_protection     = true
-
-  allocated_storage     = 500
-  max_allocated_storage = 1000
-
-  vpc_security_group_ids = [module.postgres_security_group.security_group_id]
-
-  # Set parameters in the automatically created parameter group to allow DMS to work correctly
-  create_db_parameter_group = true
-  parameters = [
+  # Conditionally specify params
+  gitlab_db_params = !var.provision_monitoring_db ? [] : [
     # Enable logical replication so CDCs can be run correctly
     {
       name         = "rds.logical_replication"
@@ -122,4 +85,46 @@ module "gitlab_db" {
       apply_method = "pending-reboot"
     }
   ]
+}
+
+
+
+module "gitlab_db" {
+  source  = "terraform-aws-modules/rds/aws"
+  version = "5.2.3"
+
+  identifier = "gitlab-${var.deployment_name}"
+
+  engine               = "postgres"
+  engine_version       = "14.3"
+  family               = "postgres14"
+  major_engine_version = "14"
+  instance_class       = var.gitlab_db_instance_class
+
+  db_name                = "gitlabhq_production"
+  username               = "postgres"
+  port                   = "5432"
+  create_random_password = false
+  password               = local.gitlab_db_master_password
+
+  publicly_accessible  = false
+  db_subnet_group_name = aws_db_subnet_group.spack.name
+
+  maintenance_window              = "Sun:00:00-Sun:03:00"
+  backup_window                   = "03:00-06:00"
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
+  create_cloudwatch_log_group     = true
+
+  backup_retention_period = 7
+  skip_final_snapshot     = false
+  deletion_protection     = true
+
+  allocated_storage     = 500
+  max_allocated_storage = 1000
+
+  vpc_security_group_ids = [module.postgres_security_group.security_group_id]
+
+  # Set parameters in the automatically created parameter group to allow DMS to work correctly
+  create_db_parameter_group = true
+  parameters                = local.gitlab_db_params
 }
