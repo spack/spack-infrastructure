@@ -96,6 +96,13 @@ module "database_migration_service" {
     }
 
     destination = {
+      # Note: It's difficult to encode this into terraform at the moment (https://github.com/hashicorp/terraform-provider-aws/issues/23225),
+      # but the following setting needs to be entered into the "Endpoint Settings" of the target endpoint
+      # `AfterConnectScript="SET session_replication_role=replica"`
+
+      # This can also be done with the following command from the CLI:
+      # aws dms modify-endpoint --endpoint-arn 'ENDPOINT_ARN' --postgre-sql-settings='AfterConnectScript="SET session_replication_role=replica"'
+
       # Required
       endpoint_id   = "gitlab-db-target-endpoint"
       endpoint_type = "target"
