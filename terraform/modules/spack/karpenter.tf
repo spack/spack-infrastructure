@@ -149,15 +149,18 @@ locals {
 }
 
 resource "kubectl_manifest" "karpenter_pcluster_node_template" {
+  for_each  = toset(["x86_64", "arm64"])
   yaml_body = <<-YAML
     apiVersion: karpenter.k8s.aws/v1alpha1
     kind: AWSNodeTemplate
     metadata:
-      name: pcluster-amzn2-arm64
+      name: pcluster-amzn2-${each.value}
     spec:
       amiSelector:
-        # Custom parallel cluster AMI
-        "aws-ids": ${local.pcluster_ami_id[var.deployment_name]}
+        # Custom parallel cluster AMI.
+        # Note, this name matches up with the AMIs built in GitHub Actions
+        # (see .github/workflows/build_pcluster_amis.yml)
+        "aws::name": pcluster_${each.value}_${var.kubernetes_version}
       subnetSelector:
         # This value *must* match one of the tags placed on the subnets for this
         # EKS cluster (see vpc.tf for these).
