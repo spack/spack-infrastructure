@@ -99,6 +99,8 @@ module "staging_cluster" {
 
   deployment_name = "staging"
 
+  kubernetes_version = "1.27"
+
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
 
   vpc_cidr = "192.168.0.0/16"

@@ -98,6 +98,8 @@ module "production_cluster" {
 
   deployment_name = "prod"
 
+  kubernetes_version = "1.27"
+
   availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
   vpc_cidr = "192.168.0.0/16"
