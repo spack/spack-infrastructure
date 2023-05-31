@@ -4,6 +4,7 @@ metadata:
   name: cancel-and-restart-stuck-pipelines
   namespace: custom
 spec:
+  suspend: true
   schedule: "0 */3 * * *"
   jobTemplate:
     spec:
