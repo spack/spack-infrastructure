@@ -1,0 +1,205 @@
+{
+  mappings: {
+    // Disable date_detection. OpenSearch thinks the `version` field in spec.json is a date
+    // for some reason.
+    date_detection: false,
+    properties: {
+      hash: {
+        type: "text",
+        fields: {
+          keyword: {
+            type: "keyword",
+            ignore_above: 256,
+          },
+        },
+      },
+      install_times: {
+        properties: {
+          phases: {
+            properties: {
+              name: {
+                type: "text",
+                fields: {
+                  keyword: {
+                    type: "keyword",
+                    ignore_above: 256,
+                  },
+                },
+              },
+              seconds: {
+                type: "float",
+              },
+            },
+          },
+          total: {
+            properties: {
+              seconds: {
+                type: "float",
+              },
+            },
+          },
+        },
+      },
+      "spack-build-out": {
+        type: "object",
+        // Don't index this field. The data is unstructured and not really
+        // worth indexing unless there's a need to do so.
+        enabled: false,
+      },
+      spec: {
+        properties: {
+          _meta: {
+            properties: {
+              version: {
+                type: "long",
+              },
+            },
+          },
+          nodes: {
+            properties: {
+              arch: {
+                properties: {
+                  platform: {
+                    type: "text",
+                    fields: {
+                      keyword: {
+                        type: "keyword",
+                        ignore_above: 256,
+                      },
+                    },
+                  },
+                  platform_os: {
+                    type: "text",
+                    fields: {
+                      keyword: {
+                        type: "keyword",
+                        ignore_above: 256,
+                      },
+                    },
+                  },
+                  target: {
+                    type: "object",
+                    // This particular field can be a string or object. OpenSearch can't index a
+                    // field that behaves that way, so disable indexing on it.
+                    enabled: false,
+                  },
+                },
+              },
+              compiler: {
+                properties: {
+                  name: {
+                    type: "text",
+                    fields: {
+                      keyword: {
+                        type: "keyword",
+                        ignore_above: 256,
+                      },
+                    },
+                  },
+                  version: {
+                    type: "text",
+                    fields: {
+                      keyword: {
+                        type: "keyword",
+                        ignore_above: 256,
+                      },
+                    },
+                  },
+                },
+              },
+              dependencies: {
+                properties: {
+                  hash: {
+                    type: "text",
+                    fields: {
+                      keyword: {
+                        type: "keyword",
+                        ignore_above: 256,
+                      },
+                    },
+                  },
+                  name: {
+                    type: "text",
+                    fields: {
+                      keyword: {
+                        type: "keyword",
+                        ignore_above: 256,
+                      },
+                    },
+                  },
+                  type: {
+                    type: "text",
+                    fields: {
+                      keyword: {
+                        type: "keyword",
+                        ignore_above: 256,
+                      },
+                    },
+                  },
+                },
+              },
+              hash: {
+                type: "text",
+                fields: {
+                  keyword: {
+                    type: "keyword",
+                    ignore_above: 256,
+                  },
+                },
+              },
+              name: {
+                type: "text",
+                fields: {
+                  keyword: {
+                    type: "keyword",
+                    ignore_above: 256,
+                  },
+                },
+              },
+              namespace: {
+                type: "text",
+                fields: {
+                  keyword: {
+                    type: "keyword",
+                    ignore_above: 256,
+                  },
+                },
+              },
+              package_hash: {
+                type: "text",
+                fields: {
+                  keyword: {
+                    type: "keyword",
+                    ignore_above: 256,
+                  },
+                },
+              },
+              parameters: {
+                type: "object",
+                enabled: false,
+              },
+              patches: {
+                type: "text",
+                fields: {
+                  keyword: {
+                    type: "keyword",
+                    ignore_above: 256,
+                  },
+                },
+              },
+              version: {
+                type: "text",
+                fields: {
+                  keyword: {
+                    type: "keyword",
+                    ignore_above: 256,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+}
