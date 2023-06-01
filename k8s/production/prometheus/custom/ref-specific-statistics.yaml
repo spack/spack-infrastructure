@@ -42,6 +42,256 @@ data:
       "panels": [
         {
           "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "P9744FCCEAAFBD98F"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "semi-dark-red",
+                "mode": "fixed"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "fillOpacity": 80,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [
+                {
+                  "targetBlank": true,
+                  "title": "OpenSearch",
+                  "url": "https://opensearch.spack.io/_dashboards/app/discover#/view/81a77920-be9e-11ed-9686-f3b558bb6f9d?_a=(columns:!(_source),filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:a3cd1530-5947-11ed-8e73-4fb26a200a42,key:error_taxonomy,negate:!f,params:(query:${__data.fields[\"error_taxonomy.keyword\"]}),type:phrase),query:(match_phrase:(error_taxonomy:${__data.fields[\"error_taxonomy.keyword\"]}))),('$state':(store:appState),meta:(alias:!n,disabled:!f,index:a3cd1530-5947-11ed-8e73-4fb26a200a42,key:ref,negate:!f,params:(query:${targetRef}),type:phrase),query:(match_phrase:(ref:${targetRef})))),index:a3cd1530-5947-11ed-8e73-4fb26a200a42,interval:auto,query:(language:lucene,query:''),sort:!(!(timestamp,desc)))&_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:'${__from:date:iso}',to:'${__to:date:iso}'))\n"
+                }
+              ],
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 18,
+            "w": 17,
+            "x": 0,
+            "y": 0
+          },
+          "id": 2,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.97,
+            "groupWidth": 0.7,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "orientation": "horizontal",
+            "showValue": "auto",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "targets": [
+            {
+              "alias": "",
+              "bucketAggs": [
+                {
+                  "field": "error_taxonomy.keyword",
+                  "id": "2",
+                  "settings": {
+                    "min_doc_count": "0",
+                    "order": "desc",
+                    "orderBy": "_count",
+                    "size": "20"
+                  },
+                  "type": "terms"
+                }
+              ],
+              "datasource": {
+                "type": "grafana-opensearch-datasource",
+                "uid": "P9744FCCEAAFBD98F"
+              },
+              "format": "table",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "ref:${targetRef}",
+              "queryType": "lucene",
+              "refId": "A",
+              "timeField": "timestamp"
+            }
+          ],
+          "title": "CI Failures by Error Taxonomy (on \"${targetRef}\")",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "PCC52D03280B7034C"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                }
+              },
+              "mappings": []
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "failed"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "semi-dark-red",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 18,
+            "w": 6,
+            "x": 17,
+            "y": 0
+          },
+          "id": 6,
+          "options": {
+            "displayLabels": [
+              "name",
+              "percent"
+            ],
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "pieType": "pie",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "postgres",
+                "uid": "PCC52D03280B7034C"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "hide": false,
+              "rawQuery": true,
+              "rawSql": "SELECT\n  CAST(COUNT(status) as float) as success\n  from ci_builds\n  where $__timeFilter(\"finished_at\") and status = 'success' and ref = '${targetRef}';",
+              "refId": "success",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              },
+              "table": "ci_builds"
+            },
+            {
+              "datasource": {
+                "type": "postgres",
+                "uid": "PCC52D03280B7034C"
+              },
+              "editorMode": "code",
+              "format": "table",
+              "hide": false,
+              "rawQuery": true,
+              "rawSql": "SELECT\n  CAST(COUNT(status) as float) as failed\n  from ci_builds\n  where $__timeFilter(\"finished_at\") and status = 'failed' and ref = '${targetRef}';",
+              "refId": "failed",
+              "sql": {
+                "columns": [
+                  {
+                    "parameters": [],
+                    "type": "function"
+                  }
+                ],
+                "groupBy": [
+                  {
+                    "property": {
+                      "type": "string"
+                    },
+                    "type": "groupBy"
+                  }
+                ],
+                "limit": 50
+              },
+              "table": "ci_builds"
+            }
+          ],
+          "title": "Status of Completed Jobs (on \"${targetRef}\")",
+          "type": "piechart"
+        },
+        {
+          "datasource": {
             "type": "postgres",
             "uid": "PCC52D03280B7034C"
           },
@@ -131,9 +381,9 @@ data:
           },
           "gridPos": {
             "h": 10,
-            "w": 19,
+            "w": 23,
             "x": 0,
-            "y": 0
+            "y": 18
           },
           "id": 4,
           "interval": "6hr",
@@ -233,146 +483,13 @@ data:
         },
         {
           "datasource": {
-            "type": "postgres",
-            "uid": "PCC52D03280B7034C"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "mappings": []
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "failed"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "semi-dark-red",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 4,
-            "x": 19,
-            "y": 0
-          },
-          "id": 6,
-          "options": {
-            "displayLabels": [
-              "name",
-              "percent"
-            ],
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "pieType": "pie",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "PCC52D03280B7034C"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "hide": false,
-              "rawQuery": true,
-              "rawSql": "SELECT\n  CAST(COUNT(status) as float) as success\n  from ci_builds\n  where $__timeFilter(\"finished_at\") and status = 'success' and ref = '${targetRef}';",
-              "refId": "success",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              },
-              "table": "ci_builds"
-            },
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "PCC52D03280B7034C"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "hide": false,
-              "rawQuery": true,
-              "rawSql": "SELECT\n  CAST(COUNT(status) as float) as failed\n  from ci_builds\n  where $__timeFilter(\"finished_at\") and status = 'failed' and ref = '${targetRef}';",
-              "refId": "failed",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              },
-              "table": "ci_builds"
-            }
-          ],
-          "title": "Status of Completed Jobs (on \"${targetRef}\")",
-          "type": "piechart"
-        },
-        {
-          "datasource": {
             "type": "grafana-opensearch-datasource",
             "uid": "P9744FCCEAAFBD98F"
           },
           "fieldConfig": {
             "defaults": {
               "color": {
-                "fixedColor": "semi-dark-red",
-                "mode": "fixed"
+                "mode": "palette-classic"
               },
               "custom": {
                 "axisCenteredZero": false,
@@ -394,13 +511,7 @@ data:
                   "mode": "off"
                 }
               },
-              "links": [
-                {
-                  "targetBlank": true,
-                  "title": "OpenSearch",
-                  "url": "https://opensearch.spack.io/_dashboards/app/discover#/view/81a77920-be9e-11ed-9686-f3b558bb6f9d?_a=(columns:!(_source),filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:a3cd1530-5947-11ed-8e73-4fb26a200a42,key:error_taxonomy,negate:!f,params:(query:${__data.fields[\"error_taxonomy.keyword\"]}),type:phrase),query:(match_phrase:(error_taxonomy:${__data.fields[\"error_taxonomy.keyword\"]}))),('$state':(store:appState),meta:(alias:!n,disabled:!f,index:a3cd1530-5947-11ed-8e73-4fb26a200a42,key:ref,negate:!f,params:(query:${targetRef}),type:phrase),query:(match_phrase:(ref:${targetRef})))),index:a3cd1530-5947-11ed-8e73-4fb26a200a42,interval:auto,query:(language:lucene,query:''),sort:!(!(timestamp,desc)))&_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:'${__from:date:iso}',to:'${__to:date:iso}'))\n"
-                }
-              ],
+              "links": [],
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
@@ -419,12 +530,13 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 19,
+            "h": 8,
             "w": 23,
             "x": 0,
-            "y": 10
+            "y": 28
           },
-          "id": 2,
+          "id": 8,
+          "interval": "6h",
           "options": {
             "barRadius": 0,
             "barWidth": 0.97,
@@ -435,14 +547,14 @@ data:
               "placement": "bottom",
               "showLegend": true
             },
-            "orientation": "horizontal",
+            "orientation": "auto",
             "showValue": "auto",
             "stacking": "none",
             "tooltip": {
               "mode": "single",
               "sort": "none"
             },
-            "xTickLabelRotation": 0,
+            "xTickLabelRotation": -90,
             "xTickLabelSpacing": 0
           },
           "targets": [
@@ -450,15 +562,12 @@ data:
               "alias": "",
               "bucketAggs": [
                 {
-                  "field": "error_taxonomy.keyword",
+                  "field": "timestamp",
                   "id": "2",
                   "settings": {
-                    "min_doc_count": "0",
-                    "order": "desc",
-                    "orderBy": "_count",
-                    "size": "20"
+                    "interval": "auto"
                   },
-                  "type": "terms"
+                  "type": "date_histogram"
                 }
               ],
               "datasource": {
@@ -466,132 +575,21 @@ data:
                 "uid": "P9744FCCEAAFBD98F"
               },
               "format": "table",
+              "hide": false,
               "metrics": [
                 {
                   "id": "1",
                   "type": "count"
                 }
               ],
-              "query": "ref:${targetRef}",
-              "queryType": "lucene",
-              "refId": "A",
-              "timeField": "timestamp"
-            }
-          ],
-          "title": "CI Failures by Error Taxonomy (on \"${targetRef}\")",
-          "type": "barchart"
-        },
-        {
-          "id": 8,
-          "gridPos": {
-            "x": 0,
-            "y": 29,
-            "w": 23,
-            "h": 8
-          },
-          "type": "barchart",
-          "title": "no_binary_for_spec errors",
-          "datasource": {
-            "uid": "P9744FCCEAAFBD98F",
-            "type": "grafana-opensearch-datasource"
-          },
-          "interval": "6h",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "lineWidth": 1,
-                "fillOpacity": 80,
-                "gradientMode": "none",
-                "axisPlacement": "auto",
-                "axisLabel": "",
-                "axisColorMode": "text",
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "axisCenteredZero": false,
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "color": {
-                "mode": "palette-classic"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "links": []
-            },
-            "overrides": []
-          },
-          "options": {
-            "orientation": "auto",
-            "xTickLabelRotation": -90,
-            "xTickLabelSpacing": 0,
-            "showValue": "auto",
-            "stacking": "none",
-            "groupWidth": 0.7,
-            "barWidth": 0.97,
-            "barRadius": 0,
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            },
-            "legend": {
-              "showLegend": true,
-              "displayMode": "list",
-              "placement": "bottom",
-              "calcs": []
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "uid": "P9744FCCEAAFBD98F",
-                "type": "grafana-opensearch-datasource"
-              },
-              "refId": "A",
-              "hide": false,
               "query": "error_taxonomy: no_binary_for_spec AND ref: $targetRef",
               "queryType": "lucene",
-              "alias": "",
-              "metrics": [
-                {
-                  "type": "count",
-                  "id": "1"
-                }
-              ],
-              "bucketAggs": [
-                {
-                  "type": "date_histogram",
-                  "id": "2",
-                  "settings": {
-                    "interval": "auto"
-                  },
-                  "field": "timestamp"
-                }
-              ],
-              "format": "table",
+              "refId": "A",
               "timeField": "timestamp"
             }
           ],
-          "timeFrom": null,
-          "timeShift": null
+          "title": "no_binary_for_spec errors",
+          "type": "barchart"
         }
       ],
       "schemaVersion": 37,
@@ -602,8 +600,8 @@ data:
           {
             "current": {
               "selected": false,
-              "text": "releases/v0.20",
-              "value": "releases/v0.20"
+              "text": "develop",
+              "value": "develop"
             },
             "description": "The name of the branch or tag the dashboard should focus on.",
             "hide": 0,
@@ -612,24 +610,24 @@ data:
             "options": [
               {
                 "selected": true,
-                "text": "releases/v0.20",
-                "value": "releases/v0.20"
+                "text": "develop",
+                "value": "develop"
               }
             ],
-            "query": "releases/v0.20",
+            "query": "develop",
             "skipUrlSync": false,
             "type": "textbox"
           }
         ]
       },
       "time": {
-        "from": "now-12d",
+        "from": "now-30d",
         "to": "now"
       },
       "timepicker": {},
       "timezone": "",
       "title": "Ref-Specific Statistics",
       "uid": "DJsFX5w4z",
-      "version": 11,
+      "version": 14,
       "weekStart": ""
     }
