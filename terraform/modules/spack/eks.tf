@@ -307,3 +307,16 @@ resource "kubectl_manifest" "cluster_name_config_map" {
         cluster-name: ${module.eks.cluster_name}
   YAML
 }
+
+# Define a configmap to enable windows
+resource "kubectl_manifest" "windows_vpc_cni_config_map" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: amazon-vpc-cni
+      namespace: kube-system
+    data:
+      enable-windows-ipam: "true"
+  YAML
+}
