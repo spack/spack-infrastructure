@@ -62,6 +62,41 @@ module "eks" {
       max_size     = 3
       desired_size = 2
     }
+
+    windows = {
+      instance_types        = ["m5.2xlarge"]
+      create_security_group = false
+
+      # Node pool size
+      min_size     = 1
+      max_size     = 1
+      desired_size = 1
+
+      # Prevent anything without a windows taint toleration from being scheduled on this node
+      taints = {
+        windows = {
+          key    = "windows"
+          value  = "true"
+          effect = "NO_SCHEDULE"
+        }
+      }
+
+      # EC2 settings
+      capacity_type = "ON_DEMAND"
+      block_device_mappings = {
+        sda1 = {
+          device_name = "/dev/sda1"
+          ebs = {
+            volume_size           = 200
+            volume_type           = "gp3"
+            delete_on_termination = true
+          }
+        }
+      }
+
+      # Windows specific settings
+      ami_type = "WINDOWS_FULL_2019_x86_64"
+    }
   }
 
   cluster_addons = {
