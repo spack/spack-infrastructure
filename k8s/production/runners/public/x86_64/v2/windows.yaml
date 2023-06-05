@@ -48,6 +48,7 @@ spec:
 
     runners:
       # default image
+      # image: "mcr.microsoft.com/windows/nanoserver:ltsc2019"
       image: "mcr.microsoft.com/windows/servercore:ltsc2019"
       imagePullPolicy: "if-not-present"
       locked: false
@@ -73,24 +74,30 @@ spec:
             FF_USE_POWERSHELL_PATH_RESOLVER = true
 
           [runners.kubernetes]
+            namespace = "pipeline"
+            service_account = "runner"
+            poll_timeout = 600  # ten minutes
+            privileged = false
+
             # Image for windows 2019, runner helper v14.7.0
             # Windows 2022 cannot be used until we upgrade gitlab runner helper to a version which supports it
+            # helper_image = "gitlab/gitlab-runner-helper:x86_64-af623eec-nanoserver1809"
             helper_image = "gitlab/gitlab-runner-helper:x86_64-98daeee0-servercore1809"
 
-            privileged = false
-            helper_memory_request = "1"
-
+            # CPU requests/limits
             cpu_request = "750m"
             cpu_request_overwrite_max_allowed = "12"
 
+            # Memory requests/limits
+            helper_memory_request = "1"
             memory_request = "2G"
             memory_request_overwrite_max_allowed = "48G"
             memory_limit = "48G"
             memory_limit_overwrite_max_allowed = "48G"
 
-            namespace = "pipeline"
-            poll_timeout = 600  # ten minutes
-            service_account = "runner"
+            # Storage requests/limits
+            ephemeral_storage_request = "500M"
+            helper_ephemeral_storage_request = "500M"
 
             # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
             # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled
@@ -106,6 +113,8 @@ spec:
                       operator = "In"
                       values = ["true"]
 
+            [[runners.kubernetes.pod_spec]]
+              ttlSecondsAfterFinished = "300" # 5 minutes
             [runners.kubernetes.pod_annotations]
               "fluentbit.io/exclude" = "true"
               "karpenter.sh/do-not-evict" = "true"
