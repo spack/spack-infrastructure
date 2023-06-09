@@ -27,6 +27,8 @@ Once you have a file containing one or more SealedSecret resources, you'll need 
 
 This will prompt you to select the specific secret you want to modify (if several are defined), and which key within the secret's data you want to update (or create a new entry). Then, your locally configured `$EDITOR` (defaults to vim) will be opened for you to enter the raw unencrypted value, which will be sealed, base64 encoded and placed into the file. Comments in the secrets file are not affected by the script, and are encouraged.
 
+The helper script requires `python>=3.9` as well as `kubeseal`, which can be installed following one of the methods described [here](https://github.com/bitnami-labs/sealed-secrets#kubeseal).
+
 When using the editor, surrounding whitespace is automatically removed, to prevent accidental newlines/whitespace/etc. from being included into the secret value (as many editors automatically append a newline, for example). If this is to be avoided (i.e. if you explicity *need* to enter whitespace as the secret value), the `--value` argument can be used to specify the value of your secret.
 
 Sealed Secrets are *write only*, and as such, cannot be read directly from the definitions in this repository. However, if you have cluster access, you can read the secret value from the cluster.
