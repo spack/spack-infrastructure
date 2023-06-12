@@ -1,3 +1,17 @@
+# Retrieve the master password for the gitlab production database,
+# since it has been changed since terraform created the RDS instance
+data "aws_secretsmanager_secret" "gitlab_db_credentials" {
+  arn = var.gitlab_db_master_credentials_secret
+}
+data "aws_secretsmanager_secret_version" "gitlab_db_credentials" {
+  secret_id = data.aws_secretsmanager_secret.gitlab_db_credentials.id
+}
+
+# Compute local values required in the gitlab_db module
+locals {
+  gitlab_db_master_password = jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_credentials.secret_string)["password"]
+}
+
 module "gitlab_db" {
   source  = "terraform-aws-modules/rds/aws"
   version = "5.2.3"
@@ -10,9 +24,11 @@ module "gitlab_db" {
   major_engine_version = "14"
   instance_class       = var.gitlab_db_instance_class
 
-  db_name  = "gitlabhq_production"
-  username = "postgres"
-  port     = "5432"
+  db_name                = "gitlabhq_production"
+  username               = "postgres"
+  port                   = "5432"
+  create_random_password = false
+  password               = local.gitlab_db_master_password
 
   publicly_accessible  = false
   db_subnet_group_name = aws_db_subnet_group.spack.name

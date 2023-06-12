@@ -121,8 +121,10 @@ module "staging_cluster" {
   flux_target_path = "k8s/staging/"
 
   # Use cheap DB instances for staging deployment
-  cdash_db_instance_class  = "db.t3.small"
-  gitlab_db_instance_class = "db.t3.small"
+  cdash_db_instance_class = "db.t3.small"
+
+  gitlab_db_instance_class            = "db.t3.small"
+  gitlab_db_master_credentials_secret = "arn:aws:secretsmanager:us-west-2:588562868276:secret:gitlab-staging-master-credentials-q5Fynz"
 
   provision_opensearch_cluster = false
 }
