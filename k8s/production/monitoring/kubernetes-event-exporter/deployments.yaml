@@ -25,6 +25,8 @@ spec:
           volumeMounts:
             - mountPath: /data
               name: cfg
+      nodeSelector:
+        spack.io/node-pool: base
       volumes:
         - name: cfg
           secret:
