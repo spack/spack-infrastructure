@@ -439,7 +439,7 @@ class SpackCIBridge(object):
             request = urllib.request.Request(api_url)
             if "GITLAB_TOKEN" in os.environ:
                 request.add_header("Authorization", "Bearer %s" % os.environ["GITLAB_TOKEN"])
-            response = urllib.request.urlopen(request)
+            response = urllib.request.urlopen(request, timeout=10)
         except OSError:
             print('Failed to fetch commit for tested sha {0}'.format(tested_sha))
             return None
@@ -479,7 +479,7 @@ class SpackCIBridge(object):
             request = urllib.request.Request(api_url)
             if "GITLAB_TOKEN" in os.environ:
                 request.add_header("Authorization", "Bearer %s" % os.environ["GITLAB_TOKEN"])
-            response = urllib.request.urlopen(request)
+            response = urllib.request.urlopen(request, timeout=10)
         except OSError as inst:
             print("GitLab API request error accessing {0}".format(api_url))
             print(inst)
