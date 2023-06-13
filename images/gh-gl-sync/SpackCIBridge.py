@@ -653,7 +653,7 @@ class SpackCIBridge(object):
 if __name__ == "__main__":
     # Parse command-line arguments.
     parser = argparse.ArgumentParser(description="Sync GitHub PRs to GitLab")
-    parser.add_argument("github_project", help="GitHub project (org/repo or user/repo)")
+    parser.add_argument("github_project", help="The GitHub project (org/repo or user/repo)")
     parser.add_argument("gitlab_repo", help="Full clone URL for GitLab")
     parser.add_argument("gitlab_host", help="GitLab web host")
     parser.add_argument("gitlab_project", help="GitLab project (org/repo or user/repo)")
