@@ -7,9 +7,9 @@ spec:
   suspend: true
   schedule: "0 */3 * * *"
   concurrencyPolicy: Forbid
-  activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
   jobTemplate:
     spec:
+      activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
       template:
         spec:
           restartPolicy: Never
