@@ -5,6 +5,8 @@ metadata:
   namespace: custom
 spec:
   schedule: "0 0 1-31/2 * *"  # Run every other day
+  concurrencyPolicy: Forbid
+  activeDeadlineSeconds: 86400 # terminate any running job after 1 day
   jobTemplate:
     spec:
       template:

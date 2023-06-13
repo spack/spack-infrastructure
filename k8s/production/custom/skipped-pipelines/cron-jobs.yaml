@@ -5,6 +5,8 @@ metadata:
   namespace: custom
 spec:
   schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
   jobTemplate:
     spec:
       template:
