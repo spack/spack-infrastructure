@@ -147,10 +147,6 @@ spec:
           tls:
             enabled: true
             secretName: tls-gitlab-webservice
-        image:
-          pullPolicy: IfNotPresent
-          repository: ghcr.io/spack/gitlab-webservice
-          tag: v14.6.3
         minReplicas: 4
         maxReplicas: 16
         resources:
@@ -173,18 +169,10 @@ spec:
           spack.io/node-pool: gitlab
 
       sidekiq:
-        image:
-          pullPolicy: IfNotPresent
-          repository: ghcr.io/spack/gitlab-sidekiq
-          tag: v14.6.3
         nodeSelector:
           spack.io/node-pool: gitlab
 
       toolbox:
-        image:
-          pullPolicy: IfNotPresent
-          repository: ghcr.io/spack/gitlab-toolbox
-          tag: v14.6.3
         nodeSelector:
           spack.io/node-pool: gitlab
 
