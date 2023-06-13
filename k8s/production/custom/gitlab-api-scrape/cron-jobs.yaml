@@ -7,9 +7,9 @@ metadata:
 spec:
   schedule: "0 2 * * *"
   concurrencyPolicy: Forbid
-  activeDeadlineSeconds: 3600 # terminate any running job after 60 minutes
   jobTemplate:
     spec:
+      activeDeadlineSeconds: 3600 # terminate any running job after 60 minutes
       template:
         spec:
           serviceAccountName: gitlab-api-scrape

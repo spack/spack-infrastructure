@@ -7,9 +7,9 @@ metadata:
 spec:
   schedule: "0 1 * * 0" # 1am on Sunday
   concurrencyPolicy: Forbid
-  activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
   jobTemplate:
     spec:
+      activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
       backoffLimit: 0
       template:
         spec:
