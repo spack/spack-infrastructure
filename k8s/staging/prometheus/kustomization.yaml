@@ -38,7 +38,7 @@ patches:
   - target:
       kind: Ingress
       name: oauth2-proxy
-      namespace: monitoring
+      namespace: ingress-nginx
     patch: |-
       - op: replace
         path: /spec/rules/0/host
