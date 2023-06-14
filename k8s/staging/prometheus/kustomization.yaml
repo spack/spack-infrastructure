@@ -116,16 +116,16 @@ patches:
       namespace: monitoring
     patch: |-
       - op: replace
-        path: /spec/containers/0/args
+        path: /spec/template/spec/containers/0/args
         value:
-        - --github-org spack
-        - --github-user danlamanna
-        - --provider=github
-        - --email-domain=*
-        - --upstream=file:///dev/null
-        - --http-address=0.0.0.0:4180
-        - --redirect-url=https://prometheus.staging.spack.io/oauth2/callback
+          - --github-org spack
+          - --github-user danlamanna
+          - --provider=github
+          - --email-domain=*
+          - --upstream=file:///dev/null
+          - --http-address=0.0.0.0:4180
+          - --redirect-url=https://prometheus.staging.spack.io/oauth2/callback
 
       - op: replace
-        path: /spec/containers/0/env/0/value
+        path: /spec/template/spec/containers/0/env/0/value
         value: 5346c6b5d5bea71fb115
