@@ -5,6 +5,7 @@ resources:
   - ../../production/prometheus/certificates.yaml
   - ../../production/prometheus/ingress.yaml
   - ../../production/prometheus/release.yaml
+  - ../../production/prometheus/oauth2-proxy.yaml
 
 patches:
   - target:
@@ -37,7 +38,7 @@ patches:
   - target:
       kind: Ingress
       name: oauth2-proxy
-      namespace: ingress-nginx
+      namespace: monitoring
     patch: |-
       - op: replace
         path: /spec/rules/0/host
@@ -108,3 +109,23 @@ patches:
       - op: replace
         path: /spec/values/prometheus/prometheusSpec/externalUrl
         value: prometheus.staging.spack.io
+
+  - target:
+      kind: Deployment
+      name: oauth2-proxy
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - --github-org spack
+          - --github-user danlamanna
+          - --provider=github
+          - --email-domain=*
+          - --upstream=file:///dev/null
+          - --http-address=0.0.0.0:4180
+          - --redirect-url=https://prometheus.staging.spack.io/oauth2/callback
+
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: 5346c6b5d5bea71fb115
