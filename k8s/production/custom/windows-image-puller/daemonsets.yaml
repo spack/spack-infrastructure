@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: windows-image-puller
+  namespace: custom
+  labels:
+    k8s-app: windows-image-puller
+spec:
+  selector:
+    matchLabels:
+      name: windows-image-puller
+  template:
+    metadata:
+      labels:
+        name: windows-image-puller
+    spec:
+      nodeSelector:
+        kubernetes.io/os: windows
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              # Make sure there is one of these for all containers listed below, so that they are evicted once run
+              - matchFields:
+                  - key: spack.io/image-pulled/mcr.microsoft.com/windows/servercore:ltsc2019
+                    operator: NotIn
+                    values:
+                      - "true"
+      containers:
+        - name: windows-image-puller
+          image: mcr.microsoft.com/windows/servercore:ltsc2019
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
