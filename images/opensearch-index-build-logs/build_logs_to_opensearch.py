@@ -11,13 +11,14 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Any
 
 import boto3
-import gitlab
 import psycopg2
-from psycopg2.extras import RealDictCursor
 import pyjson5
 import requests
 from botocore import UNSIGNED
 from botocore.client import Config
+from psycopg2.extras import RealDictCursor
+
+import gitlab
 
 # Authenticate the boto3 client with AWS.
 # Since the spack build cache is a public S3 bucket, we don't need credentials
@@ -119,14 +120,13 @@ def upload_to_opensearch(
     post_logs(document)
 
 
-def create_opensearch_index():
+def create_opensearch_index(index_name: str):
     """
     Create an opensearch index for the current date.
 
     This operation is idempotent; if an index already exists for the current date, the server will
     not create a new one.
     """
-    index_name = f"pipeline-logs-{TODAY.strftime('%Y.%m.%d')}"
     with open(Path(__file__).parent / "pipeline_logs_mapping.json5") as fd:
         index_mappings = pyjson5.load(fd)
     res = requests.put(
@@ -144,6 +144,14 @@ def create_opensearch_index():
             logging.error(res.json())
         except json.JSONDecodeError:
             logging.error(res.text)
+
+
+def delete_opensearch_index(index_name: str):
+    requests.delete(
+        f"{OPENSEARCH_ENDPOINT}/{index_name}",
+        headers={"Content-Type": "application/json"},
+        auth=(OPENSEARCH_USERNAME, OPENSEARCH_PASSWORD),
+    ).raise_for_status()
 
 
 def fetch_and_upload_tarball(spec_json_sig_key: str):
@@ -245,9 +253,21 @@ def fetch_and_upload_tarball(spec_json_sig_key: str):
         return
 
 
+def get_doc_count(index_name: str) -> int:
+    res = requests.get(
+        f"{OPENSEARCH_ENDPOINT}/{index_name}/_count",
+        headers={"Content-Type": "application/json"},
+        auth=(OPENSEARCH_USERNAME, OPENSEARCH_PASSWORD),
+    )
+    res.raise_for_status()
+
+    return res.json()["count"]
+
+
 def main():
     """Iterate over the entire S3 bucket and send any new build logs to OpenSearch."""
-    create_opensearch_index()
+    index_name = f"pipeline-logs-{TODAY.strftime('%Y.%m.%d')}"
+    create_opensearch_index(index_name)
 
     all_pages = []
     paginator = s3.get_paginator("list_objects_v2")
@@ -262,6 +282,9 @@ def main():
     # TODO: parallelize this
     for spec_key_json in all_pages:
         fetch_and_upload_tarball(spec_key_json)
+
+    if get_doc_count(index_name) == 0:
+        delete_opensearch_index(index_name)
 
 
 if __name__ == "__main__":

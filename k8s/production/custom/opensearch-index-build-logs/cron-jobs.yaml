@@ -14,7 +14,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: opensearch-index-build-logs
-            image: ghcr.io/spack/opensearch-index-build-logs:0.0.3
+            image: ghcr.io/spack/opensearch-index-build-logs:0.0.4
             imagePullPolicy: Always
             env:
             - name: OPENSEARCH_ENDPOINT
