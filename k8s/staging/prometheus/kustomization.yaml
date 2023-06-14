@@ -36,6 +36,18 @@ patches:
 
   - target:
       kind: Ingress
+      name: oauth2-proxy
+      namespace: ingress-nginx
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: prometheus.staging.spack.io
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: prometheus.staging.spack.io
+
+  - target:
+      kind: Ingress
       name: kube-prometheus-stack-prometheus
       namespace: monitoring
     patch: |-
