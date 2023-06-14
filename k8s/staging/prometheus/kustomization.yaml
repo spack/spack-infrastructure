@@ -118,8 +118,8 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/args
         value:
-          - --github-org spack
-          - --github-user danlamanna
+          - --github-org=spack
+          - --github-user=danlamanna
           - --provider=github
           - --email-domain=*
           - --upstream=file:///dev/null
