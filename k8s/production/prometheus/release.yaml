@@ -41,7 +41,13 @@ spec:
           matchLabels:
             alertmanagerConfig: spack
 
+    prometheus-node-exporter:
+      nodeSelector:
+        spack.io/node-pool: base
+
     grafana:
+      nodeSelector:
+        spack.io/node-pool: base
       ingress:
         enabled: false
       admin:
@@ -117,8 +123,17 @@ spec:
         requests:
           cpu: 750m
           memory: 300M
+      nodeSelector:
+        spack.io/node-pool: base
+      admissionWebhooks:
+        patch:
+          nodeSelector:
+            spack.io/node-pool: base
+
 
     kube-state-metrics:
+      nodeSelector:
+        spack.io/node-pool: base
       metricLabelsAllowlist:
         - pods=[*]
         - nodes=[*]
