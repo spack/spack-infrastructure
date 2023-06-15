@@ -109,6 +109,9 @@ patches:
       - op: replace
         path: /spec/values/prometheus/prometheusSpec/externalUrl
         value: prometheus.staging.spack.io
+      - op: replace
+        path: /spec/values/prometheus/prometheusSpec/additionalScrapeConfigs/0/static_configs/0/targets/0
+        value: gitlab.staging.spack.io
 
   - target:
       kind: Deployment
