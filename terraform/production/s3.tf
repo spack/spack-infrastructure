@@ -15,11 +15,6 @@ locals {
       ]
       allowed = "arn:aws:iam::588562868276:user/pull-requests-binary-mirror"
     }
-
-    "spack-binaries-cray" = {
-      resources = ["*"]
-      allowed = "arn:aws:iam::588562868276:user/cray-binary-mirror"
-    }
   }
 }
 
