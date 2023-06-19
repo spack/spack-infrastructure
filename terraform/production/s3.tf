@@ -32,29 +32,6 @@ resource "aws_s3_bucket_policy" "protected_binaries_restricted" {
         "Principal": "*",
         "Action": "s3:GetObject",
         "Resource": "arn:aws:s3:::${each.key}/*"
-      },
-      {
-        "Sid": "DenyReadToProtected",
-        "Effect": "Deny",
-        "Principal": {
-          "AWS": "*"
-        },
-        "Action": "s3:GetObject",
-        "Resource": each.value.resources,
-        "Condition": {
-          "ArnNotLike": {
-            "aws:PrincipalArn": "${each.value.allowed}"
-          }
-        }
-      },
-      {
-        "Sid": "AllowReadToProtected",
-        "Effect": "Deny",
-        "Principal": {
-          "AWS": "${each.value.allowed}"
-        },
-        "Action": "s3:GetObject",
-        "Resource": each.value.resources
       }
     ]
   })
