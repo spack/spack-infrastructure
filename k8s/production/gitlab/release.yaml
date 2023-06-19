@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: gitlab
-      version: 5.6.3 # gitlab@14.6.3
+      version: 7.0.4 # gitlab@16.0.4
       sourceRef:
         kind: HelmRepository
         name: gitlab
@@ -86,7 +86,7 @@ spec:
           key: postgres-password
         port: 5432
         database: gitlabhq_production
-        username: postgres
+        username: gitlab
 
       redis:
         password:
@@ -96,6 +96,9 @@ spec:
         enabled: true
 
       grafana:
+        enabled: false
+
+      kas:
         enabled: false
 
       appConfig:
@@ -147,10 +150,6 @@ spec:
           tls:
             enabled: true
             secretName: tls-gitlab-webservice
-        image:
-          pullPolicy: IfNotPresent
-          repository: ghcr.io/spack/gitlab-webservice
-          tag: v14.6.3
         minReplicas: 4
         maxReplicas: 16
         resources:
@@ -173,18 +172,10 @@ spec:
           spack.io/node-pool: gitlab
 
       sidekiq:
-        image:
-          pullPolicy: IfNotPresent
-          repository: ghcr.io/spack/gitlab-sidekiq
-          tag: v14.6.3
         nodeSelector:
           spack.io/node-pool: gitlab
 
       toolbox:
-        image:
-          pullPolicy: IfNotPresent
-          repository: ghcr.io/spack/gitlab-toolbox
-          tag: v14.6.3
         nodeSelector:
           spack.io/node-pool: gitlab
 

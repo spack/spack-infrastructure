@@ -1,0 +1,41 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gitlab-setting-updater
+  namespace: gitlab
+spec:
+  schedule: "0 * * * *"
+  jobTemplate:
+    metadata:
+      labels:
+        app: gitlab-setting-updater
+    spec:
+      template:
+        metadata:
+          name: gitlab-setting-updater
+          namespace: gitlab
+          labels:
+            app: gitlab-setting-updater
+        spec:
+          serviceAccountName: gitlab-setting-updater
+          restartPolicy: OnFailure
+          containers:
+            - name: updater
+              image: bitnami/kubectl
+              imagePullPolicy: IfNotPresent
+              command: ["kubectl"]
+              args:
+                [
+                  "exec",
+                  "-i",
+                  "deploy/gitlab-toolbox",
+                  "-c",
+                  "toolbox",
+                  "--",
+                  "/srv/gitlab/bin/rails",
+                  "runner",
+                  "ApplicationSetting.update(max_yaml_size_bytes: 10.megabytes)",
+                ]
+          nodeSelector:
+            spack.io/node-pool: base
