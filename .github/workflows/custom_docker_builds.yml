@@ -22,8 +22,6 @@ jobs:
             image-tags: ghcr.io/spack/ci-key-rotate:0.0.3
           - docker-image: ci-key-clear
             image-tags: ghcr.io/spack/ci-key-clear:0.0.1
-          - docker-image: gitops
-            image-tags: ghcr.io/spack/gitops:0.0.4
           - docker-image: gitlab-stuckpods
             image-tags: ghcr.io/spack/stuckpods:0.0.1
           - docker-image: gitlab-clear-pipelines
