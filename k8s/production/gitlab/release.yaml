@@ -194,3 +194,10 @@ spec:
 
     postgresql:
       install: false
+
+    redis:
+      master:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+      metrics:
+        enabled: true
