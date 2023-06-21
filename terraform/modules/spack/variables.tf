@@ -63,3 +63,8 @@ variable "provision_opensearch_cluster" {
   description = "Whether or not to provision an OpenSearch cluster for this deployment."
   type        = bool
 }
+
+variable "ses_email_domain" {
+  description = "Domain to use for SES email."
+  type        = string
+}
