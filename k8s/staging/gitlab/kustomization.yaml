@@ -55,12 +55,6 @@ patches:
       - op: replace
         path: /spec/values/global/hosts/ssh
         value: ssh.gitlab.staging.spack.io
-      - op: replace
-        path: /spec/values/global/email/from
-        value: admin@gitlab.staging.spack.io
-      - op: replace
-        path: /spec/values/global/email/reply_to
-        value: noreply@gitlab.staging.spack.io
       - op: remove
         path: /spec/values/global/redis
       - op: remove
