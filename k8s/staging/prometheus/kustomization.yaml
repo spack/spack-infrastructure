@@ -121,7 +121,7 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/args
         value:
-          - --github-user=danlamanna,mvandenburgh,zackgalbreath,almightyyakob,scottwittenburg,kwryankrattiger
+          - --github-user=danlamanna,mvandenburgh,zackgalbreath,AlmightyYakob,scottwittenburg,kwryankrattiger,alecbcs
           - --provider=github
           - --email-domain=*
           - --upstream=file:///dev/null
