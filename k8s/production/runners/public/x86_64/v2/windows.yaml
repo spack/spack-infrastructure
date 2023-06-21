@@ -54,7 +54,7 @@ spec:
       locked: false
 
       # tags: "windows"
-      tags: "spack,protected,medium,win64,x86_64,x86_64_v2,aws"
+      tags: "spack,public,protected,small,medium,win64,kitware,x86_64,x86_64_v2,aws"
       runUntagged: false
       secret: gitlab-gitlab-runner-secret # from gitlab release
 
@@ -136,7 +136,8 @@ spec:
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
               "kubernetes.io/os" = "windows"
-
               # This is required to match the helper image based on this table
               # https://gitlab.com/gitlab-org/gitlab-runner/-/blob/main/helpers/container/windows/version.go?ref_type=heads#L19-32
               "node.kubernetes.io/windows-build" = "10.0.17763"
+            [runners.kubernetes.node_tolerations]
+              "windows=true" = "NoSchedule"
