@@ -127,4 +127,6 @@ module "staging_cluster" {
   gitlab_db_master_credentials_secret = "arn:aws:secretsmanager:us-west-2:588562868276:secret:gitlab-staging-master-credentials-q5Fynz"
 
   provision_opensearch_cluster = false
+
+  ses_email_domain = "staging.spack.io"
 }

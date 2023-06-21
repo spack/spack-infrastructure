@@ -125,4 +125,6 @@ module "production_cluster" {
   gitlab_db_master_credentials_secret = "arn:aws:secretsmanager:us-east-1:588562868276:secret:gitlab-prod-master-credentials-96P0Cl"
 
   provision_opensearch_cluster = true
+
+  ses_email_domain = "spack.io"
 }

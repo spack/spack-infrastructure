@@ -29,6 +29,10 @@ spec:
       name: gitlab-secrets
       valuesKey: values.yaml
       optional: false
+    # See terraform/modules/spack/ses.tf
+    - kind: ConfigMap
+      name: gitlab-ses-config
+      valuesKey: values.yaml
 
   values:
     nodeSelector:
@@ -66,18 +70,10 @@ spec:
 
       initialRootPassword: {}
 
-      email:
-        from: admin@gitlab.spack.io
-        reply_to: noreply@gitlab.spack.io
-      smtp:
-        enabled: true
-        address: email-smtp.us-east-1.amazonaws.com
-        user_name: AKIAYSCIUVA2PDMR2WN4
-        password:
-          secret: gitlab-secrets
-          key: smtp-password
-        port: 465
-        tls: true
+      # These are managed by a config map;
+      # see terraform/modules/spack/ses.tf
+      # email:
+      # smtp:
 
       psql:
         connectTimeout:
