@@ -41,10 +41,6 @@ spec:
           matchLabels:
             alertmanagerConfig: spack
 
-    prometheus-node-exporter:
-      nodeSelector:
-        spack.io/node-pool: base
-
     grafana:
       nodeSelector:
         spack.io/node-pool: base
