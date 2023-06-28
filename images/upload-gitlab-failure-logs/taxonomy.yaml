@@ -125,6 +125,7 @@ taxonomy:
     helper_container_not_found:
       grep_for:
         - 'ERROR: Job failed.+:.+container helper not found in pod'
+        - 'container not found \("helper"\)'
 
     docker_daemon:
       grep_for:
@@ -151,6 +152,7 @@ taxonomy:
         - 'To reproduce this build locally, run:'
         - 'Error: No version for .+ satisfies'
         - 'Error: errors occurred during concretization of the environment'
+        - 'cannot load package .+ from the .builtin. repository'
 
     invalid_pipeline_yaml:
       grep_for:
