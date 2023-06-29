@@ -54,8 +54,6 @@ spec:
           name: gitlab.spack.io
         minio:
           name: minio.gitlab.spack.io
-        registry:
-          name: registry.gitlab.spack.io
         smartcard:
           enabled: false
         ssh: ssh.gitlab.spack.io
@@ -97,6 +95,9 @@ spec:
       kas:
         enabled: false
 
+      registry:
+        enabled: false
+
       appConfig:
         smartcard:
           enabled: false
@@ -127,11 +128,7 @@ spec:
           memory: 12G
 
     registry:
-      ingress:
-        tls:
-          secretName: tls-gitlab-registry
-      nodeSelector:
-        spack.io/node-pool: gitlab
+      enabled: false
 
     gitlab-runner:
       install: false
