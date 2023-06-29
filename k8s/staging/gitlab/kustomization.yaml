@@ -19,15 +19,6 @@ patches:
 
   - target:
       kind: Certificate
-      name: gitlab-registry
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/dnsNames/0
-        value: registry.gitlab.staging.spack.io
-
-  - target:
-      kind: Certificate
       name: gitlab-minio
       namespace: gitlab
     patch: |-
@@ -49,9 +40,6 @@ patches:
       - op: replace
         path: /spec/values/global/hosts/minio/name
         value: minio.gitlab.staging.spack.io
-      - op: replace
-        path: /spec/values/global/hosts/registry/name
-        value: registry.gitlab.staging.spack.io
       - op: replace
         path: /spec/values/global/hosts/ssh
         value: ssh.gitlab.staging.spack.io

@@ -16,20 +16,6 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: gitlab-registry
-  namespace: gitlab
-spec:
-  secretName: tls-gitlab-registry
-  issuerRef:
-    name: letsencrypt
-    kind: ClusterIssuer
-  dnsNames:
-    - registry.gitlab.spack.io
-
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
   name: gitlab-minio
   namespace: gitlab
 spec:
