@@ -1,12 +1,8 @@
 #!/bin/bash
 set -e
 
-# Script used to brute force the removal of duplicate buildcache entries in
-# the top level buildcache. This cleans up errors introduced by a race condition
-# when updating the .spack files and the .sig files. Ideally, this script should
-# only be run once (8 September 2022).
-
-if [[ "$1" == "-h" ]]; then
+function print_help()
+{
   echo ""
   echo "Usage:"
   echo ""
@@ -16,7 +12,7 @@ if [[ "$1" == "-h" ]]; then
   echo ""
   echo "    Update common buildcache for a <commit_ref> (default: 'develop')"
   echo ""
-  echo "        ${0//*\//} <commit_ref>"
+  echo "        ${0//*\//} --ref <commit_ref>"
   echo ""
   echo "Set environment variables with AWS access secrets"
   echo ""
@@ -28,9 +24,32 @@ if [[ "$1" == "-h" ]]; then
   echo "    AWS CLI (aws)"
   echo "    Spack (spack)"
   echo ""
+}
 
-  exit 0
-fi
+# Script used to brute force the removal of duplicate buildcache entries in
+# the top level buildcache. This cleans up errors introduced by a race condition
+# when updating the .spack files and the .sig files. Ideally, this script should
+# only be run once (8 September 2022).
+
+local sargs='h?b:fn'
+local largs='help,bucket:,override,dryrun,ref'
+parsed=$(getopt --options ${sargs} --longoptions ${largs} --name "s3-publish-binaries" -- "$@")
+eval set -- "$parsed"
+
+bucket="spack-binaries"
+commit_ref_name="develop"
+dryrun=
+while true; do
+  case $1 in
+    -h|--help) print_help; exit 0;;
+    -b|--bucket) bucket="$2"; shift 2;;
+    -f|--override) override=1; shift;;
+    -n|--dryrun) dryrun="--dryrun"; shift;;
+    --ref) commit_ref_name="$2"; shift 2;;
+    --) break;;
+    *) exit 1;;
+  esac
+done
 
 # Check that access keys are present
 meets_req=1
@@ -59,17 +78,11 @@ fi
 
 set -x
 
-# Setup the binaries to sync
-if [[ ! -z $1 ]]; then
-  commit_ref_name=$1
-else
-  commit_ref_name=develop
-fi
-
 # List of stacks to copy
 stacks=(
   e4s
   e4s-oneapi
+  e4s-power
   build_systems
   radiuss
   radiuss-aws
@@ -79,18 +92,24 @@ stacks=(
   aws-ahug-aarch64
   aws-isc
   aws-isc-aarch64
+  aws-pcluster-icelake
+  aws-pcluster-skylake
+  aws-pcluster-neoverse_n1
+  aws-pcluster-neoverse_v1
   tutorial
+  deprecated
+  ml-darwin-aarch64-mps
+  ml-linux-x86_64-cpu
+  ml-linux-x86_64-cude
+  ml-linux-x86_64-rocm
 )
 
-dryrun= # "--dryrun"
 
-exclude_stack_mirrors=
-for stack in "${stacks[@]}"; do
-  exclude_stack_mirrors="--exclude *${stack}* ${exclude_stack_mirrors}"
-done
+if [[ ! -z $override ]]; then
+  # Remove all of the old binaries
+  aws s3 rm "s3://${bucket}/${commit_ref_name}/build_cache" --recursive --exclude *pgp*
+fi
 
-# Remove all of the old binaries
-aws s3 rm "s3://spack-binaries/${commit_ref_name}" --recursive --exclude *pgp* ${exclude_stack_mirrors} ${dryrun}
 # Copy the binaries from the stack caches with their corresponding sig files
 for stack in "${stacks[@]}"; do
   echo "copy: $stack"
