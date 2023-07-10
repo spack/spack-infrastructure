@@ -1,5 +1,5 @@
 locals {
-  karpenter_version = "v0.25.0"
+  karpenter_version = "v0.27.0"
 }
 
 module "karpenter" {
@@ -49,6 +49,25 @@ resource "helm_release" "karpenter" {
   set {
     name  = "settings.aws.interruptionQueueName"
     value = module.karpenter.queue_name
+  }
+
+  # Set resource requests. Use the ones from the helm chart values.yaml:
+  # https://github.com/aws/karpenter/blob/main/charts/karpenter/values.yaml
+  set {
+    name = "controller.resources.requests.cpu"
+    value = "1"
+  }
+  set {
+    name = "controller.resources.requests.memory"
+    value = "1Gi"
+  }
+  set {
+    name = "controller.resources.limits.cpu"
+    value = "1"
+  }
+  set {
+    name = "controller.resources.limits.memory"
+    value = "1Gi"
   }
 
   depends_on = [
