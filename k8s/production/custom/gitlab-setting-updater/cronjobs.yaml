@@ -6,6 +6,8 @@ metadata:
   namespace: gitlab
 spec:
   schedule: "0 * * * *"
+  # Only save the most recent run to avoid overpopulating the pod list in the gitlab namespace
+  successfulJobsHistoryLimit: 1
   jobTemplate:
     metadata:
       labels:
