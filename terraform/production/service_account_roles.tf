@@ -77,6 +77,74 @@ resource "kubectl_manifest" "notary_service_account" {
   ]
 }
 
+# IAM Role for granting read access to spack-binaries and write access to the cache index
+data "aws_iam_policy_document" "cache_indexer_assume_role_policy" {
+  statement {
+    sid     = ""
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "${module.production_cluster.oidc_provider}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    principals {
+      type        = "Federated"
+      identifiers = [module.production_cluster.oidc_provider_arn]
+    }
+  }
+}
+
+resource "aws_iam_role" "cache_indexer" {
+  name               = "CacheIndexer"
+  assume_role_policy = data.aws_iam_policy_document.cache_indexer_assume_role_policy.json
+}
+
+data "aws_iam_policy_document" "cache_indexer_policy" {
+  statement {
+    sid     = ""
+    effect  = "Allow"
+    actions = ["s3:GetObject"]
+
+    resources = [
+      "arn:aws:s3:::spack-binaries/*"
+    ]
+  }
+
+  statement {
+    sid     = ""
+    effect  = "Allow"
+    actions = ["s3:PutObject", "s3:DeleteObject"]
+
+    resources = [
+      "arn:aws:s3:::spack-binaries/cache_spack_io_index.json"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "cache_indexer_policy" {
+  name   = "CacheIndexerPolicy"
+  role   = aws_iam_role.cache_indexer.id
+  policy = data.aws_iam_policy_document.cache_indexer_policy.json
+}
+
+resource "kubectl_manifest" "cache_indexer_service_account" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: index-binary-caches
+      namespace: custom
+      annotations:
+        eks.amazonaws.com/role-arn: ${aws_iam_role.cache_indexer.arn}
+  YAML
+  depends_on = [
+    aws_iam_role_policy.cache_indexer_policy
+  ]
+}
+
 # The IAM role granting Spackbot full access to spack-binaries-prs S3 bucket.
 resource "aws_iam_role" "full_crud_access_spack_binaries_prs" {
   name        = "FullCRUDAccessToBucketSpackBinariesPRs"
