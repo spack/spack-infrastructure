@@ -1,3 +1,7 @@
+locals {
+  karpenter_version = "v0.25.0"
+}
+
 module "karpenter" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
   version = "18.31.0"
@@ -15,12 +19,12 @@ module "karpenter" {
 
 resource "helm_release" "karpenter" {
   namespace        = "karpenter"
-  create_namespace = true
+  create_namespace = false
 
   name       = "karpenter"
   repository = "oci://public.ecr.aws/karpenter"
   chart      = "karpenter"
-  version    = "v0.20.0"
+  version    = local.karpenter_version
 
   set {
     name  = "settings.aws.clusterName"
@@ -46,8 +50,21 @@ resource "helm_release" "karpenter" {
     name  = "settings.aws.interruptionQueueName"
     value = module.karpenter.queue_name
   }
+
+  depends_on = [
+    helm_release.karpenter_crds
+  ]
 }
 
+resource "helm_release" "karpenter_crds" {
+  namespace = "karpenter"
+  create_namespace = true
+
+  name       = "karpenter-crd"
+  repository = "oci://public.ecr.aws/karpenter"
+  chart      = "karpenter-crd"
+  version    = local.karpenter_version
+}
 
 resource "kubectl_manifest" "karpenter_provisioner" {
   yaml_body = <<-YAML
