@@ -4,6 +4,8 @@ import json
 import re
 import subprocess
 
+import boto3
+
 
 # Describe the spack refs to include in the cache.spack.io website
 REF_REGEXES = [
@@ -35,7 +37,7 @@ def get_matching_ref(ref):
     return None
 
 
-def build_json(root_url, index_paths):
+def build_json(bucket_name, index_paths):
     json_data = {}
 
     for p in index_paths:
@@ -48,35 +50,30 @@ def build_json(root_url, index_paths):
             if mirror_label:
                 json_data[ref].append({
                     "label": mirror_label,
-                    "url": f"{root_url}/{p}",
+                    "url": f"s3://{bucket_name}/{p}",
                 })
 
     return json_data
 
 
-def query_bucket(root_url):
-    cmd = f"aws s3 ls {root_url} --recursive | grep -E \"build_cache\/index\.json$\""
-    task = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    data = task.stdout.read()
-    assert task.wait() == 0
-
-    lines = [s.strip() for s in data.decode("utf-8").split("\n") if s]
-    regex = re.compile(f"([^\s]+)$")
+def query_bucket(bucket_name):
+    client = boto3.client("s3")
+    paginator = client.get_paginator("list_objects_v2")
+    pages = paginator.paginate(Bucket=bucket_name)
     results = []
-
-    for line in lines:
-        m = regex.search(line)
-        if m:
-            results.append(m.group(1))
+    for page in pages:
+        for obj in page["Contents"]:
+            if obj["Key"].endswith("/build_cache/index.json"):
+                results.append(obj["Key"])
 
     return results
 
 
 if __name__ == "__main__":
-    root_url = "s3://spack-binaries"
+    bucket_name = "spack-binaries"
 
-    results = query_bucket(root_url)
-    json_data = build_json(root_url, results)
+    results = query_bucket(bucket_name)
+    json_data = build_json(bucket_name, results)
 
     # with open("results.txt") as fd:
     #     results = [l.strip() for l in fd]
@@ -85,8 +82,5 @@ if __name__ == "__main__":
     with open("output.json", "w") as fd:
         fd.write(json.dumps(json_data))
 
-    cmd = ["aws", "s3", "cp", "output.json", "s3://spack-binaries/cache_spack_io_index.json"]
-    proc = subprocess.run(cmd, capture_output=True)
-    print(" ".join(cmd))
-    print(proc.stdout)
-    print(proc.stderr)
+    client = boto3.client("s3")
+    client.upload_file("output.json", bucket_name, "cache_spack_io_index.json")
