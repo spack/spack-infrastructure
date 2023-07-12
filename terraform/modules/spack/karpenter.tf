@@ -149,7 +149,7 @@ locals {
 }
 
 resource "kubectl_manifest" "karpenter_pcluster_node_template" {
-  for_each  = toset(["x86_64", "arm64"])
+  for_each  = toset(["x86-64", "arm64"])
   yaml_body = <<-YAML
     apiVersion: karpenter.k8s.aws/v1alpha1
     kind: AWSNodeTemplate
