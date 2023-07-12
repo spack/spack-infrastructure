@@ -141,15 +141,8 @@ resource "kubectl_manifest" "karpenter_node_template" {
   ]
 }
 
-locals {
-  pcluster_ami_id = {
-    "prod": "ami-00b2c701206072ffc"
-    "staging": "ami-0e2c34d361e37afa2"
-  }
-}
-
 resource "kubectl_manifest" "karpenter_pcluster_node_template" {
-  for_each  = toset(["x86_64", "arm64"])
+  for_each  = toset(["x86-64", "arm64"])
   yaml_body = <<-YAML
     apiVersion: karpenter.k8s.aws/v1alpha1
     kind: AWSNodeTemplate
