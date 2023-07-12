@@ -20,7 +20,7 @@ spec:
       containers:
       - args:
         # Note: all of these args are duplicated in the kustomization config.
-        - --github-user=danlamanna,mvandenburgh,zackgalbreath,AlmightyYakob,scottwittenburg,kwryankrattiger,alecbcs
+        - --github-user=danlamanna,mvandenburgh,zackgalbreath,AlmightyYakob,scottwittenburg,kwryankrattiger,alecbcs,cmelone
         - --provider=github
         - --email-domain=*
         - --upstream=file:///dev/null
