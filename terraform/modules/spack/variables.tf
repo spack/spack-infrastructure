@@ -23,6 +23,11 @@ variable "availability_zones" {
   type        = list(string)
 }
 
+variable "kubernetes_version" {
+  description = "The version of kubernetes to run on the EKS cluster."
+  type        = string
+}
+
 variable "flux_repo_name" {
   description = "Name of GitHub repo to configure Flux with."
   type        = string
@@ -66,5 +71,5 @@ variable "provision_opensearch_cluster" {
 
 variable "ses_email_domain" {
   description = "Domain to use for SES email."
-  type        = string
+  type = string
 }
