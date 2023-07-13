@@ -73,3 +73,8 @@ variable "ses_email_domain" {
   description = "Domain to use for SES email."
   type = string
 }
+
+variable "elasticache_instance_class" {
+  description = "AWS ElastiCache instance class for the Spack GitLab redis instance."
+  type        = string
+}

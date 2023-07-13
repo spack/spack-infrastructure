@@ -37,6 +37,10 @@ spec:
     - kind: ConfigMap
       name: gitlab-s3-bucket-config
       valuesKey: values.yaml
+    # See terraform/modules/spack/gitlab_redis.tf
+    - kind: ConfigMap
+      name: gitlab-elasticache-config
+      valuesKey: values.yaml
 
   values:
     nodeSelector:
@@ -83,10 +87,6 @@ spec:
         port: 5432
         database: gitlabhq_production
         username: gitlab
-
-      redis:
-        password:
-          enabled: true
 
       minio:
         enabled: false
@@ -182,8 +182,4 @@ spec:
       install: false
 
     redis:
-      master:
-        nodeSelector:
-          spack.io/node-pool: gitlab
-      metrics:
-        enabled: true
+      install: false
