@@ -74,7 +74,7 @@ module "gitlab_db" {
   identifier = "gitlab-${var.deployment_name}"
 
   engine               = "postgres"
-  engine_version       = "14.3"
+  engine_version       = "14.7"
   family               = "postgres14"
   major_engine_version = "14"
   instance_class       = var.gitlab_db_instance_class
