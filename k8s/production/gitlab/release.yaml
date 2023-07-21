@@ -52,8 +52,6 @@ spec:
         https: true
         gitlab:
           name: gitlab.spack.io
-        minio:
-          name: minio.gitlab.spack.io
         smartcard:
           enabled: false
         ssh: ssh.gitlab.spack.io
@@ -87,7 +85,7 @@ spec:
           enabled: true
 
       minio:
-        enabled: true
+        enabled: false
 
       grafana:
         enabled: false
@@ -113,19 +111,6 @@ spec:
 
     nginx-ingress:
       enabled: false
-
-    minio:
-      ingress:
-        tls:
-          secretName: tls-gitlab-minio
-      nodeSelector:
-        spack.io/node-pool: gitlab
-      persistence:
-        size: 1000Gi
-      resources:
-        requests:
-          cpu: 200m
-          memory: 12G
 
     registry:
       enabled: false
