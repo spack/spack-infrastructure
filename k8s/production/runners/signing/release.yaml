@@ -97,6 +97,7 @@ spec:
               "gitlab/ci_job_id" = "$CI_JOB_ID"
             [runners.kubernetes.pod_labels]
               "spack.io/runner" = "true"
+              "gitlab/ci_job_id" = "$CI_JOB_ID"
               "metrics/gitlab_ci_pipeline_id" = "$CI_PIPELINE_ID"
               "metrics/gitlab_ci_project_namespace" = "$CI_PROJECT_NAMESPACE"
               "metrics/gitlab_ci_project_name" = "$CI_PROJECT_NAME"
