@@ -99,6 +99,10 @@ spec:
       appConfig:
         smartcard:
           enabled: false
+        lfs:
+          enabled: false
+        packages:
+          enabled: false
 
       antiAffinity: hard
     ### END OF GLOBAL SECTION
