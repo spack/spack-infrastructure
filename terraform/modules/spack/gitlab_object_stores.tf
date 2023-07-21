@@ -87,3 +87,53 @@ resource "aws_iam_role_policy_attachment" "gitlab_object_stores" {
   role       = aws_iam_role.gitlab_object_stores.name
   policy_arn = aws_iam_policy.gitlab_object_stores.arn
 }
+
+
+locals {
+  connection_secret_name = "gitlab-s3-bucket-secrets"
+  connection_secret_key = "connection"
+}
+
+resource "kubectl_manifest" "gitlab_object_stores_config_map" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: gitlab-s3-bucket-config
+      namespace: gitlab
+    data:
+      values.yaml: |
+        global:
+          serviceAccount:
+            create: true
+            enabled: true
+            annotations:
+              eks.amazonaws.com/role-arn: ${aws_iam_role.gitlab_object_stores.arn}
+          appConfig:
+            artifacts:
+              bucket: ${aws_s3_bucket.gitlab_object_stores["artifacts"].id}
+              connection:
+                secret: ${local.connection_secret_name}
+                key: ${local.connection_secret_key}
+            uploads:
+              bucket: ${aws_s3_bucket.gitlab_object_stores["uploads"].id}
+              connection:
+                secret: ${local.connection_secret_name}
+                key: ${local.connection_secret_key}
+  YAML
+}
+
+resource "kubectl_manifest" "gitlab_object_stores_secret" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: ${local.connection_secret_name}
+      namespace: gitlab
+    stringData:
+      ${local.connection_secret_key}: |
+        provider: "AWS"
+        use_iam_profile: "true"
+        region: "${data.aws_region.current.name}"
+  YAML
+}

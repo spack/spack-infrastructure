@@ -33,6 +33,10 @@ spec:
     - kind: ConfigMap
       name: gitlab-ses-config
       valuesKey: values.yaml
+    # See terraform/modules/spack/gitlab_object_stores.tf
+    - kind: ConfigMap
+      name: gitlab-s3-bucket-config
+      valuesKey: values.yaml
 
   values:
     nodeSelector:
