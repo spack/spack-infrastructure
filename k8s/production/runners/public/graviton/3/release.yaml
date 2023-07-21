@@ -28,13 +28,13 @@ spec:
       image: gitlab-org/gitlab-runner
       tag: alpine-v16.1.0
     imagePullPolicy: IfNotPresent
-    replicas: 6
+    replicas: 2
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600 # six hours
-    concurrent: 20
-    checkInterval: 30
+    concurrent: 75
+    checkInterval: 10
 
     metrics:
       enabled: true
