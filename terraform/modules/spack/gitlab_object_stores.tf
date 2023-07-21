@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "gitlab_object_stores" {
-  for_each = toset(["artifacts", "uploads"])
+  for_each = toset(["artifacts", "uploads", "backups", "tmp-storage"])
 
   bucket = "spack-${var.deployment_name}-gitlab-${each.value}"
 
@@ -92,6 +92,9 @@ resource "aws_iam_role_policy_attachment" "gitlab_object_stores" {
 locals {
   connection_secret_name = "gitlab-s3-bucket-secrets"
   connection_secret_key = "connection"
+
+  backups_secret_name = "gitlab-s3-backup-bucket-secrets"
+  backups_secret_key = "config"
 }
 
 resource "kubectl_manifest" "gitlab_object_stores_config_map" {
@@ -120,6 +123,18 @@ resource "kubectl_manifest" "gitlab_object_stores_config_map" {
               connection:
                 secret: ${local.connection_secret_name}
                 key: ${local.connection_secret_key}
+            backups:
+              objectStorage:
+                backend: s3
+              bucket: ${aws_s3_bucket.gitlab_object_stores["backups"].id}
+              tmpBucket: ${aws_s3_bucket.gitlab_object_stores["tmp-storage"].id}
+        gitlab:
+          toolbox:
+            backups:
+              objectStorage:
+                config:
+                  secret: ${local.backups_secret_name}
+                  key: ${local.backups_secret_key}
   YAML
 }
 
@@ -135,5 +150,19 @@ resource "kubectl_manifest" "gitlab_object_stores_secret" {
         provider: "AWS"
         use_iam_profile: "true"
         region: "${data.aws_region.current.name}"
+  YAML
+}
+
+resource "kubectl_manifest" "gitlab_object_stores_backup_secret" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: ${local.backups_secret_name}
+      namespace: gitlab
+    stringData:
+      ${local.backups_secret_key}: |
+        [default]
+        bucket_location = ${data.aws_region.current.name}
   YAML
 }
