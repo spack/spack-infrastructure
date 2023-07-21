@@ -29,6 +29,23 @@ resource "aws_s3_bucket_policy" "gitlab_object_stores" {
   })
 }
 
+# Lifecycle rule that deletes artifacts older than 30 days
+resource "aws_s3_bucket_lifecycle_configuration" "delete_old_artifacts" {
+  bucket = aws_s3_bucket.gitlab_object_stores["artifacts"].id
+
+  rule {
+    id = "DeleteObjectsOlderThan30Days"
+
+    filter {} # Empty filter; all objects in bucket should be affected
+
+    expiration {
+      days = 30
+    }
+
+    status = "Enabled"
+  }
+}
+
 resource "aws_iam_policy" "gitlab_object_stores" {
   name        = "GitlabS3Role-${var.deployment_name}"
   description = "Managed by Terraform. Grants required permissions for GitLab to read/write to relevant S3 buckets."
