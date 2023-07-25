@@ -95,7 +95,7 @@ module "eks" {
       }
 
       # Windows specific settings
-      ami_type = "WINDOWS_FULL_2019_x86_64"
+      ami_type = "WINDOWS_FULL_2022_x86_64"
     }
   }
 

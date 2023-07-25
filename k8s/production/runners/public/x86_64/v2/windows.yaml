@@ -50,8 +50,7 @@ spec:
 
     runners:
       # default image
-      # image: "mcr.microsoft.com/windows/nanoserver:ltsc2019"
-      image: "mcr.microsoft.com/windows/servercore:ltsc2019"
+      image: "mcr.microsoft.com/windows/servercore:ltsc2022"
       imagePullPolicy: "if-not-present"
       locked: false
 
@@ -81,8 +80,8 @@ spec:
             poll_timeout = 600  # ten minutes
             privileged = false
 
-            # Image for windows 2019, runner helper v16.1.0
-            helper_image = "gitlab/gitlab-runner-helper:x86_64-v16.1.0-servercore1809"
+            # Image for windows 2022, runner helper v16.1.0
+            helper_image = "gitlab/gitlab-runner-helper:x86_64-v16.1.0-servercore21H2"
 
             # CPU requests/limits
             cpu_request = "750m"
@@ -138,6 +137,6 @@ spec:
               "kubernetes.io/os" = "windows"
               # This is required to match the helper image based on this table
               # https://gitlab.com/gitlab-org/gitlab-runner/-/blob/main/helpers/container/windows/version.go?ref_type=heads#L19-32
-              "node.kubernetes.io/windows-build" = "10.0.17763"
+              "node.kubernetes.io/windows-build" = "10.0.20348"
             [runners.kubernetes.node_tolerations]
               "windows=true" = "NoSchedule"
