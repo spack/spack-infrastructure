@@ -46,8 +46,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       - name: Log in to the Container registry
-        uses: docker/login-action@d398f07826957cd0a18ea1b059cf1207835e60bc
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -55,12 +58,13 @@ jobs:
 
       - name: Build and push ${{ matrix.docker-image }}
         id: docker-build-push
-        uses: docker/build-push-action@67af6dc1d38f334ae6935c94587e8a5b45a81a0e
+        uses: docker/build-push-action@v4
         with:
           context: ./images/${{ matrix.docker-image }}
           file: ./images/${{ matrix.docker-image }}/Dockerfile
           push: true
           tags: ${{ matrix.image-tags }}
+          platforms: linux/amd64,linux/arm64
 
       - name: Image digest
         run: echo ${{ steps.docker-build-push.outputs.digest }}
