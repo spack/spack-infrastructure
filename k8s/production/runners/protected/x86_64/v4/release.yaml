@@ -64,8 +64,9 @@ spec:
             service_account = "runner"
 
             [runners.kubernetes.affinity]
-              # Schedule this pod on any node with x86_64 = v4
               [runners.kubernetes.affinity.node_affinity]
+
+              # Schedule this pod on any node with x86_64 = v4
               [runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution]
                 [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms]]
                   [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]

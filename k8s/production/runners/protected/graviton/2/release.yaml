@@ -65,8 +65,9 @@ spec:
             service_account = "runner"
 
             [runners.kubernetes.affinity]
-              # Schedule this pod on graviton 2 or 3 nodes
               [runners.kubernetes.affinity.node_affinity]
+
+              # Schedule this pod on graviton 2 or 3 nodes
               [runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution]
                 [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms]]
                   [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
@@ -77,11 +78,26 @@ spec:
                       key = "spack.io/pipeline"
                       operator = "Exists"
 
+              # Weight this pod towards graviton 2 nodes over graviton 3 nodes
+              [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution]]
+                  weight = 2
+                  [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution.preference.match_expressions]]
+                    key = "spack.io/graviton"
+                    operator = "In"
+                    values = ["2"]
+              [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution]]
+                  weight = 1
+                  [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution.preference.match_expressions]]
+                    key = "spack.io/graviton"
+                    operator = "In"
+                    values = ["3"]
+
               # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
+              # This takes precedence over the above weights, prioritizing pod packing
               # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled
               [runners.kubernetes.affinity.pod_affinity]
                 [[runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution]]
-                weight = 1
+                weight = 4
                 [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term]
                   topology_key = "topology.kubernetes.io/zone"
                   [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term.label_selector]
