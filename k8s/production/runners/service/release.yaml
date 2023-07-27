@@ -2,7 +2,7 @@
 apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
-  name: runner-graviton2-pub
+  name: runner-service
   namespace: gitlab
 spec:
   interval: 10m
@@ -12,7 +12,7 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: runner-graviton2-pub
+  name: runner-service
   namespace: gitlab
 spec:
   interval: 10m
@@ -22,7 +22,7 @@ spec:
       version: 0.54.0 # gitlab-runner@v16.1.0
       sourceRef:
         kind: HelmRepository
-        name: runner-graviton2-pub
+        name: runner-service
   values:
     image:
       image: gitlab-org/gitlab-runner
@@ -48,17 +48,16 @@ spec:
           output_limit = 10240
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
-            helper_image = "gitlab/gitlab-runner-helper:arm-latest"
             privileged = false
             helper_memory_request = "512m"
 
             cpu_request = "750m"
-            cpu_request_overwrite_max_allowed = "16"
+            cpu_request_overwrite_max_allowed = "12"
 
             memory_request = "2G"
-            memory_request_overwrite_max_allowed = "64G"
-            memory_limit = "64G"
-            memory_limit_overwrite_max_allowed = "64G"
+            memory_request_overwrite_max_allowed = "48G"
+            memory_limit = "48G"
+            memory_limit_overwrite_max_allowed = "48G"
 
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
@@ -98,23 +97,21 @@ spec:
               "metrics/spack_ci_stack_name" = "$SPACK_CI_STACK_NAME"
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
-            [runners.kubernetes.node_selector]
-              "spack.io/node-pool" = "glr-graviton2"
 
       # default image
       image: "busybox:1.32.0"
       imagePullPolicy: "if-not-present"
       locked: false
 
-      tags: "arm,aarch64,graviton,graviton2,small,medium,large,huge,public,aws,spack"
+      tags: "spack,service"
       runUntagged: false
       secret: gitlab-gitlab-runner-secret # from gitlab release
-
-      serviceAccountName: runner
 
       cache: {}
 
       services: {}
+
+      helpers: {}
 
     nodeSelector:
       spack.io/node-pool: base # pool for the runner
