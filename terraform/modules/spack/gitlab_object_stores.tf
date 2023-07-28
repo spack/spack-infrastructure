@@ -50,13 +50,13 @@ resource "aws_iam_policy" "gitlab_object_stores" {
   name        = "GitlabS3Role-${var.deployment_name}"
   description = "Managed by Terraform. Grants required permissions for GitLab to read/write to relevant S3 buckets."
 
+  # https://docs.gitlab.com/ee/install/aws/manual_install_aws.html#create-an-iam-policy
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
       {
         "Effect" : "Allow",
         "Action" : [
-          # https://docs.gitlab.com/ee/install/aws/manual_install_aws.html#create-an-iam-policy
           "s3:PutObject",
           "s3:GetObject",
           "s3:DeleteObject",
@@ -129,6 +129,7 @@ resource "kubectl_manifest" "gitlab_object_stores_config_map" {
             enabled: true
             annotations:
               eks.amazonaws.com/role-arn: ${aws_iam_role.gitlab_object_stores.arn}
+          # https://docs.gitlab.com/charts/advanced/external-object-storage/#lfs-artifacts-uploads-packages-external-diffs-terraform-state-dependency-proxy-secure-files
           appConfig:
             artifacts:
               bucket: ${aws_s3_bucket.gitlab_object_stores["artifacts"].id}
@@ -145,6 +146,7 @@ resource "kubectl_manifest" "gitlab_object_stores_config_map" {
                 backend: s3
               bucket: ${aws_s3_bucket.gitlab_object_stores["backups"].id}
               tmpBucket: ${aws_s3_bucket.gitlab_object_stores["tmp-storage"].id}
+        # https://docs.gitlab.com/charts/advanced/external-object-storage/#backups
         gitlab:
           toolbox:
             backups:
@@ -156,6 +158,7 @@ resource "kubectl_manifest" "gitlab_object_stores_config_map" {
 }
 
 resource "kubectl_manifest" "gitlab_object_stores_secret" {
+  # https://docs.gitlab.com/charts/charts/globals.html#connection
   yaml_body = <<-YAML
     apiVersion: v1
     kind: Secret
@@ -171,6 +174,7 @@ resource "kubectl_manifest" "gitlab_object_stores_secret" {
 }
 
 resource "kubectl_manifest" "gitlab_object_stores_backup_secret" {
+  # https://docs.gitlab.com/charts/advanced/external-object-storage/#backups-storage-example
   yaml_body = <<-YAML
     apiVersion: v1
     kind: Secret
