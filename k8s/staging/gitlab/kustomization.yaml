@@ -18,15 +18,6 @@ patches:
         value: gitlab.staging.spack.io
 
   - target:
-      kind: Certificate
-      name: gitlab-minio
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/dnsNames/0
-        value: minio.gitlab.staging.spack.io
-
-  - target:
       kind: HelmRelease
       name: gitlab
       namespace: gitlab
@@ -38,22 +29,12 @@ patches:
         path: /spec/values/global/hosts/gitlab/name
         value: gitlab.staging.spack.io
       - op: replace
-        path: /spec/values/global/hosts/minio/name
-        value: minio.gitlab.staging.spack.io
-      - op: replace
         path: /spec/values/global/hosts/ssh
         value: ssh.gitlab.staging.spack.io
       - op: remove
         path: /spec/values/global/redis
       - op: remove
-        path: /spec/values/global/minio
-      - op: remove
         path: /spec/values/global/grafana
-      - op: remove
-        path: /spec/values/global/appConfig
-      - op: replace
-        path: /spec/values/minio/persistence/size
-        value: 10Gi
       - op: replace
         path: /spec/values/gitlab/webservice/minReplicas
         value: 1
