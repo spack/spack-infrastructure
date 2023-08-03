@@ -29,7 +29,7 @@ resource "aws_s3_bucket_policy" "gitlab_object_stores" {
   })
 }
 
-# Lifecycle rule that deletes artifacts older than 30 days
+# Lifecycle rule that deletes artifacts older than 3 months
 resource "aws_s3_bucket_lifecycle_configuration" "delete_old_artifacts" {
   bucket = aws_s3_bucket.gitlab_object_stores["artifacts"].id
 
