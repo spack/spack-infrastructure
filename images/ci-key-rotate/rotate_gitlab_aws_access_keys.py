@@ -67,4 +67,3 @@ if __name__ == '__main__':
     rotate_iam_keys('pull-requests-binary-mirror', gitlab_variable_prefix='PR_')
     rotate_iam_keys('protected-binary-mirror', gitlab_variable_prefix='PROTECTED_')
     rotate_iam_keys('cray-binary-mirror', gitlab_variable_prefix='CRAY_')
-    rotate_iam_keys('develop-binary-mirror')
