@@ -126,6 +126,10 @@ module "production_cluster" {
   gitlab_db_instance_class            = "db.t3.xlarge"
   gitlab_db_master_credentials_secret = "arn:aws:secretsmanager:us-east-1:588562868276:secret:gitlab-prod-master-credentials-96P0Cl"
 
+  # GitLab docs recommend m class for redis
+  # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
+  elasticache_instance_class = "cache.m6g.xlarge"
+
   provision_opensearch_cluster = true
 
   ses_email_domain = "spack.io"

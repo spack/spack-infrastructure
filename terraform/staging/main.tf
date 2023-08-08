@@ -128,6 +128,8 @@ module "staging_cluster" {
   gitlab_db_instance_class            = "db.t3.small"
   gitlab_db_master_credentials_secret = "arn:aws:secretsmanager:us-west-2:588562868276:secret:gitlab-staging-master-credentials-q5Fynz"
 
+  elasticache_instance_class = "cache.t4g.small"
+
   provision_opensearch_cluster = false
 
   ses_email_domain = "staging.spack.io"
