@@ -63,12 +63,46 @@ spec:
             poll_timeout = 600  # ten minutes
             service_account = "runner"
 
-            # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
-            # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled
             [runners.kubernetes.affinity]
+              [runners.kubernetes.affinity.node_affinity]
+
+              # Schedule this pod on any node with x86_64 >= v2
+              [runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution]
+                [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms]]
+                  [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
+                      key = "spack.io/x86_64"
+                      operator = "In"
+                      values = ["v2", "v3", "v4"]
+                  [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
+                      key = "spack.io/pipeline"
+                      operator = "Exists"
+
+              # Weight this pod towards x86-64-v2 nodes
+              [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution]]
+                  weight = 3
+                  [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution.preference.match_expressions]]
+                    key = "spack.io/x86_64"
+                    operator = "In"
+                    values = ["v2"]
+              [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution]]
+                  weight = 2
+                  [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution.preference.match_expressions]]
+                    key = "spack.io/x86_64"
+                    operator = "In"
+                    values = ["v3"]
+              [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution]]
+                  weight = 1
+                  [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution.preference.match_expressions]]
+                    key = "spack.io/x86_64"
+                    operator = "In"
+                    values = ["v4"]
+
+              # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
+              # This takes precedence over the above weights, prioritizing pod packing
+              # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled
               [runners.kubernetes.affinity.pod_affinity]
                 [[runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution]]
-                weight = 1
+                weight = 4
                 [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term]
                   topology_key = "topology.kubernetes.io/zone"
                   [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term.label_selector]
@@ -97,8 +131,6 @@ spec:
               "metrics/spack_ci_stack_name" = "$SPACK_CI_STACK_NAME"
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
-            [runners.kubernetes.node_selector]
-              "spack.io/node-pool" = "glr-x86-64-v2"
 
       # default image
       image: "busybox:1.32.0"

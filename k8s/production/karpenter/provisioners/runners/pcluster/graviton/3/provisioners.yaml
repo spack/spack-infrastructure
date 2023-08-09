@@ -62,7 +62,7 @@ spec:
       operator: In
       values: ["spot"]
 
-  # Only provision nodes for pods specifying the glr-graviton3 node pool
+  # Only provision nodes for pods specifying the pcluster-amzn2-glr-graviton3 node pool
   labels:
     spack.io/node-pool: pcluster-amzn2-glr-graviton3
     spack.io/pipeline: "true"

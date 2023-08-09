@@ -53,7 +53,7 @@ spec:
       operator: In
       values: ["spot"]
 
-  # Only provision nodes for pods specifying the glr-graviton2 node pool
+  # Label all provisioned nodes as graviton 2
   labels:
-    spack.io/node-pool: glr-graviton2
     spack.io/pipeline: "true"
+    spack.io/graviton: "2"

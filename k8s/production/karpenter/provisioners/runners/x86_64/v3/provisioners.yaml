@@ -116,7 +116,7 @@ spec:
       operator: In
       values: ["spot"]
 
-  # Only provision nodes for pods specifying the glr-x86-64-v3 node pool
+  # Label all provisioned nodes as x86-64-v3
   labels:
-    spack.io/node-pool: glr-x86-64-v3
     spack.io/pipeline: "true"
+    spack.io/x86_64: "v3" # highest supported x86_64 microarch version
