@@ -31,8 +31,6 @@ patches:
         path: /spec/values/global/hosts/ssh
         value: ssh.gitlab.staging.spack.io
       - op: remove
-        path: /spec/values/global/redis
-      - op: remove
         path: /spec/values/global/grafana
       - op: replace
         path: /spec/values/gitlab/webservice/minReplicas
