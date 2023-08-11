@@ -63,6 +63,11 @@ variable "gitlab_db_master_credentials_secret" {
   type        = string
 }
 
+variable "analytics_db_credentials_secret" {
+  description = "The arn to the secret in Secrets Manager for the analytics RDS instance."
+  type        = string
+}
+
 
 variable "provision_opensearch_cluster" {
   description = "Whether or not to provision an OpenSearch cluster for this deployment."
@@ -71,7 +76,7 @@ variable "provision_opensearch_cluster" {
 
 variable "ses_email_domain" {
   description = "Domain to use for SES email."
-  type = string
+  type        = string
 }
 
 variable "elasticache_instance_class" {
