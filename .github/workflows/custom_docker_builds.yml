@@ -14,33 +14,33 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - docker-image: gh-gl-sync
+          - docker-image: ./images/gh-gl-sync
             image-tags: ghcr.io/spack/ci-bridge:0.0.37
-          - docker-image: gitlab-api-scrape
+          - docker-image: ./images/gitlab-api-scrape
             image-tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
-          - docker-image: ci-key-rotate
+          - docker-image: ./images/ci-key-rotate
             image-tags: ghcr.io/spack/ci-key-rotate:0.0.4
-          - docker-image: ci-key-clear
+          - docker-image: ./images/ci-key-clear
             image-tags: ghcr.io/spack/ci-key-clear:0.0.1
-          - docker-image: gitlab-stuckpods
+          - docker-image: ./images/gitlab-stuckpods
             image-tags: ghcr.io/spack/stuckpods:0.0.1
-          - docker-image: gitlab-clear-pipelines
+          - docker-image: ./images/gitlab-clear-pipelines
             image-tags: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
-          - docker-image: gitlab-skipped-pipelines
+          - docker-image: ./images/gitlab-skipped-pipelines
             image-tags: ghcr.io/spack/gitlab-skipped-pipelines:0.0.1
-          - docker-image: notary
+          - docker-image: ./images/notary
             image-tags: ghcr.io/spack/notary:latest
-          - docker-image: python-aws-bash
+          - docker-image: ./images/python-aws-bash
             image-tags: ghcr.io/spack/python-aws-bash:0.0.1
-          - docker-image: opensearch-index-build-logs
+          - docker-image: ./images/opensearch-index-build-logs
             image-tags: ghcr.io/spack/opensearch-index-build-logs:0.0.4
-          - docker-image: gitlab-error-processor
+          - docker-image: ./images/gitlab-error-processor
             image-tags: ghcr.io/spack/gitlab-error-processor:0.0.1
-          - docker-image: upload-gitlab-failure-logs
+          - docker-image: ./images/upload-gitlab-failure-logs
             image-tags: ghcr.io/spack/upload-gitlab-failure-logs:0.0.1
-          - docker-image: snapshot-release-tags
+          - docker-image: ./images/snapshot-release-tags
             image-tags: ghcr.io/spack/snapshot-release-tags:0.0.2
-          - docker-image: cache-indexer
+          - docker-image: ./images/cache-indexer
             image-tags: ghcr.io/spack/cache-indexer:0.0.1
     steps:
       - name: Checkout
@@ -57,8 +57,8 @@ jobs:
         id: docker-build-push
         uses: docker/build-push-action@67af6dc1d38f334ae6935c94587e8a5b45a81a0e
         with:
-          context: ./images/${{ matrix.docker-image }}
-          file: ./images/${{ matrix.docker-image }}/Dockerfile
+          context: ${{ matrix.docker-image }}
+          file: ${{ matrix.docker-image }}/Dockerfile
           push: true
           tags: ${{ matrix.image-tags }}
 
