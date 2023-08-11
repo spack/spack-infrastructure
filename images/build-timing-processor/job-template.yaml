@@ -1,0 +1,45 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: build-timing-processing-job
+  namespace: custom
+  labels:
+    app: build-timing-processing-job
+spec:
+  ttlSecondsAfterFinished: 7200
+  template:
+    metadata:
+      labels:
+        app: build-timing-processing-job
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: build-timing-processing-job
+          image: ghcr.io/spack/upload-build-timings:0.0.1
+          imagePullPolicy: Always
+          env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: build-timing-processor
+                  key: gitlab-token
+
+            # DB credentials, will be read by Django when running the management command
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: build-timing-processor
+                  key: analytics-postgresql-host
+            - name: DB_NAME
+              value: analytics
+            - name: DB_USER
+              value: postgres
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: build-timing-processor
+                  key: analytics-postgresql-password
+
+      nodeSelector:
+        spack.io/node-pool: base
