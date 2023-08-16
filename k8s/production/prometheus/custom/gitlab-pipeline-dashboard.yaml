@@ -1455,7 +1455,7 @@ data:
               },
               "editorMode": "code",
               "exemplar": true,
-              "expr": "sum by(label_node_kubernetes_io_instance_type) (kube_node_labels{label_spack_io_node_pool=~\"glr-.*\"})",
+              "expr": "sum by(label_node_kubernetes_io_instance_type) (kube_node_labels{label_spack_io_pipeline=\"true\"})",
               "interval": "",
               "legendFormat": "{{label_beta_kubernetes_io_instance_type}}",
               "range": true,
@@ -1547,10 +1547,12 @@ data:
                 "type": "prometheus",
                 "uid": "${DS_PROMETHEUS}"
               },
+              "editorMode": "code",
               "exemplar": true,
-              "expr": "avg by(label_beta_kubernetes_io_instance_type) (kube_node_labels{label_spack_io_node_pool=~\"glr.*\"} * on(node) group_left() sum by(node) (kube_pod_info{namespace=\"pipeline\", node!=\"\"}))",
+              "expr": "avg by(label_beta_kubernetes_io_instance_type) (kube_node_labels{label_spack_io_pipeline=\"true\"} * on(node) group_left() sum by(node) (kube_pod_info{namespace=\"pipeline\", node!=\"\"}))",
               "interval": "",
               "legendFormat": "{{node}}",
+              "range": true,
               "refId": "pods per node"
             }
           ],
@@ -1620,6 +1622,6 @@ data:
       "timezone": "",
       "title": "Pipeline / Overview",
       "uid": "UMI_eRy7z",
-      "version": 4,
+      "version": 1,
       "weekStart": ""
     }
