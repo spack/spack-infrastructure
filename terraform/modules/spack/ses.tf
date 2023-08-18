@@ -76,3 +76,25 @@ resource "kubectl_manifest" "ses_secrets" {
       ${local.smtp_secret_password_key}: ${base64encode("${aws_iam_access_key.ses_user.ses_smtp_password_v4}")}
   YAML
 }
+
+# resource "kubectl_manifest" "ses_sentry_config_map" {
+#   yaml_body = <<-YAML
+#     apiVersion: v1
+#     kind: ConfigMap
+#     metadata:
+#       name: sentry-ses-config
+#       namespace: sentry
+#     data:
+#       values.yaml: |
+#         mail:
+#           # For example: smtp
+#           backend: smtp
+#           useTls: true
+#           useSsl: false
+#           username: "${aws_iam_access_key.ses_user.id}"
+#           password: "${aws_iam_access_key.ses_user.ses_smtp_password_v4}"
+#           port: 65
+#           host: sentry.${var.ses_email_domain}
+#           from: admin@sentry.${var.ses_email_domain}
+#   YAML
+# }
