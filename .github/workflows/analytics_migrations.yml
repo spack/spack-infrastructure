@@ -1,0 +1,24 @@
+name: Check Analytics Migrations
+
+on:
+  pull_request:
+    paths:
+      - "analytics/**"
+
+jobs:
+  check-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install requirements
+        run: pip install -r ./analytics/requirements.txt
+
+      - name: Provide default env vars for django
+        run: cat ./analytics/dev/.env.docker-compose >> $GITHUB_ENV
+
+      # This runs on pull requests and blocks until any necessary migrations have been created
+      # *Note*: This will display a warning about not being able to connect to a database. This can be ignored.
+      - name: Check for Migrations
+        run: ./analytics/manage.py makemigrations --check --noinput
