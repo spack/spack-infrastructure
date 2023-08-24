@@ -25,3 +25,6 @@ terraform {
 
 # Data source that allows us to dynamically determine the current AWS region
 data "aws_region" "current" {}
+
+# Data source that allows us to dynamically determine id of the current "canonical user"
+data "aws_canonical_user_id" "current" {}
