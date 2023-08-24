@@ -24,10 +24,37 @@ class Timer(models.Model):
     hash = models.CharField(max_length=128, null=True)
     cache = models.BooleanField(null=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique-hash-name-job", fields=["hash", "name", "job"]
+            ),
+            # Ensure that if a timer name starts with a "." (internal timer), that cache and hash
+            # are null, and that otherwise they are present
+            models.CheckConstraint(
+                name="internal-timer-consistent-hash-and-cache",
+                check=(
+                    models.Q(
+                        name__startswith=".", hash__isnull=True, cache__isnull=True
+                    )
+                    | (
+                        ~models.Q(name__startswith=".")
+                        & models.Q(hash__isnull=False, cache__isnull=False)
+                    )
+                ),
+            ),
+        ]
 
-class Phase(models.Model):
+
+class TimerPhase(models.Model):
     timer = models.ForeignKey(Timer, related_name="phases", on_delete=models.CASCADE)
     name = models.CharField(max_length=128)
+    is_subphase = models.BooleanField(default=False)
     path = models.CharField(max_length=128)
     seconds = models.FloatField()
     count = models.PositiveIntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["path", "timer"], name="unique-phase-path"),
+        ]

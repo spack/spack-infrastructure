@@ -8,7 +8,7 @@ import djclick as click
 import gitlab
 from gitlab.v4.objects import Project, ProjectJob
 
-from analytics.models import Job, Phase, Timer
+from analytics.models import Job, Timer, TimerPhase
 
 # Other constants
 PACKAGE_NAME_REGEX = r"(.+)/[a-zA-Z0-9]+ .+"
@@ -84,34 +84,41 @@ def main():
     phases = []
     for entry in timings:
         # Sometimes name can be missing, skip if so
-        if "name" not in entry:
+        name = entry.get("name")
+        if name is None:
+            continue
+
+        # Check for timer and skip if already exists
+        pkghash = entry.get("hash")
+        if Timer.objects.filter(job=job, name=name, hash=pkghash).exists():
             continue
 
         # Create timer
         timer = Timer.objects.create(
-            name=entry.get("name"),
-            hash=entry.get("hash"),
+            job=job,
+            name=name,
+            hash=pkghash,
             cache=entry["cache"],
             time_total=entry["total"],
-            job=job,
         )
 
         # Add all phases to bulk phase list
         phases.extend(
             [
-                Phase(
+                TimerPhase(
                     timer=timer,
                     name=phase["name"],
                     path=phase["path"],
                     seconds=phase["seconds"],
                     count=phase["count"],
+                    is_subphase=("/" in phase["path"]),
                 )
                 for phase in entry["phases"]
             ]
         )
 
     # Bulk create phases
-    Phase.objects.bulk_create(phases)
+    TimerPhase.objects.bulk_create(phases)
 
 
 if __name__ == "__main__":
