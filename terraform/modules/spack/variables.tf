@@ -28,6 +28,12 @@ variable "kubernetes_version" {
   type        = string
 }
 
+variable "aws_auth_roles" {
+  description = "Extra roles to place in the aws_auth configmap, in addition to the default one."
+  type        = list(object({ rolearn = string, username = string, groups = list(string) }))
+  default     = []
+}
+
 variable "flux_repo_name" {
   description = "Name of GitHub repo to configure Flux with."
   type        = string

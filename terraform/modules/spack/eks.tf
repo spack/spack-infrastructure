@@ -22,13 +22,17 @@ module "eks" {
   cluster_endpoint_public_access = true
 
   manage_aws_auth_configmap = true
-  aws_auth_roles = [
-    {
-      rolearn  = aws_iam_role.eks_cluster_access.arn
-      username = "admin"
-      groups   = ["system:masters"]
-    },
-  ]
+  aws_auth_roles = concat(
+    # Inject any provided aws auth roles, along with the default cluster access role
+    var.aws_auth_roles,
+    [
+      {
+        rolearn  = aws_iam_role.eks_cluster_access.arn
+        username = "admin"
+        groups   = ["system:masters"]
+      },
+    ]
+  )
 
   node_security_group_additional_rules = {
     ingress_self_all = {
