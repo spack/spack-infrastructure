@@ -169,7 +169,7 @@ resource "aws_iam_role" "full_crud_access_spack_binaries_prs" {
 }
 
 resource "aws_iam_policy" "put_spack_binaries_prs" {
-  name = "PutObjectsInBucketSpackBinariesPRs"
+  name        = "PutObjectsInBucketSpackBinariesPRs"
   description = "Managed by Terraform. Grant permission to PutObject for any object in the spack-binaries-prs bucket"
   policy = jsonencode({
     "Version" : "2012-10-17",
@@ -282,4 +282,56 @@ resource "kubectl_manifest" "gitlab_api_scrape_service_account" {
   depends_on = [
     aws_iam_role_policy_attachment.put_object_in_pipeline_statistics
   ]
+}
+
+# The roles and bindings for github actions
+resource "kubectl_manifest" "github_actions_clusterrole" {
+  yaml_body = <<-YAML
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: github-actions
+    rules:
+      # Read access for batch API
+      - apiGroups:
+          - batch
+        resources:
+          - cronjobs
+          - cronjobs/status
+          - jobs
+          - jobs/status
+        verbs:
+          - get
+          - list
+          - watch
+        # Write access for Batch API
+      - apiGroups:
+          - batch
+        resources:
+          - cronjobs
+          - jobs
+        verbs:
+          - create
+          - delete
+          - deletecollection
+          - patch
+          - update
+  YAML
+}
+resource "kubectl_manifest" "github_actions_clusterrolebinding" {
+  yaml_body = <<-YAML
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: github-actions
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: github-actions
+    subjects:
+      # This group is referenced in the aws-auth configmap
+    - apiGroup: rbac.authorization.k8s.io
+      kind: Group
+      name: spack:gha
+  YAML
 }

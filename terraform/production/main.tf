@@ -135,4 +135,13 @@ module "production_cluster" {
   provision_opensearch_cluster = true
 
   ses_email_domain = "spack.io"
+
+  aws_auth_roles = [
+    # Supply mapping between the github actions IAM role and the spack:gha k8s group
+    {
+      rolearn  = aws_iam_role.github_actions.arn
+      username = "github-actions"
+      groups   = ["spack:gha"]
+    },
+  ]
 }
