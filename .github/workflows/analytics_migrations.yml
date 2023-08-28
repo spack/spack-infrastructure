@@ -4,6 +4,15 @@ on:
   pull_request:
     paths:
       - "analytics/**"
+  push:
+    paths:
+      - analytics/analytics/migrations
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   check-migrations:
@@ -22,3 +31,28 @@ jobs:
       # *Note*: This will display a warning about not being able to connect to a database. This can be ignored.
       - name: Check for Migrations
         run: ./analytics/manage.py makemigrations --check --noinput
+
+  # TODO: FIX THE FOLLOWING ISSUE
+  #   In order to run the migrations, the new migration files must be present, which means the new image must be built before the job runs
+  #   Alternatively, a job could be created that just clones the repo, installs django, and runs the migrations
+  run-migrations:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::588562868276:role/GitHubActionsRole
+          aws-region: us-east-1
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Setup kubeconfig file
+        run: aws eks update-kubeconfig --name spack-prod --region us-east-1
+
+      - name: Run Migrations
+        run: ./analytics/scripts/run_migrations.sh
