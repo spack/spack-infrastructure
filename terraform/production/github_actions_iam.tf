@@ -101,4 +101,22 @@ resource "aws_iam_role" "github_actions" {
       }]
     })
   }
+
+  # Inline policy that allows Github Actions to describe the eks cluster
+  inline_policy {
+    name = "DescribeEKSClusterPolicy"
+    policy = jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Resource" : module.production_cluster.cluster_arn,
+          "Action" : [
+            "eks:ListCluster",
+            "eks:DescribeCluster",
+          ]
+        }
+      ]
+    })
+  }
 }
