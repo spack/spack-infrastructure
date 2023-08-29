@@ -23,7 +23,7 @@ resource "aws_iam_role" "github_actions" {
         "Action" : "sts:AssumeRoleWithWebIdentity",
         "Condition" : {
           "StringLike" : {
-            "token.actions.githubusercontent.com:sub" : "repo:spack/spack-infrastructure:ref:refs/heads/main",
+            "token.actions.githubusercontent.com:sub" : "repo:spack/spack-infrastructure:ref:refs/heads/*",
             "token.actions.githubusercontent.com:aud" : "sts.amazonaws.com"
           }
         }
