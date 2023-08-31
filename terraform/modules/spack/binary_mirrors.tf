@@ -6,7 +6,6 @@ locals {
 module "pr_binary_mirror" {
   source = "./modules/binary_mirror"
 
-  public              = var.public_binary_mirrors
   bucket_iam_username = "pull-requests-binary-mirror${local.binary_mirror_name_suffix}"
   bucket_name         = "spack-binaries-prs${local.binary_mirror_name_suffix}"
 
@@ -17,7 +16,6 @@ module "pr_binary_mirror" {
 module "protected_binary_mirror" {
   source = "./modules/binary_mirror"
 
-  public              = var.public_binary_mirrors
   bucket_iam_username = "protected-binary-mirror${local.binary_mirror_name_suffix}"
   bucket_name         = "spack-binaries${local.binary_mirror_name_suffix}"
 

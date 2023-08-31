@@ -78,8 +78,3 @@ variable "elasticache_instance_class" {
   description = "AWS ElastiCache instance class for the Spack GitLab redis instance."
   type        = string
 }
-
-variable "public_binary_mirrors" {
-  description = "Whether or not binary mirror buckets should be publicly accessible."
-  type = bool
-}

@@ -11,9 +11,6 @@ resource "aws_s3_bucket" "binary_mirror" {
 }
 
 resource "aws_s3_bucket_policy" "binary_mirror" {
-  # Only create this bucket policy if binary mirrors are allowed to be public
-  count = var.public ? 1 : 0
-
   bucket = aws_s3_bucket.binary_mirror.id
 
   policy = jsonencode({
@@ -40,9 +37,6 @@ resource "aws_s3_bucket_versioning" "binary_mirror" {
 
 
 resource "aws_s3_bucket_acl" "binary_mirror" {
-  # Only create this bucket policy if binary mirrors are allowed to be public
-  count = var.public ? 1 : 0
-
   bucket = aws_s3_bucket.binary_mirror.id
 
   access_control_policy {

@@ -133,6 +133,4 @@ module "production_cluster" {
   provision_opensearch_cluster = true
 
   ses_email_domain = "spack.io"
-
-  public_binary_mirrors       = true
 }

@@ -8,11 +8,6 @@ variable "bucket_iam_username" {
   type        = string
 }
 
-variable "public" {
-  description = "Whether or not this bucket is publicly accessible."
-  type        = bool
-}
-
 variable "enable_logging" {
   description = "Whether or not this bucket has logging enabled."
   type        = bool
