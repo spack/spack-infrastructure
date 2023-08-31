@@ -135,5 +135,4 @@ module "production_cluster" {
   ses_email_domain = "spack.io"
 
   public_binary_mirrors       = true
-  binary_mirror_bucket_suffix = ""
 }

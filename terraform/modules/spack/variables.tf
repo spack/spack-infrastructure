@@ -83,8 +83,3 @@ variable "public_binary_mirrors" {
   description = "Whether or not binary mirror buckets should be publicly accessible."
   type = bool
 }
-
-variable "binary_mirror_bucket_suffix" {
-  description = "String suffix for binary mirror S3 buckets names and related resources."
-  type = string
-}

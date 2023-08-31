@@ -135,5 +135,4 @@ module "staging_cluster" {
   ses_email_domain = "staging.spack.io"
 
   public_binary_mirrors       = false
-  binary_mirror_bucket_suffix = "-staging"
 }
