@@ -1,0 +1,43 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: analytics-db-run-migrations
+  namespace: custom
+  labels:
+    app: analytics-db-run-migrations-job
+spec:
+  ttlSecondsAfterFinished: 7200
+  template:
+    metadata:
+      labels:
+        app: analytics-db-run-migrations-job
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migration
+          image: alpine:3.18
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh"]
+          args:
+            - wget https://raw.githubusercontent.com/spack/spack-infrastructure/main/analytics/scripts/migration/clone_and_run.sh;
+              ./clone_and_run.sh
+          env:
+            # DB credentials, will be read by Django when running the management command
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: build-timing-processor
+                  key: analytics-postgresql-host
+            - name: DB_NAME
+              value: analytics
+            - name: DB_USER
+              value: postgres
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: build-timing-processor
+                  key: analytics-postgresql-password
+
+      nodeSelector:
+        spack.io/node-pool: base
