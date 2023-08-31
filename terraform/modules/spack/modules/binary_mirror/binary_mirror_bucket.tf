@@ -25,6 +25,11 @@ resource "aws_s3_bucket_policy" "binary_mirror" {
     ]
     Version = "2012-10-17"
   })
+
+  depends_on = [
+    aws_s3_bucket_public_access_block.binary_mirror,
+    aws_s3_bucket_ownership_controls.binary_mirror,
+  ]
 }
 
 resource "aws_s3_bucket_versioning" "binary_mirror" {
@@ -66,5 +71,27 @@ resource "aws_s3_bucket_acl" "binary_mirror" {
       }
       permission = "READ_ACP"
     }
+  }
+
+  depends_on = [
+    aws_s3_bucket_public_access_block.binary_mirror,
+    aws_s3_bucket_ownership_controls.binary_mirror,
+  ]
+}
+
+resource "aws_s3_bucket_public_access_block" "binary_mirror" {
+  bucket = aws_s3_bucket.binary_mirror.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_ownership_controls" "binary_mirror" {
+  bucket = aws_s3_bucket.binary_mirror.id
+
+  rule {
+    object_ownership = "ObjectWriter"
   }
 }
