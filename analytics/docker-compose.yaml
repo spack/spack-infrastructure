@@ -1,0 +1,10 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:latest
+    command: postgres -c log_lock_waits=on -c log_min_duration_statement=100
+    environment:
+      POSTGRES_DB: django
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - ${DOCKER_POSTGRES_PORT-5432}:5432
