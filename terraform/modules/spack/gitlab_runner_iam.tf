@@ -106,6 +106,13 @@ resource "gitlab_project_variable" "binary_mirror_role_arn" {
   value   = each.value.arn
 }
 
+# pre_build.py needs access to this to request PR prefix scoped permissions
+resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn" {
+  project = data.gitlab_project.spack.id
+  key     = "PR_BINARY_MIRROR_BUCKET_ARN"
+  value   = module.pr_binary_mirror.bucket_arn
+}
+
 # attachments for the pre-existing hardcoded policies in production
 resource "aws_iam_role_policy_attachment" "legacy_gitlab_runner_pr_binary_mirror" {
   for_each = var.deployment_name == "prod" ? toset(["arn:aws:iam::588562868276:policy/DeleteObjectsFromBucketSpackBinariesPRs",
