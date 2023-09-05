@@ -30,6 +30,10 @@ terraform {
       source  = "integrations/github"
       version = "~> 5.13.0"
     }
+    gitlab = {
+      source = "gitlabhq/gitlab"
+      version = "16.3.0"
+    }
   }
 }
 
@@ -93,6 +97,21 @@ provider "github" {
   token = jsondecode(data.aws_secretsmanager_secret_version.flux_github_token.secret_string).flux_github_token
 }
 
+data "kubernetes_ingress_v1" "gitlab_webservice" {
+  metadata {
+    name      = "gitlab-webservice-default"
+    namespace = "gitlab"
+  }
+}
+
+locals {
+  gitlab_url = "https://${data.kubernetes_ingress_v1.gitlab_webservice.spec[0].rule[0].host}"
+}
+
+provider "gitlab" {
+  base_url = local.gitlab_url
+  token = jsondecode(data.aws_secretsmanager_secret_version.gitlab_token.secret_string).gitlab_terraform_provider_access_token
+}
 
 module "staging_cluster" {
   source = "../modules/spack"
