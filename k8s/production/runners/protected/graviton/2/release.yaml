@@ -64,9 +64,9 @@ spec:
 
           $PY3 -m venv pre_build_venv
           source pre_build_venv/bin/activate
-          $PY3 -m pip install -qr https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/requirements.txt
-          $PY3 -c "import requests;f=open('pre_build.py','w');f.write(requests.get('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py').text);f.close()"
-          $PY3 pre_build.py > envvars
+          pip install --disable-pip-version-check -qr https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/requirements.txt
+          python -c "import requests;f=open('pre_build.py','w');f.write(requests.get('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py').text);f.close()"
+          python pre_build.py > envvars
 
           deactivate
 
