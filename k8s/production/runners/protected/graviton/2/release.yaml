@@ -70,7 +70,7 @@ spec:
 
           deactivate
 
-          source envvars
+          source ./envvars
           rm -rf pre_build_venv envvars
           unset GITLAB_OIDC_TOKEN
           """
