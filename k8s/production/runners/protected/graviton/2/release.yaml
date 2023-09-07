@@ -45,6 +45,22 @@ spec:
     runners:
       config: |
         [[runners]]
+          pre_build_script = """
+          echo 'Executing Spack pre-build setup script'
+
+          python -m venv pre_build_venv
+          source pre_build_venv/bin/activate
+          python -m pip install -qr https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/requirements.txt
+          python -c "import requests;f=open('pre_build.py','w');f.write(requests.get('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py').text);f.close()"
+          python pre_build.py > envvars
+
+          deactivate
+
+          source envvars
+          rm -rf pre_build_venv envvars
+          unset GITLAB_OIDC_TOKEN
+          """
+
           output_limit = 10240
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
