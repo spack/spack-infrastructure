@@ -48,15 +48,29 @@ spec:
           pre_build_script = """
           echo 'Executing Spack pre-build setup script'
 
-          python -m venv pre_build_venv
+          for cmd in "${PY3:-}" python3 python; do
+            if command -v > /dev/null "$cmd"; then
+              export PY3="$(command -v "$cmd")"
+              break
+            fi
+          done
+
+          if [ -z "${PY3:-}" ]; then
+            echo "Unable to find python3 executable"
+            exit 1
+          fi
+
+          $PY3 -c 'import sys; assert sys.version_info >= (3,4), "pre_build.py requires >= python 3.4."'
+
+          $PY3 -m venv pre_build_venv
           source pre_build_venv/bin/activate
-          python -m pip install -qr https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/requirements.txt
-          python -c "import requests;f=open('pre_build.py','w');f.write(requests.get('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py').text);f.close()"
-          python pre_build.py > envvars
+          $PY3 -m pip install -qr https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/requirements.txt
+          $PY3 -c "import requests;f=open('pre_build.py','w');f.write(requests.get('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py').text);f.close()"
+          $PY3 pre_build.py > envvars
 
           deactivate
 
-          source envvars
+          source ./envvars
           rm -rf pre_build_venv envvars
           unset GITLAB_OIDC_TOKEN
           """
