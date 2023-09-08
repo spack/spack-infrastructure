@@ -634,16 +634,18 @@ class SpackCIBridge(object):
                 # Find the currently running main branch pipeline, if any, and get the sha.
                 # Also get the latest commit on the main branch that has a completed pipeline.
                 main_branch_pipelines = self.get_pipelines_for_branch(self.main_branch)
-                for sha, pipeline in main_branch_pipelines.items():
-                    if self.latest_tested_main_commit is None and \
-                            (pipeline['status'] == "success" or pipeline['status'] == "failed"):
-                        self.latest_tested_main_commit = sha
 
-                    if self.currently_running_sha is None and pipeline['status'] == "running":
-                        self.currently_running_sha = sha
+                if main_branch_pipelines:
+                    for sha, pipeline in main_branch_pipelines.items():
+                        if self.latest_tested_main_commit is None and \
+                                (pipeline['status'] == "success" or pipeline['status'] == "failed"):
+                            self.latest_tested_main_commit = sha
 
-                    if self.latest_tested_main_commit and self.currently_running_sha:
-                        break
+                        if self.currently_running_sha is None and pipeline['status'] == "running":
+                            self.currently_running_sha = sha
+
+                        if self.latest_tested_main_commit and self.currently_running_sha:
+                            break
 
             print("Latest completed {0} pipeline: {1}".format(self.main_branch, self.latest_tested_main_commit))
             print("Currently running {0} pipeline: {1}".format(self.main_branch, self.currently_running_sha))
