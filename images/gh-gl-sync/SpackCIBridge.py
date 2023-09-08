@@ -650,8 +650,16 @@ class SpackCIBridge(object):
             print("Latest completed {0} pipeline: {1}".format(self.main_branch, self.latest_tested_main_commit))
             print("Currently running {0} pipeline: {1}".format(self.main_branch, self.currently_running_sha))
 
-            # Retrieve open PRs from GitHub.
-            all_open_prs, open_prs = self.list_github_prs()
+            # Don't update any PRs if no main commits have been tested yet
+            should_update_prs = self.latest_tested_main_commit is not None
+
+            open_refspecs: list[str] = []
+            if should_update_prs:
+                # Retrieve open PRs from GitHub.
+                all_open_prs, open_prs = self.list_github_prs()
+
+                # Get refspecs for open PRs and protected branches.
+                open_refspecs = self.get_open_refspecs(open_prs)
 
             # Get protected branches on GitHub.
             protected_branches = self.list_github_protected_branches()
@@ -659,8 +667,6 @@ class SpackCIBridge(object):
             # Get tags on GitHub.
             tags = self.list_github_tags()
 
-            # Get refspecs for open PRs and protected branches.
-            open_refspecs = self.get_open_refspecs(open_prs)
             fetch_refspecs: list[str] = []
             self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
             self.update_refspecs_for_tags(tags, open_refspecs, fetch_refspecs)
@@ -673,8 +679,8 @@ class SpackCIBridge(object):
                 push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + open_refspecs
                 subprocess.run(push_args, check=True)
 
-            # Post pipeline status to GitHub for each open PR, if enabled
-            if self.post_status:
+            # Post pipeline status to GitHub for each open PR, if needed
+            if should_update_prs and self.post_status:
                 print('Posting pipeline status for open PRs and protected branches')
                 self.post_pipeline_status(all_open_prs, protected_branches)
 
