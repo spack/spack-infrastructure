@@ -1,3 +1,4 @@
+import urllib.parse
 import pytest
 from pytest_lazyfixture import lazy_fixture
 
@@ -46,8 +47,18 @@ def protected_jwt():
     ],
 )
 def test_gitlab_token_to_credentials(jwt, access_type, expected_role_arn, mocker):
-    urlopen = mocker.patch("urllib.request.urlopen")
-    urlencode = mocker.patch("urllib.parse.urlencode")
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def read(self):
+            return b'{"AssumeRoleWithWebIdentityResponse":{"AssumeRoleWithWebIdentityResult":{"Credentials":{}}}}'
+
+    mocker.patch("urllib.request.urlopen", return_value=Response())
+    request = mocker.patch("urllib.request.Request")
 
     mocker.patch(
         "os.environ",
@@ -63,8 +74,8 @@ def test_gitlab_token_to_credentials(jwt, access_type, expected_role_arn, mocker
 
     _gitlab_token_to_credentials(jwt)
 
-    assert urlencode.call_count == 1
-    assert urlencode.call_args_list[0].args[0]["RoleArn"] == expected_role_arn
-
+    assert request.call_count == 1
+    qs = urllib.parse.parse_qs(request.call_args_list[0].args[0].split("?")[1])
+    assert qs["RoleArn"][0] == expected_role_arn
     if access_type == "pr":
-        assert urlencode.call_args_list[0].args[0]["Policy"]
+        assert "Policy" in qs

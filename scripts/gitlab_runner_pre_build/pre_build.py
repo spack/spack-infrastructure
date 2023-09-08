@@ -58,16 +58,20 @@ def _gitlab_token_to_credentials(gitlab_token):
     )
 
     try:
-        with urllib.request.urlopen(
+        req = urllib.request.Request(
             "https://sts.amazonaws.com/?Action=AssumeRoleWithWebIdentity&Version=2011-06-15&"
-            + urllib.parse.urlencode(assume_role_kwargs)
-        ) as response:
-            response = response.read().decode("utf-8")
+            + urllib.parse.urlencode(assume_role_kwargs),
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req) as response:
+            response = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         print(e.read().decode("utf-8"), file=sys.stderr)
         raise e
 
-    return response["Credentials"]
+    return response["AssumeRoleWithWebIdentityResponse"][
+        "AssumeRoleWithWebIdentityResult"
+    ]["Credentials"]
 
 
 if __name__ == "__main__":
