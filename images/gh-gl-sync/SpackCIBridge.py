@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
 import argparse
 import atexit
@@ -22,9 +23,17 @@ sentry_sdk.init(traces_sample_rate=0.1)
 
 class SpackCIBridge(object):
 
-    def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
-                 disable_status_post=True, sync_draft_prs=False,
-                 main_branch=None, prereq_checks=[]):
+    def __init__(
+        self,
+        gitlab_repo: str = "",
+        gitlab_host: str = "",
+        gitlab_project: str = "",
+        github_project: str = "",
+        disable_status_post: bool = True,
+        sync_draft_prs: bool = False,
+        main_branch: str | None = None,
+        prereq_checks: list[str] = [],
+    ):
         self.gitlab_repo = gitlab_repo
         self.github_project = github_project
         github_token = os.environ.get('GITHUB_TOKEN')
@@ -39,7 +48,7 @@ class SpackCIBridge(object):
         self.sync_draft_prs = sync_draft_prs
         self.main_branch = main_branch
         self.currently_running_sha = None
-        self.latest_tested_main_commit = None
+        self.latest_tested_main_commit: str | None = None
 
         self.prereq_checks = prereq_checks
 
@@ -65,7 +74,7 @@ class SpackCIBridge(object):
             print("    Shutting down ssh-agent({0})".format(os.environ["SSH_AGENT_PID"]))
             subprocess.run(["ssh-agent", "-k"], check=True)
 
-    def setup_ssh(self, ssh_key_base64):
+    def setup_ssh(self, ssh_key_base64: str):
         """Start the ssh agent."""
         print("Starting ssh-agent")
         output = subprocess.run(["ssh-agent", "-s"], check=True, stdout=subprocess.PIPE).stdout
@@ -269,7 +278,7 @@ class SpackCIBridge(object):
         print("Rate limit at the end of list_github_prs(): {}".format(self.py_github.rate_limiting[0]))
         return [all_open_prs, filtered_open_prs]
 
-    def list_github_protected_branches(self):
+    def list_github_protected_branches(self) -> list[str]:
         """ Return a list of protected branch names from GitHub."""
         branches = self.py_gh_repo.get_branches()
         print("Rate limit after get_branches(): {}".format(self.py_github.rate_limiting[0]))
@@ -284,7 +293,7 @@ class SpackCIBridge(object):
             print("    {0}".format(protected_branch))
         return protected_branches
 
-    def list_github_tags(self):
+    def list_github_tags(self) -> list[str]:
         """ Return a list of tag names from GitHub."""
         tag_list = self.py_gh_repo.get_tags()
         print("Rate limit after get_tags(): {}".format(self.py_github.rate_limiting[0]))
@@ -325,7 +334,7 @@ class SpackCIBridge(object):
         fetch_args = ["git", "fetch", "-q", "--depth=1", "gitlab"]
         subprocess.run(fetch_args, check=True, stdout=subprocess.PIPE).stdout
 
-    def get_open_refspecs(self, open_prs):
+    def get_open_refspecs(self, open_prs: dict[str, list[str]]) -> list[str]:
         """Return a list of refspecs to push given a list of open PRs."""
         print("Building initial lists of refspecs to fetch and push")
         pr_strings = open_prs["pr_strings"]
@@ -337,14 +346,24 @@ class SpackCIBridge(object):
             print("  pushing {0} (based on {1})".format(open_pr, base_sha))
         return open_refspecs
 
-    def update_refspecs_for_protected_branches(self, protected_branches, open_refspecs, fetch_refspecs):
+    def update_refspecs_for_protected_branches(
+        self,
+        protected_branches: list[str],
+        open_refspecs: list[str],
+        fetch_refspecs: list[str],
+    ) -> tuple[list[str], list[str]]:
         """Update our refspecs lists for protected branches from GitHub."""
         for protected_branch in protected_branches:
             fetch_refspecs.append("+refs/heads/{0}:refs/remotes/{0}".format(protected_branch))
             open_refspecs.append("refs/heads/{0}:refs/heads/{0}".format(protected_branch))
         return open_refspecs, fetch_refspecs
 
-    def update_refspecs_for_tags(self, tags, open_refspecs, fetch_refspecs):
+    def update_refspecs_for_tags(
+        self,
+        tags: list[str],
+        open_refspecs: list[str],
+        fetch_refspecs: list[str],
+    ) -> tuple[list[str], list[str]]:
         """Update our refspecs lists for tags from GitHub."""
         for tag in tags:
             fetch_refspecs.append("+refs/tags/{0}:refs/tags/{0}".format(tag))
@@ -422,11 +441,11 @@ class SpackCIBridge(object):
         post_data["target_url"] = pipeline["web_url"]
         return post_data
 
-    def dedupe_pipelines(self, api_response):
+    def dedupe_pipelines(self, api_response: dict):
         """Prune pipelines API response to only include the most recent result for each SHA"""
-        pipelines = {}
+        pipelines: dict[str, dict] = {}
         for response in api_response:
-            sha = response['sha']
+            sha: str = response['sha']
             if sha not in pipelines:
                 pipelines[sha] = response
             else:
@@ -469,7 +488,11 @@ class SpackCIBridge(object):
 
         return m.group(1)
 
-    def get_pipelines_for_branch(self, branch, time_threshold=None):
+    def get_pipelines_for_branch(
+        self,
+        branch: str,
+        time_threshold: str | None = None,
+    ) -> dict[str, dict] | None:
         # Use gitlab's API to get pipeline results for the corresponding ref.
         api_url = self.pipeline_api_template.format(
             urllib.parse.quote_plus(branch)
@@ -636,7 +659,7 @@ class SpackCIBridge(object):
 
             # Get refspecs for open PRs and protected branches.
             open_refspecs = self.get_open_refspecs(open_prs)
-            fetch_refspecs = []
+            fetch_refspecs: list[str] = []
             self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
             self.update_refspecs_for_tags(tags, open_refspecs, fetch_refspecs)
 
