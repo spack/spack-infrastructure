@@ -24,9 +24,6 @@ spec:
         kind: HelmRepository
         name: runner-graviton2-prot
   values:
-    image:
-      image: gitlab-org/gitlab-runner
-      tag: alpine-v16.1.0
     imagePullPolicy: IfNotPresent
     replicas: 3
 
