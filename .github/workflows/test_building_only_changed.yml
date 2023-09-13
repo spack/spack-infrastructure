@@ -1,0 +1,69 @@
+name: Test Building Only Changed Images
+
+on:
+  pull_request:
+    paths:
+      - images/**
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - images/**
+
+jobs:
+  getchanges:
+    runs-on: ubuntu-latest
+    outputs:
+      output1: ${{ steps.changes.outputs.diff }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - name: Get changed files
+        id: changes
+        # Set outputs using the command.
+        run: ./script/get-changed-files.sh
+  publish:
+    runs-on: ubuntu-latest
+    needs: getchanges
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - docker-image: ./images/gh-gl-sync
+            image-tags: ghcr.io/spack/ci-bridge:0.0.37
+          - docker-image: ./images/gitlab-api-scrape
+            image-tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
+          - docker-image: ./images/ci-key-rotate
+            image-tags: ghcr.io/spack/ci-key-rotate:0.0.4
+          - docker-image: ./images/ci-key-clear
+            image-tags: ghcr.io/spack/ci-key-clear:0.0.1
+          - docker-image: ./images/gitlab-stuckpods
+            image-tags: ghcr.io/spack/stuckpods:0.0.1
+          - docker-image: ./images/gitlab-clear-pipelines
+            image-tags: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
+          - docker-image: ./images/gitlab-skipped-pipelines
+            image-tags: ghcr.io/spack/gitlab-skipped-pipelines:0.0.1
+          - docker-image: ./images/notary
+            image-tags: ghcr.io/spack/notary:latest
+          - docker-image: ./images/python-aws-bash
+            image-tags: ghcr.io/spack/python-aws-bash:0.0.1
+          - docker-image: ./images/opensearch-index-build-logs
+            image-tags: ghcr.io/spack/opensearch-index-build-logs:0.0.4
+          - docker-image: ./images/gitlab-error-processor
+            image-tags: ghcr.io/spack/gitlab-error-processor:0.0.1
+          - docker-image: ./images/upload-gitlab-failure-logs
+            image-tags: ghcr.io/spack/upload-gitlab-failure-logs:0.0.1
+          - docker-image: ./images/snapshot-release-tags
+            image-tags: ghcr.io/spack/snapshot-release-tags:0.0.2
+          - docker-image: ./images/cache-indexer
+            image-tags: ghcr.io/spack/cache-indexer:0.0.1
+          - docker-image: ./images/build-timing-processor
+            image-tags: ghcr.io/spack/build-timing-processor:0.0.1
+          - docker-image: ./analytics
+            image-tags: ghcr.io/spack/upload-build-timings:0.0.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - name: Test
+        run: echo ${{needs.getchanges.outputs.diff}}
