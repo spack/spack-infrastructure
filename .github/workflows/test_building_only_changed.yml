@@ -1,14 +1,14 @@
 name: Test Building Only Changed Images
 
 on:
-  pull_request:
-    paths:
-      - images/**
-  # push:
-  #   branches:
-  #     - main
+  # pull_request:
   #   paths:
   #     - images/**
+  push:
+    branches:
+      - only-rebuild-changed-images
+    paths:
+      - images/**
 
 jobs:
   getchanges:
