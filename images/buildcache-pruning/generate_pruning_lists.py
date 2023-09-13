@@ -5,7 +5,7 @@ import os
 import re
 
 
-STACK_REGEX=re.compile(r"develop/([^/]+)/build_cache")
+STACK_REGEX=re.compile(r"\s+develop/([^/]+)/build_cache")
 METADATA_REGEX = re.compile(r"([^-]{32})\.spec\.json\.sig$")
 ARCHIVE_REGEX = re.compile(r"([^-]{32})\.spack$")
 S3_META_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+\d+\s+(.+)$")
