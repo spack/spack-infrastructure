@@ -21,6 +21,7 @@ echo "Head: ${HEAD_SHA}"
 echo ""
 
 git fetch origin ${BASE_SHA}
+git fetch origin ${HEAD_SHA}
 
 echo ""
 echo "::group::All changed files"
