@@ -1,0 +1,38 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: sentry
+  namespace: sentry
+spec:
+  interval: 10m
+  url: https://sentry-kubernetes.github.io/charts
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: sentry
+  namespace: sentry
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: sentry
+      version: 20.0.0
+      sourceRef:
+        kind: HelmRepository
+        name: sentry
+
+  values:
+    ingress:
+      enabled: true
+
+      annotations:
+        kubernetes.io/ingress.class: nginx
+
+      hostname: sentry.staging.spack.io
+
+      tls:
+      - secretName: tls-sentry
+        hosts: [sentry.staging.spack.io]
