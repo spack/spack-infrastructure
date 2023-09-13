@@ -69,7 +69,7 @@ jobs:
           REL_PATH=$(realpath --relative-to $(git rev-parse --show-toplevel) ${{ matrix.docker-image }})
           echo "REL_PATH=$REL_PATH" >> $GITHUB_ENV
       - name: Conditional Test
-        if: contains(${{needs.getchanges.outputs.changelist}}, ${{ env.REL_PATH }})
+        if: contains('${{needs.getchanges.outputs.changelist}}', '${{ env.REL_PATH }}')
         run: |
           echo ${{needs.getchanges.outputs.changelist}}
           echo $(realpath --relative-to $(git rev-parse --show-toplevel) ${{ matrix.docker-image }})
