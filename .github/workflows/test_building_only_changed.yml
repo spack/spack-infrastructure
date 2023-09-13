@@ -68,5 +68,5 @@ jobs:
       - name: Test
         run: |
           echo ${{needs.getchanges.outputs.changelist}}
-          echo ${{ matrix.docker-image }}
+          echo $(realpath --relative-to $(git rev-parse --show-toplevel) ${{ matrix.docker-image }})
           echo ${{ matrix.image-tags }}
