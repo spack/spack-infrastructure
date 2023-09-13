@@ -65,7 +65,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
-      - name: Test
+      - name: Conditional Test
+        if: contains(${{needs.getchanges.outputs.changelist}}, $(realpath --relative-to $(git rev-parse --show-toplevel) ${{ matrix.docker-image }}))
         run: |
           echo ${{needs.getchanges.outputs.changelist}}
           echo $(realpath --relative-to $(git rev-parse --show-toplevel) ${{ matrix.docker-image }})
