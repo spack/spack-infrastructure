@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "${GITHUB_EVENT_NAME}"
+
 case "${GITHUB_EVENT_NAME}"
 in
   pull_request)
