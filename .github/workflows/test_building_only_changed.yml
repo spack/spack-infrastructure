@@ -8,6 +8,7 @@ on:
     branches:
       - only-rebuild-changed-images
     paths:
+      - .github/**
       - images/**
 
 jobs:
