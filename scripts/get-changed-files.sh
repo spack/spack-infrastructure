@@ -1,6 +1,7 @@
 #!/bin/bash
 
-echo "${GITHUB_EVENT_NAME}"
+echo "event name: ${GITHUB_EVENT_NAME}"
+echo "event path: ${GITHUB_EVENT_PATH}"
 
 case "${GITHUB_EVENT_NAME}"
 in

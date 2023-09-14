@@ -9,6 +9,7 @@ on:
       - only-rebuild-changed-images
     paths:
       - .github/**
+      - scripts/**
       - images/**
 
 jobs:
