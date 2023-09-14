@@ -92,85 +92,40 @@ moved {
   to   = module.production_cluster.kubectl_manifest.cache_indexer_service_account
 }
 
-# The IAM role granting Spackbot full access to spack-binaries-prs S3 bucket.
-resource "aws_iam_role" "full_crud_access_spack_binaries_prs" {
-  name        = "FullCRUDAccessToBucketSpackBinariesPRs"
-  description = "Managed by Terraform. Grants Kubernetes pods access to read/write/delete objects from the spack-binaries-prs S3 bucket"
-  assume_role_policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Effect" : "Allow",
-        "Principal" : {
-          "Federated" : module.production_cluster.oidc_provider_arn
-        },
-        "Action" : "sts:AssumeRoleWithWebIdentity",
-        "Condition" : {
-          "StringEquals" : {
-            "${module.production_cluster.oidc_provider}:aud" : "sts.amazonaws.com"
-          }
-        }
-      }
-    ]
-  })
+moved {
+  from = aws_iam_role.full_crud_access_spack_binaries_prs
+  to   = module.production_cluster.aws_iam_role.full_crud_access_spack_binaries_prs
 }
 
-resource "aws_iam_policy" "put_spack_binaries_prs" {
-  name        = "PutObjectsInBucketSpackBinariesPRs"
-  description = "Managed by Terraform. Grant permission to PutObject for any object in the spack-binaries-prs bucket"
-  policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Effect" : "Allow",
-        "Action" : "s3:PutObject",
-        "Resource" : "arn:aws:s3:::spack-binaries-prs/*"
-      }
-    ]
-  })
+moved {
+  from = aws_iam_policy.put_spack_binaries_prs
+  to   = module.production_cluster.aws_iam_policy.put_spack_binaries_prs
 }
 
-resource "aws_iam_role_policy_attachment" "put_spack_binaries_prs" {
-  role       = aws_iam_role.full_crud_access_spack_binaries_prs.name
-  policy_arn = aws_iam_policy.put_spack_binaries_prs.arn
+moved {
+  from = aws_iam_role_policy_attachment.put_spack_binaries_prs
+  to   = module.production_cluster.aws_iam_role_policy_attachment.put_spack_binaries_prs
 }
 
-resource "aws_iam_policy" "delete_spack_binaries_prs" {
-  name = "DeleteObjectsFromBucketSpackBinariesPRs"
-  policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Effect" : "Allow",
-        "Action" : "s3:DeleteObject",
-        "Resource" : "arn:aws:s3:::spack-binaries-prs/*"
-      }
-    ]
-  })
+moved {
+  from = aws_iam_policy.delete_spack_binaries_prs
+  to   = module.production_cluster.aws_iam_policy.delete_spack_binaries_prs
 }
 
-resource "aws_iam_role_policy_attachment" "delete_spack_binaries_prs" {
-  role       = aws_iam_role.full_crud_access_spack_binaries_prs.name
-  policy_arn = aws_iam_policy.delete_spack_binaries_prs.arn
+moved {
+  from = aws_iam_role_policy_attachment.delete_spack_binaries_prs
+  to   = module.production_cluster.aws_iam_role_policy_attachment.delete_spack_binaries_prs
 }
 
-resource "kubectl_manifest" "spackbot_service_account" {
-  for_each  = toset(["spackbot", "spackbotdev"])
-  yaml_body = <<-YAML
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      name: ${each.value}-spack-io
-      namespace: spack
-      annotations:
-        # FullCRUDAccessToBucketSpackBinariesPRs
-        eks.amazonaws.com/role-arn: ${aws_iam_role.full_crud_access_spack_binaries_prs.arn}
-  YAML
-  depends_on = [
-    aws_iam_role_policy_attachment.put_spack_binaries_prs,
-    aws_iam_role_policy_attachment.delete_spack_binaries_prs
-  ]
+moved {
+  from = kubectl_manifest.spackbot_service_account
+  to   = module.production_cluster.kubectl_manifest.spackbot_service_account
 }
+
+
+
+
+
 
 resource "aws_iam_role" "put_object_in_pipeline_statistics" {
   name        = "PutObjectInPipelineStatistics"
