@@ -2,6 +2,7 @@
 
 echo "event name: ${GITHUB_EVENT_NAME}"
 echo "event path: ${GITHUB_EVENT_PATH}"
+cat ${GITHUB_EVENT_PATH}
 
 case "${GITHUB_EVENT_NAME}"
 in
