@@ -24,7 +24,7 @@ echo "Base: ${BASE_SHA}"
 echo "Head: ${HEAD_SHA}"
 echo ""
 
-git fetch --update-shallow origin ${BASE_SHA}
+git fetch origin ${BASE_SHA}
 git fetch origin ${HEAD_SHA}
 
 echo ""

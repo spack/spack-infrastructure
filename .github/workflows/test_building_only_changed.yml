@@ -66,6 +66,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          fetch-depth: 1000
       - name: Matrix element to relative path
         run: |
           REL_PATH=$(realpath --relative-to $(git rev-parse --show-toplevel) ${{ matrix.docker-image }})
