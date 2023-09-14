@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - images/**
+      - .github/workflows/custom_docker_builds.yml
 
 jobs:
   publish:
