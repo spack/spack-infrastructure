@@ -1,0 +1,14 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tls-sentry
+  namespace: sentry
+spec:
+  secretName: tls-sentry
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  commonName: sentry.staging.spack.io
+  dnsNames:
+  - sentry.staging.spack.io
