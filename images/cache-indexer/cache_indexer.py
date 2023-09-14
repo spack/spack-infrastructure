@@ -2,7 +2,7 @@
 
 import json
 import re
-import subprocess
+import os
 
 import boto3
 
@@ -70,14 +70,10 @@ def query_bucket(bucket_name):
 
 
 if __name__ == "__main__":
-    bucket_name = "spack-binaries"
+    bucket_name = os.environ["BUCKET_NAME"]
 
     results = query_bucket(bucket_name)
     json_data = build_json(bucket_name, results)
-
-    # with open("results.txt") as fd:
-    #     results = [l.strip() for l in fd]
-    # json_data = build_json(root_url, results)
 
     with open("output.json", "w") as fd:
         fd.write(json.dumps(json_data))

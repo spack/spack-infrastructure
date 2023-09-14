@@ -41,7 +41,7 @@ jobs:
           - docker-image: ./images/snapshot-release-tags
             image-tags: ghcr.io/spack/snapshot-release-tags:0.0.2
           - docker-image: ./images/cache-indexer
-            image-tags: ghcr.io/spack/cache-indexer:0.0.1
+            image-tags: ghcr.io/spack/cache-indexer:0.0.2
           - docker-image: ./images/build-timing-processor
             image-tags: ghcr.io/spack/build-timing-processor:0.0.1
           - docker-image: ./analytics
