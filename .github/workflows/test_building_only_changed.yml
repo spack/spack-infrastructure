@@ -1,9 +1,11 @@
 name: Test Building Only Changed Images
 
 on:
-  # pull_request:
-  #   paths:
-  #     - images/**
+  pull_request:
+    paths:
+      - .github/**
+      - scripts/**
+      - images/**
   push:
     branches:
       - only-rebuild-changed-images
