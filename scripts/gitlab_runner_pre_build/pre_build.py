@@ -13,6 +13,9 @@ TEMPORARY_CREDENTIALS_DURATION = 3600 * 6  # 6 hours
 
 
 def _token_to_sts_request(raw_jwt, decoded_jwt):
+    if decoded_jwt["aud"] not in ["pr_binary_mirror", "protected_binary_mirror"]:
+        raise ValueError(f"Unknown audience '{decoded_jwt['aud']}' set on OIDC token.")
+
     assume_role_kwargs = {
         "RoleArn": os.environ[
             "PR_BINARY_MIRROR_ROLE_ARN"

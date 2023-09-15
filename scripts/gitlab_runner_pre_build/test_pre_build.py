@@ -31,6 +31,24 @@ def protected_jwt():
     return "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm9qZWN0X3BhdGg6c3BhY2svc3BhY2s6cmVmX3R5cGU6YnJhbmNoOnJlZjpkZXZlbG9wIiwiYXVkIjoicHJvdGVjdGVkX2JpbmFyeV9taXJyb3IiLCJpYXQiOjE1MTYyMzkwMjIsImlzcyI6Imh0dHBzOi8vZ2l0bGFiLnNwYWNrLmlvIn0.Vhu-Y43sP30dpopO_zrphbmAfss5Ap_qD3nlGGZ0vOLynbAb1GUeloLd08tQSxgoO4CY89SZwtA8UHyBEIeVMfTlPNt-GIZCYVb1JeiZ2212GWosAYlYicwEKGV4ngkqU7AwFMkm4l4AT7UkZbSOGGTBQ1sF2v9-Bnuq3_Ub0kN3Ak0sEUatXoQoIK9oC3sjgTqfqqY7AnZMxwvq8-QV7wHkdhguO58apFJmBXkY_eQgXbLhj_qe3nzaEyDBFey_G21aufBpvOZiz6ZjkHSAsDmnTIBxO6d2NpnpU-6G9F4LxRIZ5GEXIg5bntEP6nubbzw9MM9jtynX1oHSrVNxPg"
 
 
+@pytest.fixture
+def invalid_audience_jwt():
+    """
+    {
+        "sub": "project_path:spack/spack:ref_type:branch:ref:develop",
+        "aud": "unknown_audience",
+        "iat": 1516239022,
+        "iss": "https://gitlab.spack.io"
+    }
+    """
+    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm9qZWN0X3BhdGg6c3BhY2svc3BhY2s6cmVmX3R5cGU6YnJhbmNoOnJlZjpkZXZlbG9wIiwiYXVkIjoidW5rbm93bl9hdWRpZW5jZSIsImlhdCI6MTUxNjIzOTAyMiwiaXNzIjoiaHR0cHM6Ly9naXRsYWIuc3BhY2suaW8ifQ.HBlbJhNbEqOmiBWwcelFDElcSy_--ioxttS9HjufL58"
+
+
+def test_gitlab_token_requires_valid_audience(invalid_audience_jwt):
+    with pytest.raises(ValueError):
+        _gitlab_token_to_credentials(invalid_audience_jwt)
+
+
 @pytest.mark.parametrize(
     "jwt, access_type, expected_role_arn",
     [
