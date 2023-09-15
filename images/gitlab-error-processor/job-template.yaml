@@ -39,7 +39,7 @@ spec:
               secretKeyRef:
                 name: gitlab-error-processor
                 key: postgresql-gitlab-ro-user-password
-          
+
           # opensearch credentials
           - name: OPENSEARCH_ENDPOINT
             valueFrom:
