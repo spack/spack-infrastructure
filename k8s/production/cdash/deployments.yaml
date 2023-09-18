@@ -22,71 +22,61 @@ spec:
       restartPolicy: Always
       containers:
       - name: cdash
-        command: ["/bin/bash", "-c"]
-        args:
-          - >
-            eval 'CDASH_CONFIG="$(CDASH_CONFIG_TEMPLATE)"' ;
-            export CDASH_CONFIG ;
-            exec /bin/bash /docker-entrypoint.sh
-        image: kitware/cdash:spack_deploy_v5
+        image: kitware/cdash:v3.2.0-rc1
         imagePullPolicy: IfNotPresent
         resources:
           requests:
             cpu: 1600m
             memory: 2G
         ports:
-        - containerPort: 80
+        - containerPort: 8080
           name: web
+
+        volumeMounts:
+          - name: cdash-site-ssl-config-volume
+            mountPath: /etc/apache2/sites-available/cdash-site-ssl.conf
+            subPath: cdash-site-ssl.conf
+          - name: cdash-site-ssl-config-volume
+            mountPath: /etc/apache2/ports.conf
+            subPath: ports.conf
+
         env:
         - name: CDASH_ROOT_ADMIN_PASS
           valueFrom:
             secretKeyRef:
               name: cdash-secrets
               key: root-password
-        - name: CDASH_DB_HOST
+        - name: DB_HOST
           valueFrom:
             secretKeyRef:
               name: cdash-secrets
               key: db-host
-        - name: CDASH_DB_TYPE
-          valueFrom:
-            secretKeyRef:
-              name: cdash-secrets
-              key: db-type
-        - name: CDASH_DB_NAME
+        - name: DB_DATABASE
           valueFrom:
             secretKeyRef:
               name: cdash-secrets
               key: db-name
-        - name: CDASH_DB_LOGIN
+        - name: DB_USERNAME
           valueFrom:
             secretKeyRef:
               name: cdash-secrets
               key: db-login
-        - name: CDASH_DB_PORT
-          valueFrom:
-            secretKeyRef:
-              name: cdash-secrets
-              key: db-port
-        - name: CDASH_DB_PASS
+        - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: cdash-secrets
               key: db-password
-        - name: CDASH_CONFIG_TEMPLATE
-          value: |
-            \$CDASH_DB_HOST = '\'$CDASH_DB_HOST\'';
-            \$CDASH_DB_NAME = '\'$CDASH_DB_NAME\'';
-            \$CDASH_DB_TYPE = '\'$CDASH_DB_TYPE\'';
-            \$CDASH_DB_LOGIN = '\'$CDASH_DB_LOGIN\'';
-            \$CDASH_DB_PORT = '\'$CDASH_DB_PORT\'';
-            \$CDASH_DB_PASS = '\'$CDASH_DB_PASS\'';
-            \$CDASH_DB_CONNECTION_TYPE = '\'host\'';
-            \$CDASH_BASE_URL = '\'https://cdash.spack.io\'';
-            \$CDASH_USE_HTTPS = '\'1\'';
-            \$CDASH_PRODUCTION_MODE = '\'1\'';
-            \$CDASH_AUTOREMOVE_BUILDS = '\'1\'';
-            \$CDASH_ACTIVE_PROJECT_DAYS = '\'0\'';
-            \$CDASH_ASYNCHRONOUS_SUBMISSION = '\'1\'';
+        - name: APP_URL
+          value: https://cdash.spack.io
+        - name: ACTIVE_PROJECT_DAYS
+          value: '0'
+        - name: QUEUE_CONNECTION
+          value: database
+
+      volumes:
+      - name: cdash-site-ssl-config-volume
+        configMap:
+          name: cdash-site-ssl-config
+
       nodeSelector:
         spack.io/node-pool: base

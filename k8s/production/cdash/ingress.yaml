@@ -17,6 +17,6 @@ spec:
           service:
             name: cdash
             port:
-              number: 80
+              number: 8080
         path: /
         pathType: ImplementationSpecific
