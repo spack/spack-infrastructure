@@ -140,6 +140,7 @@ spec:
               "metrics/spack_job_spec_compiler_version" = "$SPACK_JOB_SPEC_COMPILER_VERSION"
               "metrics/spack_job_spec_arch" = "$SPACK_JOB_SPEC_ARCH"
               "metrics/spack_job_spec_variants" = "$SPACK_JOB_SPEC_VARIANTS"
+              "metrics/spack_job_build_jobs" = "$SPACK_BUILD_JOBS"
             [runners.kubernetes.pod_labels]
               "spack.io/runner" = "true"
               "gitlab/ci_job_id" = "$CI_JOB_ID"
