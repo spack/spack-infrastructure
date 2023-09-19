@@ -139,6 +139,8 @@ spec:
       metricLabelsAllowlist:
         - pods=[*]
         - nodes=[*]
+      metricAnnotationsAllowList:
+        - pods=[*]
 
   # Configure OpenSearch datasource
   valuesFrom:
