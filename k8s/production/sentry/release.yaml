@@ -24,6 +24,12 @@ spec:
         kind: HelmRepository
         name: sentry
 
+  valuesFrom:
+    # See terraform/modules/sentry/sentry.tf
+    - kind: ConfigMap
+      name: sentry-ses-config
+      valuesKey: values.yaml
+
   values:
     ingress:
       enabled: true

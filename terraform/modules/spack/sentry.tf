@@ -137,8 +137,12 @@ data "kubernetes_ingress_v1" "sentry" {
   ]
 }
 
+locals {
+  sentry_domain = data.kubernetes_ingress_v1.sentry.spec[0].rule[0].host
+}
+
 provider "sentry" {
-  base_url = "https://${data.kubernetes_ingress_v1.sentry.spec[0].rule[0].host}/api/"
+  base_url = "https://${local.sentry_domain}/api/"
   token    = random_password.sentry_api_key.result
 }
 
@@ -203,5 +207,25 @@ resource "kubectl_manifest" "gitlab_sentry_config_map" {
               dsn: ${data.sentry_key.gitlab_server.dsn_public}
               clientside_dsn: ${data.sentry_key.gitlab_client.dsn_public}
               environment: ${var.deployment_name}
+  YAML
+}
+
+resource "kubectl_manifest" "sentry_ses_config_map" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: sentry-ses-config
+      namespace: sentry
+    data:
+      values.yaml: |
+        mail:
+          backend: smtp
+          useTls: true
+          username: ${aws_iam_access_key.ses_user.id}
+          password: ${aws_iam_access_key.ses_user.ses_smtp_password_v4}
+          port: 587
+          host: email-smtp.${data.aws_region.current.name}.amazonaws.com
+          from: admin@${local.sentry_domain}
   YAML
 }
