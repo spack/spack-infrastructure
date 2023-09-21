@@ -9,6 +9,6 @@ spec:
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer
-  commonName: sentry.staging.spack.io
+  commonName: sentry.spack.io
   dnsNames:
-  - sentry.staging.spack.io
+  - sentry.spack.io

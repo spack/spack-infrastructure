@@ -31,8 +31,16 @@ spec:
       annotations:
         kubernetes.io/ingress.class: nginx
 
-      hostname: sentry.staging.spack.io
+      hostname: sentry.spack.io
 
       tls:
       - secretName: tls-sentry
-        hosts: [sentry.staging.spack.io]
+        hosts: [sentry.spack.io]
+
+      sentry:
+        web:
+          nodeSelector:
+            spack.io/node-pool: base
+        worker:
+          nodeSelector:
+            spack.io/node-pool: base
