@@ -10,7 +10,7 @@ resources:
 patches:
   - target:
       kind: Certificate
-      name: tls-prometheus-webservice
+      name: prometheus
       namespace: monitoring
     patch: |-
       - op: replace
@@ -19,7 +19,7 @@ patches:
 
   - target:
       kind: Certificate
-      name: tls-grafana-webservice
+      name: grafana
       namespace: monitoring
     patch: |-
       - op: replace
@@ -28,7 +28,7 @@ patches:
 
   - target:
       kind: Certificate
-      name: tls-alertmanager-webservice
+      name: alertmanager
       namespace: monitoring
     patch: |-
       - op: replace
