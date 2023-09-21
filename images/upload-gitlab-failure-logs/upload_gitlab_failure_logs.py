@@ -19,7 +19,7 @@ config.load_config()
 v1_client = client.CoreV1Api()
 
 
-class JobPayload(Document):
+class FailedJobPayload(Document):
     timestamp = Date()
 
     class Index:
@@ -35,6 +35,22 @@ class JobPayload(Document):
         return super().save(**kwargs)
 
 
+class UnnecessaryJobPayload(Document):
+    timestamp = Date()
+
+    class Index:
+        name = "gitlab-unnecessary-jobs-*"
+
+    def save(self, **kwargs):
+        # assign now if no timestamp given
+        if not self.timestamp:
+            self.timestamp = datetime.now()
+
+        # override the index to go to the proper timeslot
+        kwargs["index"] = self.timestamp.strftime("gitlab-unnecessary-jobs-%Y%m%d")
+        return super().save(**kwargs)
+
+
 GITLAB_TOKEN = os.environ["GITLAB_TOKEN"]
 GITLAB_POSTGRES_DB = os.environ["GITLAB_POSTGRES_DB"]
 GITLAB_POSTGRES_USER = os.environ["GITLAB_POSTGRES_RO_USER"]
@@ -44,6 +60,8 @@ GITLAB_POSTGRES_HOST = os.environ["GITLAB_POSTGRES_HOST"]
 OPENSEARCH_ENDPOINT = os.environ["OPENSEARCH_ENDPOINT"]
 OPENSEARCH_USERNAME = os.environ["OPENSEARCH_USERNAME"]
 OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
+
+UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
 
 
 # Instantiate gitlab api wrapper
@@ -123,6 +141,11 @@ def assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
     return
 
 
+def check_job_needed(job_input_data: dict[str, Any], job_trace: str):
+    m = UNNECESSARY_JOB_REGEX.search(job_trace)
+    return m is None
+
+
 def collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
     """Collect k8s info about this job and store it in the OpenSearch record"""
     # Record whether this job was run on a kubernetes pod or via some other
@@ -189,23 +212,32 @@ def main():
     project = gl.projects.get(job_input_data["project_id"])
     job = project.jobs.get(job_input_data["build_id"])
     job_trace: str = job.trace().decode()  # type: ignore
+    doc = None
 
-    # Get info about the k8s pod this job ran on
-    collect_pod_status(job_input_data, job_trace)
+    if job_input_data["build_status"] == "failed":
+        # Get info about the k8s pod this job ran on
+        collect_pod_status(job_input_data, job_trace)
 
-    # Assign any/all relevant errors
-    assign_error_taxonomy(job_input_data, job_trace)
+        # Assign any/all relevant errors
+        assign_error_taxonomy(job_input_data, job_trace)
 
-    # Upload to OpenSearch
-    connections.create_connection(
-        hosts=[OPENSEARCH_ENDPOINT],
-        http_auth=(
-            OPENSEARCH_USERNAME,
-            OPENSEARCH_PASSWORD,
-        ),
-    )
-    doc = JobPayload(**job_input_data)
-    doc.save()
+        doc = FailedJobPayload(**job_input_data)
+    elif job_input_data["build_status"] == "success":
+        unnecessary = check_job_needed(job_input_data, job_trace)
+        if unnecessary:
+            doc = UnnecessaryJobPayload(**job_input_data)
+
+    if doc:
+        # Upload to OpenSearch
+        connections.create_connection(
+            hosts=[OPENSEARCH_ENDPOINT],
+            http_auth=(
+                OPENSEARCH_USERNAME,
+                OPENSEARCH_PASSWORD,
+            ),
+        )
+
+        doc.save()
 
 
 if __name__ == "__main__":

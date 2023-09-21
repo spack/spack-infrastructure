@@ -23,9 +23,6 @@ async def gitlab_webhook_consumer(request: Request):
     if job_input_data.get("object_kind", "") != "build":
         raise HTTPException(status_code=400, detail="Invalid request")
 
-    if job_input_data["build_status"] != "failed":
-        return Response("Not a failed job, no action needed.", status_code=200)
-
     with open(Path(__file__).parent / "job-template.yaml") as f:
         job_template = yaml.safe_load(f)
 
