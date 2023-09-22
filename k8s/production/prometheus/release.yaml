@@ -24,6 +24,7 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: kube-prometheus-stack
+
   values:
     defaultRules:
       create: false
@@ -95,6 +96,8 @@ spec:
 
 
     prometheus:
+      thanosService:
+        enabled: true
       ingress:
         enabled: false
       prometheusSpec:
@@ -146,6 +149,10 @@ spec:
       name: grafana-additional-datasources
       valuesKey: values.yaml
       optional: false
+    # See terraform/modules/spack/prometheus.tf
+    - kind: ConfigMap
+      name: prometheus-thanos-config
+      valuesKey: values.yaml
 
 
 # NOTE:
