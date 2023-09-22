@@ -14,6 +14,15 @@ class Job(models.Model):
 
     # Derived fields
     package_name = models.CharField(max_length=128)
+    # these fields can be null because the data was not previously collected
+    package_version = models.CharField(max_length=128, null=True)
+    compiler_name = models.CharField(max_length=128, null=True)
+    compiler_version = models.CharField(max_length=128, null=True)
+    arch = models.CharField(max_length=128, null=True)
+    package_variants = models.TextField(null=True)
+    build_jobs = models.CharField(max_length=128, null=True)
+    job_size = models.CharField(max_length=128, null=True)
+    stack = models.CharField(max_length=128, null=True)
     aws = models.BooleanField(default=True)
 
 
