@@ -39,3 +39,17 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - alertmanager.spack.io
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: thanos
+  namespace: monitoring
+spec:
+  secretName: tls-thanos-webservice
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - thanos-gateway.spack.io

@@ -36,6 +36,15 @@ patches:
         value: alertmanager.staging.spack.io
 
   - target:
+      kind: Certificate
+      name: thanos
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: thanos-gateway.staging.spack.io
+
+  - target:
       kind: Ingress
       name: oauth2-proxy
       namespace: monitoring
@@ -109,6 +118,12 @@ patches:
       - op: replace
         path: /spec/values/prometheus/prometheusSpec/externalUrl
         value: prometheus.staging.spack.io
+      - op: replace
+        path: /spec/values/prometheus/thanosIngress/hosts
+        value: [thanos-gateway.staging.spack.io]
+      - op: replace
+        path: /spec/values/prometheus/thanosIngress/tls/0/hosts
+        value: [thanos-gateway.staging.spack.io]
       - op: replace
         path: /spec/values/prometheus/prometheusSpec/additionalScrapeConfigs/0/static_configs/0/targets/0
         value: gitlab.staging.spack.io
