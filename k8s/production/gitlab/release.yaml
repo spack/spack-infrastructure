@@ -41,6 +41,10 @@ spec:
     - kind: ConfigMap
       name: gitlab-elasticache-config
       valuesKey: values.yaml
+    # See terraform/modules/sentry/sentry.tf
+    - kind: ConfigMap
+      name: gitlab-sentry-config
+      valuesKey: values.yaml
 
   values:
     nodeSelector:

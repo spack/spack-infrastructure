@@ -1,0 +1,158 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: sentry
+  namespace: sentry
+spec:
+  interval: 10m
+  url: https://sentry-kubernetes.github.io/charts
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: sentry
+  namespace: sentry
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: sentry
+      version: 20.0.0
+      sourceRef:
+        kind: HelmRepository
+        name: sentry
+
+  valuesFrom:
+    # See terraform/modules/sentry/sentry.tf
+    - kind: ConfigMap
+      name: sentry-ses-config
+      valuesKey: values.yaml
+
+  values:
+    ingress:
+      enabled: true
+
+      annotations:
+        kubernetes.io/ingress.class: nginx
+
+      hostname: sentry.spack.io
+
+      tls:
+      - secretName: tls-sentry
+        hosts: [sentry.spack.io]
+
+    vroom:
+      nodeSelector:
+        nodeSelector:
+          spack.io/node-pool: base
+
+    relay:
+      nodeSelector:
+          spack.io/node-pool: base
+
+    sentry:
+      web:
+        nodeSelector:
+          spack.io/node-pool: base
+      worker:
+        nodeSelector:
+          spack.io/node-pool: base
+      ingestConsumer:
+        nodeSelector:
+          spack.io/node-pool: base
+      ingestMetricsConsumerPerf:
+        nodeSelector:
+            spack.io/node-pool: base
+      ingestMetricsConsumerRh:
+        nodeSelector:
+          spack.io/node-pool: base
+      ingestReplayRecordings:
+        nodeSelector:
+          spack.io/node-pool: base
+      ingestProfiles:
+        nodeSelector:
+          spack.io/node-pool: base
+      ingestOccurrences:
+        nodeSelector:
+          spack.io/node-pool: base
+      ingestMonitors:
+        nodeSelector:
+          spack.io/node-pool: base
+      billingMetricsConsumer:
+        nodeSelector:
+          spack.io/node-pool: base
+      cron:
+        nodeSelector:
+          spack.io/node-pool: base
+      subscriptionConsumerEvents:
+        nodeSelector:
+          spack.io/node-pool: base
+      subscriptionConsumerSessions:
+        nodeSelector:
+          spack.io/node-pool: base
+      subscriptionConsumerTransactions:
+        nodeSelector:
+          spack.io/node-pool: base
+      postProcessForwardErrors:
+        nodeSelector:
+          spack.io/node-pool: base
+      postProcessForwardTransactions:
+        nodeSelector:
+          spack.io/node-pool: base
+      postProcessForwardIssuePlatform:
+        nodeSelector:
+          spack.io/node-pool: base
+
+    snuba:
+      api:
+        nodeSelector:
+          spack.io/node-pool: base
+      consumer:
+        nodeSelector:
+          spack.io/node-pool: base
+      outcomesConsumer:
+        nodeSelector:
+          spack.io/node-pool: base
+      replacer:
+        nodeSelector:
+          spack.io/node-pool: base
+      subscriptionConsumerEvents:
+        nodeSelector:
+          spack.io/node-pool: base
+      subscriptionConsumerTransactions:
+        nodeSelector:
+          spack.io/node-pool: base
+      subscriptionConsumerSessions:
+        nodeSelector:
+          spack.io/node-pool: base
+      replaysConsumer:
+        nodeSelector:
+          spack.io/node-pool: base
+      sessionsConsumer:
+        nodeSelector:
+          spack.io/node-pool: base
+      transactionsConsumer:
+        nodeSelector:
+          spack.io/node-pool: base
+      profilingProfilesConsumer:
+        nodeSelector:
+          spack.io/node-pool: base
+      profilingFunctionsConsumer:
+        nodeSelector:
+          spack.io/node-pool: base
+      issueOccurrenceConsumer:
+        nodeSelector:
+          spack.io/node-pool: base
+
+    hooks:
+      dbCheck:
+        nodeSelector:
+          spack.io/node-pool: base
+      dbInit:
+        nodeSelector:
+          spack.io/node-pool: base
+      snubaInit:
+        nodeSelector:
+          spack.io/node-pool: base
