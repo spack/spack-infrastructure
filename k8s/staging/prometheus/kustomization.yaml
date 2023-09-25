@@ -37,12 +37,21 @@ patches:
 
   - target:
       kind: Certificate
-      name: thanos
+      name: thanos-gateway
       namespace: monitoring
     patch: |-
       - op: replace
         path: /spec/dnsNames/0
         value: thanos-gateway.staging.spack.io
+
+  - target:
+      kind: Certificate
+      name: thanos-ruler
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: thanos-ruler.staging.spack.io
 
   - target:
       kind: Ingress
@@ -124,6 +133,12 @@ patches:
       - op: replace
         path: /spec/values/prometheus/thanosIngress/tls/0/hosts
         value: [thanos-gateway.staging.spack.io]
+      - op: replace
+        path: /spec/values/thanosRuler/ingress/hosts
+        value: [thanos-ruler.staging.spack.io]
+      - op: replace
+        path: /spec/values/thanosRuler/ingress/tls/0/hosts
+        value: [thanos-ruler.staging.spack.io]
       - op: replace
         path: /spec/values/prometheus/prometheusSpec/additionalScrapeConfigs/0/static_configs/0/targets/0
         value: gitlab.staging.spack.io

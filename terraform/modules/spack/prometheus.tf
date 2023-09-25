@@ -119,5 +119,11 @@ resource "kubectl_manifest" "prometheus_thanos_config_map" {
               objectStorageConfig:
                 name: ${kubectl_manifest.prometheus_thanos_secret.name}
                 key: objstore.yaml
+        thanosRuler:
+          serviceAccount:
+            create: true
+            name: "prometheus-thanos-ruler-sa"
+            annotations:
+              eks.amazonaws.com/role-arn: ${aws_iam_role.metrics_bucket.arn}
   YAML
 }

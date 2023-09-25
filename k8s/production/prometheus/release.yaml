@@ -108,6 +108,8 @@ spec:
           - secretName: tls-thanos-webservice
             hosts:
             - thanos-gateway.spack.io
+      thanosServiceMonitor:
+        enabled: true
 
       ingress:
         enabled: false
@@ -146,6 +148,18 @@ spec:
           nodeSelector:
             spack.io/node-pool: base
 
+    thanosRuler:
+      enabled: true
+      ingress:
+        enabled: true
+        ingressClassName: nginx
+        hosts:
+          - thanos-ruler.spack.io
+        paths: [/]
+        tls:
+          - secretName: tls-thanos-ruler-webservice
+            hosts:
+              - thanos-ruler.spack.io
 
     kube-state-metrics:
       nodeSelector:
