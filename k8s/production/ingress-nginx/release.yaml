@@ -43,7 +43,7 @@ spec:
       #   configMapNamespace: ""
 
       nodeSelector:
-        spack.io/node-pool: base
+        spack.io/node-pool: beefy
 
       replicaCount: 1
       minAvailable: 1
