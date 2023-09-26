@@ -46,113 +46,113 @@ spec:
     vroom:
       nodeSelector:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
 
     relay:
       nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
 
     sentry:
       web:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       worker:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       ingestConsumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       ingestMetricsConsumerPerf:
         nodeSelector:
-            spack.io/node-pool: base
+            spack.io/node-pool: beefy
       ingestMetricsConsumerRh:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       ingestReplayRecordings:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       ingestProfiles:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       ingestOccurrences:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       ingestMonitors:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       billingMetricsConsumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       cron:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       subscriptionConsumerEvents:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       subscriptionConsumerSessions:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       subscriptionConsumerTransactions:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       postProcessForwardErrors:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       postProcessForwardTransactions:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       postProcessForwardIssuePlatform:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
 
     snuba:
       api:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       consumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       outcomesConsumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       replacer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       subscriptionConsumerEvents:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       subscriptionConsumerTransactions:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       subscriptionConsumerSessions:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       replaysConsumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       sessionsConsumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       transactionsConsumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       profilingProfilesConsumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       profilingFunctionsConsumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       issueOccurrenceConsumer:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
 
     hooks:
       dbCheck:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       dbInit:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
       snubaInit:
         nodeSelector:
-          spack.io/node-pool: base
+          spack.io/node-pool: beefy
