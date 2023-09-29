@@ -99,6 +99,7 @@ spec:
         enabled: false
       prometheusSpec:
         externalUrl: "https://prometheus.spack.io"
+        retention: 30d  # How long to retain metrics
         storageSpec:
           volumeClaimTemplate:
             spec:
