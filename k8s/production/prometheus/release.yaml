@@ -140,7 +140,7 @@ spec:
         - pods=[*]
         - nodes=[*]
       metricAnnotationsAllowList:
-        - pods=[*]
+        - pods=[gitlab/ci_job_id,metrics*]
 
   # Configure OpenSearch datasource
   valuesFrom:
