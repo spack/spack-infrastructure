@@ -45,6 +45,10 @@ spec:
       nodeSelector:
         spack.io/node-pool: beefy
 
+      resources:
+        requests:
+          memory: 1Gi  # Request one gigabyte of memory
+
       replicaCount: 1
       minAvailable: 1
 
