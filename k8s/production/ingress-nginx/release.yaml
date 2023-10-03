@@ -47,6 +47,7 @@ spec:
 
       resources:
         requests:
+          cpu: 500m  # request 0.5 CPU cores
           memory: 1Gi  # Request one gigabyte of memory
 
       replicaCount: 1
