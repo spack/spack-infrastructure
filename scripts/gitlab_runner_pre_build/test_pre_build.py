@@ -1,8 +1,25 @@
-import urllib.parse
+import urllib.parse, urllib.error
 import pytest
 from pytest_lazyfixture import lazy_fixture
 
-from .pre_build import _gitlab_token_to_credentials
+from .pre_build import _gitlab_token_to_credentials, _durable_assume_role_request
+
+
+class MockResponse:
+    def __init__(self, code):
+        self.code = code
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def getcode(self):
+        return self.code
+
+    def read(self):
+        return b'{"AssumeRoleWithWebIdentityResponse":{"AssumeRoleWithWebIdentityResult":{"Credentials":{}}}}'
 
 
 @pytest.fixture
@@ -65,17 +82,7 @@ def test_gitlab_token_requires_valid_audience(invalid_audience_jwt):
     ],
 )
 def test_gitlab_token_to_credentials(jwt, access_type, expected_role_arn, mocker):
-    class Response:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
-
-        def read(self):
-            return b'{"AssumeRoleWithWebIdentityResponse":{"AssumeRoleWithWebIdentityResult":{"Credentials":{}}}}'
-
-    mocker.patch("urllib.request.urlopen", return_value=Response())
+    mocker.patch("urllib.request.urlopen", return_value=MockResponse(200))
     request = mocker.patch("urllib.request.Request")
 
     mocker.patch(
@@ -97,3 +104,36 @@ def test_gitlab_token_to_credentials(jwt, access_type, expected_role_arn, mocker
     assert qs["RoleArn"][0] == expected_role_arn
     if access_type == "pr":
         assert "Policy" in qs
+
+
+def test_assume_role_request_eventually_succeeds(mocker):
+    def flaky_urlopen(*args, **kwargs):
+        if not flaky_urlopen.has_failed:
+            flaky_urlopen.has_failed = True
+            raise urllib.error.HTTPError(
+                "someurl", 400, "Internal Server Error", None, None
+            )
+        else:
+            return MockResponse(200)
+
+    flaky_urlopen.has_failed = False
+
+    mocker.patch("urllib.request.urlopen", side_effect=flaky_urlopen)
+    mocker.patch("urllib.request.Request")
+    mocker.patch("time.sleep", side_effect=lambda x: None)
+
+    _durable_assume_role_request({})
+
+
+def test_assume_role_request_fails(mocker):
+    def failing_urlopen(*args, **kwargs):
+        raise urllib.error.HTTPError(
+            "someurl", 400, "Internal Server Error", None, None
+        )
+
+    mocker.patch("urllib.request.urlopen", side_effect=failing_urlopen)
+    mocker.patch("urllib.request.Request")
+    mocker.patch("time.sleep", side_effect=lambda x: None)
+
+    with pytest.raises(Exception, match="Failed to assume role"):
+        _durable_assume_role_request({})
