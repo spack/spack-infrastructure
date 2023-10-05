@@ -175,9 +175,13 @@ spec:
             app: "gitaly"
 
       gitaly:
+        resources:
+          requests:
+            cpu: 15000m
+            memory: 54Gi
         nodeSelector:
           spack.io/node-pool: gitlab
-          node.kubernetes.io/instance-type: m5.xlarge
+          node.kubernetes.io/instance-type: m5.4xlarge
 
       migrations:
         nodeSelector:
