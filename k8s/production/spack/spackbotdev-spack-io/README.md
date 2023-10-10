@@ -35,8 +35,8 @@ This will ensure that the running cluster picks up the new `latest` image tags f
 
 When you're happy with your changes, whether you need to merge any changes to this repo (`spack/spack-infrastructure`) or not, do not forget to remove the annotation telling flux to ignore the `spackbotdev` deployments.  This can be accomplished by issuing the following commands:
 
-    kubectl annotate deployment -n spack spackbotdev-spack-io fluxcd.io/ignore-
-    kubectl annotate deployment -n spack spackbotdev-workers fluxcd.io/ignore-
+    kubectl annotate deployment -n spack spackbotdev-spack-io kustomize.toolkit.fluxcd.io/reconcile-
+    kubectl annotate deployment -n spack spackbotdev-workers kustomize.toolkit.fluxcd.io/reconcile-
 
 ## Keeping development version of spackbot up to date
 
