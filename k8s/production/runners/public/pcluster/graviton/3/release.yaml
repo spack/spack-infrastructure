@@ -23,6 +23,13 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: runner-graviton3-pcluster-pub
+
+  valuesFrom:
+    # See terraform/modules/sentry/sentry.tf
+    - kind: ConfigMap
+      name: gitlab-runner-sentry-config
+      valuesKey: values.yaml
+
   values:
     imagePullPolicy: IfNotPresent
     replicas: 2
