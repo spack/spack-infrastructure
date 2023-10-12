@@ -6,6 +6,7 @@ resources:
   - ../../production/gitlab/namespace.yaml
   - ../../production/gitlab/release.yaml
   - ../../production/gitlab/sealed-secrets.yaml
+  - ../../production/gitlab/pod-cleanup.yaml
 patches:
   - target:
       kind: Certificate

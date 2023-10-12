@@ -136,6 +136,7 @@ spec:
                       values = ["true"]
 
             [runners.kubernetes.pod_annotations]
+              "pod-cleanup.gitlab.com/ttl" = "7h"
               "fluentbit.io/exclude" = "true"
               "karpenter.sh/do-not-evict" = "true"
               "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
