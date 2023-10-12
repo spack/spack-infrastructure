@@ -229,3 +229,13 @@ resource "kubectl_manifest" "sentry_ses_config_map" {
           from: admin@${local.sentry_domain}
   YAML
 }
+
+resource "sentry_project" "gitlab_runner" {
+  organization = data.sentry_organization.default.id
+
+  teams = [sentry_team.spack.id]
+  name  = "GitLab Runner"
+  slug  = "gitlab-runner"
+
+  platform = "go"
+}
