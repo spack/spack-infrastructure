@@ -23,6 +23,13 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v4-prot
+
+  valuesFrom:
+    # See terraform/modules/sentry/sentry.tf
+    - kind: ConfigMap
+      name: gitlab-runner-sentry-config
+      valuesKey: values.yaml
+
   values:
     imagePullPolicy: IfNotPresent
     replicas: 6

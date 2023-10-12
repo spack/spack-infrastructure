@@ -239,3 +239,21 @@ resource "sentry_project" "gitlab_runner" {
 
   platform = "go"
 }
+
+data "sentry_key" "gitlab_runner" {
+  organization = data.sentry_organization.default.id
+  project      = sentry_project.gitlab_runner.id
+}
+
+resource "kubectl_manifest" "gitlab_runner_sentry_config_map" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: gitlab-runner-sentry-config
+      namespace: gitlab
+    data:
+      values.yaml: |
+        sentryDsn: ${data.sentry_key.gitlab_runner.dsn_public}
+  YAML
+}
