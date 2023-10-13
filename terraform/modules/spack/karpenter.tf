@@ -70,6 +70,12 @@ resource "helm_release" "karpenter" {
     value = "1Gi"
   }
 
+  # Enable service monitor for prometheus metrics
+  set {
+    name = "serviceMonitor.enabled"
+    value = true
+  }
+
   depends_on = [
     helm_release.karpenter_crds
   ]
