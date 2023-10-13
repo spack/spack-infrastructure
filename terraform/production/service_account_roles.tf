@@ -77,56 +77,6 @@ resource "kubectl_manifest" "notary_service_account" {
   ]
 }
 
-moved {
-  from = aws_iam_role.cache_indexer
-  to   = module.production_cluster.aws_iam_role.cache_indexer
-}
-
-moved {
-  from = aws_iam_role_policy.cache_indexer_policy
-  to   = module.production_cluster.aws_iam_role_policy.cache_indexer_policy
-}
-
-moved {
-  from = kubectl_manifest.cache_indexer_service_account
-  to   = module.production_cluster.kubectl_manifest.cache_indexer_service_account
-}
-
-moved {
-  from = aws_iam_role.full_crud_access_spack_binaries_prs
-  to   = module.production_cluster.aws_iam_role.full_crud_access_spack_binaries_prs
-}
-
-moved {
-  from = aws_iam_policy.put_spack_binaries_prs
-  to   = module.production_cluster.aws_iam_policy.put_spack_binaries_prs
-}
-
-moved {
-  from = aws_iam_role_policy_attachment.put_spack_binaries_prs
-  to   = module.production_cluster.aws_iam_role_policy_attachment.put_spack_binaries_prs
-}
-
-moved {
-  from = aws_iam_policy.delete_spack_binaries_prs
-  to   = module.production_cluster.aws_iam_policy.delete_spack_binaries_prs
-}
-
-moved {
-  from = aws_iam_role_policy_attachment.delete_spack_binaries_prs
-  to   = module.production_cluster.aws_iam_role_policy_attachment.delete_spack_binaries_prs
-}
-
-moved {
-  from = kubectl_manifest.spackbot_service_account
-  to   = module.production_cluster.kubectl_manifest.spackbot_service_account
-}
-
-
-
-
-
-
 resource "aws_iam_role" "put_object_in_pipeline_statistics" {
   name        = "PutObjectInPipelineStatistics"
   description = "Managed by Terraform. Grant access to write to the pipeline-statistics folder of the spack-logs bucket."
