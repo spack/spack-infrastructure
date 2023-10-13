@@ -184,6 +184,8 @@ spec:
           node.kubernetes.io/instance-type: m5.4xlarge
         metrics:
           enabled: true
+          serviceMonitor:
+            enabled: true
 
       migrations:
         nodeSelector:

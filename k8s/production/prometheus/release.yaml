@@ -112,6 +112,14 @@ spec:
           requests:
             cpu: 2000m
             memory: 50G
+
+        # These three values allow prometheus to pick up ServiceMonitors from *any* namespace,
+        # not just the "monitoring" namespace.
+        serviceMonitorNamespaceSelector:
+          any: true
+        serviceMonitorSelector: {}
+        serviceMonitorSelectorNilUsesHelmValues: false
+
         additionalScrapeConfigs:
           - job_name: "gitlab-metrics"
             metrics_path: "/-/metrics"
