@@ -18,3 +18,13 @@ variable "logging_bucket_name" {
   type        = string
   default     = null
 }
+
+variable "cdn_domain" {
+  description = "The domain name of the CDN that points to the bucket."
+  type        = string
+}
+
+variable "cache_policy_id" {
+  description = "The ID of the cache policy to use for this bucket."
+  type        = string
+}
