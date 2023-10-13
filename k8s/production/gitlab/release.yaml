@@ -182,6 +182,8 @@ spec:
         nodeSelector:
           spack.io/node-pool: gitlab
           node.kubernetes.io/instance-type: m5.4xlarge
+        metrics:
+          enabled: true
 
       migrations:
         nodeSelector:
