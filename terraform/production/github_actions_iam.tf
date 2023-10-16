@@ -87,18 +87,4 @@ resource "aws_iam_role" "github_actions" {
       ]
     })
   }
-
-  # Inline policy that allows GitHub actions to read the Terraform state file
-  inline_policy {
-    name = "TerraformStateBucketAccessPolicy"
-    policy = jsonencode({
-      "Version" : "2012-10-17",
-      "Statement" : [
-        {
-          "Effect" : "Allow",
-          "Resource" : "arn:aws:s3:::spack-terraform-state/terraform.tfstate",
-          "Action" : ["s3:GetObject"]
-      }]
-    })
-  }
 }
