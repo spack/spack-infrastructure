@@ -1,10 +1,12 @@
 name: Build pcluster AMIs
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      k8sVersion:
+        description: 'k8s version to build AMIs for'
+        required: true
+        type: string
 
 # Cancel any workflows that are already running
 concurrency:
@@ -56,34 +58,15 @@ jobs:
         with:
           version: latest
 
-      - name: Setup terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          # Disable the github actions "wrapper" for Terraform
-          # because it transforms the output such that it can't
-          # be read by `jq`.
-          terraform_wrapper: false
-
-      - name: Initialize terraform
-        working-directory: terraform/production
-        run: terraform init -input=false
-
-      - name: Get k8s version from terraform state
-        working-directory: terraform/production
-        run: |
-          K8S_VERSION=$(terraform show -json | jq '.values.root_module.child_modules[] | select(.address == "module.production_cluster") | .child_modules[] | select(.address == "module.production_cluster.module.eks") | .resources[] | select(.address == "module.production_cluster.module.eks.aws_eks_cluster.this[0]") | .values.version')
-          K8S_VERSION=$(echo $K8S_VERSION | tr -d '"') # Remove inlined quotes
-          echo "K8S_VERSION=$K8S_VERSION" >> $GITHUB_ENV
-
       - name: Build AMI with packer if it doesn't exist
         working-directory: amazon-eks-ami
         run: |
-          IMAGE_NAME="pcluster_${{ matrix.architecture }}_${{ env.K8S_VERSION }}"
+          IMAGE_NAME="pcluster_${{ matrix.architecture }}_${{ inputs.k8sVersion }}"
           FOUND_AMIS=$(aws ec2 describe-images --filters "Name=name,Values=$IMAGE_NAME" | jq '.Images | length')
 
           # Only build the AMI if it doesn't exist
           if [ $FOUND_AMIS -eq 0 ]; then
-            make ${{ env.K8S_VERSION }} \
+            make ${{ inputs.k8sVersion }} \
               arch="${{ matrix.architecture }}" \
               name="$IMAGE_NAME" \
               ami_name="$IMAGE_NAME" \
