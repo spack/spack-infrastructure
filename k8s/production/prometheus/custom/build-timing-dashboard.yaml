@@ -584,7 +584,7 @@ data:
           },
           "gridPos": {
             "h": 11,
-            "w": 17,
+            "w": 18,
             "x": 0,
             "y": 22
           },
@@ -650,152 +650,6 @@ data:
           "fieldConfig": {
             "defaults": {
               "color": {
-                "mode": "fixed"
-              },
-              "custom": {
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                }
-              },
-              "mappings": []
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "pr11_ci-refactor-mirror-usage-uo-s3"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "yellow",
-                      "mode": "fixed"
-                    }
-                  },
-                  {
-                    "id": "displayName",
-                    "value": "UO/S3"
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "pr12_ci-refactor-mirror-usage-uo-https"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "green",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "pr21_ci-refactor-mirror-usage-aws-s3"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "blue",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "pr22_ci-refactor-mirror-usage-aws-https"
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "purple",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 16,
-            "w": 7,
-            "x": 17,
-            "y": 22
-          },
-          "id": 9,
-          "options": {
-            "displayLabels": [],
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "pieType": "pie",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "postgres",
-                "uid": "XCh6DDkSz"
-              },
-              "editorMode": "code",
-              "format": "table",
-              "rawQuery": true,
-              "rawSql": "SELECT SUM(\"public\".\"analytics_timerphase\".\"seconds\") / (COUNT(*) * 1.0) AS \"seconds\", \"public\".\"analytics_job\".\"ref\" as \"ref_name\"\nFROM \"public\".\"analytics_timerphase\"\nJOIN \"public\".\"analytics_timer\" ON \"public\".\"analytics_timerphase\".\"timer_id\" = \"public\".\"analytics_timer\".\"id\"\nJOIN \"public\".\"analytics_job\" ON \"public\".\"analytics_timer\".\"job_id\" = \"public\".\"analytics_job\".\"job_id\"\nWHERE\n  \"public\".\"analytics_timer\".\"cache\" IS true\n  AND \"public\".\"analytics_timerphase\".\"name\" LIKE 'fetch'\n  -- AND \"public\".\"analytics_job\".\"project_id\" = 23\n  AND \"public\".\"analytics_job\".\"ref\" LIKE '%ci-refactor-mirror-usage%'\nGROUP BY \"ref_name\"",
-              "refId": "A",
-              "sql": {
-                "columns": [
-                  {
-                    "parameters": [],
-                    "type": "function"
-                  }
-                ],
-                "groupBy": [
-                  {
-                    "property": {
-                      "type": "string"
-                    },
-                    "type": "groupBy"
-                  }
-                ],
-                "limit": 50
-              }
-            }
-          ],
-          "title": "Fetch from cache times (summary)",
-          "type": "piechart"
-        },
-        {
-          "datasource": {
-            "type": "postgres",
-            "uid": "XCh6DDkSz"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
                 "mode": "palette-classic"
               },
               "custom": {
@@ -818,29 +672,7 @@ data:
                   "mode": "off"
                 }
               },
-              "mappings": [
-                {
-                  "options": {
-                    "pr11_ci-refactor-mirror-usage-uo-s3": {
-                      "color": "yellow",
-                      "index": 0
-                    },
-                    "pr12_ci-refactor-mirror-usage-uo-https": {
-                      "color": "green",
-                      "index": 1
-                    },
-                    "pr21_ci-refactor-mirror-usage-aws-s3": {
-                      "color": "blue",
-                      "index": 2
-                    },
-                    "pr22_ci-refactor-mirror-usage-aws-https": {
-                      "color": "purple",
-                      "index": 3
-                    }
-                  },
-                  "type": "value"
-                }
-              ],
+              "mappings": [],
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -855,8 +687,8 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 16,
-            "w": 17,
+            "h": 11,
+            "w": 18,
             "x": 0,
             "y": 33
           },
@@ -864,13 +696,12 @@ data:
           "options": {
             "barRadius": 0,
             "barWidth": 0.97,
-            "colorByField": "ref",
             "groupWidth": 0.7,
             "legend": {
               "calcs": [],
               "displayMode": "list",
               "placement": "bottom",
-              "showLegend": true
+              "showLegend": false
             },
             "orientation": "auto",
             "showValue": "auto",
@@ -894,7 +725,7 @@ data:
               "editorMode": "code",
               "format": "table",
               "rawQuery": true,
-              "rawSql": "SELECT AVG(\"public\".\"analytics_timerphase\".\"seconds\") AS \"avg time\", COUNT(*) as \"count\", \"public\".\"analytics_timer\".\"name\" as \"package\", \"public\".\"analytics_job\".\"ref\" as \"ref\"\nFROM \"public\".\"analytics_timerphase\"\nJOIN \"public\".\"analytics_timer\" ON \"public\".\"analytics_timerphase\".\"timer_id\" = \"public\".\"analytics_timer\".\"id\"\nJOIN \"public\".\"analytics_job\" ON \"public\".\"analytics_timer\".\"job_id\" = \"public\".\"analytics_job\".\"job_id\"\nWHERE\n  \"public\".\"analytics_timer\".\"cache\" IS true\n  AND \"public\".\"analytics_timerphase\".\"name\" LIKE 'fetch'\n  -- AND \"public\".\"analytics_job\".\"project_id\" = 23\n  AND \"public\".\"analytics_job\".\"ref\" LIKE '%ci-refactor-mirror-usage%'\nGROUP BY \"public\".\"analytics_timer\".\"name\", \"ref\"\nORDER BY \"avg time\" DESC\nLIMIT 20\n;",
+              "rawSql": "SELECT AVG(\"public\".\"analytics_timerphase\".\"seconds\") AS \"avg time\", \"public\".\"analytics_timer\".\"name\" as \"package\"\nFROM \"public\".\"analytics_timerphase\"\nJOIN \"public\".\"analytics_timer\" ON \"public\".\"analytics_timerphase\".\"timer_id\" = \"public\".\"analytics_timer\".\"id\"\nJOIN \"public\".\"analytics_job\" ON \"public\".\"analytics_timer\".\"job_id\" = \"public\".\"analytics_job\".\"job_id\"\nWHERE\n  \"public\".\"analytics_timer\".\"cache\" IS true\n  AND \"public\".\"analytics_timerphase\".\"name\" LIKE 'fetch'\n  AND \"public\".\"analytics_job\".\"project_id\" = 2\nGROUP BY \"public\".\"analytics_timer\".\"name\"\nORDER BY \"avg time\" DESC\nLIMIT 20\n;",
               "refId": "A",
               "sql": {
                 "columns": [
@@ -927,13 +758,13 @@ data:
         "list": []
       },
       "time": {
-        "from": "now-30d",
+        "from": "now-7d",
         "to": "now"
       },
       "timepicker": {},
       "timezone": "",
       "title": "Build Timing Dashboard",
       "uid": "XaY45DkIk",
-      "version": 8,
+      "version": 10,
       "weekStart": ""
     }
