@@ -285,3 +285,31 @@ resource "kubectl_manifest" "gh_gl_sync_sentry_config_map" {
       SENTRY_DSN: ${data.sentry_key.gh_gl_sync.dsn_public}
   YAML
 }
+
+
+resource "sentry_project" "python_scripts" {
+  organization = data.sentry_organization.default.id
+
+  teams = [sentry_team.spack.id]
+  name  = "Spack Python Scripts"
+  slug  = "spack-python-scripts"
+
+  platform = "python"
+}
+
+data "sentry_key" "python_scripts" {
+  organization = data.sentry_organization.default.id
+  project      = sentry_project.python_scripts.id
+}
+
+resource "kubectl_manifest" "python_scripts_sentry_config_map" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: python-scripts-sentry-config
+      namespace: custom
+    data:
+      SENTRY_DSN: ${data.sentry_key.python_scripts.dsn_public}
+  YAML
+}
