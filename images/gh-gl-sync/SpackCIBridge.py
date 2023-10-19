@@ -15,6 +15,10 @@ import tempfile
 import urllib.parse
 import urllib.request
 
+import sentry_sdk
+
+sentry_sdk.init(traces_sample_rate=0.1)
+
 
 class SpackCIBridge(object):
 

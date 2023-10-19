@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
           - docker-image: ./images/gh-gl-sync
-            image-tags: ghcr.io/spack/ci-bridge:0.0.37
+            image-tags: ghcr.io/spack/ci-bridge:0.0.38
           - docker-image: ./images/gitlab-api-scrape
             image-tags: ghcr.io/spack/gitlab-api-scrape:0.0.2
           - docker-image: ./images/ci-key-rotate

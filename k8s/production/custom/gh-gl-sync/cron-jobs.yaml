@@ -17,7 +17,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: sync
-            image: ghcr.io/spack/ci-bridge:0.0.37
+            image: ghcr.io/spack/ci-bridge:0.0.38
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -35,6 +35,9 @@ spec:
                 secretKeyRef:
                   name: gh-gl-sync
                   key: gitlab-ssh-key
+            envFrom:
+              - configMapRef:
+                  name: gh-gl-sync-sentry-config
             args:
               - "spack/spack"
               - "ssh://git@ssh.gitlab.spack.io/spack/spack"
