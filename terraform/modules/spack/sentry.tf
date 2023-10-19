@@ -257,3 +257,31 @@ resource "kubectl_manifest" "gitlab_runner_sentry_config_map" {
         sentryDsn: ${data.sentry_key.gitlab_runner.dsn_public}
   YAML
 }
+
+resource "sentry_project" "gh_gl_sync" {
+  organization = data.sentry_organization.default.id
+
+  teams = [sentry_team.spack.id]
+  name  = "gh-gl-sync"
+  slug  = "gh-gl-sync"
+
+  platform = "python"
+}
+
+data "sentry_key" "gh_gl_sync" {
+  organization = data.sentry_organization.default.id
+  project      = sentry_project.gh_gl_sync.id
+}
+
+
+resource "kubectl_manifest" "gh_gl_sync_sentry_config_map" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: gh-gl-sync-sentry-config
+      namespace: custom
+    data:
+      SENTRY_DSN: ${data.sentry_key.gh_gl_sync.dsn_public}
+  YAML
+}
