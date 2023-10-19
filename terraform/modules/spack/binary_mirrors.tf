@@ -54,16 +54,3 @@ module "protected_binary_mirror" {
   cache_policy_id = aws_cloudfront_cache_policy.min_ttl_zero.id
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "pr_binary_mirror" {
-  bucket = module.pr_binary_mirror.bucket_name
-
-  rule {
-    id = "DeleteOldObjects"
-
-    expiration {
-      days = 14
-    }
-
-    status = "Disabled"
-  }
-}
