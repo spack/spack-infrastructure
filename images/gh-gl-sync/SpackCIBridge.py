@@ -15,6 +15,14 @@ import tempfile
 import urllib.parse
 import urllib.request
 
+if 'SENTRY_DSN' in os.environ:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=os.environ['SENTRY_DSN'],
+        traces_sample_rate=0.01,
+    )
+
 
 class SpackCIBridge(object):
 
