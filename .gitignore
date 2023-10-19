@@ -39,3 +39,6 @@ terraform.rc
 # Python Byte-compiled / optimized files
 __pycache__/
 *.py[cod]
+
+# Spack secret files
+private.key
