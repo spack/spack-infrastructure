@@ -195,36 +195,19 @@ def decrypt_sealed_secret(secret: dict) -> dict:
     raise Exception(f"Could not decrypt secret {secret['metadata']['name']}")
 
 
-@click.command(help="Update an existing secret")
-@click.argument("secrets_file", type=click.Path(exists=True, dir_okay=False))
-@click.option(
-    "--staging",
-    type=click.BOOL,
-    is_flag=True,
-    help="Use the staging cert file.",
-)
-@click.option(
-    "--value",
-    type=click.STRING,
-    help="Supply the value for the selected secret as an argument.",
-)
-def main(secrets_file: str, staging: bool, value: str):
-    # Read in secrets file with comments
-    yl = get_yaml_reader()
-    with open(secrets_file) as f:
-        docs = list(yl.load_all(f))
-
+def select_secret_and_key(secret_docs: list[dict]):
     # Maps secret names to their data
-    secret_map = {doc["metadata"]["name"]: doc["spec"]["encryptedData"] for doc in docs}
+    secret_map = {
+        doc["metadata"]["name"]: doc["spec"]["encryptedData"] for doc in secret_docs
+    }
 
     # Select which secret to modify
-    secret_names = [doc["metadata"]["name"] for doc in docs]
+    secret_names = [doc["metadata"]["name"] for doc in secret_docs]
     secret_index = select_secret(secret_names) if len(secret_map) > 1 else 0
 
     # Select which key to modify
-    secret = docs[secret_index]
+    secret = secret_docs[secret_index]
     secret_name = secret["metadata"]["name"]
-    secret_namespace = secret["metadata"]["namespace"]
 
     # Ensure encryptedData field is present and at least an empty object
     if not secret["spec"].get("encryptedData"):
@@ -244,6 +227,67 @@ def main(secrets_file: str, staging: bool, value: str):
         adding_new_key = True
         key_to_update = click.prompt("Please enter new secret name")
 
+    return (secret, secret_index, key_to_update, adding_new_key)
+
+
+def seal_secret_value(secret: dict, value: str):
+    # Write cert to temp file so that it can be passed to kubeseal
+    cert, _ = latest_key_pair()
+    with tempfile.NamedTemporaryFile() as cert_file:
+        cert_file.write(cert.encode("utf-8"))
+        cert_file.flush()
+        os.fsync(cert_file.fileno())
+
+        # Seal value
+        p = Popen(
+            [
+                "kubeseal",
+                "--raw",
+                "--namespace",
+                secret["metadata"]["namespace"],
+                "--name",
+                secret["metadata"]["name"],
+                "--cert",
+                cert_file.name,
+            ],
+            stdin=PIPE,
+            stdout=PIPE,
+        )
+        output, _ = p.communicate(value.encode("utf-8"))
+        encrypted_value = output.decode("utf-8")
+
+    # Check return
+    rc = p.returncode
+    if rc != 0:
+        secret_name = secret["metadata"]["name"]
+        raise click.ClickException(f"Error sealing secret {secret_name}")
+
+    return encrypted_value
+
+
+@click.command(help="Update an existing secret")
+@click.argument("secrets_file", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--staging",
+    type=click.BOOL,
+    is_flag=True,
+    help="Use the staging cert file.",
+)
+@click.option(
+    "--value",
+    type=click.STRING,
+    help="Supply the value for the selected secret as an argument.",
+)
+def main(secrets_file: str, staging: bool, value: str):
+    yl = get_yaml_reader()
+    with open(secrets_file) as f:
+        secret_docs = list(yl.load_all(f))
+
+    # Retrieve the secret and key to update
+    secret, secret_index, key_to_update, adding_new_key = select_secret_and_key(
+        secret_docs=secret_docs
+    )
+
     # Retrieve value, if not already supplied
     if not value:
         starting_value = None
@@ -258,6 +302,7 @@ def main(secrets_file: str, staging: bool, value: str):
 
         value = get_secret_value(starting_value=starting_value).strip()
 
+    # Ensure the empty value is what's desired
     if value == "":
         answer = click.prompt(
             click.style(
@@ -268,43 +313,14 @@ def main(secrets_file: str, staging: bool, value: str):
             click.echo(click.style("Exiting...", fg="yellow"))
             exit(0)
 
-    # Write cert to temp file so that it can be passed to kubeseal
-    cert, _ = latest_key_pair()
-    with tempfile.NamedTemporaryFile() as cert_file:
-        cert_file.write(cert.encode("utf-8"))
-        cert_file.flush()
-        os.fsync(cert_file.fileno())
-
-        # Seal value
-        p = Popen(
-            [
-                "kubeseal",
-                "--raw",
-                "--namespace",
-                secret_namespace,
-                "--name",
-                secret_name,
-                "--cert",
-                cert_file.name,
-            ],
-            stdin=PIPE,
-            stdout=PIPE,
-        )
-        output, _ = p.communicate(value.encode("utf-8"))
-        encrypted_value = output.decode("utf-8")
-
-    # Check return
-    rc = p.returncode
-    if rc != 0:
-        raise click.ClickException(
-            f"Error sealing secret {secret_name}.{key_to_update}"
-        )
+    # Encrypt value using kubeseal
+    encrypted_value = seal_secret_value(secret, value)
 
     # Update secret dict and save
     secret["spec"]["encryptedData"][key_to_update] = encrypted_value
-    docs[secret_index] = secret
+    secret_docs[secret_index] = secret
     with open(secrets_file, "w") as f:
-        yl.dump_all(docs, f)
+        yl.dump_all(secret_docs, f)
 
 
 if __name__ == "__main__":
