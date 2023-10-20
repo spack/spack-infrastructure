@@ -14,7 +14,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: index-binary-caches
-            image: ghcr.io/spack/cache-indexer:0.0.2
+            image: ghcr.io/spack/cache-indexer:0.0.3
             imagePullPolicy: IfNotPresent
             env:
               - name: BUCKET_NAME
@@ -22,5 +22,8 @@ spec:
                   configMapKeyRef:
                     name: cache-indexer-config
                     key: bucket_name
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
           nodeSelector:
             spack.io/node-pool: base
