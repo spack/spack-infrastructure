@@ -40,7 +40,7 @@ jobs:
           - docker-image: ./images/upload-gitlab-failure-logs
             image-tags: ghcr.io/spack/upload-gitlab-failure-logs:0.0.1
           - docker-image: ./images/snapshot-release-tags
-            image-tags: ghcr.io/spack/snapshot-release-tags:0.0.2
+            image-tags: ghcr.io/spack/snapshot-release-tags:0.0.3
           - docker-image: ./images/cache-indexer
             image-tags: ghcr.io/spack/cache-indexer:0.0.3
           - docker-image: ./images/build-timing-processor
