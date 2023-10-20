@@ -23,3 +23,6 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: sealed-secrets
+  values:
+    nodeSelector:
+      spack.io/node-pool: base
