@@ -1,9 +1,15 @@
 import json
 from pathlib import Path
 
+import sentry_sdk
 import yaml
 from fastapi import FastAPI, HTTPException, Request, Response
 from kubernetes import client, config
+
+sentry_sdk.init(
+    # Sample only 1% of jobs
+    traces_sample_rate=0.01,
+)
 
 config.load_incluster_config()
 

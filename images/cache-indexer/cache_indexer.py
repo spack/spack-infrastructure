@@ -5,7 +5,13 @@ import re
 import os
 
 import boto3
+import sentry_sdk
 
+sentry_sdk.init(
+    # This cron job only runs once a day,
+    # so just record all transactions.
+    traces_sample_rate=1.0,
+)
 
 # Describe the spack refs to include in the cache.spack.io website
 REF_REGEXES = [

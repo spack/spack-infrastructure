@@ -22,5 +22,8 @@ spec:
                 secretKeyRef:
                   name: gitlab-clear-pipelines
                   key: gitlab-token
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
           nodeSelector:
             spack.io/node-pool: base

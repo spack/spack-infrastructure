@@ -5,9 +5,17 @@ from github import Github, InputGitAuthor
 import json
 import os
 import re
+import sentry_sdk
 import subprocess
 import tempfile
 import urllib.request
+
+sentry_sdk.init(
+    # This cron job only runs once weekly,
+    # so just record all transactions.
+    traces_sample_rate=1.0,
+)
+
 
 if __name__ == "__main__":
     if "GITHUB_TOKEN" not in os.environ:

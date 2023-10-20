@@ -8,12 +8,19 @@ from typing import Any
 
 import gitlab
 import psycopg2
+import sentry_sdk
 import yaml
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
 from kubernetes.client.models.v1_pod import V1Pod
 from kubernetes.client.models.v1_pod_status import V1PodStatus
 from opensearch_dsl import Date, Document, connections
+
+
+sentry_sdk.init(
+    # Sample only 1% of jobs
+    traces_sample_rate=0.01,
+)
 
 config.load_config()
 v1_client = client.CoreV1Api()

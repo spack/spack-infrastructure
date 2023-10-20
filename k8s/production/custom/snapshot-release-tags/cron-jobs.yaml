@@ -16,7 +16,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: snapshot-release-tags
-            image: ghcr.io/spack/snapshot-release-tags:0.0.2
+            image: ghcr.io/spack/snapshot-release-tags:0.0.3
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -28,5 +28,8 @@ spec:
                 secretKeyRef:
                   name: gh-gl-sync
                   key: github-public-repo-token
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
           nodeSelector:
             spack.io/node-pool: base
