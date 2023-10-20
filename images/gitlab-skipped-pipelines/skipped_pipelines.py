@@ -7,6 +7,13 @@ import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 import requests
+import sentry_sdk
+
+sentry_sdk.init(
+    # This cron job only runs every 30 mins,
+    # so just record all transactions.
+    traces_sample_rate=1.0,
+)
 
 
 GITLAB_API_URL = "https://gitlab.spack.io/api/v4/projects/2"
