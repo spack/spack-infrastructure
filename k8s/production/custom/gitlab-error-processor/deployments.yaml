@@ -23,8 +23,11 @@ spec:
       serviceAccountName: gitlab-error-processor
       containers:
       - name: gitlab-error-processor
-        image: ghcr.io/spack/gitlab-error-processor:0.0.1
+        image: ghcr.io/spack/gitlab-error-processor:0.0.2
         imagePullPolicy: Always
+        envFrom:
+          - configMapRef:
+              name: python-scripts-sentry-config
         resources:
           requests:
             cpu: 350m
