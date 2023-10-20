@@ -268,17 +268,11 @@ def seal_secret_value(secret: dict, value: str):
 @click.command(help="Update an existing secret")
 @click.argument("secrets_file", type=click.Path(exists=True, dir_okay=False))
 @click.option(
-    "--staging",
-    type=click.BOOL,
-    is_flag=True,
-    help="Use the staging cert file.",
-)
-@click.option(
     "--value",
     type=click.STRING,
     help="Supply the value for the selected secret as an argument.",
 )
-def main(secrets_file: str, staging: bool, value: str):
+def main(secrets_file: str, value: str):
     yl = get_yaml_reader()
     with open(secrets_file) as f:
         secret_docs = list(yl.load_all(f))
