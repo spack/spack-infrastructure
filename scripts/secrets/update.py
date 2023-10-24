@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import typing
 from contextlib import contextmanager
+from pathlib import Path
 from subprocess import PIPE, Popen
 
 import click
@@ -157,7 +158,7 @@ def populated_tempfile(starting_value: bytes | None = None):
             pass
 
 
-def get_secret_value(starting_value: bytes | None = None):
+def read_user_input(starting_value: bytes | None = None):
     """Open the user configured editor and retrieve the input value."""
     EDITOR = os.environ.get("EDITOR", "vim")
 
@@ -203,6 +204,18 @@ def decrypt_sealed_secret(secret: dict) -> dict:
     raise Exception(f"Could not decrypt secret {secret['metadata']['name']}")
 
 
+def get_secret_value(secret: dict, key: str, new_key=False):
+    starting_value = None
+
+    # Don't populate existing if a new key is being created
+    if not new_key:
+        # Decrypt existing value for the secret that's being updated
+        decrypted_secret = decrypt_sealed_secret(secret)
+        starting_value = base64.b64decode(decrypted_secret["data"][key] or "")
+
+    return read_user_input(starting_value=starting_value).strip()
+
+
 def select_secret_and_key(secret_docs: list[dict]):
     # Maps secret names to their data
     secret_map = {
@@ -238,7 +251,7 @@ def select_secret_and_key(secret_docs: list[dict]):
     return (secret, secret_index, key_to_update, adding_new_key)
 
 
-def seal_secret_value(secret: dict, value: str):
+def seal_secret_value(secret_namespace: str, secret_name: str, value: str):
     # Write cert to temp file so that it can be passed to kubeseal
     cert, _ = latest_key_pair()
     with populated_tempfile(cert.encode("utf-8")) as cert_file:
@@ -248,9 +261,9 @@ def seal_secret_value(secret: dict, value: str):
                 "kubeseal",
                 "--raw",
                 "--namespace",
-                secret["metadata"]["namespace"],
+                secret_namespace,
                 "--name",
-                secret["metadata"]["name"],
+                secret_name,
                 "--cert",
                 cert_file.name,
             ],
@@ -263,21 +276,60 @@ def seal_secret_value(secret: dict, value: str):
     # Check return
     rc = p.returncode
     if rc != 0:
-        secret_name = secret["metadata"]["name"]
         raise click.ClickException(f"Error sealing secret {secret_name}")
 
     return encrypted_value
 
 
+def handle_raw_secret_input():
+    secret_name = click.prompt("Secret name")
+    secret_namespace = click.prompt("Secret namespace")
+    secret_value = read_user_input()
+    encrypted_value = seal_secret_value(
+        secret_namespace=secret_namespace,
+        secret_name=secret_name,
+        value=secret_value,
+    )
+    click.echo(click.style("-------------------", fg="green"))
+    click.echo(click.style("Secret value successfully sealed", fg="green"))
+    click.echo(click.style("-------------------", fg="green"))
+    click.echo(encrypted_value)
+
+
 @click.command(help="Update an existing secret")
-@click.argument("secrets_file", type=click.Path(exists=True, dir_okay=False))
+@click.argument("secrets_file", type=click.STRING, required=False)
+@click.option(
+    "--raw",
+    type=click.BOOL,
+    is_flag=True,
+    help="Returns an encrypted value directly, instead of updating a file",
+)
 @click.option(
     "--value",
     type=click.STRING,
     help="Supply the value for the selected secret as an argument.",
 )
-def main(secrets_file: str, value: str):
-    # TOOD: Add support for staging kustomization
+def main(secrets_file: str, value: str, raw: bool):
+    if secrets_file is None:
+        if not raw:
+            raise click.ClickException(
+                "Argument SECRETS_FILE must be supplied when --raw is not specified"
+            )
+
+        # Raw input
+        handle_raw_secret_input()
+        exit(0)
+
+    # Normal secret file input
+    secrets_file_path = Path(secrets_file)
+    if not secrets_file_path.exists():
+        raise click.ClickException(f"File {secrets_file} not found")
+    if secrets_file_path.is_dir():
+        raise click.ClickException(
+            "Argument SECRETS_FILE must be a file, not a folder."
+        )
+
+    # Read in supplied secret file
     yl = get_yaml_reader()
     with open(secrets_file) as f:
         secret_docs = list(yl.load_all(f))
@@ -288,18 +340,9 @@ def main(secrets_file: str, value: str):
     )
 
     # Retrieve value, if not already supplied
-    if not value:
-        starting_value = None
-
-        # Don't populate existing if a new key is being created
-        if not adding_new_key:
-            # Decrypt existing value for the secret that's being updated
-            decrypted_secret = decrypt_sealed_secret(secret)
-            starting_value = base64.b64decode(
-                decrypted_secret["data"][key_to_update] or ""
-            )
-
-        value = get_secret_value(starting_value=starting_value).strip()
+    value = value or get_secret_value(
+        secret=secret, key=key_to_update, new_key=adding_new_key
+    )
 
     # Ensure the empty value is what's desired
     if value == "":
@@ -313,13 +356,20 @@ def main(secrets_file: str, value: str):
             exit(0)
 
     # Encrypt value using kubeseal
-    encrypted_value = seal_secret_value(secret, value)
+    encrypted_value = seal_secret_value(
+        secret_namespace=secret["metadata"]["namespace"],
+        secret_name=secret["metadata"]["name"],
+        value=value,
+    )
 
     # Update secret dict and save
     secret["spec"]["encryptedData"][key_to_update] = encrypted_value
     secret_docs[secret_index] = secret
     with open(secrets_file, "w") as f:
         yl.dump_all(secret_docs, f)
+
+    # Give user feedback
+    click.echo(click.style("Secret value successfully sealed", fg="green"))
 
 
 if __name__ == "__main__":
