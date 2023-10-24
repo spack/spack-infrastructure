@@ -14,6 +14,7 @@ from subprocess import PIPE, Popen
 
 import click
 import kubernetes
+from kubernetes.client.models.v1_config_map import V1ConfigMap
 from kubernetes.client.models.v1_secret_list import V1SecretList
 from ruamel.yaml import YAML
 
@@ -201,7 +202,10 @@ def decrypt_sealed_secret(secret: dict) -> dict:
             decrypted_secret = json.loads(output.decode("utf-8"))
             return decrypted_secret
 
-    raise Exception(f"Could not decrypt secret {secret['metadata']['name']}")
+    raise click.ClickException(
+        f"Could not decrypt secret {secret['metadata']['name']}."
+        " Is your KUBECONFIG environment variable correctly set?"
+    )
 
 
 def get_secret_value(secret: dict, key: str, new_key=False):
@@ -290,10 +294,26 @@ def handle_raw_secret_input():
         secret_name=secret_name,
         value=secret_value,
     )
-    click.echo(click.style("-------------------", fg="green"))
+    click.echo(click.style("--------------------------------", fg="green"))
     click.echo(click.style("Secret value successfully sealed", fg="green"))
-    click.echo(click.style("-------------------", fg="green"))
+    click.echo(click.style("--------------------------------", fg="green"))
     click.echo(encrypted_value)
+
+
+def print_cluster_info():
+    kubernetes.config.load_config()
+    client = kubernetes.client.CoreV1Api()
+    configmap: V1ConfigMap = client.read_namespaced_config_map(
+        namespace="kube-system", name="cluster-info"
+    )  # type: ignore
+
+    if configmap.data is None:
+        raise Exception("Cluster-info configmap has null data field")
+
+    cluster_name = configmap.data["cluster-name"]
+    message = f"Operating on cluster: {cluster_name}"
+    border = "-" * len(message)
+    click.echo(f"{border}\n{message}\n{border}")
 
 
 @click.command(help="Update an existing secret")
@@ -310,13 +330,16 @@ def handle_raw_secret_input():
     help="Supply the value for the selected secret as an argument.",
 )
 def main(secrets_file: str, value: str, raw: bool):
-    if secrets_file is None:
-        if not raw:
-            raise click.ClickException(
-                "Argument SECRETS_FILE must be supplied when --raw is not specified"
-            )
+    if secrets_file is None and not raw:
+        raise click.ClickException(
+            "Argument SECRETS_FILE must be supplied when --raw is not specified"
+        )
 
-        # Raw input
+    # Display info about which cluster is being acted on
+    print_cluster_info()
+
+    # Handle raw input case
+    if raw:
         handle_raw_secret_input()
         exit(0)
 
