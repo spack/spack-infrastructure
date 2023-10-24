@@ -8,6 +8,7 @@ import os
 import subprocess
 import tempfile
 import typing
+from contextlib import contextmanager
 from subprocess import PIPE, Popen
 
 import click
@@ -140,16 +141,27 @@ def latest_key_pair() -> tuple[str, str]:
     return fetch_key_pairs()[-1]
 
 
-def get_secret_value(starting_value: bytes | None = None):
-    """Open the user configured editor and retrieve the input value."""
-    EDITOR = os.environ.get("EDITOR", "vim")
+@contextmanager
+def populated_tempfile(starting_value: bytes | None = None):
+    """A context manager that takes care of populating a temporary file's contents."""
     with tempfile.NamedTemporaryFile() as tmp:
-        # Populate file with contents of existing secret, if applicable
         if starting_value is not None:
             tmp.write(starting_value)
             tmp.flush()
             os.fsync(tmp.fileno())
 
+        # Yield tempfile wrapper
+        try:
+            yield tmp
+        finally:
+            pass
+
+
+def get_secret_value(starting_value: bytes | None = None):
+    """Open the user configured editor and retrieve the input value."""
+    EDITOR = os.environ.get("EDITOR", "vim")
+
+    with populated_tempfile(starting_value=starting_value) as tmp:
         # Open editor so user can change things
         retcode = subprocess.call([EDITOR, tmp.name])
         if retcode != 0:
@@ -168,11 +180,7 @@ def decrypt_sealed_secret(secret: dict) -> dict:
 
     key_pairs = fetch_key_pairs()
     for _, key in key_pairs:
-        with tempfile.NamedTemporaryFile() as private_key_file:
-            private_key_file.write(key.encode("utf-8"))
-            private_key_file.flush()
-            os.fsync(private_key_file.fileno())
-
+        with populated_tempfile(starting_value=key.encode("utf-8")) as private_key_file:
             # Seal value
             p = Popen(
                 [
@@ -233,11 +241,7 @@ def select_secret_and_key(secret_docs: list[dict]):
 def seal_secret_value(secret: dict, value: str):
     # Write cert to temp file so that it can be passed to kubeseal
     cert, _ = latest_key_pair()
-    with tempfile.NamedTemporaryFile() as cert_file:
-        cert_file.write(cert.encode("utf-8"))
-        cert_file.flush()
-        os.fsync(cert_file.fileno())
-
+    with populated_tempfile(cert.encode("utf-8")) as cert_file:
         # Seal value
         p = Popen(
             [
@@ -273,6 +277,7 @@ def seal_secret_value(secret: dict, value: str):
     help="Supply the value for the selected secret as an argument.",
 )
 def main(secrets_file: str, value: str):
+    # TOOD: Add support for staging kustomization
     yl = get_yaml_reader()
     with open(secrets_file) as f:
         secret_docs = list(yl.load_all(f))
