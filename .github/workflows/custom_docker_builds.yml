@@ -7,8 +7,21 @@ on:
     paths:
       - images/**
       - .github/workflows/custom_docker_builds.yml
+      - scripts/get-changed-files.sh
 
 jobs:
+  getchanges:
+    runs-on: ubuntu-latest
+    outputs:
+      changelist: ${{ steps.changes.outputs.diff }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          fetch-depth: 0
+      - name: Get changed files
+        id: changes
+        run: ./scripts/get-changed-files.sh
   publish:
     runs-on: ubuntu-latest
     strategy:
@@ -49,14 +62,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
+      - name: Matrix element to relative path
+        run: |
+          REL_PATH=$(realpath --relative-to $(git rev-parse --show-toplevel) ${{ matrix.docker-image }})
+          echo "REL_PATH=$REL_PATH" >> $GITHUB_ENV
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
+        if: contains(needs.getchanges.outputs.changelist, env.REL_PATH)
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
 
       - name: Log in to the Container registry
         uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
+        if: contains(needs.getchanges.outputs.changelist, env.REL_PATH)
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -65,6 +85,7 @@ jobs:
       - name: Build and push ${{ matrix.docker-image }}
         id: docker-build-push
         uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
+        if: contains(needs.getchanges.outputs.changelist, env.REL_PATH)
         with:
           context: ${{ matrix.docker-image }}
           file: ${{ matrix.docker-image }}/Dockerfile
@@ -73,4 +94,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
 
       - name: Image digest
+        if: contains(needs.getchanges.outputs.changelist, env.REL_PATH)
         run: echo ${{ steps.docker-build-push.outputs.digest }}
