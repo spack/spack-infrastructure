@@ -16,7 +16,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: scrape
-            image: ghcr.io/spack/gitlab-api-scrape:0.0.2
+            image: ghcr.io/spack/gitlab-api-scrape:0.0.3
             imagePullPolicy: IfNotPresent
             env:
             - name: GITLAB_PRIVATE_TOKEN
