@@ -141,6 +141,11 @@ def collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
     if not job_input_data["kubernetes_job"]:
         return
 
+    # Jobs sometimes don't have a `runner` field if the job failed du
+    # to a runner system failure
+    if 'runner' not in job_input_data:
+        return
+
     # Scan job logs to infer the name of the pod this job was executed on
     runner_name_matches = re.findall(
         rf"Running on (.+) via {job_input_data['runner']['description']}...",

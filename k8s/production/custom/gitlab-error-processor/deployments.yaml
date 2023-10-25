@@ -23,7 +23,7 @@ spec:
       serviceAccountName: gitlab-error-processor
       containers:
       - name: gitlab-error-processor
-        image: ghcr.io/spack/gitlab-error-processor:0.0.2
+        image: ghcr.io/spack/gitlab-error-processor:0.0.3
         imagePullPolicy: Always
         envFrom:
           - configMapRef:
