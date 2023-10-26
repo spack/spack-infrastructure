@@ -11,10 +11,9 @@ class Job(models.Model):
     duration = models.FloatField()
     ref = models.CharField(max_length=256)
     tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
-
-    # Derived fields
     package_name = models.CharField(max_length=128)
-    # these fields can be null because the data was not previously collected
+
+    # Fields allow null to accomodate historical data
     package_version = models.CharField(max_length=128, null=True)
     compiler_name = models.CharField(max_length=128, null=True)
     compiler_version = models.CharField(max_length=128, null=True)

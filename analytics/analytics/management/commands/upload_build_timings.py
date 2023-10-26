@@ -5,11 +5,10 @@ import zipfile
 
 import djclick as click
 import gitlab
-from gitlab.v4.objects import Project, ProjectJob
 import yaml
+from gitlab.v4.objects import Project, ProjectJob
 
 from analytics.models import Job, Timer, TimerPhase
-
 
 # Instantiate gitlab api wrapper
 GITLAB_TOKEN = os.environ["GITLAB_TOKEN"]
@@ -20,47 +19,53 @@ gl = gitlab.Gitlab(GITLAB_URL, GITLAB_TOKEN)
 JOB_INPUT_DATA = os.environ["JOB_INPUT_DATA"]
 
 
-def get_job_metadata(job: ProjectJob) -> dict:
-    # parse the yaml from artifacts/jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml
-
-    # Download job artifacts and parse timings json
+def get_job_artifacts_file(job: ProjectJob, filename: str):
+    """Yields a file IO, raises KeyError if the filename is not present"""
     with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
         artifacts_file = temp.name
         with open(artifacts_file, "wb") as f:
             job.artifacts(streamed=True, action=f.write)
 
-        try:
-            pipeline_yml_filename = (
-                "jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml"
-            )
-            with zipfile.ZipFile(artifacts_file) as zfile:
-                with zfile.open(pipeline_yml_filename) as pipeline_file:
-                    raw_pipeline = yaml.safe_load(pipeline_file)
-                    pipeline_vars = raw_pipeline.get("variables", {})
-                    job_vars = raw_pipeline.get(job.name, {}).get("variables", {})
+        with zipfile.ZipFile(artifacts_file) as zfile:
+            with zfile.open(filename) as timing_file:
+                yield timing_file
 
-                    return {
-                        "package_name": job_vars.get("SPACK_JOB_SPEC_PKG_NAME"),
-                        "package_version": job_vars.get("SPACK_JOB_SPEC_PKG_VERSION"),
-                        "compiler_name": job_vars.get("SPACK_JOB_SPEC_COMPILER_NAME"),
-                        "compiler_version": job_vars.get(
-                            "SPACK_JOB_SPEC_COMPILER_VERSION"
-                        ),
-                        "arch": job_vars.get("SPACK_JOB_SPEC_ARCH"),
-                        "package_variants": job_vars.get("SPACK_JOB_SPEC_VARIANTS"),
-                        "build_jobs": job_vars.get("SPACK_BUILD_JOBS"),
-                        "job_size": job_vars.get("CI_JOB_SIZE"),
-                        "stack": pipeline_vars.get("SPACK_CI_STACK_NAME"),
-                    }
-        except KeyError:
-            pass
+
+def get_job_metadata(job: ProjectJob) -> dict:
+    # parse the yaml from artifacts/jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml
+    pipeline_yml_filename = "jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml"
+
+    try:
+        with get_job_artifacts_file(job, pipeline_yml_filename) as pipeline_file:
+            raw_pipeline = yaml.safe_load(pipeline_file)
+    except KeyError:
+        raise Exception(
+            f"Could not retrieve file {pipeline_yml_filename} from job {job.id}"
+        )
+
+    # Load vars and return
+    pipeline_vars = raw_pipeline.get("variables", {})
+    job_vars = raw_pipeline.get(job.name, {}).get("variables", {})
+    if not job_vars:
+        raise Exception(f"Empty job variables for job {job.id}")
+
+    return {
+        "package_name": job_vars["SPACK_JOB_SPEC_PKG_NAME"],
+        "package_version": job_vars["SPACK_JOB_SPEC_PKG_VERSION"],
+        "compiler_name": job_vars["SPACK_JOB_SPEC_COMPILER_NAME"],
+        "compiler_version": job_vars["SPACK_JOB_SPEC_COMPILER_VERSION"],
+        "arch": job_vars["SPACK_JOB_SPEC_ARCH"],
+        "package_variants": job_vars["SPACK_JOB_SPEC_VARIANTS"],
+        "job_size": job_vars["CI_JOB_SIZE"],
+        "stack": pipeline_vars["SPACK_CI_STACK_NAME"],
+        # This var isn't guaranteed to be present
+        "build_jobs": job_vars.get("SPACK_BUILD_JOBS"),
+    }
 
 
 def create_job(project: Project, job: ProjectJob) -> Job:
     # grab runner tags
     runner_tags = gl.runners.get(job.runner["id"]).tag_list
-
-    job_metadata = get_job_metadata(job)
 
     # Return created job
     return Job.objects.create(
@@ -72,25 +77,18 @@ def create_job(project: Project, job: ProjectJob) -> Job:
         ref=job.ref,
         tags=job.tag_list,
         aws=("aws" in runner_tags),
-        **job_metadata,
+        **get_job_metadata(job),
     )
 
 
 def get_timings_json(job: ProjectJob) -> dict | None:
-    # Download job artifacts and parse timings json
-    with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
-        artifacts_file = temp.name
-        with open(artifacts_file, "wb") as f:
-            job.artifacts(streamed=True, action=f.write)
+    timing_filename = "jobs_scratch_dir/user_data/install_times.json"
 
-        # Read in timing json
-        try:
-            timing_filename = "jobs_scratch_dir/user_data/install_times.json"
-            with zipfile.ZipFile(artifacts_file) as zfile:
-                with zfile.open(timing_filename) as timing_file:
-                    return json.load(timing_file)
-        except KeyError:
-            pass
+    try:
+        with get_job_artifacts_file(job, timing_filename) as file:
+            return json.load(file)
+    except KeyError:
+        pass
 
     return None
 
