@@ -19,14 +19,3 @@ resource "gitlab_project_hook" "build_time_processor" {
   push_events             = false
   enable_ssl_verification = false
 }
-
-# A GitLab Project Hook can be imported using a key composed of `<project-id>:<hook-id>`
-# https://registry.terraform.io/providers/gitlabhq/gitlab/latest/docs/resources/project_hook#import
-import {
-  to = gitlab_project_hook.error_processor
-  id = "2:3"
-}
-import {
-  to = gitlab_project_hook.build_time_processor
-  id = "2:5"
-}
