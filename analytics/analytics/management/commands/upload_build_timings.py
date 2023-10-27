@@ -19,6 +19,12 @@ gl = gitlab.Gitlab(GITLAB_URL, GITLAB_TOKEN)
 JOB_INPUT_DATA = os.environ["JOB_INPUT_DATA"]
 
 
+class JobArtifactFileNotFound(Exception):
+    def __init__(self, job: ProjectJob, filename: str):
+        message = f"File {filename} not found in job artifacts of job {job.id}"
+        super().__init__(message)
+
+
 def get_job_artifacts_file(job: ProjectJob, filename: str):
     """Yields a file IO, raises KeyError if the filename is not present"""
     with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
@@ -27,21 +33,18 @@ def get_job_artifacts_file(job: ProjectJob, filename: str):
             job.artifacts(streamed=True, action=f.write)
 
         with zipfile.ZipFile(artifacts_file) as zfile:
-            with zfile.open(filename) as timing_file:
-                yield timing_file
+            try:
+                with zfile.open(filename) as timing_file:
+                    yield timing_file
+            except KeyError:
+                raise JobArtifactFileNotFound(job, filename)
 
 
 def get_job_metadata(job: ProjectJob) -> dict:
     # parse the yaml from artifacts/jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml
     pipeline_yml_filename = "jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml"
-
-    try:
-        with get_job_artifacts_file(job, pipeline_yml_filename) as pipeline_file:
-            raw_pipeline = yaml.safe_load(pipeline_file)
-    except KeyError:
-        raise Exception(
-            f"Could not retrieve file {pipeline_yml_filename} from job {job.id}"
-        )
+    with get_job_artifacts_file(job, pipeline_yml_filename) as pipeline_file:
+        raw_pipeline = yaml.safe_load(pipeline_file)
 
     # Load vars and return
     pipeline_vars = raw_pipeline.get("variables", {})
@@ -81,16 +84,10 @@ def create_job(project: Project, job: ProjectJob) -> Job:
     )
 
 
-def get_timings_json(job: ProjectJob) -> dict | None:
+def get_timings_json(job: ProjectJob) -> list[dict]:
     timing_filename = "jobs_scratch_dir/user_data/install_times.json"
-
-    try:
-        with get_job_artifacts_file(job, timing_filename) as file:
-            return json.load(file)
-    except KeyError:
-        pass
-
-    return None
+    with get_job_artifacts_file(job, timing_filename) as file:
+        return json.load(file)
 
 
 @click.command()
@@ -109,9 +106,7 @@ def main():
         job = create_job(gl_project, gl_job)
 
     # Get timings
-    timings: list[dict] | None = get_timings_json(gl_job)
-    if not timings:
-        return
+    timings = get_timings_json(gl_job)
 
     # Iterate through each timer and create timers and phase results
     phases = []
