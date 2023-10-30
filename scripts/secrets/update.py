@@ -335,6 +335,9 @@ def main(secrets_file: str, value: str, raw: bool):
             "Argument SECRETS_FILE must be supplied when --raw is not specified"
         )
 
+    if os.environ.get("KUBECONFIG") is None:
+        raise click.ClickException("Environment variable KUBECONFIG must be set")
+
     # Display info about which cluster is being acted on
     print_cluster_info()
 
