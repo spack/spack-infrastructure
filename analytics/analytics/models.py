@@ -11,9 +11,17 @@ class Job(models.Model):
     duration = models.FloatField()
     ref = models.CharField(max_length=256)
     tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
-
-    # Derived fields
     package_name = models.CharField(max_length=128)
+
+    # Fields allow null to accomodate historical data
+    package_version = models.CharField(max_length=128, null=True)
+    compiler_name = models.CharField(max_length=128, null=True)
+    compiler_version = models.CharField(max_length=128, null=True)
+    arch = models.CharField(max_length=128, null=True)
+    package_variants = models.TextField(null=True)
+    build_jobs = models.CharField(max_length=128, null=True)
+    job_size = models.CharField(max_length=128, null=True)
+    stack = models.CharField(max_length=128, null=True)
     aws = models.BooleanField(default=True)
 
 

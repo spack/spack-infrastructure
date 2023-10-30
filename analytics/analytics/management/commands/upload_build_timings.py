@@ -1,17 +1,14 @@
 import json
 import os
-import re
 import tempfile
 import zipfile
 
 import djclick as click
 import gitlab
+import yaml
 from gitlab.v4.objects import Project, ProjectJob
 
 from analytics.models import Job, Timer, TimerPhase
-
-# Other constants
-PACKAGE_NAME_REGEX = r"(.+)/[a-zA-Z0-9]+ .+"
 
 # Instantiate gitlab api wrapper
 GITLAB_TOKEN = os.environ["GITLAB_TOKEN"]
@@ -22,9 +19,55 @@ gl = gitlab.Gitlab(GITLAB_URL, GITLAB_TOKEN)
 JOB_INPUT_DATA = os.environ["JOB_INPUT_DATA"]
 
 
+class JobArtifactFileNotFound(Exception):
+    def __init__(self, job: ProjectJob, filename: str):
+        message = f"File {filename} not found in job artifacts of job {job.id}"
+        super().__init__(message)
+
+
+def get_job_artifacts_file(job: ProjectJob, filename: str):
+    """Yields a file IO, raises KeyError if the filename is not present"""
+    with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
+        artifacts_file = temp.name
+        with open(artifacts_file, "wb") as f:
+            job.artifacts(streamed=True, action=f.write)
+
+        with zipfile.ZipFile(artifacts_file) as zfile:
+            try:
+                with zfile.open(filename) as timing_file:
+                    yield timing_file
+            except KeyError:
+                raise JobArtifactFileNotFound(job, filename)
+
+
+def get_job_metadata(job: ProjectJob) -> dict:
+    # parse the yaml from artifacts/jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml
+    pipeline_yml_filename = "jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml"
+    with get_job_artifacts_file(job, pipeline_yml_filename) as pipeline_file:
+        raw_pipeline = yaml.safe_load(pipeline_file)
+
+    # Load vars and return
+    pipeline_vars = raw_pipeline.get("variables", {})
+    job_vars = raw_pipeline.get(job.name, {}).get("variables", {})
+    if not job_vars:
+        raise Exception(f"Empty job variables for job {job.id}")
+
+    return {
+        "package_name": job_vars["SPACK_JOB_SPEC_PKG_NAME"],
+        "package_version": job_vars["SPACK_JOB_SPEC_PKG_VERSION"],
+        "compiler_name": job_vars["SPACK_JOB_SPEC_COMPILER_NAME"],
+        "compiler_version": job_vars["SPACK_JOB_SPEC_COMPILER_VERSION"],
+        "arch": job_vars["SPACK_JOB_SPEC_ARCH"],
+        "package_variants": job_vars["SPACK_JOB_SPEC_VARIANTS"],
+        "job_size": job_vars["CI_JOB_SIZE"],
+        "stack": pipeline_vars["SPACK_CI_STACK_NAME"],
+        # This var isn't guaranteed to be present
+        "build_jobs": job_vars.get("SPACK_BUILD_JOBS"),
+    }
+
+
 def create_job(project: Project, job: ProjectJob) -> Job:
-    # Grab package name and runner tags
-    package_name = re.match(PACKAGE_NAME_REGEX, job.name).group(1)
+    # grab runner tags
     runner_tags = gl.runners.get(job.runner["id"]).tag_list
 
     # Return created job
@@ -36,28 +79,15 @@ def create_job(project: Project, job: ProjectJob) -> Job:
         duration=job.duration,
         ref=job.ref,
         tags=job.tag_list,
-        package_name=package_name,
         aws=("aws" in runner_tags),
+        **get_job_metadata(job),
     )
 
 
-def get_timings_json(job: ProjectJob) -> dict | None:
-    # Download job artifacts and parse timings json
-    with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
-        artifacts_file = temp.name
-        with open(artifacts_file, "wb") as f:
-            job.artifacts(streamed=True, action=f.write)
-
-        # Read in timing json
-        try:
-            timing_filename = "jobs_scratch_dir/user_data/install_times.json"
-            with zipfile.ZipFile(artifacts_file) as zfile:
-                with zfile.open(timing_filename) as timing_file:
-                    return json.load(timing_file)
-        except KeyError:
-            pass
-
-    return None
+def get_timings_json(job: ProjectJob) -> list[dict]:
+    timing_filename = "jobs_scratch_dir/user_data/install_times.json"
+    with get_job_artifacts_file(job, timing_filename) as file:
+        return json.load(file)
 
 
 @click.command()
@@ -76,9 +106,7 @@ def main():
         job = create_job(gl_project, gl_job)
 
     # Get timings
-    timings: list[dict] | None = get_timings_json(gl_job)
-    if not timings:
-        return
+    timings = get_timings_json(gl_job)
 
     # Iterate through each timer and create timers and phase results
     phases = []
