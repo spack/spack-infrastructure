@@ -118,6 +118,9 @@ spec:
                       operator = "In"
                       values = ["true"]
 
+            [runners.kubernetes.node_tolerations]
+              "spack.io/runner-taint=true" = "NoSchedule"
+
             [runners.kubernetes.pod_annotations]
               "pod-cleanup.gitlab.com/ttl" = "7h"
               "fluentbit.io/exclude" = "true"
