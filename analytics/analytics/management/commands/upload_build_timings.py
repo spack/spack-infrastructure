@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import zipfile
+from contextlib import contextmanager
 
 import djclick as click
 import gitlab
@@ -25,6 +26,7 @@ class JobArtifactFileNotFound(Exception):
         super().__init__(message)
 
 
+@contextmanager
 def get_job_artifacts_file(job: ProjectJob, filename: str):
     """Yields a file IO, raises KeyError if the filename is not present"""
     with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
