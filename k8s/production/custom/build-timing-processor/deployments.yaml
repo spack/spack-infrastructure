@@ -23,7 +23,7 @@ spec:
       serviceAccountName: build-timing-processor
       containers:
         - name: build-timing-processor
-          image: ghcr.io/spack/build-timing-processor:0.0.2
+          image: ghcr.io/spack/build-timing-processor:0.0.4
           imagePullPolicy: Always
           resources:
             requests:
