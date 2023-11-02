@@ -155,7 +155,7 @@ spec:
       imagePullPolicy: "if-not-present"
       locked: false
 
-      tags: "arm,aarch64,graviton,graviton2,graviton3,small,medium,large,huge,public,aws,spack,pcluster"
+      tags: "arm-pcluster,aarch64-pcluster,graviton-pcluster,graviton2-pcluster,graviton3-pcluster,small,medium,large,huge,public,aws,spack,pcluster"
       runUntagged: false
       secret: gitlab-gitlab-runner-secret # from gitlab release
 
