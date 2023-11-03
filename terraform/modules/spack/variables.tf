@@ -68,10 +68,14 @@ variable "analytics_db_credentials_secret" {
   type        = string
 }
 
+variable "opensearch_instance_type" {
+  description = "AWS OpenSearch instance type for the Spack OpenSearch cluster."
+  type        = string
+}
 
-variable "provision_opensearch_cluster" {
-  description = "Whether or not to provision an OpenSearch cluster for this deployment."
-  type        = bool
+variable "opensearch_volume_size" {
+  description = "AWS OpenSearch volume size for the Spack OpenSearch cluster."
+  type        = string
 }
 
 variable "ses_email_domain" {

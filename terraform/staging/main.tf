@@ -155,7 +155,9 @@ module "staging_cluster" {
 
   elasticache_instance_class = "cache.t4g.small"
 
-  provision_opensearch_cluster = false
+  # Use a cheap OpenSearch instance for staging deployment
+  opensearch_instance_type = "t3.small.search"
+  opensearch_volume_size   = 100
 
   ses_email_domain = "staging.spack.io"
 }

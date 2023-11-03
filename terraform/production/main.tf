@@ -156,7 +156,9 @@ module "production_cluster" {
   # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
   elasticache_instance_class = "cache.m6g.xlarge"
 
-  provision_opensearch_cluster = true
+  opensearch_instance_type = "r6g.xlarge.search"
+  opensearch_volume_size   = 500
+
 
   ses_email_domain = "spack.io"
 }
