@@ -66,3 +66,20 @@ class TimerPhase(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["path", "timer"], name="unique-phase-path"),
         ]
+
+
+class ErrorTaxonomy(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    job = models.OneToOneField(
+        Job, related_name="error_taxonomy", on_delete=models.CASCADE
+    )
+
+    attempt_number = models.PositiveSmallIntegerField()
+    retried = models.BooleanField()
+
+    error_taxonomy = models.CharField(max_length=64)
+    error_taxonomy_version = models.CharField(max_length=32)
+
+    webhook_payload = models.JSONField(
+        help_text="The JSON payload received from the GitLab job webhook."
+    )
