@@ -15,7 +15,9 @@ class Job(models.Model):
     started_at = models.DateTimeField()
     duration = models.FloatField(null=True)
     ref = models.CharField(max_length=256)
-    tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
+    tags = ArrayField(
+        base_field=models.CharField(max_length=32), null=True, default=None
+    )
     package_name = models.CharField(max_length=128)
 
     # Whether this job ran in the cluster or not
@@ -53,6 +55,16 @@ class Job(models.Model):
 
     class Meta:
         constraints = [
+            models.UniqueConstraint(
+                name="unique-project-job-id", fields=["project_id", "job_id"]
+            ),
+            models.CheckConstraint(
+                name="consistent-temporary-null-values",
+                check=(
+                    models.Q(tags__isnull=True, duration__isnull=True)
+                    | models.Q(tags__isnull=False, duration__isnull=False)
+                ),
+            ),
             # Ensure that if the aws field is null, all aws data is also null
             models.CheckConstraint(
                 name="aws-consistent-null-data",
@@ -82,7 +94,7 @@ class Job(models.Model):
                         node_instance_type_spot_price__isnull=False,
                     )
                 ),
-            )
+            ),
         ]
 
 
