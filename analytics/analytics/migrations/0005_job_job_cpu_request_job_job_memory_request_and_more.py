@@ -98,37 +98,4 @@ class Migration(migrations.Migration):
                 name="consistent-temporary-null-values",
             ),
         ),
-        migrations.AddConstraint(
-            model_name="job",
-            constraint=models.CheckConstraint(
-                check=models.Q(
-                    models.Q(
-                        ("aws__isnull", True),
-                        ("job_cpu_request__isnull", True),
-                        ("job_memory_request__isnull", True),
-                        ("node_capacity_type__isnull", True),
-                        ("node_cpu__isnull", True),
-                        ("node_instance_type__isnull", True),
-                        ("node_instance_type_spot_price__isnull", True),
-                        ("node_mem__isnull", True),
-                        ("node_name__isnull", True),
-                        ("node_uid__isnull", True),
-                    ),
-                    models.Q(
-                        ("aws__isnull", False),
-                        ("job_cpu_request__isnull", False),
-                        ("job_memory_request__isnull", False),
-                        ("node_capacity_type__isnull", False),
-                        ("node_cpu__isnull", False),
-                        ("node_instance_type__isnull", False),
-                        ("node_instance_type_spot_price__isnull", False),
-                        ("node_mem__isnull", False),
-                        ("node_name__isnull", False),
-                        ("node_uid__isnull", False),
-                    ),
-                    _connector="OR",
-                ),
-                name="aws-consistent-null-data",
-            ),
-        ),
     ]

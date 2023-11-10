@@ -42,8 +42,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name="timerphase",
-            constraint=models.UniqueConstraint(
-                fields=("path", "timer"), name="unique-phase-path"
-            ),
+            constraint=models.UniqueConstraint(fields=("path", "timer"), name="unique-phase-path"),
         ),
     ]
