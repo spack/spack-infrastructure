@@ -8,5 +8,3 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 COPY . .
-
-CMD [ "./manage.py", "upload_build_timings" ]
