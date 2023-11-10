@@ -1,10 +1,11 @@
 ---
+# TODO: remove this job when the analytics DB is used.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: gitlab-error-processing-job
+  name: gitlab-error-processing-job-opensearch
   labels:
-    app: gitlab-error-processing-job
+    app: gitlab-error-processing-job-opensearch
 spec:
   ttlSecondsAfterFinished: 7200
   template:
@@ -15,8 +16,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: gitlab-error-processing-job
-        image: ghcr.io/spack/ci-analytics:0.0.1
-        command: [ "./manage.py", "upload_error_taxonomy" ]
+        image: ghcr.io/spack/upload-gitlab-failure-logs:0.0.3
         imagePullPolicy: Always
         env:
           - name: GITLAB_TOKEN
@@ -40,6 +40,23 @@ spec:
               secretKeyRef:
                 name: gitlab-error-processor
                 key: postgresql-gitlab-ro-user-password
+
+          # opensearch credentials
+          - name: OPENSEARCH_ENDPOINT
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-error-processor
+                key: opensearch-endpoint
+          - name: OPENSEARCH_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-error-processor
+                key: opensearch-username
+          - name: OPENSEARCH_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-error-processor
+                key: opensearch-password
         envFrom:
           - configMapRef:
               name: python-scripts-sentry-config
