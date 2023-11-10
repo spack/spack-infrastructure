@@ -38,7 +38,7 @@ jobs:
           - docker-image: ./images/python-aws-bash
             image-tags: ghcr.io/spack/python-aws-bash:0.0.2
           - docker-image: ./images/gitlab-error-processor
-            image-tags: ghcr.io/spack/gitlab-error-processor:0.0.3
+            image-tags: ghcr.io/spack/gitlab-error-processor:0.0.4
           - docker-image: ./images/upload-gitlab-failure-logs
             image-tags: ghcr.io/spack/upload-gitlab-failure-logs:0.0.3
           - docker-image: ./images/snapshot-release-tags
@@ -46,7 +46,7 @@ jobs:
           - docker-image: ./images/cache-indexer
             image-tags: ghcr.io/spack/cache-indexer:0.0.3
           - docker-image: ./images/build-timing-processor
-            image-tags: ghcr.io/spack/build-timing-processor:0.0.4
+            image-tags: ghcr.io/spack/build-timing-processor:0.0.5
           - docker-image: ./analytics
             image-tags: ghcr.io/spack/ci-analytics:0.0.1
     steps:
