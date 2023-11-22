@@ -30,8 +30,11 @@
 ###     # ./prune.sh
 ###
 
-OUTPUT_DIRECTORY=$1
+# Agree on the now for all pruning
+NOW="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
 
+OUTPUT_DIRECTORY=$1
+mkdir -p ${OUTPUT_DIRECTORY}
 if [ -z "$OUTPUT_DIRECTORY" ] ; then
     echo "Error: output directory required."
     exit 1
@@ -42,13 +45,14 @@ ARTIFACTS_DIR="${OUTPUT_DIRECTORY}/jobs_artifacts"
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 echo "Generating bucket listing"
-aws s3 ls --recursive s3://spack-binaries > ${BUCKET_LISTING} &
+aws s3 ls --recursive s3://spack-binaries/develop/ > ${BUCKET_LISTING} &
 
 echo "Retrieving artifacts for pipeline generation jobs"
 python "${SCRIPT_DIR}/get_pipelines.py" \
   https://gitlab.spack.io \
   spack/spack \
-  --artifacts-dir ${ARTIFACTS_DIR} &
+  --artifacts-dir ${ARTIFACTS_DIR} \
+  --updated-before ${NOW} &
 
 wait
 
@@ -57,3 +61,4 @@ python "${SCRIPT_DIR}/generate_pruning_lists.py" \
   ${BUCKET_LISTING} \
   ${ARTIFACTS_DIR} \
   --output-dir ${OUTPUT_DIRECTORY}
+  --updated-before ${NOW}

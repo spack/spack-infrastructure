@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime, timezone
 import glob
 import json
 import os
@@ -8,7 +9,7 @@ import re
 STACK_REGEX=re.compile(r"\s+develop/([^/]+)/build_cache")
 METADATA_REGEX = re.compile(r"([^-]{32})\.spec\.json\.sig$")
 ARCHIVE_REGEX = re.compile(r"([^-]{32})\.spack$")
-S3_META_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+\d+\s+(.+)$")
+S3_META_REGEX = re.compile(r"^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+\d+\s+(.+)$")
 
 
 def a_not_in_b(a, b):
@@ -31,7 +32,7 @@ def get_job_name_for_stack(stack_name):
     return stack_name
 
 
-def process_bucket_listing(bucket_listing_path):
+def process_bucket_listing(bucket_listing_path, updated_before=datetime.now(timezone.utc)):
     """ Process the bucket listing and build up information about all of the
         stacks based on the contents of the mirror. """
     stack_information = dict()
@@ -46,7 +47,7 @@ def process_bucket_listing(bucket_listing_path):
                     stack_information[this_stack_name] = StackMirrorInformation()
 
                 info = stack_information[this_stack_name]
-                metadata_hashes= info.metadata_hashes
+                metadata_hashes = info.metadata_hashes
                 metadata_info = info.metadata_info
                 archive_hashes = info.archive_hashes
                 archive_info = info.archive_info
@@ -62,6 +63,21 @@ def process_bucket_listing(bucket_listing_path):
                 if m:
                     archive_hashes.add(m.group(1))
                     archive_info[m.group(1)] = line
+
+    # Filter objects that should be skipped based on date
+    for _info in stack_information:
+        remove_hashes = []
+        for _hash, _archive in _info.archive_info.items():
+            m = S3_META_REGEX.search(_archive)
+            if m:
+                date_stamp = datetime.fromisoformat(m.group(1).strip().replace(" ", "T") + ("+00:00"))
+                if date_stamp > updated_before:
+                    remove_hashes.append(_hash)
+
+        # We only need to remove the hashes from the hashes lists, the info is always
+        # indexed by hash and never iterated on directly
+        _info.archive_hashes.difference_update(remove_hashes)
+        _info.metadata_hashes.difference_update(remove_hashes)
 
     return stack_information
 
@@ -109,7 +125,7 @@ def check_stack(stack_name, stack_info, lock_file_pattern, output_dir):
             for line in sorted(relevant_lines):
                 m = S3_META_REGEX.search(line)
                 if m:
-                    f.write(f"{m.group(1)}\n")
+                    f.write(f"{m.group(2)}\n")
                 else:
                     no_match += 1
 
@@ -134,7 +150,7 @@ def check_stack(stack_name, stack_info, lock_file_pattern, output_dir):
             for line in sorted(relevant_lines):
                 m = S3_META_REGEX.search(line)
                 if m:
-                    f.write(f"{m.group(1)}\n")
+                    f.write(f"{m.group(2)}\n")
                 else:
                     no_match += 1
 
@@ -182,7 +198,7 @@ def check_stack(stack_name, stack_info, lock_file_pattern, output_dir):
         for line in sorted(relevant_lines):
             m = S3_META_REGEX.search(line)
             if m:
-                f.write(f"{m.group(1)}\n")
+                f.write(f"{m.group(2)}\n")
             else:
                 no_match += 1
 
@@ -200,10 +216,21 @@ if __name__ == "__main__":
         help="Absolute path to directory containing downloaded/extracted artifacts (generate jobs)")
     parser.add_argument("-o", "--output-dir", type=str, default=os.getcwd(),
         help="Directory to store generated pruning lists, default is current directory")
+    parser.add_argument("--updated-before", type=str,
+        help="Clip date to prevent considering archives that are too new")
     args = parser.parse_args()
 
+    if not args.updated_before:
+        before = datetime.now(timezone.utc)
+        print("Using updated_before={0}".format(before))
+    else:
+        before = datetime.fromisoformat(args.updated_before.replace("Z", "+00:00"))
+        # ensure input TZ is UTC
+        if not before.tzinfo:
+            before = before.astimezone(timezone.utc)
+
     lock_file_pattern = os.path.join(args.artifacts_dir, "**/**/{0}/jobs_scratch_dir/concrete_environment/spack.lock")
-    stacks_information = process_bucket_listing(args.bucket_contents)
+    stacks_information = process_bucket_listing(args.bucket_contents, updated_before=before)
 
     for stack_name, stack_info in stacks_information.items():
         check_stack(stack_name, stack_info, lock_file_pattern, args.output_dir)

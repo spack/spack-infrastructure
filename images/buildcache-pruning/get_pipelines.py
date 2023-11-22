@@ -114,7 +114,6 @@ e.g. "2019-03-15T08:00:00Z").  If none is provided, the default is 2 weeks befor
 
     args = parser.parse_args()
 
-
     gitlab_host = args.gitlab_host
     gitlab_project = urllib.parse.quote_plus(args.gitlab_project)
 
@@ -123,12 +122,16 @@ e.g. "2019-03-15T08:00:00Z").  If none is provided, the default is 2 weeks befor
         before_time = datetime.now(timezone.utc)
         before = before_time.strftime(QUERY_TIME_FORMAT)
         print("Using updated_before={0}".format(before))
+    else:
+        before = before.replace("+00:00", "Z")
 
     after = args.updated_after
     if not after:
         after_time = datetime.now(timezone.utc) + timedelta(weeks=-2)
         after = after_time.strftime(QUERY_TIME_FORMAT)
         print("Using updated_after={0}".format(after))
+    else:
+        after = after.replace("+00:00", "Z")
 
     download_dir = args.artifacts_dir
     if not os.path.exists(download_dir):
