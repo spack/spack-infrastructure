@@ -565,7 +565,10 @@ class SpackCIBridge(object):
         print("Rate limit at the end of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
 
     def create_status_for_commit(self, sha, branch, state, target_url, description):
-        context = "ci/gitlab-ci"
+        if "GITHUB_STATUS_CONTEXT" in os.environ:
+            context = os.environ["GITHUB_STATUS_CONTEXT"]
+        else:
+            context = "ci/gitlab-ci"
         commit = self.get_commit(sha)
         existing_statuses = commit.get_combined_status()
         for status in existing_statuses.statuses:
