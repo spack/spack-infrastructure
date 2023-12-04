@@ -148,6 +148,8 @@ spec:
       metricLabelsAllowlist:
         - pods=[*]
         - nodes=[*]
+      metricAnnotationsAllowList:
+        - pods=[gitlab/ci_job_id,metrics*]
 
   # Configure OpenSearch datasource
   valuesFrom:
