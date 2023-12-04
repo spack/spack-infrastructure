@@ -18,6 +18,7 @@ spec:
         - name: build-timing-processing-job
           image: ghcr.io/spack/upload-build-timings:0.0.4
           imagePullPolicy: Always
+          command: ["./manage.py", "upload_build_timings"]
           env:
             - name: GITLAB_TOKEN
               valueFrom:

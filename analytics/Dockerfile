@@ -9,4 +9,4 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD [ "./manage.py", "upload_build_timings" ]
+CMD [ "gunicorn", "--bind", "0.0.0.0:8080", "--access-logfile", "-", "analytics.wsgi" ]
