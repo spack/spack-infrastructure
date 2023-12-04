@@ -122,6 +122,8 @@ module "staging_cluster" {
 
   deployment_name = "staging"
 
+  gitlab_url = local.gitlab_url
+
   kubernetes_version = "1.27"
 
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]

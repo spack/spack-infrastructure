@@ -122,6 +122,8 @@ module "production_cluster" {
 
   deployment_name = "prod"
 
+  gitlab_url = local.gitlab_url
+
   kubernetes_version = "1.27"
 
   availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
