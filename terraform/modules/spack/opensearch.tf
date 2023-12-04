@@ -1,6 +1,7 @@
 locals {
-  domain_endpoint_name = "opensearch.${var.deployment_name == "prod" ? "" : "${var.deployment_name}."}spack.io"
-  cognito_enabled      = var.deployment_name == "prod"
+  domain_endpoint_name        = "opensearch.${var.deployment_name == "prod" ? "" : "${var.deployment_name}."}spack.io"
+  cognito_enabled             = var.deployment_name == "prod"
+  opensearch_master_user_name = "admin"
 }
 
 resource "random_password" "opensearch_password" {
@@ -21,7 +22,7 @@ resource "aws_opensearch_domain" "spack" {
       for_each = var.deployment_name == "prod" ? [] : [1]
 
       content {
-        master_user_name     = "admin"
+        master_user_name     = local.opensearch_master_user_name
         master_user_password = random_password.opensearch_password.result
       }
     }
@@ -177,6 +178,20 @@ resource "aws_iam_role" "opensearch_cognito_role" {
       }
     ]
   })
+}
+
+resource "kubectl_manifest" "opensearch_secrets" {
+  yaml_body = <<-YAML
+     apiVersion: v1
+     kind: Secret
+     metadata:
+       name: opensearch-secrets
+       namespace: custom
+     data:
+       opensearch-endpoint: ${base64encode("https://${aws_opensearch_domain.spack.endpoint}")}
+       opensearch-username: ${base64encode("${local.opensearch_master_user_name}")}
+       opensearch-password: ${base64encode("${random_password.opensearch_password.result}")}
+   YAML
 }
 
 resource "aws_iam_role_policy_attachment" "opensearch_congito_role_policy_attach" {
