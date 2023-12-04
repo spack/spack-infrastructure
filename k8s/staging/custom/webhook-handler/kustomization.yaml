@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../production/custom/webhook-handler/deployments.yaml
+  - ../../../production/custom/webhook-handler/sealed-secrets.yaml
+  - ../../../production/custom/webhook-handler/service-accounts.yaml
+  - ../../../production/custom/webhook-handler/services.yaml
+
+patches:
+  - target:
+      kind: SealedSecret
+      name: webhook-handler
+      namespace: custom
+    patch: |-
+      - op: replace
+        path: /spec/encryptedData/gitlab-token
+        value: AgCPJ7S40DRRXJFSIxsbUaUehEQmJx4Pixiaa2x40RLBU9TMQJsUdnRZvK5YwmH/UNCMxw724VwEOKMR7rBuQREuk5NuqCZs9KRtm8iqvqGg8GohWjrek3/dLR8sdOJFlSmq5mkQuqLZ2gwdoMZClmWgESWu5kWjSAa0KQRqs+bs1B9E+/QvTotrqeUu4rxgRZaUnKMnACzfnNh8jE3d5868kBY40BcRgiMp+cIJLyWRprOwIPd97nP2+dkyE+SLpMWGewNq5xXC5x6E8rteRtdNo+lIYLhq5eqCWavsV5m8UZs3uLjORSXIN3z1Kh1z0a6YQ/80wdxAFnY50aPW2QBKp2EVE8lcUZeGe7tO7MNI+hMD1kU1kCBCbrsrhMuWuWgKSMaNYObakrWGpqTFysRm6RqvWxq1yd0Cb1NedEZ3lDdc3BHTk3XW3JDpCXedXrYOwp5lXSjFB60X2/BmywyNMNc9mc6jcGIvP15WfWgD4GuDpI7FUx0Q6JEkqvw4jeC/waIEpLCI2KM1O7r4ars3iiJAfFsZmBG2VGpQsrfR/xU5eA05Og30zHOlFf4h6P4CmSXWsszB95DB5lBsHck4zOVu+vg9+N5qtkCkmTGpX85TGudqP600xeNvf0AV896rbz63sBDkl1EoWBkn7T+SPqkc5nwGniyWDcx3lAzeiTRUBHPPq/ilD5Ydt2oIDHkh8zFY8xptOnqmxFDz756vmsMG4w==
+        path: /spec/encryptedData/analytics-postgresql-host
+        value: AgBeBXiqLupr1foBMlVmHKKV22dGPdQ9NzaKF/JDk6izyA9sKBtq48lUB6c/7sT6a8b10OjZ31dZm9Adfq8YNX3s1/J4lo8SlWMFAGeyZOyTBFg/72wbw/W6DxFkBZ23UbzvJXwLOJQldYpuD7+RdZK/qxUBTjAnIZxCBmb3E7yFEbRx0rd4CWBhq4v1yEGr94q5nlZ72odZF6pKsAydhoW9UC2dsfmCSSKZ2hHbz88qZzB+uiUtuN4+D1EVc4FcAHzCkI5b4xY+V0P90nIs8Xio4Iqo50xyD8i+o7aE5DILtntQgX2qR1EKvkKqnDZkwrAwUtf+8HQXKuiMIxXkuhWbepMLjHUoB1ljndf5BSejtRwqx98+hvqBL5ABkunHUcOGSQ7GvZTUhFdOlhTf/wg8aU57slf9LRJWsP1YX6kLxz5Ap1PNd7mcw1MiEHTtXr3MYiBXzkn0muIzHP2j8KIEm7smLiSYj4KRNP4uFVpRNHdPs6ePUj0lrzeQp2/u+rN65YSlS3hK5r4YohfBlmG2xaEJIGoxWCBf4wKG3GhG2QCEN0AAgF4JonSjDYYiWxh/lzKx2O6gKPYMJDHMTBe1CwbmNrCOovtp5eloViUnRvbtt/b6gNSnTkFNS2ZTBD4ROs5J/K2yJoHGnpjBbczkZAXnJnxxGYIQtEUw3QWfJKssZbK31m8sWRc7uzlBrE7vuZko/WuNJ5QEhr1NhMJ91CpNldbf6HDJ9e0276LaJ6Zz/FOtpxYwIa8w5jWdLV5NcmxljY1tu+EL
+      - op: replace
+        path: /spec/encryptedData/analytics-postgresql-password
+        value: AgAPHWnkSwTUeKXaccUllEQfwOC/mC3xq/T4ZtFBwzUgSLqvJ+y+n0WNycQ5AxrREQMiyN3gJ5U+1+fY46JsBeHPORGyQheUFmBv1nxnZ5VEQjbchJk+7FXl03kG6ily10oajlqssOJpV4b4U6KZHI+JPGaYtuZ4KpHPrn8BZgl56njODkBWRDgWG+BrLCdFvCOlu9dkPs3vV1TfmEkHUQq1a/ASSYv9o4oJOv0VBbB/+eBP5qqYxe6eE+TALtUYo+vrq+GghpaFq+Ds/WGRAfaSpA91MA4XBpGSviDmPVcHrHAjITFAaviQpphMFKAiXLAu1PMLLkoJ6124kFK300I2W8BOuQyRDaqrtIDfwueTMkXqoknIeANjbh9f4jHozPaEExLd9Kb2OB8GM2Rz+NhjXvTY6oxdjUf7WD2CwBYIO0/lZV/5sXpdxmrvAmjCcpVC67jTTTHpTvhDJpuHcyUThjpWQN/aTkbwM4VkJb6ZDQsFkxaZLMyVa4UqlvH0UaPx8UdC7xdIjpOF1gDvTMBVU6riwzqVKKxpkKv6FT/ipdRZqG+G6fSLYZY62Ueed/8CPLVYw3VGM67PX+E4Ljlx4RnkP+d2Ibi5GZBunZ+j2kuGX57SOELp/0W7pYlBpjCUvCWwcoi1oryk8c/6le9iLOwcEsleTC1LvdpcNtXjPCGD8OGaspFS1j0rRkw4smhx2fEoBIGtq6AsrTeu6w/X
