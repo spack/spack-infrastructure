@@ -9,6 +9,7 @@ from github import Github
 import json
 import os
 import re
+import requests
 import subprocess
 import sys
 import tempfile
@@ -438,22 +439,19 @@ class SpackCIBridge(object):
 
     def find_pr_sha(self, tested_sha):
         api_url = self.commit_api_template.format(tested_sha)
-
+        headers = {}
+        if "GITLAB_TOKEN" in os.environ:
+            headers['PRIVATE-TOKEN'] = os.environ["GITLAB_TOKEN"]
         try:
-            request = urllib.request.Request(api_url)
-            if "GITLAB_TOKEN" in os.environ:
-                request.add_header("Authorization", "Bearer %s" % os.environ["GITLAB_TOKEN"])
-            response = urllib.request.urlopen(request, timeout=10)
+            response = requests.get(api_url, headers=headers, timeout=10)
         except OSError:
             print('Failed to fetch commit for tested sha {0}'.format(tested_sha))
             return None
 
-        response_data = response.read()
-
         try:
-            tested_commit_info = json.loads(response_data)
+            tested_commit_info = response.json()
         except json.decoder.JSONDecodeError:
-            print('Failed to parse response as json ({0})'.format(response_data))
+            print('Failed to parse response as json ({0})'.format(response.text()))
             return None
 
         if 'title' not in tested_commit_info:
@@ -479,17 +477,19 @@ class SpackCIBridge(object):
         if time_threshold:
             api_url = "{0}&updated_after={1}".format(api_url, time_threshold)
 
+        headers = {}
+        if "GITLAB_TOKEN" in os.environ:
+            headers['PRIVATE-TOKEN'] = os.environ["GITLAB_TOKEN"]
+
         try:
-            request = urllib.request.Request(api_url)
-            if "GITLAB_TOKEN" in os.environ:
-                request.add_header("Authorization", "Bearer %s" % os.environ["GITLAB_TOKEN"])
-            response = urllib.request.urlopen(request, timeout=10)
+            response = requests.get(api_url, headers=headers, timeout=10)
         except OSError as inst:
             print("GitLab API request error accessing {0}".format(api_url))
             print(inst)
             return None
+
         try:
-            pipelines = json.loads(response.read())
+            pipelines = response.json()
         except json.decoder.JSONDecodeError as inst:
             print("Error parsing response to {0}".format(api_url))
             print(inst)
@@ -565,7 +565,7 @@ class SpackCIBridge(object):
         print("Rate limit at the end of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
 
     def create_status_for_commit(self, sha, branch, state, target_url, description):
-        context = "ci/gitlab-ci"
+        context = os.environ.get("GITHUB_STATUS_CONTEXT", "ci/gitlab-ci")
         commit = self.get_commit(sha)
         existing_statuses = commit.get_combined_status()
         for status in existing_statuses.statuses:

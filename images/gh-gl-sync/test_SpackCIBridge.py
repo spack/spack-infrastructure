@@ -368,7 +368,7 @@ class FakeResponse:
     def __init__(self, *, data: bytes):
         self.data = data
 
-    def read(self):
+    def json(self):
         self.status = 201 if self.data is not None else 404
         return self.data
 
@@ -397,7 +397,7 @@ def test_post_pipeline_status(capfd):
     bridge.py_gh_repo = gh_repo
     os.environ["GITHUB_TOKEN"] = "my_github_token"
 
-    mock_data = b'''[
+    mock_data = [
         {
             "id": 1,
             "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -407,10 +407,10 @@ def test_post_pipeline_status(capfd):
             "updated_at": "2020-08-26T17:26:36.807Z",
             "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/1"
         }
-    ]'''
-    with patch('urllib.request.urlopen', return_value=FakeResponse(data=mock_data)) as mock_urlopen:
+    ]
+    with patch('requests.get', return_value=FakeResponse(data=mock_data)) as mock_requests_get:
         bridge.post_pipeline_status(open_prs, [])
-        assert mock_urlopen.call_count == 2
+        assert mock_requests_get.call_count == 2
         assert gh_repo.get_commit.call_count == 1
         assert gh_commit.create_status.call_count == 1
     out, err = capfd.readouterr()
