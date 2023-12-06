@@ -8,4 +8,4 @@ opensearch-dsl==2.0.1
 sentry-sdk[django]
 gunicorn
 celery[redis]
-
+rich

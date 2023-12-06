@@ -1,9 +1,11 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal
 
 import djclick as click
 import kubernetes
+from django.db.utils import IntegrityError
 from kubernetes.client.models.v1_pod import V1Pod
 from kubernetes.utils.quantity import parse_quantity
 
@@ -12,6 +14,10 @@ from analytics.models import Job
 # Ensure kubernetes API is setup
 kubernetes.config.load_config()
 client = kubernetes.client.CoreV1Api()
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 @dataclass
@@ -117,15 +123,19 @@ def handle_scheduled_pipeline_pod(wrapped_event: dict, start_time: datetime):
     event: dict = wrapped_event["object"].to_dict()
     created: datetime = event["metadata"]["creation_timestamp"]
     if created < start_time:
-        click.echo(f"Skipping event from {created.isoformat()}")
+        logger.debug(f"Skipping event from {created.isoformat()}")
         return
 
-    # Retrieve pod
+    # Retrieve pod. Pod retrieval could fail for various reasons, so handle this gracefully
     pod_name = event["involved_object"]["name"]
-    pod: V1Pod = client.read_namespaced_pod(namespace="pipeline", name=pod_name)  # type: ignore
-    node_name = pod.to_dict()["spec"]["node_name"]
+    try:
+        pod: V1Pod = client.read_namespaced_pod(namespace="pipeline", name=pod_name)  # type: ignore
+    except kubernetes.client.ApiException:
+        logger.warning(f'Could not retrieve pod {pod_name} in namespace "pipeline"')
+        return
 
     # Retrieve node
+    node_name = pod.to_dict()["spec"]["node_name"]
     node = client.read_node(name=node_name).to_dict()  # type: ignore
     item = JobMetadata(
         node=get_node_metadata(node),
@@ -139,38 +149,46 @@ def handle_scheduled_pipeline_pod(wrapped_event: dict, start_time: datetime):
         return
 
     # Tags, duration intentionally left blank, as they will be updated once the job finishes
-    job = Job.objects.create(
-        # Core data
-        job_id=item.pod.job_id,
-        project_id=item.pod.project_id,
-        name=item.pod.job_name,
-        started_at=item.pod.job_started_at,
-        duration=None,
-        ref=item.pod.job_ref,
-        package_name=item.pod.package_name,
-        job_cpu_request=item.pod.cpu_request,
-        job_memory_request=item.pod.memory_request,
-        # Node data
-        node_name=item.node.name,
-        node_uid=item.node.uid,
-        node_instance_type=item.node.instance_type,
-        node_capacity_type=item.node.capacity_type,
-        node_cpu=item.node.cpu,
-        node_mem=item.node.mem,
-        # Extra data
-        package_version=item.pod.package_version,
-        compiler_name=item.pod.compiler_name,
-        compiler_version=item.pod.compiler_version,
-        arch=item.pod.arch,
-        package_variants=item.pod.package_variants,
-        build_jobs=item.pod.build_jobs,
-        job_size=item.pod.job_size,
-        stack=item.pod.stack,
-        # By defninition this is true, since this script runs in the cluster
-        aws=True,
-    )
+    try:
+        job = Job.objects.create(
+            # Core data
+            job_id=item.pod.job_id,
+            project_id=item.pod.project_id,
+            name=item.pod.job_name,
+            started_at=item.pod.job_started_at,
+            duration=None,
+            ref=item.pod.job_ref,
+            package_name=item.pod.package_name,
+            job_cpu_request=item.pod.cpu_request,
+            job_memory_request=item.pod.memory_request,
+            # Node data
+            node_name=item.node.name,
+            node_uid=item.node.uid,
+            node_instance_type=item.node.instance_type,
+            node_capacity_type=item.node.capacity_type,
+            node_cpu=item.node.cpu,
+            node_mem=item.node.mem,
+            # Extra data
+            package_version=item.pod.package_version,
+            compiler_name=item.pod.compiler_name,
+            compiler_version=item.pod.compiler_version,
+            arch=item.pod.arch,
+            package_variants=item.pod.package_variants,
+            build_jobs=item.pod.build_jobs,
+            job_size=item.pod.job_size,
+            stack=item.pod.stack,
+            # By defninition this is true, since this script runs in the cluster
+            aws=True,
+        )
+    except IntegrityError as e:
+        logger.error(
+            f"Could not create Job with job_id {item.pod.job_id}. This may indicate a race "
+            "condition. The error is logged below."
+        )
+        logger.error(e)
+        return
 
-    click.echo(f"Processed job {job.job_id}")
+    logger.info(f"Processed job {job.job_id}")
 
 
 @click.command()
@@ -185,9 +203,9 @@ def main():
         field_selector="reason=Scheduled,involvedObject.kind=Pod",
     )
 
-    click.echo("Listening for scheduled pipeline pods...")
-    click.echo(f"Start time is {start_time.isoformat()}")
-    click.echo("----------------------------------------")
+    logger.info("Listening for scheduled pipeline pods...")
+    logger.info(f"Start time is {start_time.isoformat()}")
+    logger.info("----------------------------------------")
 
     # Get events yielded from generator
     for event in events:

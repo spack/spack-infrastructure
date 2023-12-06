@@ -22,6 +22,36 @@ INSTALLED_APPS = [
     "django_extensions",
 ]
 
+LOGGING = {
+    "version": 1,
+    # Replace existing logging configuration
+    "incremental": False,
+    "formatters": {"rich": {"datefmt": "[%X]"}},
+    "handlers": {
+        "console": {
+            "class": "rich.logging.RichHandler",
+            "formatter": "rich",
+        },
+    },
+    "loggers": {
+        # Configure the root logger to output to the console
+        "": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        # Django defines special configurations for the "django" and "django.server" loggers,
+        # but we will manage all content at the root logger instead, so reset those
+        # configurations.
+        "django": {
+            "handlers": [],
+            "level": "NOTSET",
+            "propagate": True,
+        },
+        "django.server": {
+            "handlers": [],
+            "level": "NOTSET",
+            "propagate": True,
+        },
+    },
+}
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 DATABASES = {
