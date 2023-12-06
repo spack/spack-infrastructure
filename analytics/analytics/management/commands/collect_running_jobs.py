@@ -65,8 +65,9 @@ def get_pod_metadata(pod: V1Pod) -> PodMetadata:
     # Convert pod_env to a dictionary mapping keys to values
     pod_env = {var["name"]: var["value"] for var in pod_env}
 
-    # Retrieve labels
+    # Retrieve labels and annotations
     labels: dict = pod_dict["metadata"]["labels"]
+    annotations: dict = pod_dict["metadata"]["annotations"]
 
     # Retrieve k8s resource requests, if they're set
     cpu_request = pod_env.get("KUBERNETES_CPU_REQUEST")
@@ -84,14 +85,14 @@ def get_pod_metadata(pod: V1Pod) -> PodMetadata:
         package_name=labels["metrics/spack_job_spec_pkg_name"],
         cpu_request=float(parse_quantity(cpu_request)) if cpu_request else None,
         memory_request=int(parse_quantity(memory_request)) if memory_request else None,
-        package_version=labels["metrics/spack_job_spec_pkg_version"],
-        compiler_name=labels["metrics/spack_job_spec_compiler_name"],
-        compiler_version=labels["metrics/spack_job_spec_compiler_version"],
-        arch=labels["metrics/spack_job_spec_arch"],
-        package_variants=labels["metrics/spack_job_spec_variants"],
+        package_version=annotations["metrics/spack_job_spec_pkg_version"],
+        compiler_name=annotations["metrics/spack_job_spec_compiler_name"],
+        compiler_version=annotations["metrics/spack_job_spec_compiler_version"],
+        arch=annotations["metrics/spack_job_spec_arch"],
+        package_variants=annotations["metrics/spack_job_spec_variants"],
         stack=labels["metrics/spack_ci_stack_name"],
-        # This var isn't guaranteed to be present
-        build_jobs=pod_env.get("SPACK_BUILD_JOBS"),
+        # build jobs isn't always present
+        build_jobs=annotations.get("metrics/spack_job_build_jobs"),
     )
 
 
