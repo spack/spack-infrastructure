@@ -59,6 +59,9 @@ class Job(models.Model):
                 name="unique-project-job-id", fields=["project_id", "job_id"]
             ),
             models.CheckConstraint(
+                name="non-empty-package-name", check=~models.Q(package_name="")
+            ),
+            models.CheckConstraint(
                 name="consistent-temporary-null-values",
                 check=(
                     models.Q(tags__isnull=True, duration__isnull=True)
