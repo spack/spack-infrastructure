@@ -11,13 +11,19 @@ from kubernetes.utils.quantity import parse_quantity
 
 from analytics.models import Job
 
-# Ensure kubernetes API is setup
-kubernetes.config.load_config()
-client = kubernetes.client.CoreV1Api()
-
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Ensure kubernetes API is setup
+try:
+    kubernetes.config.load_config()
+except kubernetes.config.config_exception.ConfigException as e:
+    logger.error("Could not load kubernetes config. Is KUBECONFIG set?")
+    logger.error(f"\tExact error from kubernetes: {e}")
+    exit(1)
+
+
+client = kubernetes.client.CoreV1Api()
 
 
 @dataclass
