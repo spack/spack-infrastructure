@@ -140,6 +140,12 @@ def handle_scheduled_pipeline_pod(wrapped_event: dict, start_time: datetime):
         logger.warning(f'Could not retrieve pod {pod_name} in namespace "pipeline"')
         return
 
+    # Ensure that this pod has a non-empty package name label before continuing
+    labels: dict = pod.to_dict()["metadata"]["labels"]
+    if labels.get("metrics/spack_job_spec_pkg_name", "") == "":
+        logger.debug(f"Skipping pod with missing package name: {pod_name}")
+        return
+
     # Retrieve node
     node_name = pod.to_dict()["spec"]["node_name"]
     node = client.read_node(name=node_name).to_dict()  # type: ignore
