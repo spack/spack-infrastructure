@@ -16,7 +16,8 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: build-timing-processing-job
-          image: ghcr.io/spack/upload-build-timings:0.0.4
+          image: ghcr.io/spack/ci-analytics:0.0.1
+          command: [ "./manage.py", "upload_build_timings" ]
           imagePullPolicy: Always
           env:
             - name: GITLAB_TOKEN
