@@ -13,9 +13,10 @@ from pathlib import Path
 from subprocess import PIPE, Popen
 
 import click
-import kubernetes
+from kubernetes.client import CoreV1Api
 from kubernetes.client.models.v1_config_map import V1ConfigMap
 from kubernetes.client.models.v1_secret_list import V1SecretList
+from kubernetes.config import load_config
 from ruamel.yaml import YAML
 
 if typing.TYPE_CHECKING:
@@ -114,11 +115,9 @@ def fetch_key_pairs() -> list[tuple[str, str]]:
     Fetches all sealed secrets key pairs found in the cluster, in order of ascending creation date
     (most recent last).
     """
-    kubernetes.config.load_config()
-    client = kubernetes.client.CoreV1Api()
 
     # Fetch list of secrets
-    secrets: V1SecretList = client.list_namespaced_secret(
+    secrets: V1SecretList = CoreV1Api().list_namespaced_secret(
         namespace="kube-system",
         label_selector="sealedsecrets.bitnami.com/sealed-secrets-key=active",
     )
@@ -159,6 +158,7 @@ def populated_tempfile(starting_value: bytes | None = None):
             pass
 
 
+# TODO: Check that file was actually written
 def read_user_input(starting_value: bytes | None = None):
     """Open the user configured editor and retrieve the input value."""
     EDITOR = os.environ.get("EDITOR", "vim")
@@ -255,7 +255,30 @@ def select_secret_and_key(secret_docs: list[dict]):
     return (secret, secret_index, key_to_update, adding_new_key)
 
 
-def seal_secret_value(secret_namespace: str, secret_name: str, value: str):
+def seal_secret(secret: dict) -> dict:
+    # Write cert to temp file so that it can be passed to kubeseal
+    cert, _ = latest_key_pair()
+    with populated_tempfile(cert.encode("utf-8")) as cert_file:
+        # Seal value
+        p = Popen(
+            ["kubeseal", "--cert", cert_file.name],
+            stdin=PIPE,
+            stdout=PIPE,
+        )
+        stdout, stderr = p.communicate(json.dumps(secret).encode("utf-8"))
+        encrypted_value = stdout.decode("utf-8")
+
+    # Check return
+    rc = p.returncode
+    if rc != 0:
+        raise click.ClickException(
+            f"Error sealing secret! Error from kubeseal: {stderr}"
+        )
+
+    return json.loads(encrypted_value)
+
+
+def seal_raw_secret_value(secret_namespace: str, secret_name: str, value: str):
     # Write cert to temp file so that it can be passed to kubeseal
     cert, _ = latest_key_pair()
     with populated_tempfile(cert.encode("utf-8")) as cert_file:
@@ -289,7 +312,7 @@ def handle_raw_secret_input():
     secret_name = click.prompt("Secret name")
     secret_namespace = click.prompt("Secret namespace")
     secret_value = read_user_input()
-    encrypted_value = seal_secret_value(
+    encrypted_value = seal_raw_secret_value(
         secret_namespace=secret_namespace,
         secret_name=secret_name,
         value=secret_value,
@@ -301,9 +324,7 @@ def handle_raw_secret_input():
 
 
 def print_cluster_info():
-    kubernetes.config.load_config()
-    client = kubernetes.client.CoreV1Api()
-    configmap: V1ConfigMap = client.read_namespaced_config_map(
+    configmap: V1ConfigMap = CoreV1Api().read_namespaced_config_map(
         namespace="kube-system", name="cluster-info"
     )  # type: ignore
 
@@ -335,8 +356,10 @@ def main(secrets_file: str, value: str, raw: bool):
             "Argument SECRETS_FILE must be supplied when --raw is not specified"
         )
 
+    # Load k8s config
     if os.environ.get("KUBECONFIG") is None:
         raise click.ClickException("Environment variable KUBECONFIG must be set")
+    load_config()
 
     # Display info about which cluster is being acted on
     print_cluster_info()
@@ -361,14 +384,20 @@ def main(secrets_file: str, value: str, raw: bool):
         secret_docs = list(yl.load_all(f))
 
     # Retrieve the secret and key to update
-    secret, secret_index, key_to_update, adding_new_key = select_secret_and_key(
+    sealed_secret, secret_index, key_to_update, adding_new_key = select_secret_and_key(
         secret_docs=secret_docs
     )
+    secret = decrypt_sealed_secret(sealed_secret)
 
     # Retrieve value, if not already supplied
-    value = value or get_secret_value(
-        secret=secret, key=key_to_update, new_key=adding_new_key
-    )
+    if not value:
+        # Pre-populate value if updating an existing key, so the user can see it
+        starting_input = (
+            None
+            if adding_new_key
+            else base64.b64decode(secret["data"][key_to_update] or "")
+        )
+        value = read_user_input(starting_value=starting_input).strip()
 
     # Ensure the empty value is what's desired
     if value == "":
@@ -381,16 +410,16 @@ def main(secrets_file: str, value: str, raw: bool):
             click.echo(click.style("Exiting...", fg="yellow"))
             exit(0)
 
-    # Encrypt value using kubeseal
-    encrypted_value = seal_secret_value(
-        secret_namespace=secret["metadata"]["namespace"],
-        secret_name=secret["metadata"]["name"],
-        value=value,
+    # Update existing secret with new value
+    secret["data"][key_to_update] = base64.b64encode(value.encode("utf-8")).decode(
+        "utf-8"
     )
 
+    # Encrypt value using kubeseal
+    resealed_secret = seal_secret(secret)
+
     # Update secret dict and save
-    secret["spec"]["encryptedData"][key_to_update] = encrypted_value
-    secret_docs[secret_index] = secret
+    secret_docs[secret_index] = resealed_secret
     with open(secrets_file, "w") as f:
         yl.dump_all(secret_docs, f)
 
