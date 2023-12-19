@@ -6,6 +6,7 @@ import functools
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import typing
@@ -360,6 +361,12 @@ def main(secrets_file: str, value: str, raw: bool):
     if os.environ.get("KUBECONFIG") is None:
         raise click.ClickException("Environment variable KUBECONFIG must be set")
     load_config()
+
+    # Check that kubeseal is installed
+    if shutil.which("kubeseal") is None:
+        raise click.ClickException(
+            "kubeseal not found. Please follow the installation instructions https://github.com/bitnami-labs/sealed-secrets#kubeseal"
+        )
 
     # Display info about which cluster is being acted on
     print_cluster_info()
