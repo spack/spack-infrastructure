@@ -3,6 +3,7 @@
 import base64
 import curses
 import functools
+import hashlib
 import json
 import os
 import subprocess
@@ -158,8 +159,7 @@ def populated_tempfile(starting_value: bytes | None = None):
             pass
 
 
-# TODO: Check that file was actually written
-def read_user_input(starting_value: bytes | None = None):
+def read_user_input(starting_value: bytes | None = None) -> str:
     """Open the user configured editor and retrieve the input value."""
     EDITOR = os.environ.get("EDITOR", "vim")
 
@@ -206,18 +206,6 @@ def decrypt_sealed_secret(secret: dict) -> dict:
         f"Could not decrypt secret {secret['metadata']['name']}."
         " Is your KUBECONFIG environment variable correctly set?"
     )
-
-
-def get_secret_value(secret: dict, key: str, new_key=False):
-    starting_value = None
-
-    # Don't populate existing if a new key is being created
-    if not new_key:
-        # Decrypt existing value for the secret that's being updated
-        decrypted_secret = decrypt_sealed_secret(secret)
-        starting_value = base64.b64decode(decrypted_secret["data"][key] or "")
-
-    return read_user_input(starting_value=starting_value).strip()
 
 
 def select_secret_and_key(secret_docs: list[dict]):
@@ -337,6 +325,18 @@ def print_cluster_info():
     click.echo(f"{border}\n{message}\n{border}")
 
 
+def exit_prompt(prompt: str, correct: str) -> None:
+    answer = click.prompt(
+        click.style(
+            prompt,
+            fg="yellow",
+        )
+    )
+    if answer != correct:
+        click.echo(click.style("Exiting...", fg="yellow"))
+        exit(0)
+
+
 @click.command(help="Update an existing secret")
 @click.argument("secrets_file", type=click.STRING, required=False)
 @click.option(
@@ -399,16 +399,23 @@ def main(secrets_file: str, value: str, raw: bool):
         )
         value = read_user_input(starting_value=starting_input).strip()
 
+        # Check that value has been changed
+        if (
+            starting_input is not None
+            and hashlib.sha256(starting_input).hexdigest()
+            == hashlib.sha256(value.encode()).hexdigest()
+        ):
+            exit_prompt(
+                prompt="Warning: Secret value not changed, continue? (y/n)",
+                correct="y",
+            )
+
     # Ensure the empty value is what's desired
     if value == "":
-        answer = click.prompt(
-            click.style(
-                "Warning: You've entered an empty value, continue? (y/n)", fg="yellow"
-            )
+        exit_prompt(
+            prompt="Warning: You've entered an empty value, continue? (y/n)",
+            correct="y",
         )
-        if answer != "y":
-            click.echo(click.style("Exiting...", fg="yellow"))
-            exit(0)
 
     # Update existing secret with new value
     secret["data"][key_to_update] = base64.b64encode(value.encode("utf-8")).decode(
