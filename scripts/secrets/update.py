@@ -418,8 +418,12 @@ def main(secrets_file: str, value: str, raw: bool):
     # Encrypt value using kubeseal
     resealed_secret = seal_secret(secret)
 
+    # Update all the values of the original sealed_secret "spec.encryptedData" field, to preserve comments, etc.
+    for k, v in resealed_secret["spec"]["encryptedData"].items():
+        sealed_secret["spec"]["encryptedData"][k] = v
+
     # Update secret dict and save
-    secret_docs[secret_index] = resealed_secret
+    secret_docs[secret_index] = sealed_secret
     with open(secrets_file, "w") as f:
         yl.dump_all(secret_docs, f)
 
