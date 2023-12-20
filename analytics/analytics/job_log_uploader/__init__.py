@@ -1,17 +1,13 @@
 import json
-import os
 import re
 from datetime import datetime
 from typing import Any
+from celery import shared_task
 
 import gitlab
-from kubernetes import client, config
 from opensearch_dsl import Date, Document, connections
 
 from django.conf import settings
-
-config.load_config()
-v1_client = client.CoreV1Api()
 
 
 class JobLog(Document):
@@ -30,7 +26,9 @@ class JobLog(Document):
         return super().save(**kwargs)
 
 
-def upload_job_log(job_input_data: dict[str, Any]) -> None:
+@shared_task(name="upload_job_log")
+def upload_job_log(job_input_data_json: str) -> None:
+    job_input_data: dict[str, Any] = json.loads(job_input_data_json)
     gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN)
 
     # Retrieve project and job from gitlab API

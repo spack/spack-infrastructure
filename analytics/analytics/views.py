@@ -14,6 +14,6 @@ def webhook_handler(request: HttpRequest) -> HttpResponse:
         sentry_sdk.capture_message("Not a build event")
         return HttpResponse("Not a build event", status=400)
 
-    upload_job_log(job_input_data)
+    upload_job_log.delay(request.body)
 
     return HttpResponse("OK", status=200)
