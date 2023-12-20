@@ -12,7 +12,6 @@ spec:
     matchLabels:
       app: webhook-handler
       svc: web
-      # TODO: evaluate
   replicas: 2
   template:
     metadata:
@@ -24,11 +23,9 @@ spec:
       serviceAccountName: webhook-handler
       containers:
         - name: webhook-handler
-          #image: ghcr.io/danlamanna/webhook-handler:0.0.11
           image: ghcr.io/spack/upload-build-timings:0.0.5
           imagePullPolicy: Always
           resources:
-          # TODO: evaluate
             requests:
               cpu: 350m
               memory: 1G
@@ -87,5 +84,103 @@ spec:
                 secretKeyRef:
                   name: opensearch-secrets
                   key: opensearch-password
+            - name: CELERY_BROKER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: celery-broker-url
+      nodeSelector:
+        spack.io/node-pool: base
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-handler-worker
+  namespace: custom
+  labels:
+    app: webhook-handler-worker
+    svc: web
+spec:
+  selector:
+    matchLabels:
+      app: webhook-handler-worker
+      svc: web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: webhook-handler-worker
+        svc: web
+    spec:
+      restartPolicy: Always
+      serviceAccountName: webhook-handler
+      containers:
+        - name: webhook-handler-worker
+          image: ghcr.io/spack/upload-build-timings:0.0.5
+          command: ["celery", "-A", "analytics.celery", "worker", "-l", "info"]
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 350m
+              memory: 1G
+            limits:
+              cpu: 1600m
+              memory: 1G
+          env:
+            - name: GITLAB_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: gitlab-endpoint
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-token
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: secret-key
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: sentry-dsn
+            - name: DB_NAME
+              value: analytics
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: analytics-postgresql-host
+            - name: DB_USER
+              value: postgres
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: analytics-postgresql-password
+            - name: OPENSEARCH_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-secrets
+                  key: opensearch-endpoint
+            - name: OPENSEARCH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-secrets
+                  key: opensearch-username
+            - name: OPENSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-secrets
+                  key: opensearch-password
+            - name: CELERY_BROKER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: celery-broker-url
       nodeSelector:
         spack.io/node-pool: base

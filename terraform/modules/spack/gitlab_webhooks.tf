@@ -37,6 +37,8 @@ resource "random_password" "webhook_handler" {
   special = false
 }
 
+# Note: the /1 is important to ensure that the broker for the webhook handler isn't using the same
+# database as the broker for spackbot.
 resource "kubectl_manifest" "webhook_secrets" {
   yaml_body = <<-YAML
      apiVersion: v1
@@ -49,6 +51,7 @@ resource "kubectl_manifest" "webhook_secrets" {
        gitlab-token: ${base64encode("${gitlab_personal_access_token.webhook_handler.token}")}
        sentry-dsn: ${base64encode("${data.sentry_key.webhook_handler.dsn_public}")}
        secret-key: ${base64encode("${random_password.webhook_handler.result}")}
+       celery-broker-url: ${base64encode("redis://${aws_elasticache_replication_group.pr_binary_graduation_task_queue.primary_endpoint_address}:6379/1")}
    YAML
 }
 
