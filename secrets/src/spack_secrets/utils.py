@@ -1,6 +1,7 @@
 import base64
 import functools
 import os
+import sys
 import tempfile
 import typing
 from contextlib import contextmanager
@@ -11,6 +12,18 @@ from ruamel.yaml import YAML
 
 if typing.TYPE_CHECKING:
     from kubernetes.client.models.v1_secret_list import V1SecretList
+
+
+class InvalidSealedSecretError(click.ClickException):
+    def __init__(self, kind) -> None:
+        super().__init__(f"Invalid k8s resource kind (expected SealedSecret, found {kind}).")
+
+
+def ensure_document_kind(doc: dict):
+    """Ensure the doc has a `kind` of `SealedSecret`, raising an exception otherwise."""
+    kind = doc.get("kind", None)
+    if kind != "SealedSecret":
+        raise InvalidSealedSecretError(kind)
 
 
 def get_yaml_reader():
@@ -78,4 +91,4 @@ def exit_prompt(prompt: str, correct: str) -> None:
     )
     if answer != correct:
         click.echo(click.style("Exiting...", fg="yellow"))
-        exit(0)
+        sys.exit(0)

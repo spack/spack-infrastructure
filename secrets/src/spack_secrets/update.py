@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import os
-import shutil
 import subprocess
 import typing
 from pathlib import Path
@@ -11,28 +10,44 @@ import kubernetes.config
 from kubernetes.client import CoreV1Api
 
 from .curses import select_secret_and_key
-from .sealed import decrypt_sealed_secret, seal_raw_secret_value, seal_secret
+from .sealed import decrypt_sealed_secret, get_kubeseal_path, seal_raw_secret_value, seal_secret
 from .utils import exit_prompt, get_yaml_reader, populated_tempfile
 
 if typing.TYPE_CHECKING:
     from kubernetes.client.models.v1_config_map import V1ConfigMap
 
 
+class InvalidClusterInfoError(Exception):
+    pass
+
+
+def print_cluster_info():
+    configmap: V1ConfigMap = CoreV1Api().read_namespaced_config_map(
+        namespace="kube-system", name="cluster-info"
+    )  # type: ignore[reportGeneralTypeIssues]
+
+    if configmap.data is None:
+        raise InvalidClusterInfoError
+
+    cluster_name = configmap.data["cluster-name"]
+    message = f"Operating on cluster: {cluster_name}"
+    border = "-" * len(message)
+    click.echo(f"{border}\n{message}\n{border}")
+
+
 def read_user_input(starting_value: bytes | None = None) -> str:
     """Open the user configured editor and retrieve the input value."""
-    EDITOR = os.environ.get("EDITOR", "vim")
+    editor = os.environ.get("EDITOR", "vim")
 
     with populated_tempfile(starting_value=starting_value) as tmp:
         # Open editor so user can change things
-        retcode = subprocess.call([EDITOR, tmp.name])
+        retcode = subprocess.call([editor, tmp.name])  # noqa: S603
         if retcode != 0:
             raise click.ClickException("Error retrieving secret value")
 
         # Read value back out
         tmp.seek(0)
-        val = tmp.read().decode("utf-8")
-
-    return val
+        return tmp.read().decode("utf-8")
 
 
 def handle_raw_secret_input():
@@ -50,59 +65,7 @@ def handle_raw_secret_input():
     click.echo(encrypted_value)
 
 
-def print_cluster_info():
-    configmap: V1ConfigMap = CoreV1Api().read_namespaced_config_map(
-        namespace="kube-system", name="cluster-info"
-    )  # type: ignore[reportGeneralTypeIssues]
-
-    if configmap.data is None:
-        raise Exception("Cluster-info configmap has null data field")
-
-    cluster_name = configmap.data["cluster-name"]
-    message = f"Operating on cluster: {cluster_name}"
-    border = "-" * len(message)
-    click.echo(f"{border}\n{message}\n{border}")
-
-
-@click.command(help="Update an existing secret")
-@click.argument("secrets_file", type=click.STRING, required=False)
-@click.option(
-    "--raw",
-    type=click.BOOL,
-    is_flag=True,
-    help="Returns an encrypted value directly, instead of updating a file",
-)
-@click.option(
-    "--value",
-    type=click.STRING,
-    help="Supply the value for the selected secret as an argument.",
-)
-def update(secrets_file: str, *, value: str, raw: bool):
-    if secrets_file is None and not raw:
-        raise click.ClickException(
-            "Argument SECRETS_FILE must be supplied when --raw is not specified"
-        )
-
-    # Load k8s config
-    if os.environ.get("KUBECONFIG") is None:
-        raise click.ClickException("Environment variable KUBECONFIG must be set")
-    kubernetes.config.load_config()
-
-    # Check that kubeseal is installed
-    if shutil.which("kubeseal") is None:
-        raise click.ClickException(
-            "kubeseal not found. Please follow the installation instructions https://github.com/bitnami-labs/sealed-secrets#kubeseal"
-        )
-
-    # Display info about which cluster is being acted on
-    print_cluster_info()
-
-    # Handle raw input case
-    if raw:
-        handle_raw_secret_input()
-        exit(0)
-
-    # Normal secret file input
+def handle_secret_update(secrets_file: str, value: str):
     secrets_file_path = Path(secrets_file)
     if not secrets_file_path.exists():
         raise click.ClickException(f"File {secrets_file} not found")
@@ -152,7 +115,8 @@ def update(secrets_file: str, *, value: str, raw: bool):
     # Encrypt value using kubeseal
     resealed_secret = seal_secret(secret)
 
-    # Update all the values of the original sealed_secret "spec.encryptedData" field, to preserve comments, etc.
+    # Update all the values of the original sealed_secret "spec.encryptedData" field,
+    # to preserve comments, etc.
     for k, v in resealed_secret["spec"]["encryptedData"].items():
         sealed_secret["spec"]["encryptedData"][k] = v
 
@@ -163,3 +127,41 @@ def update(secrets_file: str, *, value: str, raw: bool):
 
     # Give user feedback
     click.echo(click.style("Secret value successfully sealed", fg="green"))
+
+
+@click.command(help="Update an existing secret")
+@click.argument("secrets_file", type=click.STRING, required=False)
+@click.option(
+    "--raw",
+    type=click.BOOL,
+    is_flag=True,
+    help="Returns an encrypted value directly, instead of updating a file",
+)
+@click.option(
+    "--value",
+    type=click.STRING,
+    help="Supply the value for the selected secret as an argument.",
+)
+def update(secrets_file: str, *, value: str, raw: bool):
+    if secrets_file is None and not raw:
+        raise click.ClickException(
+            "Argument SECRETS_FILE must be supplied when --raw is not specified"
+        )
+
+    # Load k8s config
+    if os.environ.get("KUBECONFIG") is None:
+        raise click.ClickException("Environment variable KUBECONFIG must be set")
+    kubernetes.config.load_config()
+
+    # Check that kubeseal is installed, raising an exception if it isn't
+    get_kubeseal_path()
+
+    # Display info about which cluster is being acted on
+    print_cluster_info()
+
+    # Handle raw input case
+    if raw:
+        handle_raw_secret_input()
+        return
+
+    handle_secret_update(secrets_file=secrets_file, value=value)

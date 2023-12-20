@@ -1,7 +1,7 @@
 import pytest
 from click.testing import CliRunner
-from spack_secrets import cli
-from spack_secrets.cli import main
+from spack_secrets import update
+from spack_secrets.update import update as main
 
 
 @pytest.fixture(autouse=True)
@@ -10,7 +10,7 @@ def _patch_setup(monkeypatch, tmp_path):
     monkeypatch.setattr("kubernetes.config.load_config", lambda: None)
 
     # Patch print_cluster_info so it doesn't try to reach out to the k8s API
-    monkeypatch.setattr(cli, "print_cluster_info", lambda: None)
+    monkeypatch.setattr(update, "print_cluster_info", lambda: None)
 
     # Create dummy kubeseal exec
     (tmp_path / "kubeseal").touch(mode=777)

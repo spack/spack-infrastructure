@@ -3,6 +3,8 @@ import typing
 
 import click
 
+from .utils import ensure_document_kind
+
 if typing.TYPE_CHECKING:
     from curses import _CursesWindow
 
@@ -81,16 +83,16 @@ def select_key(secret_name: str, keys: list[str]):
 
 
 def select_secret_and_key(secret_docs: list[dict]):
-    # Maps secret names to their data
-    secret_map = {doc["metadata"]["name"]: doc["spec"]["encryptedData"] for doc in secret_docs}
-
     # Select which secret to modify
     secret_names = [doc["metadata"]["name"] for doc in secret_docs]
-    secret_index = select_secret(secret_names) if len(secret_map) > 1 else 0
+    secret_index = select_secret(secret_names) if len(secret_docs) > 1 else 0
 
     # Select which key to modify
     secret = secret_docs[secret_index]
     secret_name = secret["metadata"]["name"]
+
+    # Check that object we're modifying is a sealed secret to begin with
+    ensure_document_kind(secret)
 
     # Ensure encryptedData field is present and at least an empty object
     if not secret["spec"].get("encryptedData"):
