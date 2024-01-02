@@ -1,6 +1,5 @@
 locals {
   job_webhooks = ["http://gitlab-error-processor.custom.svc.cluster.local",
-    "http://build-timing-processor.custom.svc.cluster.local",
   "http://webhook-handler.custom.svc.cluster.local"]
 }
 
