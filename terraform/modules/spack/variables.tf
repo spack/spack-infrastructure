@@ -28,26 +28,6 @@ variable "kubernetes_version" {
   type        = string
 }
 
-variable "flux_repo_name" {
-  description = "Name of GitHub repo to configure Flux with."
-  type        = string
-}
-
-variable "flux_repo_owner" {
-  description = "Owner (user or org) of GitHub repo to configure Flux with."
-  type        = string
-}
-
-variable "flux_branch" {
-  description = "Git branch to configure Flux with."
-  type        = string
-}
-
-variable "flux_target_path" {
-  description = "Path to directory for Flux to watch within the git repo."
-  type        = string
-}
-
 variable "cdash_db_instance_class" {
   description = "AWS RDS DB instance class for the Spack CDash MySQL database."
   type        = string

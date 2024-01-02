@@ -23,8 +23,8 @@ terraform {
       version = ">= 2.0.0"
     }
     flux = {
-      source  = "fluxcd/flux"
-      version = "~> 0.22.2"
+      source = "fluxcd/flux"
+      version = "1.2.2"
     }
     github = {
       source  = "integrations/github"
@@ -139,11 +139,6 @@ module "staging_cluster" {
     "192.168.192.0/19",
     "192.168.224.0/19",
   ]
-
-  flux_repo_name   = "spack-infrastructure"
-  flux_repo_owner  = "spack"
-  flux_branch      = "main"
-  flux_target_path = "k8s/staging/"
 
   # Use cheap DB instances for staging deployment
   cdash_db_instance_class = "db.t3.small"
