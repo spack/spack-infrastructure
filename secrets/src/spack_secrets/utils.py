@@ -39,7 +39,8 @@ def get_yaml_reader():
 
 @functools.cache
 def fetch_key_pairs() -> list[tuple[str, str]]:
-    """Fetch all sealed secrets key pairs found in the cluster.
+    """
+    Fetch all sealed secrets key pairs found in the cluster.
 
     Fetches all sealed secrets key pairs found in the cluster, in order of ascending creation date
     (most recent last).
