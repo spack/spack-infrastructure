@@ -48,7 +48,7 @@ jobs:
           - docker-image: ./images/build-timing-processor
             image-tags: ghcr.io/spack/build-timing-processor:0.0.4
           - docker-image: ./analytics
-            image-tags: ghcr.io/spack/upload-build-timings:0.0.4
+            image-tags: ghcr.io/spack/django:0.0.1
     steps:
       - name: Checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3

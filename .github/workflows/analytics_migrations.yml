@@ -7,6 +7,28 @@ on:
 
 jobs:
   check-migrations:
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: django
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+      elasticsearch:
+        image: elasticsearch:7.14.0
+        env:
+          ES_JAVA_OPTS: "-Xms250m -Xmx750m"
+          discovery.type: single-node
+          xpack.security.enabled: "true"
+          ELASTIC_PASSWORD: elastic
+        ports:
+          - 9200:9200
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,6 +41,5 @@ jobs:
         run: cat ./analytics/dev/.env.docker-compose >> $GITHUB_ENV
 
       # This runs on pull requests and blocks until any necessary migrations have been created
-      # *Note*: This will display a warning about not being able to connect to a database. This can be ignored.
       - name: Check for Migrations
         run: ./analytics/manage.py makemigrations --check --noinput

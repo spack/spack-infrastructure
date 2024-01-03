@@ -3,6 +3,11 @@ variable "deployment_name" {
   type        = string
 }
 
+variable "gitlab_url" {
+  description = "URL of the GitLab server."
+  type        = string
+}
+
 variable "vpc_cidr" {
   description = "CIDR for the VPC."
   type        = string

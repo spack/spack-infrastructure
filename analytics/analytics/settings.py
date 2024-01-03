@@ -11,9 +11,10 @@ sentry_sdk.init(
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+ROOT_URLCONF = "analytics.urls"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
+DEBUG = False
 
 # Application definition
 INSTALLED_APPS = [
@@ -44,3 +45,25 @@ USE_TZ = True
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+SECRET_KEY = os.environ["SECRET_KEY"]
+
+CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]
+
+# These settings are mostly copied from https://github.com/girder/django-composed-configuration/blob/master/composed_configuration/_celery.py
+CELERY_RESULT_BACKEND = None
+CELERY_TASK_ACKS_LATE = not DEBUG
+CELERY_TASK_REJECT_ON_WORKER_LOST = False
+CELERY_TASK_ACKS_ON_FAILURE_OR_TIMEOUT = True
+CELERY_WORKER_CANCEL_LONG_RUNNING_TASKS_ON_CONNECTION_LOSS = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_CONCURRENCY = 1 if DEBUG else None
+
+# Custom settings
+
+OPENSEARCH_ENDPOINT = os.environ["OPENSEARCH_ENDPOINT"]
+OPENSEARCH_USERNAME = os.environ["OPENSEARCH_USERNAME"]
+OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
+
+GITLAB_ENDPOINT: str = os.environ["GITLAB_ENDPOINT"]
+GITLAB_TOKEN: str = os.environ["GITLAB_TOKEN"]

@@ -8,3 +8,19 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - ${DOCKER_POSTGRES_PORT-5432}:5432
+
+  elasticsearch:
+    image: elasticsearch:7.14.0
+    environment:
+      ES_JAVA_OPTS: "-Xms250m -Xmx750m"
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      ELASTIC_PASSWORD: elastic
+    ports:
+      - ${DOCKER_ELASTICSEARCH_PORT-9200}:9200
+      - ${DOCKER_ELASTICSEARCH_PORT-9300}:9300
+
+  redis:
+    image: redis:latest
+    ports:
+      - ${DOCKER_REDIS_PORT-6379}:6379
