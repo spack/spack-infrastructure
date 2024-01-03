@@ -1,23 +1,15 @@
 import json
-import os
 import tempfile
 import zipfile
 from contextlib import contextmanager
 
-import djclick as click
-import gitlab
+from celery import shared_task
 import yaml
+import gitlab
 from gitlab.v4.objects import Project, ProjectJob
 
 from analytics.models import Job, Timer, TimerPhase
-
-# Instantiate gitlab api wrapper
-GITLAB_TOKEN = os.environ["GITLAB_TOKEN"]
-GITLAB_URL = os.getenv("GITLAB_URL", "https://gitlab.spack.io")
-gl = gitlab.Gitlab(GITLAB_URL, GITLAB_TOKEN)
-
-# Grab job data
-JOB_INPUT_DATA = os.environ["JOB_INPUT_DATA"]
+from django.conf import settings
 
 
 class JobArtifactFileNotFound(Exception):
@@ -68,7 +60,7 @@ def get_job_metadata(job: ProjectJob) -> dict:
     }
 
 
-def create_job(project: Project, job: ProjectJob) -> Job:
+def create_job(gl: gitlab.Gitlab, project: Project, job: ProjectJob) -> Job:
     # grab runner tags
     runner_tags = gl.runners.get(job.runner["id"]).tag_list
 
@@ -92,20 +84,21 @@ def get_timings_json(job: ProjectJob) -> list[dict]:
         return json.load(file)
 
 
-@click.command()
-def main():
+@shared_task(name="upload_build_timings")
+def upload_build_timings(job_input_data_json: str):
     # Read input data and extract params
-    job_input_data = json.loads(JOB_INPUT_DATA)
+    job_input_data = json.loads(job_input_data_json)
     job_id = job_input_data["build_id"]
 
     # Retrieve project and job from gitlab API
+    gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN)
     gl_project = gl.projects.get(job_input_data["project_id"])
     gl_job = gl_project.jobs.get(job_input_data["build_id"])
 
     # Get or create job record
     job = Job.objects.filter(job_id=job_id).first()
     if job is None:
-        job = create_job(gl_project, gl_job)
+        job = create_job(gl, gl_project, gl_job)
 
     # Get timings
     timings = get_timings_json(gl_job)
@@ -149,7 +142,3 @@ def main():
 
     # Bulk create phases
     TimerPhase.objects.bulk_create(phases)
-
-
-if __name__ == "__main__":
-    main()
