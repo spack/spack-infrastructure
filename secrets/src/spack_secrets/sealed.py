@@ -27,10 +27,6 @@ class KubesealNotFound(ClickException):
         )
 
 
-def ensure_document_type(doc: dict):
-    pass
-
-
 def get_kubeseal_path():
     kubeseal = shutil.which("kubeseal")
     if kubeseal is None:
