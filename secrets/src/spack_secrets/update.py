@@ -46,8 +46,8 @@ def read_user_input(starting_value: bytes | None = None) -> str:
             raise click.ClickException("Error retrieving secret value")
 
         # Read value back out
-        tmp.seek(0)
-        return tmp.read().decode("utf-8")
+        with open(tmp.name) as f:
+            return f.read()
 
 
 def handle_raw_secret_input():
