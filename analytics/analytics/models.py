@@ -69,10 +69,9 @@ class TimerPhase(models.Model):
 
 
 class ErrorTaxonomy(models.Model):
+    job_id = models.PositiveBigIntegerField(primary_key=True)
+
     created = models.DateTimeField(auto_now_add=True)
-    job = models.OneToOneField(
-        Job, related_name="error_taxonomy", on_delete=models.CASCADE
-    )
 
     attempt_number = models.PositiveSmallIntegerField()
     retried = models.BooleanField()
