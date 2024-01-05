@@ -9,4 +9,6 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD [ "gunicorn", "--bind", "0.0.0.0:8080", "--access-logfile", "-", "analytics.wsgi" ]
+RUN chmod +x ./entrypoint.sh
+ENTRYPOINT [ "./entrypoint.sh" ]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--access-logfile", "-", "analytics.wsgi"]
