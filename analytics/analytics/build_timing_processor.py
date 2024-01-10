@@ -4,9 +4,11 @@ import zipfile
 from contextlib import contextmanager
 
 from celery import shared_task
+import sentry_sdk
 import yaml
 import gitlab
 from gitlab.v4.objects import Project, ProjectJob
+from analytics import setup_gitlab_job_sentry_tags
 
 from analytics.models import Job, Timer, TimerPhase
 from django.conf import settings
@@ -88,6 +90,7 @@ def get_timings_json(job: ProjectJob) -> list[dict]:
 def upload_build_timings(job_input_data_json: str):
     # Read input data and extract params
     job_input_data = json.loads(job_input_data_json)
+    setup_gitlab_job_sentry_tags(job_input_data)
     job_id = job_input_data["build_id"]
 
     # Retrieve project and job from gitlab API

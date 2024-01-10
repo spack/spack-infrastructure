@@ -12,7 +12,9 @@ def build_json_string():
         {
             "project_id": 2,
             "build_id": 9708962,
+            "build_status": "success",
             "project": {"web_url": "https://aspackgitlaburl.test"},
+            "ref": "develop",
         }
     )
 
