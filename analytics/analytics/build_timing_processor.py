@@ -7,6 +7,7 @@ from celery import shared_task
 import sentry_sdk
 import yaml
 import gitlab
+from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import Project, ProjectJob
 from analytics import setup_gitlab_job_sentry_tags
 
@@ -64,7 +65,14 @@ def get_job_metadata(job: ProjectJob) -> dict:
 
 def create_job(gl: gitlab.Gitlab, project: Project, job: ProjectJob) -> Job:
     # grab runner tags
-    runner_tags = gl.runners.get(job.runner["id"]).tag_list
+    aws = None
+    if job.runner is not None:
+        # For various reasons, sometimes the runner is missing
+        try:
+            aws = "aws" in gl.runners.get(job.runner.id).tag_list
+        except GitlabGetError as exc:
+            if exc.error_message != '404 Not found':
+                raise
 
     # Return created job
     return Job.objects.create(
@@ -75,7 +83,7 @@ def create_job(gl: gitlab.Gitlab, project: Project, job: ProjectJob) -> Job:
         duration=job.duration,
         ref=job.ref,
         tags=job.tag_list,
-        aws=("aws" in runner_tags),
+        aws=aws,
         **get_job_metadata(job),
     )
 

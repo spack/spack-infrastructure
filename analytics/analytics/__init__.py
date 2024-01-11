@@ -6,7 +6,8 @@ __all__ = ("celery_app",)
 
 
 def setup_gitlab_job_sentry_tags(job_input_data: dict[str, Any]) -> None:
-    if job_input_data.get("runner", {}).get("description"):
+    runner = job_input_data.get("runner") or {}
+    if runner.get("description"):
         set_tag("is_uo", job_input_data["runner"]["description"].startswith("uo-"))
 
     set_tag("is_develop", job_input_data["ref"] == "develop")
