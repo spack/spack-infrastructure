@@ -10,8 +10,8 @@ from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import Project, ProjectJob
 
 from analytics import setup_gitlab_job_sentry_tags
-from analytics.build_timing_processor.build_timings import create_build_timings
-from analytics.build_timing_processor.prometheus import (
+from analytics.job_processor.build_timings import create_build_timings
+from analytics.job_processor.prometheus import (
     PrometheusClient,
     annotate_job_with_prometheus_data,
 )
@@ -51,8 +51,8 @@ def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
     return job
 
 
-@shared_task(name="upload_build_timings")
-def upload_build_timings(job_input_data_json: str):
+@shared_task(name="process_job")
+def process_job(job_input_data_json: str):
     # Read input data and extract params
     job_input_data = json.loads(job_input_data_json)
     setup_gitlab_job_sentry_tags(job_input_data)

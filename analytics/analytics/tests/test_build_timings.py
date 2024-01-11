@@ -1,7 +1,7 @@
 import json
 import pytest
 from analytics.job_log_uploader import upload_job_log
-from analytics.build_timing_processor import upload_build_timings
+from analytics.job_processor import process_job
 
 from analytics.models import Timer
 
@@ -21,7 +21,7 @@ def build_json_string():
 
 @pytest.mark.django_db
 def test_upload_build_timings(build_json_string):
-    upload_build_timings(build_json_string)
+    process_job(build_json_string)
 
     assert Timer.objects.exists()
 
