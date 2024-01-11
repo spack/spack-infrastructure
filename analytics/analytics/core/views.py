@@ -1,10 +1,10 @@
-from typing import Any
-from django.http import HttpRequest, HttpResponse
 import json
 import re
+from typing import Any
+
+from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-
 import sentry_sdk
 
 from analytics.core.job_log_uploader import upload_job_log

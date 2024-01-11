@@ -1,7 +1,7 @@
 import os
 
 from ._logging import _filter_favicon_requests, _filter_static_requests
-from ._utils import string_to_bool, string_to_list
+from ._utils import string_to_list
 
 # Login/auth
 LOGIN_REDIRECT_URL = "/"

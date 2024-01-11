@@ -1,5 +1,3 @@
-import os
-
 from ._docker import _AlwaysContains, _is_docker
 from .base import *  # noqa: F403
 

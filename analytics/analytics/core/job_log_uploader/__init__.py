@@ -1,14 +1,12 @@
+from datetime import datetime
 import json
 import re
-from datetime import datetime
 from typing import Any
-from celery import shared_task
 
+from celery import shared_task
+from django.conf import settings
 import gitlab
 from opensearch_dsl import Date, Document, connections
-
-from django.conf import settings
-from sentry_sdk import set_tag
 
 from analytics import setup_gitlab_job_sentry_tags
 

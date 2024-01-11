@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.conf import settings
 from django.urls import include, path
+
 from analytics.core.views import webhook_handler
 
 urlpatterns = [
