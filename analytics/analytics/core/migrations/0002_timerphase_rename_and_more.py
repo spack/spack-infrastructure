@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("analytics", "0001_initial"),
+        ("core", "0001_initial"),
     ]
 
     operations = [
@@ -42,8 +42,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name="timerphase",
-            constraint=models.UniqueConstraint(
-                fields=("path", "timer"), name="unique-phase-path"
-            ),
+            constraint=models.UniqueConstraint(fields=("path", "timer"), name="unique-phase-path"),
         ),
     ]

@@ -29,7 +29,7 @@ class JobLog(Document):
         return super().save(**kwargs)
 
 
-@shared_task(name="upload_job_log")
+@shared_task(name="upload_job_log", soft_time_limit=60)
 def upload_job_log(job_input_data_json: str) -> None:
     job_input_data: dict[str, Any] = json.loads(job_input_data_json)
     setup_gitlab_job_sentry_tags(job_input_data)
@@ -43,11 +43,8 @@ def upload_job_log(job_input_data_json: str) -> None:
 
     # Remove ANSI escape sequences from colorized output
     # TODO: this still leaves trailing ;m in the output
-    job_trace = re.sub(
-        r"\x1b\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|G|K]?", "", job_trace
-    )
+    job_trace = re.sub(r"\x1b\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|G|K]?", "", job_trace)
 
-    # Upload to OpenSearch
     connections.create_connection(
         hosts=[settings.OPENSEARCH_ENDPOINT],
         http_auth=(
@@ -55,6 +52,7 @@ def upload_job_log(job_input_data_json: str) -> None:
             settings.OPENSEARCH_PASSWORD,
         ),
     )
+
     doc = JobLog(
         **job_input_data,
         job_url=f'{job_input_data["project"]["web_url"]}/-/jobs/{job_input_data["build_id"]}',

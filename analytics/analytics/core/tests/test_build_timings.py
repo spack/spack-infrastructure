@@ -1,10 +1,10 @@
 import json
 import pytest
-from analytics.job_log_uploader import upload_job_log
+from analytics.core.job_log_uploader import upload_job_log
 from analytics.job_processor import process_job
 
-from analytics.models import Timer
-
+from analytics.core.job_log_uploader import upload_job_log
+from analytics.core.models import Timer
 
 @pytest.fixture()
 def build_json_string():

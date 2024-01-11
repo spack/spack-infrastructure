@@ -16,7 +16,7 @@ from analytics.job_processor.prometheus import (
     JobPrometheusDataNotFound,
     PrometheusClient,
 )
-from analytics.models import Job
+from analytics.core.models import Job
 
 
 def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
@@ -55,9 +55,7 @@ def process_job(job_input_data_json: str):
     setup_gitlab_job_sentry_tags(job_input_data)
 
     # Retrieve project and job from gitlab API
-    gl = gitlab.Gitlab(
-        settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True
-    )
+    gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True)
     gl_project = gl.projects.get(job_input_data["project_id"])
     gl_job = gl_project.jobs.get(job_input_data["build_id"])
 

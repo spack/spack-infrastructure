@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("analytics", "0003_job_arch_job_build_jobs_job_compiler_name_and_more"),
+        ("core", "0003_job_arch_job_build_jobs_job_compiler_name_and_more"),
     ]
 
     operations = [
@@ -28,5 +28,8 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
+            options={
+                "db_table": "analytics_errortaxonomy",
+            },
         ),
     ]

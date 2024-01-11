@@ -23,7 +23,7 @@ spec:
       serviceAccountName: webhook-handler
       containers:
         - name: webhook-handler
-          image: ghcr.io/spack/django:0.0.9
+          image: ghcr.io/spack/django:0.1.0
           imagePullPolicy: Always
           resources:
             requests:
@@ -91,6 +91,8 @@ spec:
                   key: celery-broker-url
             - name: PROMETHEUS_URL
               value: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+            - name: ALLOWED_HOSTS
+              value: "webhook-handler.custom.svc.cluster.local"
       nodeSelector:
         spack.io/node-pool: base
 
@@ -119,7 +121,7 @@ spec:
       serviceAccountName: webhook-handler
       containers:
         - name: webhook-handler-worker
-          image: ghcr.io/spack/django:0.0.9
+          image: ghcr.io/spack/django:0.1.0
           command: ["celery", "-A", "analytics.celery", "worker", "-l", "info", "-Q", "celery"]
           imagePullPolicy: Always
           resources:
@@ -186,5 +188,7 @@ spec:
                   key: celery-broker-url
             - name: PROMETHEUS_URL
               value: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+            - name: ALLOWED_HOSTS
+              value: "webhook-handler.custom.svc.cluster.local"
       nodeSelector:
         spack.io/node-pool: base
