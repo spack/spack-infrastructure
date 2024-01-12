@@ -7,6 +7,10 @@ import urllib.request
 
 
 def update_gitlab_variable(k, v):
+    if os.environ.get('SKIP_GITLAB_VARIABLE_UPDATE', False):
+        print('Skipping GitLab variable update')
+        return
+
     DATA = urllib.parse.urlencode({'value': v}).encode()
     URL = 'https://gitlab.spack.io/api/v4/projects/2/variables/{0}'.format(k)
     request = urllib.request.Request(url=URL, data=DATA, method='PUT')
