@@ -69,7 +69,7 @@ def create_job(gl: gitlab.Gitlab, project: Project, job: ProjectJob) -> Job:
     if job.runner is not None:
         # For various reasons, sometimes the runner is missing
         try:
-            aws = "aws" in gl.runners.get(job.runner.id).tag_list
+            aws = "aws" in gl.runners.get(job.runner['id']).tag_list
         except GitlabGetError as exc:
             if exc.error_message != '404 Not found':
                 raise
