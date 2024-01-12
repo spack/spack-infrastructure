@@ -22,7 +22,7 @@ class Job(models.Model):
     build_jobs = models.CharField(max_length=128, null=True)
     job_size = models.CharField(max_length=128, null=True)
     stack = models.CharField(max_length=128, null=True)
-    aws = models.BooleanField(default=True)
+    aws = models.BooleanField(default=True, null=True)
 
 
 class Timer(models.Model):
