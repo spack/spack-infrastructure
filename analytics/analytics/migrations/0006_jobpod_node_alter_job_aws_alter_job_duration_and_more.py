@@ -125,12 +125,6 @@ class Migration(migrations.Migration):
         # Continue with normal migration steps
         migrations.AddConstraint(
             model_name="job",
-            constraint=models.UniqueConstraint(
-                fields=("project_id", "job_id"), name="unique-project-job-id"
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="job",
             constraint=models.CheckConstraint(
                 check=models.Q(("package_name", ""), _negated=True),
                 name="non-empty-package-name",

@@ -88,9 +88,6 @@ class Job(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(
-                name="unique-project-job-id", fields=["project_id", "job_id"]
-            ),
             models.CheckConstraint(
                 name="non-empty-package-name", check=~models.Q(package_name="")
             ),
