@@ -1,34 +1,6 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: rotate-gitlab-aws-access-keys
-  namespace: custom
-spec:
-  schedule: "0 */12 * * *"
-  concurrencyPolicy: Forbid
-  jobTemplate:
-    spec:
-      activeDeadlineSeconds: 3600 # terminate any running job after 60 minutes
-      template:
-        spec:
-          serviceAccountName: rotate-keys
-          restartPolicy: Never
-          containers:
-          - name: rotate-gitlab-aws-access-keys
-            image: ghcr.io/spack/ci-key-rotate:0.0.5
-            imagePullPolicy: IfNotPresent
-            env:
-            - name: GITLAB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: rotate-keys
-                  key: gitlab-token
-          nodeSelector:
-            spack.io/node-pool: base
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
   name: clear-admin-keys
   namespace: custom
 spec:
