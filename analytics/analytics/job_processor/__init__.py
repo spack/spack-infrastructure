@@ -6,12 +6,13 @@ import sentry_sdk
 from celery import shared_task
 from dateutil.parser import isoparse
 from django.conf import settings
-from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import Project, ProjectJob
 
 from analytics import setup_gitlab_job_sentry_tags
+from analytics.job_processor.artifacts import annotate_job_with_artifacts_data
 from analytics.job_processor.build_timings import create_build_timings
 from analytics.job_processor.prometheus import (
+    JobPrometheusDataNotFound,
     PrometheusClient,
     annotate_job_with_prometheus_data,
 )
@@ -19,16 +20,6 @@ from analytics.models import Job
 
 
 def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
-    # This is one way to determine if a job ran in the cluster or not
-    aws = None
-    if gljob.runner is not None:
-        # For various reasons, sometimes the runner is missing
-        try:
-            aws = "aws" in gl.runners.get(gljob.runner["id"]).tag_list
-        except GitlabGetError as exc:
-            if exc.error_message != "404 Not found":
-                raise
-
     # Create base fields on job that are independent of where it ran
     job = Job(
         job_id=gljob.get_id(),
@@ -38,13 +29,16 @@ def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
         duration=timedelta(seconds=gljob.duration),
         ref=gljob.ref,
         tags=gljob.tag_list,
-        aws=aws,
+        aws=True,  # Default until proven otherwise
     )
 
-    # If ran in cluster, get remaining job data from prometheus
-    if job.aws:
+    # Prometheus data will either be found and the job annotated, or not, and set aws to False
+    try:
         client = PrometheusClient(settings.SPACK_PROMETHEUS_ENDPOINT)
         annotate_job_with_prometheus_data(job=job, client=client)
+    except JobPrometheusDataNotFound:
+        job.aws = False
+        annotate_job_with_artifacts_data(gljob=gljob, job=job)
 
     # Save and return new job
     job.save()

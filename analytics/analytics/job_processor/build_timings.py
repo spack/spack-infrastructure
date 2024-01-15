@@ -1,33 +1,9 @@
 import json
-import tempfile
-import zipfile
-from contextlib import contextmanager
 
 from gitlab.v4.objects import ProjectJob
 
+from analytics.job_processor.artifacts import get_job_artifacts_file
 from analytics.models import Job, Timer, TimerPhase
-
-
-class JobArtifactFileNotFound(Exception):
-    def __init__(self, job: ProjectJob, filename: str):
-        message = f"File {filename} not found in job artifacts of job {job.id}"
-        super().__init__(message)
-
-
-@contextmanager
-def get_job_artifacts_file(job: ProjectJob, filename: str):
-    """Yields a file IO, raises KeyError if the filename is not present"""
-    with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
-        artifacts_file = temp.name
-        with open(artifacts_file, "wb") as f:
-            job.artifacts(streamed=True, action=f.write)
-
-        with zipfile.ZipFile(artifacts_file) as zfile:
-            try:
-                with zfile.open(filename) as timing_file:
-                    yield timing_file
-            except KeyError:
-                raise JobArtifactFileNotFound(job, filename)
 
 
 def get_timings_json(job: ProjectJob) -> list[dict]:
