@@ -86,6 +86,15 @@ class Job(models.Model):
     job_size = models.CharField(max_length=128, null=True)
     stack = models.CharField(max_length=128, null=True)
 
+    @property
+    def midpoint(self):
+        """A datetime representing the midpoint (in time) of the job."""
+        return self.started_at + (self.duration / 2)
+
+    @property
+    def finished_at(self):
+        return self.started_at + self.duration
+
     class Meta:
         constraints = [
             models.CheckConstraint(

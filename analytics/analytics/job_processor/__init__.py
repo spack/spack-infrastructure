@@ -14,7 +14,6 @@ from analytics.job_processor.build_timings import create_build_timings
 from analytics.job_processor.prometheus import (
     JobPrometheusDataNotFound,
     PrometheusClient,
-    annotate_job_with_prometheus_data,
 )
 from analytics.models import Job
 
@@ -34,8 +33,12 @@ def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
 
     # Prometheus data will either be found and the job annotated, or not, and set aws to False
     try:
-        client = PrometheusClient(settings.SPACK_PROMETHEUS_ENDPOINT)
-        annotate_job_with_prometheus_data(job=job, client=client)
+        PrometheusClient(settings.SPACK_PROMETHEUS_ENDPOINT).annotate_job(job=job)
+
+        # Save job pod, and node if necessary
+        job.pod.save()
+        if job.node.pk is None:
+            job.node.save()
     except JobPrometheusDataNotFound:
         job.aws = False
         annotate_job_with_artifacts_data(gljob=gljob, job=job)
