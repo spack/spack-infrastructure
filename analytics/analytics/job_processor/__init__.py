@@ -34,14 +34,16 @@ def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
     # Prometheus data will either be found and the job annotated, or not, and set aws to False
     try:
         PrometheusClient(settings.SPACK_PROMETHEUS_ENDPOINT).annotate_job(job=job)
-
-        # Save job pod, and node if necessary
-        job.pod.save()
-        if job.node.pk is None:
-            job.node.save()
     except JobPrometheusDataNotFound:
         job.aws = False
         annotate_job_with_artifacts_data(gljob=gljob, job=job)
+
+    # Handle some extra operations if aws job
+    if job.aws:
+        job.pod.save()
+
+        # Because jobs are many-to-one with nodes, we need to handle a race condition for node creation
+        job.save_or_set_node()
 
     # Save and return new job
     job.save()

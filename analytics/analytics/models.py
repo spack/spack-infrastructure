@@ -1,5 +1,5 @@
 from django.contrib.postgres.fields import ArrayField
-from django.db import models
+from django.db import IntegrityError, models
 
 
 class NodeCapacityType(models.TextChoices):
@@ -90,6 +90,24 @@ class Job(models.Model):
     @property
     def finished_at(self):
         return self.started_at + self.duration
+
+    def save_or_set_node(self):
+        if self.node is None:
+            return
+        if self.node.pk is not None:
+            return
+
+        try:
+            self.node.save()
+            return
+        except IntegrityError as e:
+            if "unique-name-system-uuid" not in e:
+                raise
+
+        # Node already exists, set node field to the existing node
+        self.node = Node.objects.get(
+            name=self.node.name, system_uuid=self.node.system_uuid
+        )
 
     class Meta:
         constraints = [
