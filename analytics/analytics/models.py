@@ -8,17 +8,13 @@ class NodeCapacityType(models.TextChoices):
 
 
 class Node(models.Model):
-    name = models.CharField(max_length=64, null=True, default=None)
-    system_uuid = models.UUIDField(null=True, default=None)
-    cpu = models.PositiveIntegerField(null=True, default=None)
-    memory = models.PositiveIntegerField(null=True, default=None)
-    capacity_type = models.CharField(
-        max_length=12, choices=NodeCapacityType.choices, null=True, default=None
-    )
-    instance_type = models.CharField(max_length=32, null=True, default=None)
+    name = models.CharField(max_length=64)
+    system_uuid = models.UUIDField()
+    cpu = models.PositiveIntegerField()
+    memory = models.PositiveIntegerField()
+    capacity_type = models.CharField(max_length=12, choices=NodeCapacityType.choices)
+    instance_type = models.CharField(max_length=32)
     instance_type_spot_price = models.FloatField(
-        null=True,
-        default=None,
         help_text=(
             "The price per hour (in USD) of the spot instnce this job ran on, at the time of"
             " running. If ever the job runs on an on-demand node, this field will be null."

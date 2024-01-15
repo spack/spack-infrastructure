@@ -68,29 +68,27 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("name", models.CharField(default=None, max_length=64, null=True)),
-                ("system_uuid", models.UUIDField(default=None, null=True)),
-                ("cpu", models.PositiveIntegerField(default=None, null=True)),
-                ("memory", models.PositiveIntegerField(default=None, null=True)),
+                ("name", models.CharField(max_length=64)),
+                ("system_uuid", models.UUIDField()),
+                ("cpu", models.PositiveIntegerField()),
+                ("memory", models.PositiveIntegerField()),
                 (
                     "capacity_type",
                     models.CharField(
                         choices=[("spot", "Spot"), ("on-demand", "On Demand")],
-                        default=None,
                         max_length=12,
-                        null=True,
                     ),
                 ),
                 (
                     "instance_type",
-                    models.CharField(default=None, max_length=32, null=True),
+                    models.CharField(max_length=32),
                 ),
                 (
                     "instance_type_spot_price",
                     models.FloatField(
-                        default=None,
-                        help_text="The price per hour (in USD) of the spot instnce this job ran on, at the time of running. If ever the job runs on an on-demand node, this field will be null.",
-                        null=True,
+                        help_text="The price per hour (in USD) of the spot instnce this job ran on,"
+                        " at the time of running. If ever the job runs on an on-demand node,"
+                        " this field will be null.",
                     ),
                 ),
             ],
