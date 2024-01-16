@@ -151,22 +151,9 @@ class Migration(migrations.Migration):
             model_name="job",
             constraint=models.CheckConstraint(
                 check=models.Q(
-                    models.Q(("aws", False), ("node__isnull", True)),
-                    models.Q(("aws", True), ("node__isnull", False)),
-                    _connector="OR",
+                    ("aws", False), ("node__isnull", True), ("pod__isnull", True)
                 ),
-                name="aws-node-presence",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="job",
-            constraint=models.CheckConstraint(
-                check=models.Q(
-                    models.Q(("aws", False), ("pod__isnull", True)),
-                    models.Q(("aws", True), ("pod__isnull", False)),
-                    _connector="OR",
-                ),
-                name="aws-pod-presence",
+                name="non-aws-no-pod-or-node",
             ),
         ),
         migrations.AddConstraint(

@@ -114,21 +114,12 @@ class Job(models.Model):
             models.CheckConstraint(
                 name="non-empty-package-name", check=~models.Q(package_name="")
             ),
-            # If a job ran in aws, it must have a node, otherwise it can't
+            # If a job didn't run in the cluster, it can't have a pod or node. Ideally we would
+            # also enforce the other side of this constraint (that an aws job must have both pod
+            # and node not null), but can't since we had data before these fields were added
             models.CheckConstraint(
-                name="aws-node-presence",
-                check=(
-                    models.Q(aws=False, node__isnull=True)
-                    | models.Q(aws=True, node__isnull=False)
-                ),
-            ),
-            # If a job ran in aws, it must have a pod, otherwise it can't
-            models.CheckConstraint(
-                name="aws-pod-presence",
-                check=(
-                    models.Q(aws=False, pod__isnull=True)
-                    | models.Q(aws=True, pod__isnull=False)
-                ),
+                name="non-aws-no-pod-or-node",
+                check=models.Q(aws=False, node__isnull=True, pod__isnull=True),
             ),
         ]
 
