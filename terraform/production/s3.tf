@@ -32,19 +32,6 @@ resource "aws_s3_bucket_policy" "protected_binaries_restricted" {
         "Principal": "*",
         "Action": "s3:GetObject",
         "Resource": "arn:aws:s3:::${each.key}/*"
-      },
-      {
-        "Sid": "StesachsAtAWSWriteSubFolder",
-        "Effect": "Allow",
-        "Principal": {
-          "AWS": "arn:aws:iam::679174810898:root"
-        },
-        "Action": [
-          "s3:GetObject*",
-          "s3:PutObject*",
-          "s3:DeleteObject*"
-        ],
-        "Resource": "arn:aws:s3:::spack-binaries/pcluster-bootstrap/*"
       }
     ]
   })
