@@ -6,6 +6,7 @@ import sentry_sdk
 from celery import shared_task
 from dateutil.parser import isoparse
 from django.conf import settings
+from django.db import transaction
 from gitlab.v4.objects import Project, ProjectJob
 
 from analytics import setup_gitlab_job_sentry_tags
@@ -34,16 +35,13 @@ def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
     # Prometheus data will either be found and the job annotated, or not, and set aws to False
     try:
         PrometheusClient(settings.SPACK_PROMETHEUS_ENDPOINT).annotate_job(job=job)
+
+        # Ensure node creation isn't caught in a race condition
+        job.save_or_set_node()
+        job.pod.save()
     except JobPrometheusDataNotFound:
         job.aws = False
         annotate_job_with_artifacts_data(gljob=gljob, job=job)
-
-    # Handle some extra operations if aws job
-    if job.aws:
-        job.pod.save()
-
-        # Because jobs are many-to-one with nodes, we need to handle a race condition for node creation
-        job.save_or_set_node()
 
     # Save and return new job
     job.save()
@@ -61,6 +59,7 @@ def process_job(job_input_data_json: str):
     gl_project = gl.projects.get(job_input_data["project_id"])
     gl_job = gl_project.jobs.get(job_input_data["build_id"])
 
-    # Get or create job record
-    job = create_job(gl, gl_project, gl_job)
-    create_build_timings(job, gl_job)
+    # Use a transaction, to account for transient failures
+    with transaction.atomic():
+        job = create_job(gl, gl_project, gl_job)
+        create_build_timings(job, gl_job)

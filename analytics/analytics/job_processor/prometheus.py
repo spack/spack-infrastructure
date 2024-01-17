@@ -238,7 +238,6 @@ class PrometheusClient:
         node_system_uuid = node_info[0]["metric"]["system_uuid"]
 
         # Check if this node has already been created
-        # TODO: Race condition?
         existing_node = Node.objects.filter(
             name=node_name, system_uuid=node_system_uuid
         ).first()
