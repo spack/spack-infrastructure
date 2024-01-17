@@ -34,7 +34,7 @@ def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
 
     # Prometheus data will either be found and the job annotated, or not, and set aws to False
     try:
-        PrometheusClient(settings.SPACK_PROMETHEUS_ENDPOINT).annotate_job(job=job)
+        PrometheusClient(settings.PROMETHEUS_URL).annotate_job(job=job)
 
         # Ensure node creation isn't caught in a race condition
         job.save_or_set_node()

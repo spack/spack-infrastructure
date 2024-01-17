@@ -8,9 +8,6 @@ from kubernetes.utils.quantity import parse_quantity
 
 from analytics.models import Job, JobPod, Node
 
-CLUSTER_INTERNAL_PROMETHEUS_URL = (
-    "kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
-)
 PROM_MAX_RESOLUTION = 10_000
 
 
@@ -51,10 +48,7 @@ def calculate_node_occupancy(data: list[dict], step: int):
 
 
 class PrometheusClient:
-    def __init__(self, url: str | None = None) -> None:
-        if url is None:
-            url = CLUSTER_INTERNAL_PROMETHEUS_URL
-
+    def __init__(self, url: str) -> None:
         self.api_url = f"{url.rstrip('/')}/api/v1"
 
     def query_single(self, query: str, time: datetime):
