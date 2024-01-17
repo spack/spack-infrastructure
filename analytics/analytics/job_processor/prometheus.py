@@ -12,11 +12,20 @@ PROM_MAX_RESOLUTION = 10_000
 
 
 class JobPrometheusDataNotFound(Exception):
-    pass
+    """
+    This is raised to indicate that a job's data can't be found in prometheus,
+    and was likely not run in the cluster.
+    """
+
+    def __init__(self, job_id: int | str):
+        super().__init__(f"Job ID: {job_id}")
+        self.job_id = job_id
 
 
 class UnexpectedPrometheusResult(Exception):
-    pass
+    def __init__(self, message: str, query: str) -> None:
+        super().__init__(message)
+        self.query = query
 
 
 def calculate_node_occupancy(data: list[dict], step: int):
@@ -49,23 +58,50 @@ def calculate_node_occupancy(data: list[dict], step: int):
 
 class PrometheusClient:
     def __init__(self, url: str) -> None:
+        # URL should include protocol
         self.api_url = f"{url.rstrip('/')}/api/v1"
 
-    def query_single(self, query: str, time: datetime):
+    def _query(self, method: str, params: dict, single_result: bool):
+        if "query" not in params:
+            raise RuntimeError("params must include query argument")
+
+        # make request
+        query_url = f"{self.api_url}/{method}?{urlencode(params)}"
+        res = requests.get(query_url)
+        res.raise_for_status()
+
+        # Ensure single result if necessary
+        data = res.json()["data"]["result"]
+        if single_result:
+            if len(data) != 1:
+                raise UnexpectedPrometheusResult(
+                    message=f"Expected a single value, received {len(data)}.",
+                    query=params["query"],
+                )
+
+            return data[0]
+
+        return data
+
+    def query_single(self, query: str, time: datetime, single_result=False):
         params = {
             "query": query,
             "time": time.timestamp(),
         }
 
-        query_params = urlencode(params)
-        query_url = f"http://{self.api_url}/query?{query_params}"
-        res = requests.get(query_url)
-        res.raise_for_status()
-
-        return res.json()["data"]["result"]
+        return self._query(
+            method="query",
+            params=params,
+            single_result=single_result,
+        )
 
     def query_range(
-        self, query: str, start: datetime, end: datetime, step: int | None = None
+        self,
+        query: str,
+        start: datetime,
+        end: datetime,
+        step: int | None = None,
+        single_result=False,
     ):
         if step is None:
             step = math.ceil(
@@ -78,12 +114,12 @@ class PrometheusClient:
             "end": end.timestamp(),
             "step": step,
         }
-        query_params = urlencode(params)
-        query_url = f"http://{self.api_url}/query_range?{query_params}"
-        res = requests.get(query_url)
-        res.raise_for_status()
 
-        return res.json()["data"]["result"]
+        return self._query(
+            method="query_range",
+            params=params,
+            single_result=single_result,
+        )
 
     def annotate_resource_requests_and_limits(self, job: Job):
         """Annotate cpu and memory resource requests and limits."""
@@ -173,11 +209,8 @@ class PrometheusClient:
             start=job.started_at,
             end=job.finished_at,
             step=30,
+            single_result=True,
         )
-        if len(results) != 1:
-            raise UnexpectedPrometheusResult(
-                "Multiple results returned from pod memory query"
-            )
 
         # Results consist of arrays: [timestamp, "value"]
         byte_values = [int(x) for _, x in results[0]["values"]]
@@ -186,23 +219,24 @@ class PrometheusClient:
 
     def annotate_annotations_and_labels(self, job: Job):
         """Annotate the job model with any necessary fields, returning the pod it ran on."""
-        annotations_result = self.query_single(
-            f"kube_pod_annotations{{annotation_gitlab_ci_job_id='{job.job_id}'}}",
-            time=job.midpoint,
-        )
-        if len(annotations_result) == 0:
-            raise JobPrometheusDataNotFound
+        try:
+            annotations = self.query_single(
+                f"kube_pod_annotations{{annotation_gitlab_ci_job_id='{job.job_id}'}}",
+                time=job.midpoint,
+                single_result=True,
+            )
+        except UnexpectedPrometheusResult:
+            # Raise this exception instead to indicate that this job can't use prometheus
+            raise JobPrometheusDataNotFound(job_id=job.job_id)
 
-        # This field is one-to-one and so is always created when a Job is created
-        job.pod = JobPod()
-
-        annotations = annotations_result[0]["metric"]
-        job.pod.name = annotations["pod"]
-        pod = job.pod.name
+        # job.pod is one-to-one and so is always created when a Job is created
+        pod = annotations["pod"]
+        job.pod = JobPod(name=pod)
 
         # Get pod labels
-        labels = self.query_single(f"kube_pod_labels{{pod='{pod}'}}", time=job.midpoint)
-        labels = labels[0]["metric"]
+        labels = self.query_single(
+            f"kube_pod_labels{{pod='{pod}'}}", time=job.midpoint, single_result=True
+        )["metric"]
 
         job.package_name = annotations["annotation_metrics_spack_job_spec_pkg_name"]
         job.package_version = annotations[
@@ -227,18 +261,16 @@ class PrometheusClient:
 
         # Use this query to get the node the pod was running on at the time
         pod_info_query = f"kube_pod_info{{pod='{pod}'}}"
-        pod_info = self.query_single(pod_info_query, time=job.midpoint)
-        if len(pod_info) > 1:
-            raise Exception(
-                f"Multiple values receieved for prometheus query {pod_info_query}"
-            )
-        node_name = pod_info[0]["metric"]["node"]
+        node_name = self.query_single(
+            pod_info_query, time=job.midpoint, single_result=True
+        )["metric"]["node"]
 
         # Get the node system_uuid from the node name
-        node_info = self.query_single(
-            f"kube_node_info{{node='{job.node_name}'}}", time=job.midpoint
-        )
-        node_system_uuid = node_info[0]["metric"]["system_uuid"]
+        node_system_uuid = self.query_single(
+            f"kube_node_info{{node='{job.node_name}'}}",
+            time=job.midpoint,
+            single_result=True,
+        )["metric"]["system_uuid"]
 
         # Check if this node has already been created
         existing_node = Node.objects.filter(
@@ -253,22 +285,20 @@ class PrometheusClient:
 
         # Get node labels
         node_labels = self.query_single(
-            f"kube_node_labels{{node='{job.node_name}'}}", time=job.midpoint
-        )
-        node.cpu = int(node_labels[0]["metric"]["label_karpenter_k8s_aws_instance_cpu"])
+            f"kube_node_labels{{node='{job.node_name}'}}",
+            time=job.midpoint,
+            single_result=True,
+        )["metric"]
+        node.cpu = int(node_labels["label_karpenter_k8s_aws_instance_cpu"])
 
         # It seems these values are in Megabytes (base 1000)
-        mem = node_labels[0]["metric"]["label_karpenter_k8s_aws_instance_memory"]
+        mem = node_labels["label_karpenter_k8s_aws_instance_memory"]
         node.memory = int(parse_quantity(f"{mem}M"))
-        node.capacity_type = node_labels[0]["metric"][
-            "label_karpenter_sh_capacity_type"
-        ]
-        node.instance_type = node_labels[0]["metric"][
-            "label_node_kubernetes_io_instance_type"
-        ]
+        node.capacity_type = node_labels["label_karpenter_sh_capacity_type"]
+        node.instance_type = node_labels["label_node_kubernetes_io_instance_type"]
 
         # Retrieve the price of this node
-        zone = node_labels[0]["metric"]["label_topology_kubernetes_io_zone"]
+        zone = node_labels["label_topology_kubernetes_io_zone"]
         node.instance_type_spot_price = self.query_single(
             "karpenter_cloudprovider_instance_type_price_estimate{"
             f"capacity_type='{job.node_capacity_type}',"
@@ -276,7 +306,8 @@ class PrometheusClient:
             f"zone='{zone}'"
             "}",
             time=job.midpoint,
-        )[0]["value"][1]
+            single_result=True,
+        )["value"][1]
 
         # Save and set as job node
         job.node = node
