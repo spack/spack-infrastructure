@@ -18,6 +18,10 @@ class JobPrometheusDataNotFound(Exception):
     pass
 
 
+class UnexpectedPrometheusResult(Exception):
+    pass
+
+
 def calculate_node_occupancy(data: list[dict], step: int):
     """
     Determine what percentage of the node this pod had over its lifetime.
@@ -161,7 +165,9 @@ class PrometheusClient:
         pod_results = next(
             (res for res in results if res["metric"]["pod"] == pod), None
         )
-        assert pod is not None, f"Pod {pod} not found in query"
+        if pod is None:
+            raise UnexpectedPrometheusResult(f"Pod {pod} not found in cpu usage query")
+
         job.pod.cpu_usage_seconds = float(pod_results["values"][-1][1])
 
         # Then use the same cpu usage results to determine node occupancy, since it gives us a timline of pods on this node
@@ -174,7 +180,10 @@ class PrometheusClient:
             end=job.finished_at,
             step=30,
         )
-        assert len(results) == 1
+        if len(results) != 1:
+            raise UnexpectedPrometheusResult(
+                "Multiple results returned from pod memory query"
+            )
 
         # Results consist of arrays: [timestamp, "value"]
         byte_values = [int(x) for _, x in results[0]["values"]]
