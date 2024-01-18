@@ -15,7 +15,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: gitlab-error-processing-job
-        image: ghcr.io/spack/upload-gitlab-failure-logs:0.0.4
+        image: ghcr.io/spack/upload-gitlab-failure-logs:0.0.5
         imagePullPolicy: Always
         env:
           - name: GITLAB_TOKEN
