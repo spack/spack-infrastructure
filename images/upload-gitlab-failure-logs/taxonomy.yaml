@@ -63,9 +63,10 @@ taxonomy:
         - 'command terminated with exit code 137'
         - 'ERROR: Job failed: exit code 137'
 
-    invalid_access_key:
+    aws_access_denied:
       grep_for:
         - 'The AWS Access Key Id you provided does not exist in our records'
+        - 'An error occurred (AccessDenied)'
 
     gitlab_down:
       grep_for:
@@ -280,7 +281,7 @@ taxonomy:
     - '5XX'
     - 'dial_backend'
     - 'remote_disconnect'
-    - 'invalid_access_key'
+    - 'aws_access_denied'
     - 'nvidia_detection_error'
     # Other Errors
     - 'gpg_fail_open_files'
