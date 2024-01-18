@@ -85,10 +85,10 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "instance_type_spot_price",
-                    models.FloatField(
-                        help_text="The price per hour (in USD) of the spot instnce this job ran on,"
-                        " at the time of running. If ever the job runs on an on-demand node,"
-                        " this field will be null.",
+                    models.DecimalField(
+                        decimal_places=6,
+                        help_text="The price per hour (in USD) of the spot instance this job ran on, at the time of running.",
+                        max_digits=9,
                     ),
                 ),
             ],

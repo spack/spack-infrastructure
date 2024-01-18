@@ -14,10 +14,13 @@ class Node(models.Model):
     memory = models.PositiveIntegerField()
     capacity_type = models.CharField(max_length=12, choices=NodeCapacityType.choices)
     instance_type = models.CharField(max_length=32)
-    instance_type_spot_price = models.FloatField(
+
+    # Specify a decimal field with 3 digits left of the decimal, and 6 right of it
+    instance_type_spot_price = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
         help_text=(
-            "The price per hour (in USD) of the spot instnce this job ran on, at the time of"
-            " running. If ever the job runs on an on-demand node, this field will be null."
+            "The price per hour (in USD) of the spot instance this job ran on, at the time of running."
         ),
     )
 
