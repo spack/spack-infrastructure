@@ -149,7 +149,7 @@ spec:
         - pods=[*]
         - nodes=[*]
       metricAnnotationsAllowList:
-        - pods=[gitlab/ci_job_id,metrics/spack_job_spec_pkg_name,metrics/spack_job_spec_pkg_version,metrics/spack_job_spec_compiler_name,metrics/spack_job_spec_compiler_version,metrics/spack_job_spec_arch,metrics/spack_job_spec_variants,metrics/spack_job_build_jobs]
+        - pods=[gitlab/ci_job_id,metrics/spack_job_spec_pkg_name,metrics/spack_job_spec_pkg_version,metrics/spack_job_spec_compiler_name,metrics/spack_job_spec_compiler_version,metrics/spack_job_spec_arch,metrics/spack_job_spec_variants,metrics/spack_job_build_jobs,metrics/spack_ci_stack_name]
 
   # Configure OpenSearch datasource
   valuesFrom:
