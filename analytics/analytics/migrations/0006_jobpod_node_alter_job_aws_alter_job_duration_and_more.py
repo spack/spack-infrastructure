@@ -151,9 +151,11 @@ class Migration(migrations.Migration):
             model_name="job",
             constraint=models.CheckConstraint(
                 check=models.Q(
-                    ("aws", False), ("node__isnull", True), ("pod__isnull", True)
+                    models.Q(("node__isnull", True), ("pod__isnull", True)),
+                    models.Q(("node__isnull", False), ("pod__isnull", False)),
+                    _connector="OR",
                 ),
-                name="non-aws-no-pod-or-node",
+                name="node-pod-consistency",
             ),
         ),
         migrations.AddConstraint(
