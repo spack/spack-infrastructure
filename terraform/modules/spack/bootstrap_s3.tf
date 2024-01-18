@@ -1,9 +1,9 @@
-resource "aws_s3_bucket" "pcluster_bootstrap" {
-  bucket = "spack-pcluster-bootstrap"
+resource "aws_s3_bucket" "bootstrap" {
+  bucket = "spack-bootstrap${local.suffix}"
 }
 
-resource "aws_s3_bucket_public_access_block" "pcluster_bootstrap" {
-  bucket = aws_s3_bucket.pcluster_bootstrap.id
+resource "aws_s3_bucket_public_access_block" "bootstrap" {
+  bucket = aws_s3_bucket.bootstrap.id
 
   block_public_acls       = false
   block_public_policy     = false
@@ -11,8 +11,8 @@ resource "aws_s3_bucket_public_access_block" "pcluster_bootstrap" {
   restrict_public_buckets = false
 }
 
-resource "aws_s3_bucket_policy" "pcluster_bootstrap" {
-  bucket = aws_s3_bucket.pcluster_bootstrap.id
+resource "aws_s3_bucket_policy" "bootstrap" {
+  bucket = aws_s3_bucket.bootstrap.id
 
   policy = jsonencode({
     "Version" : "2012-10-17",
@@ -22,10 +22,10 @@ resource "aws_s3_bucket_policy" "pcluster_bootstrap" {
         "Effect" : "Allow",
         "Principal" : "*",
         "Action" : "s3:GetObject",
-        "Resource" : "arn:aws:s3:::${aws_s3_bucket.pcluster_bootstrap.bucket}/*"
+        "Resource" : "arn:aws:s3:::${aws_s3_bucket.bootstrap.bucket}/*"
       },
       {
-        "Sid" : "StesachsAtAWSWrite",
+        "Sid" : "StephenSachsPclusterWrite",
         "Effect" : "Allow",
         "Principal" : {
           "AWS" : "arn:aws:iam::679174810898:root"
@@ -35,7 +35,7 @@ resource "aws_s3_bucket_policy" "pcluster_bootstrap" {
           "s3:PutObject*",
           "s3:DeleteObject*"
         ],
-        "Resource" : "arn:aws:s3:::${aws_s3_bucket.pcluster_bootstrap.bucket}/*"
+        "Resource" : "arn:aws:s3:::${aws_s3_bucket.bootstrap.bucket}/pcluster/*"
       }
     ]
   })
