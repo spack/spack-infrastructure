@@ -1,3 +1,7 @@
+locals {
+  domain_suffix = var.deployment_name == "prod" ? "" : "${var.deployment_name}."
+}
+
 resource "aws_s3_bucket" "bootstrap" {
   bucket = "spack-bootstrap${local.suffix}"
 }
@@ -49,7 +53,7 @@ provider "aws" {
 }
 
 resource "aws_acm_certificate" "bootstrap" {
-  domain_name       = "bootstrap.${local.suffix == "prod" ? "" : "staging."}spack.io"
+  domain_name       = "bootstrap.${local.domain_suffix}spack.io"
   validation_method = "DNS"
 
   provider = aws.acm
@@ -80,7 +84,7 @@ resource "aws_acm_certificate_validation" "bootstrap" {
 
 resource "aws_route53_record" "bootstrap" {
   zone_id = data.aws_route53_zone.spack_io.zone_id
-  name    = "bootstrap.${local.suffix == "prod" ? "" : "staging."}spack.io"
+  name    = "bootstrap.${local.domain_suffix}spack.io"
   type    = "A"
 
   alias {
@@ -93,7 +97,7 @@ resource "aws_route53_record" "bootstrap" {
 resource "aws_cloudfront_distribution" "bootstrap" {
   enabled = true
 
-  aliases = ["bootstrap.${local.suffix == "prod" ? "" : "staging."}spack.io"]
+  aliases = ["bootstrap.${local.domain_suffix}spack.io"]
 
   is_ipv6_enabled = true
 
