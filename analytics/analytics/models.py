@@ -11,7 +11,7 @@ class Node(models.Model):
     name = models.CharField(max_length=64)
     system_uuid = models.UUIDField()
     cpu = models.PositiveIntegerField()
-    memory = models.PositiveIntegerField()
+    memory = models.PositiveBigIntegerField()
     capacity_type = models.CharField(max_length=12, choices=NodeCapacityType.choices)
     instance_type = models.CharField(max_length=32)
 

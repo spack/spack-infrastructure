@@ -71,7 +71,7 @@ class Migration(migrations.Migration):
                 ("name", models.CharField(max_length=64)),
                 ("system_uuid", models.UUIDField()),
                 ("cpu", models.PositiveIntegerField()),
-                ("memory", models.PositiveIntegerField()),
+                ("memory", models.PositiveBigIntegerField()),
                 (
                     "capacity_type",
                     models.CharField(
