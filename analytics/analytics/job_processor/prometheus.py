@@ -204,27 +204,27 @@ class PrometheusClient:
         job.pod.node_occupancy = calculate_node_occupancy(results, step)
 
         # Finally, determine the node memory usage
-        results = self.query_range(
+        memory_usage = self.query_range(
             f"container_memory_working_set_bytes{{container='build', pod='{pod}'}}",
             start=job.started_at,
             end=job.finished_at,
             step=30,
             single_result=True,
-        )
+        )["values"]
 
         # Results consist of arrays: [timestamp, "value"]
-        byte_values = [int(x) for _, x in results[0]["values"]]
+        byte_values = [int(x) for _, x in memory_usage]
         job.pod.max_mem = max(byte_values)
         job.pod.avg_mem = statistics.mean(byte_values)
 
     def annotate_annotations_and_labels(self, job: Job):
         """Annotate the job model with any necessary fields, returning the pod it ran on."""
         try:
-            annotations = self.query_single(
+            annotations: dict = self.query_single(
                 f"kube_pod_annotations{{annotation_gitlab_ci_job_id='{job.job_id}'}}",
                 time=job.midpoint,
                 single_result=True,
-            )
+            )["metric"]
         except UnexpectedPrometheusResult:
             # Raise this exception instead to indicate that this job can't use prometheus
             raise JobPrometheusDataNotFound(job_id=job.job_id)
@@ -250,9 +250,11 @@ class PrometheusClient:
         ]
         job.arch = annotations["annotation_metrics_spack_job_spec_arch"]
         job.package_variants = annotations["annotation_metrics_spack_job_spec_variants"]
-        job.build_jobs = annotations["annotation_metrics_spack_job_build_jobs"]
         job.job_size = labels["label_gitlab_ci_job_size"]
         job.stack = labels["label_metrics_spack_ci_stack_name"]
+
+        # Build jobs isn't always specified
+        job.build_jobs = annotations.get("annotation_metrics_spack_job_build_jobs")
 
         return pod
 
@@ -267,7 +269,7 @@ class PrometheusClient:
 
         # Get the node system_uuid from the node name
         node_system_uuid = self.query_single(
-            f"kube_node_info{{node='{job.node_name}'}}",
+            f"kube_node_info{{node='{node_name}'}}",
             time=job.midpoint,
             single_result=True,
         )["metric"]["system_uuid"]
@@ -285,7 +287,7 @@ class PrometheusClient:
 
         # Get node labels
         node_labels = self.query_single(
-            f"kube_node_labels{{node='{job.node_name}'}}",
+            f"kube_node_labels{{node='{node_name}'}}",
             time=job.midpoint,
             single_result=True,
         )["metric"]
@@ -301,8 +303,8 @@ class PrometheusClient:
         zone = node_labels["label_topology_kubernetes_io_zone"]
         node.instance_type_spot_price = self.query_single(
             "karpenter_cloudprovider_instance_type_price_estimate{"
-            f"capacity_type='{job.node_capacity_type}',"
-            f"instance_type='{job.node_instance_type}',"
+            f"capacity_type='{node.capacity_type}',"
+            f"instance_type='{node.instance_type}',"
             f"zone='{zone}'"
             "}",
             time=job.midpoint,
