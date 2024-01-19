@@ -90,7 +90,7 @@ spec:
                   name: webhook-secrets
                   key: celery-broker-url
             - name: PROMETHEUS_URL
-              value: kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+              value: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
       nodeSelector:
         spack.io/node-pool: base
 
@@ -185,6 +185,6 @@ spec:
                   name: webhook-secrets
                   key: celery-broker-url
             - name: PROMETHEUS_URL
-              value: kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+              value: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
       nodeSelector:
         spack.io/node-pool: base
