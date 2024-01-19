@@ -6,7 +6,7 @@ import re
 import sentry_sdk
 
 from analytics.job_log_uploader import upload_job_log
-from .build_timing_processor import upload_build_timings
+from .job_processor import process_job
 
 BUILD_STAGE_REGEX = r"^stage-\d+$"
 
@@ -25,6 +25,6 @@ def webhook_handler(request: HttpRequest) -> HttpResponse:
         re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"])
         and job_input_data["build_status"] == "success"
     ):
-        upload_build_timings.delay(request.body)
+        process_job.delay(request.body)
 
     return HttpResponse("OK", status=200)
