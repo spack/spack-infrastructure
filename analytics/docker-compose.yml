@@ -31,6 +31,56 @@ services:
     ports:
       - ${DOCKER_PROMETHEUS_PORT-9090}:9090
 
+  gitlab-db:
+    image: postgres:latest
+    ports:
+      - "5433:5432"
+    volumes:
+      - gitlab-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: gitlabhq_production
+      POSTGRES_USER: gitlab
+      POSTGRES_PASSWORD: gitlab
+
+  gitlab:
+    image: gitlab/gitlab-ee:latest
+    ports:
+      - "8080:80"
+      - "8081:443"
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab'
+        gitlab_rails['db_host'] = 'gitlab-db'
+        gitlab_rails['db_port'] = '5432'
+        gitlab_rails['db_username'] = 'gitlab'
+        gitlab_rails['db_password'] = 'gitlab'
+    depends_on:
+      - gitlab-db
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - gitlab
+      - dind
+    environment:
+      DOCKER_HOST: tcp://dind:2375
+      # Use the host's network interface instead of the Docker one.
+      # Note, gitlab-runner runs jobs inside docker, but is itself deployed
+      # in a docker container. So the "host" in this case actually refers to the
+      # `gitlab-runner` docker container defined in this docker-compose.yaml.
+      DOCKER_NETWORK_MODE: host
+
+  dind:
+    image: docker:20-dind
+    restart: always
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    command:
+      - --storage-driver=overlay2
+
 volumes:
   postgres:
-
+  gitlab-db:
