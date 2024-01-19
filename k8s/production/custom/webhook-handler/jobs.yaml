@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: webhook-handler-migrations-job
+  namespace: custom
+  labels:
+    app: webhook-handler-migrations-job
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: webhook-handler-migrations-job
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: webhook-handler-migrations
+          image: ghcr.io/spack/django:0.0.7
+          command: ["python"]
+          args: ["manage.py", "migrate"]
+          imagePullPolicy: Always
+      nodeSelector:
+        spack.io/node-pool: base

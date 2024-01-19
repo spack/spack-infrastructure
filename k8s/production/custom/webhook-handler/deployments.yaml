@@ -120,7 +120,17 @@ spec:
       containers:
         - name: webhook-handler-worker
           image: ghcr.io/spack/django:0.0.8
-          command: ["celery", "-A", "analytics.celery", "worker", "-l", "info", "-Q", "celery"]
+          command:
+            [
+              "celery",
+              "-A",
+              "analytics.celery",
+              "worker",
+              "-l",
+              "info",
+              "-Q",
+              "celery",
+            ]
           imagePullPolicy: Always
           resources:
             requests:
