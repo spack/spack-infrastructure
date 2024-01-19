@@ -1,10 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../../production/custom/webhook-handler/deployments.yaml
-  - ../../../production/custom/webhook-handler/sealed-secrets.yaml
-  - ../../../production/custom/webhook-handler/service-accounts.yaml
-  - ../../../production/custom/webhook-handler/services.yaml
+  - ../../../../analytics/flux/deploy/deployments.yaml
+  - ../../../../analytics/flux/deploy/sealed-secrets.yaml
+  - ../../../../analytics/flux/deploy/service-accounts.yaml
+  - ../../../../analytics/flux/deploy/services.yaml
 
 patches:
   - target:

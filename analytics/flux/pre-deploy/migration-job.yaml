@@ -15,7 +15,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: webhook-handler-migrations
-          image: ghcr.io/spack/django:0.0.7
+          image: ghcr.io/spack/django:0.0.8
           command: ["python"]
           args: ["manage.py", "migrate"]
           imagePullPolicy: Always
