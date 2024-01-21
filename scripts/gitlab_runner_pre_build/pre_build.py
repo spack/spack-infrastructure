@@ -109,11 +109,17 @@ if __name__ == "__main__":
         print("GITLAB_OIDC_TOKEN not in the environment", file=sys.stderr)
         sys.exit(0)  # this isn't an error yet.
 
-    response = _gitlab_token_to_credentials(os.environ["GITLAB_OIDC_TOKEN"])
+    try:
+        response = _gitlab_token_to_credentials(os.environ["GITLAB_OIDC_TOKEN"])
 
-    # print credentials to stdout
-    print(f'export AWS_ACCESS_KEY_ID="{response["AccessKeyId"]}"')
-    print(f'export AWS_SECRET_ACCESS_KEY="{response["SecretAccessKey"]}"')
-    print(f'export AWS_SESSION_TOKEN="{response["SessionToken"]}"')
+        # print credentials to stdout
+        print(f'export AWS_ACCESS_KEY_ID="{response["AccessKeyId"]}"')
+        print(f'export AWS_SECRET_ACCESS_KEY="{response["SecretAccessKey"]}"')
+        print(f'export AWS_SESSION_TOKEN="{response["SessionToken"]}"')
+    except Exception as err:
+        if not all(key in os.environ for key in ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"]):
+            raise err
+
+        print("Falling back to environment credentials.", file=sys.stderr)
 
     print("done.", file=sys.stderr)
