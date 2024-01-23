@@ -100,14 +100,9 @@ class PrometheusClient:
         query: str,
         start: datetime,
         end: datetime,
-        step: int | None = None,
+        step: int,
         single_result=False,
     ):
-        if step is None:
-            step = math.ceil(
-                (end.timestamp() - start.timestamp()) / PROM_MAX_RESOLUTION
-            )
-
         params = {
             "query": query,
             "start": start.timestamp(),
@@ -179,8 +174,9 @@ class PrometheusClient:
         node = job.node.name
         pod = job.pod.name
 
-        # Step is seconds between samples
-        step = 30
+        # Step is seconds between samples. Use a hundredth of the duration as the step, to ensure
+        # we get a proper amount of data.
+        step = math.ceil(job.duration.total_seconds() / 100)
 
         # Get cpu seconds usage
         results = self.query_range(
@@ -208,7 +204,7 @@ class PrometheusClient:
             f"container_memory_working_set_bytes{{container='build', pod='{pod}'}}",
             start=job.started_at,
             end=job.finished_at,
-            step=30,
+            step=step,
             single_result=True,
         )["values"]
 
