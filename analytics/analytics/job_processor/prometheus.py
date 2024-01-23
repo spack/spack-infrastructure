@@ -261,10 +261,17 @@ class PrometheusClient:
     def annotate_node_data(self, job: Job):
         pod = job.pod.name
 
+        # Use this for step value to have a pretty good guarauntee that we'll find the data,
+        # without grabbing too much
+        step = math.ceil(job.duration.total_seconds() / 10)
+
         # Use this query to get the node the pod was running on at the time
-        pod_info_query = f"kube_pod_info{{pod='{pod}'}}"
-        node_name = self.query_single(
-            pod_info_query, time=job.midpoint, single_result=True
+        node_name = self.query_range(
+            f"kube_pod_info{{pod='{pod}', node=~'.+'}}",
+            start=job.started_at,
+            end=job.finished_at,
+            step=step,
+            single_result=True,
         )["metric"]["node"]
 
         # Get the node system_uuid from the node name
