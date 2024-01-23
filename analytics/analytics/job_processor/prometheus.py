@@ -195,7 +195,7 @@ class PrometheusClient:
         pod_results = next(
             (res for res in results if res["metric"]["pod"] == pod), None
         )
-        if pod is None:
+        if pod_results is None:
             raise UnexpectedPrometheusResult(f"Pod {pod} not found in cpu usage query")
 
         job.pod.cpu_usage_seconds = float(pod_results["values"][-1][1])
