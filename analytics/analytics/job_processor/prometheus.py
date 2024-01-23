@@ -100,14 +100,9 @@ class PrometheusClient:
         query: str,
         start: datetime,
         end: datetime,
-        step: int | None = None,
+        step: int,
         single_result=False,
     ):
-        if step is None:
-            step = math.ceil(
-                (end.timestamp() - start.timestamp()) / PROM_MAX_RESOLUTION
-            )
-
         params = {
             "query": query,
             "start": start.timestamp(),
@@ -179,8 +174,9 @@ class PrometheusClient:
         node = job.node.name
         pod = job.pod.name
 
-        # Step is seconds between samples
-        step = 30
+        # Step is seconds between samples. Use a hundredth of the duration as the step, to ensure
+        # we get a proper amount of data.
+        step = math.ceil(job.duration.total_seconds() / 100)
 
         # Get cpu seconds usage
         results = self.query_range(
@@ -195,7 +191,7 @@ class PrometheusClient:
         pod_results = next(
             (res for res in results if res["metric"]["pod"] == pod), None
         )
-        if pod is None:
+        if pod_results is None:
             raise UnexpectedPrometheusResult(f"Pod {pod} not found in cpu usage query")
 
         job.pod.cpu_usage_seconds = float(pod_results["values"][-1][1])
@@ -208,7 +204,7 @@ class PrometheusClient:
             f"container_memory_working_set_bytes{{container='build', pod='{pod}'}}",
             start=job.started_at,
             end=job.finished_at,
-            step=30,
+            step=step,
             single_result=True,
         )["values"]
 
@@ -261,10 +257,17 @@ class PrometheusClient:
     def annotate_node_data(self, job: Job):
         pod = job.pod.name
 
+        # Use this for step value to have a pretty good guarauntee that we'll find the data,
+        # without grabbing too much
+        step = math.ceil(job.duration.total_seconds() / 10)
+
         # Use this query to get the node the pod was running on at the time
-        pod_info_query = f"kube_pod_info{{pod='{pod}'}}"
-        node_name = self.query_single(
-            pod_info_query, time=job.midpoint, single_result=True
+        node_name = self.query_range(
+            f"kube_pod_info{{pod='{pod}', node=~'.+'}}",
+            start=job.started_at,
+            end=job.finished_at,
+            step=step,
+            single_result=True,
         )["metric"]["node"]
 
         # Get the node system_uuid from the node name
