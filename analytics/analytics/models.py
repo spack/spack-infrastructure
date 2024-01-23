@@ -104,7 +104,7 @@ class Job(models.Model):
             self.node.save()
             return
         except IntegrityError as e:
-            if "unique-name-system-uuid" not in e:
+            if "unique-name-system-uuid" not in str(e):
                 raise
 
         # Node already exists, set node field to the existing node
