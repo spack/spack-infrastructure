@@ -253,7 +253,7 @@ class PrometheusClient:
 
         # Use this query to get the node the pod was running on at the time
         node_name = self.query_range(
-            f"kube_pod_info{{pod='{pod}', node=~'.+'}}",
+            f"kube_pod_info{{pod='{pod}', node=~'.+', pod_ip=~'.+'}}",
             start=job.started_at,
             end=job.finished_at,
             step=step,
