@@ -132,6 +132,8 @@ spec:
               cpu: 1600m
               memory: 1G
           env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: "analytics.settings.production"
             - name: GITLAB_ENDPOINT
               valueFrom:
                 secretKeyRef:
