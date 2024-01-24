@@ -7,7 +7,7 @@ from django.db.models import functions
 
 
 def transfer_duration(apps, schema_editor):
-    Job = apps.get_model("analytics", "Job")
+    Job = apps.get_model("core", "Job")
     Job.objects.all().update(
         new_duration=functions.Cast(
             functions.Concat(models.F("duration"), models.Value(" seconds")),
@@ -17,13 +17,13 @@ def transfer_duration(apps, schema_editor):
 
 
 def remove_null_aws(apps, schema_editor):
-    Job = apps.get_model("analytics", "Job")
+    Job = apps.get_model("core", "Job")
     Job.objects.filter(aws__isnull=True).delete()
 
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("analytics", "0005_alter_job_aws"),
+        ("core", "0005_alter_job_aws"),
     ]
 
     operations = [
@@ -135,7 +135,7 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="jobs",
-                to="analytics.node",
+                to="core.node",
             ),
         ),
         migrations.AddField(
@@ -144,7 +144,7 @@ class Migration(migrations.Migration):
             field=models.OneToOneField(
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
-                to="analytics.jobpod",
+                to="core.jobpod",
             ),
         ),
         migrations.AddConstraint(

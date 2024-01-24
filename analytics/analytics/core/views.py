@@ -1,16 +1,20 @@
-from typing import Any
-from django.http import HttpRequest, HttpResponse
 import json
 import re
+from typing import Any
 
+from django.http import HttpRequest, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 import sentry_sdk
 
-from analytics.job_log_uploader import upload_job_log
-from .job_processor import process_job
+from analytics.core.job_log_uploader import upload_job_log
+from analytics.job_processor import process_job
 
 BUILD_STAGE_REGEX = r"^stage-\d+$"
 
 
+@require_http_methods(["POST"])
+@csrf_exempt
 def webhook_handler(request: HttpRequest) -> HttpResponse:
     job_input_data: dict[str, Any] = json.loads(request.body)
 

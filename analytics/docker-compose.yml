@@ -1,13 +1,14 @@
 version: '3'
 services:
   postgres:
-    image: postgres:latest
-    command: postgres -c log_lock_waits=on -c log_min_duration_statement=100
+    image: postgres:15
     environment:
       POSTGRES_DB: django
       POSTGRES_PASSWORD: postgres
     ports:
       - ${DOCKER_POSTGRES_PORT-5432}:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
 
   elasticsearch:
     image: elasticsearch:7.14.0
@@ -17,10 +18,19 @@ services:
       xpack.security.enabled: "true"
       ELASTIC_PASSWORD: elastic
     ports:
-      - ${DOCKER_ELASTICSEARCH_PORT-9200}:9200
-      - ${DOCKER_ELASTICSEARCH_PORT-9300}:9300
+      - ${DOCKER_OPENSEARCH_PORT-9200}:9200
+      - ${DOCKER_OPENSEARCH_PORT-9300}:9300
 
   redis:
     image: redis:latest
     ports:
       - ${DOCKER_REDIS_PORT-6379}:6379
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - ${DOCKER_PROMETHEUS_PORT-9090}:9090
+
+volumes:
+  postgres:
+

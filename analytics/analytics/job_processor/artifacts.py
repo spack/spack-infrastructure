@@ -5,7 +5,7 @@ from contextlib import contextmanager
 import yaml
 from gitlab.v4.objects import ProjectJob
 
-from analytics.models import Job
+from analytics.core.models import Job
 
 
 class JobArtifactFileNotFound(Exception):

@@ -4,9 +4,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("analytics", "0002_timerphase_rename_and_more"),
+        ("core", "0002_timerphase_rename_and_more"),
     ]
 
     operations = [

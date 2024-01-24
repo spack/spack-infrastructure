@@ -3,7 +3,7 @@ import json
 from gitlab.v4.objects import ProjectJob
 
 from analytics.job_processor.artifacts import get_job_artifacts_file
-from analytics.models import Job, Timer, TimerPhase
+from analytics.core.models import Job, Timer, TimerPhase
 
 
 def get_timings_json(job: ProjectJob) -> list[dict]:

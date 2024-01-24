@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 import requests
 from kubernetes.utils.quantity import parse_quantity
 
-from analytics.models import Job, JobPod, Node
+from analytics.core.models import Job, JobPod, Node
 
 PROM_MAX_RESOLUTION = 10_000
 
@@ -143,11 +143,7 @@ class PrometheusClient:
         )
         job.pod.memory_request = extract_value(
             next(
-                (
-                    rr
-                    for rr in resource_requests
-                    if rr["metric"]["resource"] == "memory"
-                ),
+                (rr for rr in resource_requests if rr["metric"]["resource"] == "memory"),
                 None,
             )
         )
@@ -235,15 +231,9 @@ class PrometheusClient:
         )["metric"]
 
         job.package_name = annotations["annotation_metrics_spack_job_spec_pkg_name"]
-        job.package_version = annotations[
-            "annotation_metrics_spack_job_spec_pkg_version"
-        ]
-        job.compiler_name = annotations[
-            "annotation_metrics_spack_job_spec_compiler_name"
-        ]
-        job.compiler_version = annotations[
-            "annotation_metrics_spack_job_spec_compiler_version"
-        ]
+        job.package_version = annotations["annotation_metrics_spack_job_spec_pkg_version"]
+        job.compiler_name = annotations["annotation_metrics_spack_job_spec_compiler_name"]
+        job.compiler_version = annotations["annotation_metrics_spack_job_spec_compiler_version"]
         job.arch = annotations["annotation_metrics_spack_job_spec_arch"]
         job.package_variants = annotations["annotation_metrics_spack_job_spec_variants"]
         job.job_size = labels["label_gitlab_ci_job_size"]
@@ -278,9 +268,7 @@ class PrometheusClient:
         )["metric"]["system_uuid"]
 
         # Check if this node has already been created
-        existing_node = Node.objects.filter(
-            name=node_name, system_uuid=node_system_uuid
-        ).first()
+        existing_node = Node.objects.filter(name=node_name, system_uuid=node_system_uuid).first()
         if existing_node is not None:
             job.node = existing_node
             return

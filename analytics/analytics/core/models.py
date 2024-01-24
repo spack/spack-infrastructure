@@ -26,9 +26,7 @@ class Node(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(
-                name="unique-name-system-uuid", fields=["name", "system_uuid"]
-            ),
+            models.UniqueConstraint(name="unique-name-system-uuid", fields=["name", "system_uuid"]),
         ]
 
 
@@ -70,9 +68,7 @@ class Job(models.Model):
     aws = models.BooleanField(default=True)
 
     # Node and pod will be null for non-aws jobs
-    node = models.ForeignKey(
-        Node, related_name="jobs", on_delete=models.PROTECT, null=True
-    )
+    node = models.ForeignKey(Node, related_name="jobs", on_delete=models.PROTECT, null=True)
     pod = models.OneToOneField(JobPod, on_delete=models.PROTECT, null=True)
 
     # Extra data fields (null allowed to accomodate historical data)
@@ -108,15 +104,12 @@ class Job(models.Model):
                 raise
 
         # Node already exists, set node field to the existing node
-        self.node = Node.objects.get(
-            name=self.node.name, system_uuid=self.node.system_uuid
-        )
+        self.node = Node.objects.get(name=self.node.name, system_uuid=self.node.system_uuid)
 
     class Meta:
+        db_table = "analytics_job"
         constraints = [
-            models.CheckConstraint(
-                name="non-empty-package-name", check=~models.Q(package_name="")
-            ),
+            models.CheckConstraint(name="non-empty-package-name", check=~models.Q(package_name="")),
             # Ensure that either pod and node are both null or both not null
             models.CheckConstraint(
                 name="node-pod-consistency",
@@ -134,18 +127,15 @@ class Timer(models.Model):
     cache = models.BooleanField(null=True)
 
     class Meta:
+        db_table = "analytics_timer"
         constraints = [
-            models.UniqueConstraint(
-                name="unique-hash-name-job", fields=["hash", "name", "job"]
-            ),
+            models.UniqueConstraint(name="unique-hash-name-job", fields=["hash", "name", "job"]),
             # Ensure that if a timer name starts with a "." (internal timer), that cache and hash
             # are null, and that otherwise they are present
             models.CheckConstraint(
                 name="internal-timer-consistent-hash-and-cache",
                 check=(
-                    models.Q(
-                        name__startswith=".", hash__isnull=True, cache__isnull=True
-                    )
+                    models.Q(name__startswith=".", hash__isnull=True, cache__isnull=True)
                     | (
                         ~models.Q(name__startswith=".")
                         & models.Q(hash__isnull=False, cache__isnull=False)
@@ -164,12 +154,16 @@ class TimerPhase(models.Model):
     count = models.PositiveIntegerField()
 
     class Meta:
+        db_table = "analytics_timerphase"
         constraints = [
             models.UniqueConstraint(fields=["path", "timer"], name="unique-phase-path"),
         ]
 
 
 class ErrorTaxonomy(models.Model):
+    class Meta:
+        db_table = "analytics_errortaxonomy"
+
     job_id = models.PositiveBigIntegerField(primary_key=True)
 
     created = models.DateTimeField(auto_now_add=True)
