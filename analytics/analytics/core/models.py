@@ -1,5 +1,5 @@
 from django.contrib.postgres.fields import ArrayField
-from django.db import IntegrityError, models
+from django.db import IntegrityError, models, transaction
 
 
 class NodeCapacityType(models.TextChoices):
@@ -97,7 +97,8 @@ class Job(models.Model):
             return
 
         try:
-            self.node.save()
+            with transaction.atomic():
+                self.node.save()
             return
         except IntegrityError as e:
             if "unique-name-system-uuid" not in str(e):
