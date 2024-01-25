@@ -33,6 +33,18 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# Databases
+DATABASES |= {
+    "gitlab": {
+        "ENGINE": "django.db.backends.postgresql",
+        "USER": os.environ["GITLAB_DB_USER"],
+        "HOST": os.environ["GITLAB_DB_HOST"],
+        "NAME": os.environ["GITLAB_DB_NAME"],
+        "PASSWORD": os.environ["GITLAB_DB_PASS"],
+        "PORT": os.environ["GITLAB_DB_PORT"],
+    },
+}
+
 # django-extensions
 RUNSERVER_PLUS_PRINT_SQL_TRUNCATE = None
 SHELL_PLUS_PRINT_SQL = True

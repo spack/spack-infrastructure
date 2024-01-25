@@ -36,6 +36,10 @@ resource "random_password" "webhook_handler" {
   special = false
 }
 
+data "aws_secretsmanager_secret_version" "gitlab_db_ro_credentials" {
+  secret_id = "gitlab-${var.deployment_name}-readonly-credentials"
+}
+
 # Note: the /1 is important to ensure that the broker for the webhook handler isn't using the same
 # database as the broker for spackbot.
 resource "kubectl_manifest" "webhook_secrets" {
@@ -48,6 +52,11 @@ resource "kubectl_manifest" "webhook_secrets" {
      data:
        gitlab-endpoint: ${base64encode("${var.gitlab_url}")}
        gitlab-token: ${base64encode("${gitlab_personal_access_token.webhook_handler.token}")}
+       gitlab-db-user: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["username"]}")}
+       gitlab-db-host: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["host"]}")}
+       gitlab-db-port: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["port"]}")}
+       gitlab-db-name: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["dbname"]}")}
+       gitlab-db-password: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["password"]}")}
        sentry-dsn: ${base64encode("${data.sentry_key.webhook_handler.dsn_public}")}
        secret-key: ${base64encode("${random_password.webhook_handler.result}")}
        celery-broker-url: ${base64encode("redis://${aws_elasticache_replication_group.pr_binary_graduation_task_queue.primary_endpoint_address}:6379/1")}

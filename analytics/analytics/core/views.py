@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import sentry_sdk
 
+from analytics.core.job_failure_classifier import upload_job_failure_classification
 from analytics.core.job_log_uploader import upload_job_log
 from analytics.job_processor import process_job
 
@@ -24,6 +25,9 @@ def webhook_handler(request: HttpRequest) -> HttpResponse:
 
     if job_input_data["build_status"] in ["success", "failed"]:
         upload_job_log.delay(request.body)
+
+    if job_input_data["build_status"] == "failed":
+        upload_job_failure_classification.delay(request.body)
 
     if (
         re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"])
