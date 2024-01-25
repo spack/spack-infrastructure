@@ -107,7 +107,6 @@ class Job(models.Model):
         self.node = Node.objects.get(name=self.node.name, system_uuid=self.node.system_uuid)
 
     class Meta:
-        db_table = "analytics_job"
         constraints = [
             models.CheckConstraint(name="non-empty-package-name", check=~models.Q(package_name="")),
             # Ensure that either pod and node are both null or both not null
@@ -127,7 +126,6 @@ class Timer(models.Model):
     cache = models.BooleanField(null=True)
 
     class Meta:
-        db_table = "analytics_timer"
         constraints = [
             models.UniqueConstraint(name="unique-hash-name-job", fields=["hash", "name", "job"]),
             # Ensure that if a timer name starts with a "." (internal timer), that cache and hash
@@ -154,16 +152,12 @@ class TimerPhase(models.Model):
     count = models.PositiveIntegerField()
 
     class Meta:
-        db_table = "analytics_timerphase"
         constraints = [
             models.UniqueConstraint(fields=["path", "timer"], name="unique-phase-path"),
         ]
 
 
 class ErrorTaxonomy(models.Model):
-    class Meta:
-        db_table = "analytics_errortaxonomy"
-
     job_id = models.PositiveBigIntegerField(primary_key=True)
 
     created = models.DateTimeField(auto_now_add=True)
