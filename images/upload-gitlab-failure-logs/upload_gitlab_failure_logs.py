@@ -54,7 +54,7 @@ OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
 
 
 # Instantiate gitlab api wrapper
-gl = gitlab.Gitlab("https://gitlab.spack.io", GITLAB_TOKEN)
+gl = gitlab.Gitlab("https://gitlab.spack.io", GITLAB_TOKEN, retry_transient_errors=True)
 
 # Instantiate postgres connection
 pg_conn = psycopg2.connect(
