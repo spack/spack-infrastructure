@@ -175,8 +175,11 @@ class PrometheusClient:
         step = math.ceil(job.duration.total_seconds() / 100)
 
         # Get cpu seconds usage
+        cpu_seconds_query = (
+            f"container_cpu_usage_seconds_total{{container='build', node='{node}'}}"
+        )
         results = self.query_range(
-            f"container_cpu_usage_seconds_total{{container='build', node='{node}'}}",
+            cpu_seconds_query,
             start=job.started_at,
             end=job.finished_at,
             step=step,
@@ -188,7 +191,10 @@ class PrometheusClient:
             (res for res in results if res["metric"]["pod"] == pod), None
         )
         if pod_results is None:
-            raise UnexpectedPrometheusResult(f"Pod {pod} not found in cpu usage query")
+            raise UnexpectedPrometheusResult(
+                message=f"Pod {pod} not found in cpu usage query",
+                query=cpu_seconds_query,
+            )
 
         job.pod.cpu_usage_seconds = float(pod_results["values"][-1][1])
 
@@ -253,7 +259,7 @@ class PrometheusClient:
 
         # Use this query to get the node the pod was running on at the time
         node_name = self.query_range(
-            f"kube_pod_info{{pod='{pod}', node=~'.+'}}",
+            f"kube_pod_info{{pod='{pod}', node=~'.+', pod_ip=~'.+'}}",
             start=job.started_at,
             end=job.finished_at,
             step=step,
