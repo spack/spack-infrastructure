@@ -4,7 +4,7 @@ from .base import *  # noqa: F403
 DEBUG = True
 SECRET_KEY = "insecuresecret"
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "django"]
 CORS_ORIGIN_REGEX_WHITELIST = [r"^https?://localhost:\d+$", r"^https?://127\.0\.0\.1:\d+$"]
 
 # When in Docker, the bridge network sends requests from the host machine exclusively via a
