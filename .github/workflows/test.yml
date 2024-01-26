@@ -1,0 +1,25 @@
+name: test
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: analytics
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Start GitLab + other services
+        run: docker compose up -d
+
+      - name: Initialize GitLab + runner
+        run: |
+          chmod +x dev/init-gitlab.sh
+          ./dev/init-gitlab.sh
+
+      - name: Run tests
+        run: docker compose run --rm django tox -e test

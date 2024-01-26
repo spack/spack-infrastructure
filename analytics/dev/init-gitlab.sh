@@ -18,7 +18,7 @@ docker compose exec gitlab gitlab-rails runner "  \
     puts ' done'; \
     print 'Creating personal access token...'; \
     token = User.find_by_username('root').personal_access_tokens.create( \
-        scopes: [:api], \
+        scopes: [:api, :admin_mode], \
         name: 'Docker admin token', \
         expires_at: 365.days.from_now, \
     ); \
