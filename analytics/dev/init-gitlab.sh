@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Wait for gitlab to be up
+echo "Waiting for GitLab..."
+until curl -s -f -o /dev/null "http://localhost:8080"
+do
+    sleep 5
+done
+echo "Done."
+
 # Set root user password + create a personal access token for it
 PERSONAL_ACCESS_TOKEN="insecure_token"
 docker compose exec gitlab gitlab-rails runner "  \
