@@ -23,7 +23,7 @@ spec:
       serviceAccountName: webhook-handler
       containers:
         - name: webhook-handler
-          image: ghcr.io/spack/django:0.1.3
+          image: ghcr.io/spack/django:0.1.4
           imagePullPolicy: Always
           resources:
             requests:
@@ -121,7 +121,7 @@ spec:
       serviceAccountName: webhook-handler
       containers:
         - name: webhook-handler-worker
-          image: ghcr.io/spack/django:0.1.3
+          image: ghcr.io/spack/django:0.1.4
           command: ["celery", "-A", "analytics.celery", "worker", "-l", "info", "-Q", "celery"]
           imagePullPolicy: Always
           resources:
@@ -168,6 +168,31 @@ spec:
                 secretKeyRef:
                   name: webhook-handler
                   key: analytics-postgresql-password
+            - name: GITLAB_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-user
+            - name: GITLAB_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-host
+            - name: GITLAB_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-name
+            - name: GITLAB_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-password
+            - name: GITLAB_DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-port
             - name: OPENSEARCH_ENDPOINT
               valueFrom:
                 secretKeyRef:

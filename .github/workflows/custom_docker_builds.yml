@@ -35,16 +35,12 @@ jobs:
             image-tags: ghcr.io/spack/notary:latest
           - docker-image: ./images/python-aws-bash
             image-tags: ghcr.io/spack/python-aws-bash:0.0.2
-          - docker-image: ./images/gitlab-error-processor
-            image-tags: ghcr.io/spack/gitlab-error-processor:0.0.6
-          - docker-image: ./images/upload-gitlab-failure-logs
-            image-tags: ghcr.io/spack/upload-gitlab-failure-logs:0.0.6
           - docker-image: ./images/snapshot-release-tags
             image-tags: ghcr.io/spack/snapshot-release-tags:0.0.4
           - docker-image: ./images/cache-indexer
             image-tags: ghcr.io/spack/cache-indexer:0.0.3
           - docker-image: ./analytics
-            image-tags: ghcr.io/spack/django:0.1.3
+            image-tags: ghcr.io/spack/django:0.1.4
     steps:
       - name: Checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3

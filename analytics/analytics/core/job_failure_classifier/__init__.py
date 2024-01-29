@@ -1,33 +1,19 @@
-import json
-import os
-import re
 from datetime import datetime
+import json
 from pathlib import Path
-from time import sleep
+import re
 from typing import Any
 
+from celery import shared_task
+from django.conf import settings
+from django.db import connections
 import gitlab
-import psycopg2
-import sentry_sdk
+import opensearch_dsl
 import yaml
-from kubernetes import client, config
-from kubernetes.client.exceptions import ApiException
-from kubernetes.client.models.v1_pod import V1Pod
-from kubernetes.client.models.v1_pod_status import V1PodStatus
-from opensearch_dsl import Date, Document, connections
 
 
-sentry_sdk.init(
-    # Sample only 1% of jobs
-    traces_sample_rate=0.01,
-)
-
-config.load_config()
-v1_client = client.CoreV1Api()
-
-
-class JobPayload(Document):
-    timestamp = Date()
+class JobPayload(opensearch_dsl.Document):
+    timestamp = opensearch_dsl.Date()
 
     class Index:
         name = "gitlab-job-failures-*"
@@ -42,34 +28,9 @@ class JobPayload(Document):
         return super().save(**kwargs)
 
 
-GITLAB_TOKEN = os.environ["GITLAB_TOKEN"]
-GITLAB_POSTGRES_DB = os.environ["GITLAB_POSTGRES_DB"]
-GITLAB_POSTGRES_USER = os.environ["GITLAB_POSTGRES_RO_USER"]
-GITLAB_POSTGRES_PASSWORD = os.environ["GITLAB_POSTGRES_RO_PASSWORD"]
-GITLAB_POSTGRES_HOST = os.environ["GITLAB_POSTGRES_HOST"]
-
-OPENSEARCH_ENDPOINT = os.environ["OPENSEARCH_ENDPOINT"]
-OPENSEARCH_USERNAME = os.environ["OPENSEARCH_USERNAME"]
-OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
-
-
-# Instantiate gitlab api wrapper
-gl = gitlab.Gitlab("https://gitlab.spack.io", GITLAB_TOKEN, retry_transient_errors=True)
-
-# Instantiate postgres connection
-pg_conn = psycopg2.connect(
-    host=GITLAB_POSTGRES_HOST,
-    port="5432",
-    dbname=GITLAB_POSTGRES_DB,
-    user=GITLAB_POSTGRES_USER,
-    password=GITLAB_POSTGRES_PASSWORD,
-)
-
-
-def job_retry_data(job_id: str | int, job_name: str) -> tuple[int, bool]:
-    with pg_conn:
-        cur = pg_conn.cursor()
-        cur.execute(
+def _job_retry_data(job_id: str | int, job_name: str) -> tuple[int, bool]:
+    with connections["gitlab"].cursor() as cursor:
+        cursor.execute(
             """
             SELECT attempt_number, COALESCE(retried, FALSE) as retried FROM (
                 SELECT ROW_NUMBER() OVER (ORDER BY id) as attempt_number, retried, id
@@ -86,13 +47,13 @@ def job_retry_data(job_id: str | int, job_name: str) -> tuple[int, bool]:
             """,
             {"job_id": job_id, "job_name": job_name},
         )
-        result = cur.fetchone()
-        cur.close()
+        result = cursor.fetchone()
+        cursor.close()
 
     return result
 
 
-def assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
+def _assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
     # Read taxonomy file
     with open(Path(__file__).parent / "taxonomy.yaml") as f:
         taxonomy = yaml.safe_load(f)["taxonomy"]
@@ -130,7 +91,7 @@ def assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
     return
 
 
-def collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
+def _collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
     """Collect k8s info about this job and store it in the OpenSearch record"""
     # Record whether this job was run on a kubernetes pod or via some other
     # means (a UO runner, for example)
@@ -156,37 +117,18 @@ def collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
         job_input_data["pod_status"] = None
         return
 
-    pod_name = runner_name_matches[0]
 
-    pod: V1Pod | None = None
-    while True:
-        # Try to fetch pod with kube
-        try:
-            pod = v1_client.read_namespaced_pod(name=pod_name, namespace="pipeline")
-        except ApiException:
-            # If it doesn't work, that means the pod has already been cleaned up.
-            # In that case, we break out of the loop and return.
-            break
+@shared_task(name="upload_job_failure_classification", soft_time_limit=60)
+def upload_job_failure_classification(job_input_data_json: str) -> None:
+    gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True)
 
-        # Check if the pod is still running. If so, keep re-fetching it until it's complete
-        status: V1PodStatus = pod.status
-        if status.phase != "Running":
-            break
-
-        sleep(1)
-
-    if pod:
-        job_input_data["pod_status"] = pod.status.to_dict()
-
-
-def main():
     # Read input data and extract params
-    job_input_data = json.loads(os.environ["JOB_INPUT_DATA"])
+    job_input_data = json.loads(job_input_data_json)
     job_id = job_input_data["build_id"]
     job_name = job_input_data["build_name"]
 
     # Annotate if job has been retried
-    attempt_number, retried = job_retry_data(job_id=job_id, job_name=job_name)
+    attempt_number, retried = _job_retry_data(job_id=job_id, job_name=job_name)
     job_input_data["attempt_number"] = attempt_number
     job_input_data["retried"] = retried
 
@@ -204,22 +146,17 @@ def main():
     job_trace: str = job.trace().decode()  # type: ignore
 
     # Get info about the k8s pod this job ran on
-    collect_pod_status(job_input_data, job_trace)
+    _collect_pod_status(job_input_data, job_trace)
 
     # Assign any/all relevant errors
-    assign_error_taxonomy(job_input_data, job_trace)
+    _assign_error_taxonomy(job_input_data, job_trace)
 
-    # Upload to OpenSearch
-    connections.create_connection(
-        hosts=[OPENSEARCH_ENDPOINT],
+    opensearch_dsl.connections.create_connection(
+        hosts=[settings.OPENSEARCH_ENDPOINT],
         http_auth=(
-            OPENSEARCH_USERNAME,
-            OPENSEARCH_PASSWORD,
+            settings.OPENSEARCH_USERNAME,
+            settings.OPENSEARCH_PASSWORD,
         ),
     )
     doc = JobPayload(**job_input_data)
     doc.save()
-
-
-if __name__ == "__main__":
-    main()
