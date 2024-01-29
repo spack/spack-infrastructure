@@ -69,6 +69,31 @@ spec:
                 secretKeyRef:
                   name: webhook-handler
                   key: analytics-postgresql-password
+            - name: GITLAB_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-user
+            - name: GITLAB_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-host
+            - name: GITLAB_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-name
+            - name: GITLAB_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-password
+            - name: GITLAB_DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-handler
+                  key: gitlab-db-port
             - name: OPENSEARCH_ENDPOINT
               valueFrom:
                 secretKeyRef:
