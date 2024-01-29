@@ -34,9 +34,6 @@ class Migration(migrations.Migration):
                 ("package_name", models.CharField(max_length=128)),
                 ("aws", models.BooleanField(default=True)),
             ],
-            options={
-                "db_table": "analytics_job",
-            },
         ),
         migrations.CreateModel(
             name="Timer",
@@ -63,9 +60,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={
-                "db_table": "analytics_timer",
-            },
         ),
         migrations.CreateModel(
             name="Phase",
@@ -92,8 +86,5 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={
-                "db_table": "analytics_timerphase",
-            },
         ),
     ]
