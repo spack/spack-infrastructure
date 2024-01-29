@@ -31,6 +31,17 @@ services:
     ports:
       - ${DOCKER_PROMETHEUS_PORT-9090}:9090
 
+  gitlab-db:
+    image: postgres:latest
+    ports:
+      - "5433:5432"
+    volumes:
+      - gitlab-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: gitlabhq_production
+      POSTGRES_USER: gitlab
+      POSTGRES_PASSWORD: gitlab
+
 volumes:
   postgres:
-
+  gitlab-db:
