@@ -28,8 +28,5 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={
-                "db_table": "analytics_errortaxonomy",
-            },
         ),
     ]
