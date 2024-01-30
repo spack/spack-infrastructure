@@ -81,6 +81,10 @@ class Job(models.Model):
     job_size = models.CharField(max_length=128, null=True)
     stack = models.CharField(max_length=128, null=True)
 
+    unnecessary = models.BooleanField(
+        default=False, help_text="Whether this job has 'No need to rebuild' in its trace."
+    )
+
     @property
     def midpoint(self):
         """A datetime representing the midpoint (in time) of the job."""

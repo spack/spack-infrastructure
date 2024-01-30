@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import timedelta
 
 import gitlab
@@ -19,7 +20,12 @@ from analytics.job_processor.prometheus import (
 from analytics.core.models import Job
 
 
+UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
+
+
 def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
+    job_trace: str = gljob.trace().decode()
+
     # Create base fields on job that are independent of where it ran
     job = Job(
         job_id=gljob.get_id(),
@@ -30,6 +36,7 @@ def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
         ref=gljob.ref,
         tags=gljob.tag_list,
         aws=True,  # Default until proven otherwise
+        unnecessary=UNNECESSARY_JOB_REGEX.search(job_trace) is not None,
     )
 
     # Prometheus data will either be found and the job annotated, or not, and set aws to False
