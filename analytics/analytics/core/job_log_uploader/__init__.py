@@ -7,6 +7,9 @@ from celery import shared_task
 from django.conf import settings
 import gitlab
 from opensearch_dsl import Date, Document, connections
+from opensearchpy import ConnectionTimeout
+from urllib3.exceptions import ReadTimeoutError
+
 
 from analytics import setup_gitlab_job_sentry_tags
 
@@ -27,7 +30,13 @@ class JobLog(Document):
         return super().save(**kwargs)
 
 
-@shared_task(name="upload_job_log", soft_time_limit=60)
+@shared_task(
+    name="upload_job_log",
+    soft_time_limit=60,
+    autoretry_for=(ReadTimeoutError, ConnectionTimeout),
+    retry_backoff=5,
+    max_retries=5,
+)
 def upload_job_log(job_input_data_json: str) -> None:
     job_input_data: dict[str, Any] = json.loads(job_input_data_json)
     setup_gitlab_job_sentry_tags(job_input_data)

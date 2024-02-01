@@ -10,6 +10,8 @@ from django.db import connections
 import gitlab
 import opensearch_dsl
 import yaml
+from opensearchpy import ConnectionTimeout
+from urllib3.exceptions import ReadTimeoutError
 
 
 class JobPayload(opensearch_dsl.Document):
@@ -118,7 +120,13 @@ def _collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
         return
 
 
-@shared_task(name="upload_job_failure_classification", soft_time_limit=60)
+@shared_task(
+    name="upload_job_failure_classification",
+    soft_time_limit=60,
+    autoretry_for=(ReadTimeoutError, ConnectionTimeout),
+    retry_backoff=5,
+    max_retries=5,
+)
 def upload_job_failure_classification(job_input_data_json: str) -> None:
     gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True)
 
