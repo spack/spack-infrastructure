@@ -72,7 +72,7 @@ spec:
           unset GITLAB_OIDC_TOKEN
           """
 
-          output_limit = 10240
+          output_limit = 20480
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
             privileged = false
