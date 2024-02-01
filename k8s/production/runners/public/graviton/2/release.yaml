@@ -77,7 +77,7 @@ spec:
           [runners.kubernetes]
             helper_image = "gitlab/gitlab-runner-helper:arm-latest"
             privileged = false
-            helper_memory_request = "512m"
+            helper_memory_request = "512M"
 
             cpu_request = "750m"
             cpu_request_overwrite_max_allowed = "16"
