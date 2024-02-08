@@ -1,0 +1,47 @@
+name: "External Runner Registration"
+description: Initiate process for registration of CI runner resources in Spack CI
+labels: [runner-registration]
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Runner Motivation
+      description: |
+        Describe the motivation for adding the new runner.
+      placeholder: |
+        Provide additional resources to existing public runner pool for linux-x86_64_v3 stacks.
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Runner Description
+      description: |
+        Describe the runner information such as location, architecture, OS.
+        Example: "AWS hosted runner, x86_64 Intel CPUs with Intel Max 1550 GPUs, RHEL 8 OS"
+      placeholder: |
+        "
+        Location: <physical location>
+        Architecture: <CPU/GPU available>
+        Memory: <GB of RAM>
+        OS: <operating system>
+        "
+    validations:
+      required: true
+
+  - type: textarea
+    id: contact
+    attributes:
+      label: Runner Maintainer
+      description: |
+        Who is responsible for maintaining, upgrading, trouble shooting issues with the registered runner.
+        Example: "John Doe at Company D, jdoe@dco.com"
+      placeholder:
+        "
+        Name: <name>
+        Email: <email>
+        Affiliation: <company>
+        "
+    validations:
+      required: true
