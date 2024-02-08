@@ -7,6 +7,8 @@ This is the simplest configuration for developers to start with.
 1. Run `docker-compose run --rm django ./manage.py migrate`
 2. Run `docker-compose run --rm django ./manage.py createsuperuser`
    and follow the prompts to create your own user
+3. Run `dev/init-gitlab.sh` to initialize your GitLab instance root
+   password, register a runner, and bootstrap a `spack` repo.
 
 
 ### Run Application
@@ -40,6 +42,8 @@ but allows developers to run Python code on their native system.
 6. Run `source ./dev/export-env.sh`
 7. Run `./manage.py migrate`
 8. Run `./manage.py createsuperuser` and follow the prompts to create your own user
+9. Run `dev/init-gitlab.sh` to initialize your GitLab instance root
+   password, register a runner, and bootstrap a `spack` repo.
 
 ### Run Application
 1.  Ensure `docker-compose -f ./docker-compose.yml up -d` is still active
