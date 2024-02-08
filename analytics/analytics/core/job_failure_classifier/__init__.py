@@ -1,3 +1,4 @@
+from dataclasses import asdict, dataclass
 from datetime import datetime
 import json
 from pathlib import Path
@@ -9,6 +10,7 @@ from django.conf import settings
 from django.db import connections
 import gitlab
 import opensearch_dsl
+import sentry_sdk
 import yaml
 from opensearchpy import ConnectionTimeout
 from urllib3.exceptions import ReadTimeoutError
@@ -30,29 +32,72 @@ class JobPayload(opensearch_dsl.Document):
         return super().save(**kwargs)
 
 
-def _job_retry_data(job_id: str | int, job_name: str) -> tuple[int, bool]:
+@dataclass(frozen=True)
+class RetryInfo:
+    is_retry: bool
+    is_manual_retry: bool
+    attempt_number: int
+    final_attempt: bool
+
+
+def _job_retry_data(
+    job_id: int, job_name: str, job_commit_id: int, job_failure_reason: str
+) -> RetryInfo:
     with connections["gitlab"].cursor() as cursor:
+        # the prior attempts for a given job are all jobs with a lower id, the same commit_id, and
+        # the same name. the commit_id is the foreign key for the pipeline.
+        # it's important to filter for a lower job id in the event that the webhook is delayed or
+        # received out of order.
         cursor.execute(
             """
-            SELECT attempt_number, COALESCE(retried, FALSE) as retried FROM (
-                SELECT ROW_NUMBER() OVER (ORDER BY id) as attempt_number, retried, id
-                FROM ci_builds
-                WHERE
-                    ci_builds.name = %(job_name)s
-                    and ci_builds.stage_id = (
-                        SELECT stage_id from ci_builds WHERE id = %(job_id)s LIMIT 1
-                    )
-                    and ci_builds.status = 'failed'
-            ) as build_attempts
-            WHERE build_attempts.id = %(job_id)s
-            ;
+            SELECT COUNT(*)
+            FROM ci_builds
+            WHERE id < %(job_id)s
+            AND commit_id = %(commit_id)s
+            AND name = %(job_name)s
             """,
-            {"job_id": job_id, "job_name": job_name},
+            {"job_id": job_id, "job_name": job_name, "commit_id": job_commit_id},
         )
-        result = cursor.fetchone()
-        cursor.close()
+        attempt_number = cursor.fetchone()[0] + 1
 
-    return result
+        cursor.execute(
+            """
+            SELECT bm.config_options->>'retry'
+            FROM ci_builds_metadata bm
+            WHERE bm.build_id = %(job_id)s
+            """,
+            {"job_id": job_id},
+        )
+        job = cursor.fetchone()
+        if not job[0]:
+            # config_options->>retry should always be defined for non-trigger (aka Ci::Bridge)
+            # jobs in spack. this is an edge case where a job in gitlab isn't explicitly
+            # configured for retries at all.
+            sentry_sdk.capture_message(f"Job {job_id} missing retry configuration.")
+            # this is the default retry configuration for gitlab
+            # see https://docs.gitlab.com/ee/ci/yaml/#retry
+            retry_config = {
+                "max": 0,
+                "when": ["always"],
+            }
+        else:
+            retry_config = json.loads(job[0])
+
+        retry_max = retry_config["max"]
+        retry_reasons = retry_config["when"]
+        # final_attempt is defined as an attempt that won't be retried for the retry_reasons
+        # or because it's gone beyond the max number of retries.
+        retryable_by_reason = "always" in retry_reasons or job_failure_reason in retry_reasons
+        retryable_by_number = attempt_number <= retry_max
+        final_attempt = not (retryable_by_reason and retryable_by_number)
+
+        return RetryInfo(
+            is_retry=attempt_number > 1,
+            # manual retries are all retries that are not part of the original job
+            is_manual_retry=attempt_number > retry_max + 1,
+            attempt_number=attempt_number,
+            final_attempt=final_attempt,
+        )
 
 
 def _assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
@@ -132,13 +177,18 @@ def upload_job_failure_classification(job_input_data_json: str) -> None:
 
     # Read input data and extract params
     job_input_data = json.loads(job_input_data_json)
-    job_id = job_input_data["build_id"]
-    job_name = job_input_data["build_name"]
 
     # Annotate if job has been retried
-    attempt_number, retried = _job_retry_data(job_id=job_id, job_name=job_name)
-    job_input_data["attempt_number"] = attempt_number
-    job_input_data["retried"] = retried
+    try:
+        retry_info = _job_retry_data(
+            job_id=job_input_data["build_id"],
+            job_name=job_input_data["build_name"],
+            job_commit_id=job_input_data["commit"]["id"],
+            job_failure_reason=job_input_data["build_failure_reason"],
+        )
+        job_input_data.update(asdict(retry_info))
+    except Exception:
+        sentry_sdk.capture_exception()
 
     # Convert all string timestamps in webhook payload to `datetime` objects
     for key, val in job_input_data.items():
