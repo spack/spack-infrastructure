@@ -43,7 +43,7 @@ services:
       POSTGRES_PASSWORD: gitlab
 
   gitlab:
-    image: gitlab/gitlab-ee:latest
+    image: zengxs/gitlab:ee
     ports:
       - "8080:80"
       - "8081:443"
