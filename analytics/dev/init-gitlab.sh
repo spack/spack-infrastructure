@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Wait for gitlab to be up
 echo "Waiting for GitLab..."
