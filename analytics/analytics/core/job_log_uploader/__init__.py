@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import datetime
 import json
 import re
@@ -12,6 +13,7 @@ from urllib3.exceptions import ReadTimeoutError
 
 
 from analytics import setup_gitlab_job_sentry_tags
+from analytics.core.job_failure_classifier import _job_retry_data
 
 
 class JobLog(Document):
@@ -47,6 +49,14 @@ def upload_job_log(job_input_data_json: str) -> None:
     project = gl.projects.get(job_input_data["project_id"])
     job = project.jobs.get(job_input_data["build_id"])
     job_trace: str = job.trace().decode()
+
+    retry_info = _job_retry_data(
+        job_id=job_input_data["build_id"],
+        job_name=job_input_data["build_name"],
+        job_commit_id=job_input_data["commit"]["id"],
+        job_failure_reason=job_input_data["build_failure_reason"],
+    )
+    job_input_data.update(asdict(retry_info))
 
     # Remove ANSI escape sequences from colorized output
     # TODO: this still leaves trailing ;m in the output
