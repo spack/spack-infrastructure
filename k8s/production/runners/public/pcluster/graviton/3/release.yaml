@@ -37,8 +37,8 @@ spec:
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600 # six hours
-    concurrent: 20
-    checkInterval: 30
+    concurrent: 75
+    checkInterval: 10
 
     metrics:
       enabled: true
