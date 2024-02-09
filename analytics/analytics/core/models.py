@@ -53,6 +53,25 @@ class JobPod(models.Model):
     memory_limit = models.PositiveBigIntegerField(null=True, default=None)
 
 
+class JobAttempt(models.Model):
+    job_id = models.PositiveBigIntegerField(primary_key=True)
+    project_id = models.PositiveBigIntegerField()
+    commit_id = models.PositiveBigIntegerField()
+    name = models.CharField(max_length=128)
+    started_at = models.DateTimeField()
+    finished_at = models.DateTimeField()
+    ref = models.CharField(max_length=256)
+
+    is_retry = models.BooleanField()
+    is_manual_retry = models.BooleanField()
+    attempt_number = models.PositiveSmallIntegerField()
+    final_attempt = models.BooleanField()
+
+    status = models.CharField(max_length=32)
+
+    error_taxonomy = models.CharField(max_length=64)
+
+
 class Job(models.Model):
     # Core job fields
     job_id = models.PositiveBigIntegerField(primary_key=True)

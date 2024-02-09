@@ -1,10 +1,10 @@
 import json
 from typing import Any
 import pytest
-from analytics.core.job_log_uploader import upload_job_log
+from analytics.core.job_log_uploader import store_job_data
 from analytics.job_processor import process_job
 
-from analytics.core.job_log_uploader import upload_job_log
+from analytics.core.job_log_uploader import store_job_data
 from analytics.core.models import Job
 
 
@@ -52,4 +52,4 @@ def test_process_job_unnecessary_jobs(request, job_json_string, unnecessary):
 
 @pytest.mark.django_db
 def test_upload_job_logs(build_json_string):
-    upload_job_log(build_json_string)
+    store_job_data(build_json_string)
