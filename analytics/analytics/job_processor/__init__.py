@@ -1,6 +1,7 @@
 import json
 import re
 from datetime import timedelta
+from typing import Any
 
 import gitlab
 import sentry_sdk
@@ -23,9 +24,7 @@ from analytics.core.models import Job
 UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
 
 
-def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob) -> Job:
-    job_trace: str = gljob.trace().decode()
-
+def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob, job_trace: str) -> Job:
     # Create base fields on job that are independent of where it ran
     job = Job(
         job_id=gljob.get_id(),
@@ -65,8 +64,9 @@ def process_job(job_input_data_json: str):
     gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True)
     gl_project = gl.projects.get(job_input_data["project_id"])
     gl_job = gl_project.jobs.get(job_input_data["build_id"])
+    job_trace: str = gl_job.trace().decode()
 
     # Use a transaction, to account for transient failures
     with transaction.atomic():
-        job = create_job(gl, gl_project, gl_job)
+        job = create_job(gl, gl_project, gl_job, job_trace)
         create_build_timings(job, gl_job)
