@@ -68,13 +68,13 @@ def _create_job_attempt(
 
 
 @shared_task(
-    name="upload_job_log",
+    name="store_job_data",
     soft_time_limit=60,
     autoretry_for=(ReadTimeoutError, ConnectionTimeout),
     retry_backoff=5,
     max_retries=5,
 )
-def upload_job_log(job_input_data_json: str) -> None:
+def store_job_data(job_input_data_json: str) -> None:
     job_input_data: dict[str, Any] = json.loads(job_input_data_json)
     setup_gitlab_job_sentry_tags(job_input_data)
 
