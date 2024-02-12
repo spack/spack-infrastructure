@@ -146,3 +146,41 @@ resource "kubectl_manifest" "karpenter_node_template" {
     helm_release.karpenter
   ]
 }
+
+resource "kubectl_manifest" "windows_node_template" {
+  yaml_body = <<-YAML
+    apiVersion: karpenter.k8s.aws/v1alpha1
+    kind: AWSNodeTemplate
+    metadata:
+      name: windows
+    spec:
+      subnetSelector:
+        # This value *must* match one of the tags placed on the subnets for this
+        # EKS cluster (see vpc.tf for these).
+        # We use the "deployment_name" variable here instead of the full cluster name
+        # because the full cluster name isn't available at the time that we bootstrap
+        # the VPC resources (including subnets). However, "deployment_name" is also
+        # a unique-per-cluster value, so it should work just as well.
+        karpenter.sh/discovery: ${var.deployment_name}
+      securityGroupSelector:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+      tags:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+      amiFamily: Windows2022
+      metadataOptions:
+        httpEndpoint: enabled
+        httpProtocolIPv6: disabled
+        httpPutResponseHopLimit: 2
+        httpTokens: required
+      blockDeviceMappings:
+        - deviceName: /dev/sda1
+          ebs:
+            volumeSize: 200Gi
+            volumeType: gp3
+            deleteOnTermination: true
+  YAML
+
+  depends_on = [
+    helm_release.karpenter
+  ]
+}
