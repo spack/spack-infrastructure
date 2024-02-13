@@ -14,7 +14,7 @@ module "karpenter" {
   # Since Karpenter is running on an EKS Managed Node group,
   # we can re-use the role that was created for the node group
   create_iam_role = false
-  iam_role_arn    = module.eks.eks_managed_node_groups["initial"].iam_role_arn
+  iam_role_arn    = aws_iam_role.managed_node_group.arn
 }
 
 resource "helm_release" "karpenter" {
