@@ -70,6 +70,9 @@ class JobAttempt(models.Model):
     status = models.CharField(max_length=32)
 
     error_taxonomy = models.CharField(max_length=64)
+    section_timers = models.JSONField(
+        default=dict, null=True, help_text="The GitLab CI section timers for this job."
+    )
 
 
 class Job(models.Model):

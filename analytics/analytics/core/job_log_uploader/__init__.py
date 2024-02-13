@@ -7,6 +7,7 @@ from typing import Any
 
 from celery import shared_task
 from django.conf import settings
+from django.db import transaction
 import gitlab
 from gitlab.v4.objects import Project, ProjectJob
 from opensearch_dsl import Date, Document, connections
@@ -35,12 +36,24 @@ class JobLog(Document):
         return super().save(**kwargs)
 
 
+def _get_section_timers(job_trace: str) -> dict[str, int]:
+    timers: dict[str, int] = {}
+
+    # See https://docs.gitlab.com/ee/ci/jobs/index.html#custom-collapsible-sections for the format
+    # of section names.
+    r = re.findall(r"section_(start|end):(\d+):([A-Za-z0-9_\-\.]+)", job_trace)
+    for start, end in zip(r[::2], r[1::2]):
+        timers[start[2]] = int(end[1]) - int(start[1])
+
+    return timers
+
+
 def _create_job_attempt(
     project: Project,
     gl_job: ProjectJob,
     webhook_payload: dict[str, Any],
     job_trace: str,
-) -> None:
+) -> JobAttempt:
     retry_info = _job_retry_data(
         job_id=gl_job.get_id(),
         job_name=gl_job.name,
@@ -48,9 +61,11 @@ def _create_job_attempt(
         job_failure_reason=webhook_payload["build_failure_reason"],
     )
 
+    section_timers = _get_section_timers(job_trace)
+
     _assign_error_taxonomy(webhook_payload, job_trace)
 
-    JobAttempt.objects.create(
+    return JobAttempt.objects.create(
         job_id=gl_job.get_id(),
         project_id=project.get_id(),
         commit_id=webhook_payload["commit"]["id"],
@@ -64,6 +79,7 @@ def _create_job_attempt(
         final_attempt=retry_info.final_attempt,
         status=webhook_payload["build_status"],
         error_taxonomy=webhook_payload["error_taxonomy"],
+        section_timers=section_timers,
     )
 
 
