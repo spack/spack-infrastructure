@@ -101,6 +101,9 @@ def _job_retry_data(
 
 
 def _assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
+    if job_input_data["build_status"] != "failed":
+        raise ValueError("This function should only be called for failed jobs")
+
     # Read taxonomy file
     with open(Path(__file__).parent / "taxonomy.yaml") as f:
         taxonomy = yaml.safe_load(f)["taxonomy"]
