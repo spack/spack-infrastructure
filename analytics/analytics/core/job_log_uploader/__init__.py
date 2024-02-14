@@ -63,7 +63,8 @@ def _create_job_attempt(
 
     section_timers = _get_section_timers(job_trace)
 
-    _assign_error_taxonomy(webhook_payload, job_trace)
+    if webhook_payload["build_status"] == "failed":
+        _assign_error_taxonomy(webhook_payload, job_trace)
 
     return JobAttempt.objects.create(
         job_id=gl_job.get_id(),

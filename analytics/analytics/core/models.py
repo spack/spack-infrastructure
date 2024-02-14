@@ -54,6 +54,14 @@ class JobPod(models.Model):
 
 
 class JobAttempt(models.Model):
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                name="error-taxonomy-only-on-failed",
+                check=models.Q(status="failed") | models.Q(error_taxonomy__isnull=True),
+            ),
+        ]
+
     job_id = models.PositiveBigIntegerField(primary_key=True)
     project_id = models.PositiveBigIntegerField()
     commit_id = models.PositiveBigIntegerField()
@@ -69,7 +77,7 @@ class JobAttempt(models.Model):
 
     status = models.CharField(max_length=32)
 
-    error_taxonomy = models.CharField(max_length=64)
+    error_taxonomy = models.CharField(max_length=64, null=True)
     section_timers = models.JSONField(
         default=dict, null=True, help_text="The GitLab CI section timers for this job."
     )
