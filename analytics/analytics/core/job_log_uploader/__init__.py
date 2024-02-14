@@ -79,7 +79,11 @@ def _create_job_attempt(
         attempt_number=retry_info.attempt_number,
         final_attempt=retry_info.final_attempt,
         status=webhook_payload["build_status"],
-        error_taxonomy=webhook_payload["error_taxonomy"],
+        error_taxonomy=(
+            webhook_payload["error_taxonomy"]
+            if webhook_payload["build_status"] == "failed"
+            else None
+        ),
         section_timers=section_timers,
     )
 
