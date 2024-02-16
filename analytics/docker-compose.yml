@@ -83,4 +83,5 @@ services:
 
 volumes:
   postgres:
+  gitlab:
   gitlab-db:
