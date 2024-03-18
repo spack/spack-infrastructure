@@ -48,7 +48,9 @@ spec:
   providerRef:
     name: windows
 
-  ttlSecondsAfterEmpty: 30
+  # Wait 2 hours before deprovisioning a Windows runner pod.
+  # This is due to the long startup time Windows nodes have.
+  ttlSecondsAfterEmpty: 7200
 
   # Only provision nodes for pods specifying these labels
   labels:
