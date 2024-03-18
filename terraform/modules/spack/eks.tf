@@ -29,6 +29,9 @@ module "eks" {
       groups   = ["system:masters"]
     },
   ]
+  # This is required for DNS resolution to work on Windows nodes.
+  # See info about aws-auth configmap here - https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support
+  aws_auth_node_iam_role_arns_windows = [aws_iam_role.managed_node_group.arn]
 
   node_security_group_additional_rules = {
     ingress_self_all = {
@@ -61,6 +64,9 @@ module "eks" {
       min_size     = 2
       max_size     = 3
       desired_size = 2
+
+      create_iam_role = false
+      iam_role_arn    = aws_iam_role.managed_node_group.arn
     }
   }
 
@@ -70,6 +76,62 @@ module "eks" {
       service_account_role_arn = aws_iam_role.ebs_efs_csi_driver.arn
     }
   }
+}
+
+resource "aws_iam_role" "managed_node_group" {
+  name_prefix = "initial-eks-node-group-"
+  description = "EKS managed node group IAM role"
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "EKSNodeAssumeRole",
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : "ec2.amazonaws.com"
+        },
+        "Action" : "sts:AssumeRole"
+      }
+    ]
+  })
+
+  inline_policy {
+    name = "session-manager-temp"
+    policy = jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : [
+            "ssm:UpdateInstanceInformation",
+            "ssmmessages:CreateControlChannel",
+            "ssmmessages:CreateDataChannel",
+            "ssmmessages:OpenControlChannel",
+            "ssmmessages:OpenDataChannel"
+          ],
+          "Resource" : "*"
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : [
+            "s3:GetEncryptionConfiguration"
+          ],
+          "Resource" : "*"
+        }
+      ]
+    })
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "managed_node_group" {
+  for_each = toset([
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+  ])
+
+  role       = aws_iam_role.managed_node_group.name
+  policy_arn = each.value
 }
 
 resource "aws_iam_role" "eks_cluster_access" {

@@ -1,0 +1,9 @@
+---
+# This ConfigMap enables Windows node support in EKS.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: amazon-vpc-cni
+  namespace: kube-system
+data:
+  enable-windows-ipam: "true"

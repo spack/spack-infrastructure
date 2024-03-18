@@ -14,7 +14,7 @@ module "karpenter" {
   # Since Karpenter is running on an EKS Managed Node group,
   # we can re-use the role that was created for the node group
   create_iam_role = false
-  iam_role_arn    = module.eks.eks_managed_node_groups["initial"].iam_role_arn
+  iam_role_arn    = aws_iam_role.managed_node_group.arn
 }
 
 resource "helm_release" "karpenter" {
@@ -136,6 +136,39 @@ resource "kubectl_manifest" "karpenter_node_template" {
         karpenter.sh/discovery: ${module.eks.cluster_name}
       blockDeviceMappings:
         - deviceName: /dev/xvda
+          ebs:
+            volumeSize: 200Gi
+            volumeType: gp3
+            deleteOnTermination: true
+  YAML
+
+  depends_on = [
+    helm_release.karpenter
+  ]
+}
+
+resource "kubectl_manifest" "windows_node_template" {
+  yaml_body = <<-YAML
+    apiVersion: karpenter.k8s.aws/v1alpha1
+    kind: AWSNodeTemplate
+    metadata:
+      name: windows
+    spec:
+      subnetSelector:
+        # This value *must* match one of the tags placed on the subnets for this
+        # EKS cluster (see vpc.tf for these).
+        # We use the "deployment_name" variable here instead of the full cluster name
+        # because the full cluster name isn't available at the time that we bootstrap
+        # the VPC resources (including subnets). However, "deployment_name" is also
+        # a unique-per-cluster value, so it should work just as well.
+        karpenter.sh/discovery: ${var.deployment_name}
+      securityGroupSelector:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+      tags:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+      amiFamily: Windows2022
+      blockDeviceMappings:
+        - deviceName: /dev/sda1
           ebs:
             volumeSize: 200Gi
             volumeType: gp3
