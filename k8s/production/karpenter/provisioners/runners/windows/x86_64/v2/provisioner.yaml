@@ -52,7 +52,7 @@ spec:
   # This is due to the long startup time Windows nodes have.
   ttlSecondsAfterEmpty: 7200
 
-  # Only provision nodes for pods specifying these labels
+  # Label all provisioned nodes with pipeline/arch/os specifiers
   labels:
     spack.io/pipeline: "true"
     spack.io/x86_64: "v2" # highest supported x86_64 microarch version
