@@ -50,7 +50,7 @@ spec:
 
   ttlSecondsAfterEmpty: 30
 
-  # Only provision nodes for pods specifying the beefy node pool
+  # Only provision nodes for pods specifying these labels
   labels:
     spack.io/pipeline: "true"
     spack.io/x86_64: "v2" # highest supported x86_64 microarch version
