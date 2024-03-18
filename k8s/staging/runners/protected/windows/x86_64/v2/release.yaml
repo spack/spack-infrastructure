@@ -19,6 +19,7 @@ spec:
   chart:
     spec:
       chart: gitlab-runner
+      # Note: ensure this stays in sync with the `helper_image` field below
       version: 0.62.1 # gitlab-runner@16.9.1
       sourceRef:
         kind: HelmRepository
@@ -100,8 +101,9 @@ spec:
             poll_timeout = 1800
             privileged = false
 
-            # Image for windows 2022, runner helper v16.1.0
-            helper_image = "gitlab/gitlab-runner-helper:x86_64-v16.7.0-servercore21H2"
+            # Image for windows 2022, runner helper
+            image = "mcr.microsoft.com/windows/servercore:ltsc2022"
+            helper_image = "gitlab/gitlab-runner-helper:x86_64-v16.9.1-servercore21H2"
 
             # CPU requests/limits
             cpu_request = "750m"
