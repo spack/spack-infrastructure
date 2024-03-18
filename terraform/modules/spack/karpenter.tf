@@ -167,11 +167,6 @@ resource "kubectl_manifest" "windows_node_template" {
       tags:
         karpenter.sh/discovery: ${module.eks.cluster_name}
       amiFamily: Windows2022
-      metadataOptions:
-        httpEndpoint: enabled
-        httpProtocolIPv6: disabled
-        httpPutResponseHopLimit: 2
-        httpTokens: required
       blockDeviceMappings:
         - deviceName: /dev/sda1
           ebs:
