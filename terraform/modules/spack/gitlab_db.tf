@@ -74,7 +74,7 @@ module "gitlab_db" {
   identifier = "gitlab-${var.deployment_name}"
 
   engine               = "postgres"
-  engine_version       = "14.7"
+  engine_version       = "14.10"
   family               = "postgres14"
   major_engine_version = "14"
   instance_class       = var.gitlab_db_instance_class
@@ -92,6 +92,7 @@ module "gitlab_db" {
   backup_window                   = "03:00-06:00"
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
   create_cloudwatch_log_group     = true
+  performance_insights_enabled    = true
 
   backup_retention_period = 7
   skip_final_snapshot     = false

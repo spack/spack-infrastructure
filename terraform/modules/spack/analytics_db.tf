@@ -17,7 +17,7 @@ module "analytics_db" {
   engine               = "postgres"
   family               = "postgres15"
   major_engine_version = "15"
-  engine_version       = "15.3"
+  engine_version       = "15.5"
   instance_class       = var.gitlab_db_instance_class
 
   # Credentials
@@ -34,6 +34,7 @@ module "analytics_db" {
   backup_window                   = "03:00-06:00"
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
   create_cloudwatch_log_group     = true
+  performance_insights_enabled    = true
 
   backup_retention_period = 7
   skip_final_snapshot     = false
