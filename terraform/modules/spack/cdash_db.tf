@@ -5,7 +5,7 @@ module "cdash_db" {
   identifier = "cdash-${var.deployment_name}"
 
   engine               = "mysql"
-  engine_version       = "8.0.33"
+  engine_version       = "8.0.35"
   family               = "mysql8.0"
   major_engine_version = "8.0"
   instance_class       = var.cdash_db_instance_class
