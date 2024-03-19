@@ -16,9 +16,10 @@ module "cdash_db" {
   publicly_accessible  = false
   db_subnet_group_name = aws_db_subnet_group.spack.name
 
-  maintenance_window          = "Sun:00:00-Sun:03:00"
-  backup_window               = "03:00-06:00"
-  create_cloudwatch_log_group = true
+  maintenance_window           = "Sun:00:00-Sun:03:00"
+  backup_window                = "03:00-06:00"
+  create_cloudwatch_log_group  = true
+  performance_insights_enabled = true
 
   backup_retention_period = 7
   skip_final_snapshot     = true
