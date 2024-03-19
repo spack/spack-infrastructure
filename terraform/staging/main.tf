@@ -167,4 +167,6 @@ module "staging_cluster" {
   opensearch_volume_size   = 100
 
   ses_email_domain = "staging.spack.io"
+
+  github_actions_oidc_arn = data.aws_iam_openid_connect_provider.github_actions.arn
 }

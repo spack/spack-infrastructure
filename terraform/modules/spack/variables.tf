@@ -8,6 +8,11 @@ variable "gitlab_url" {
   type        = string
 }
 
+variable "github_actions_oidc_arn" {
+  description = "ARN of the GitHub Actions OIDC provider."
+  type        = string
+}
+
 variable "vpc_cidr" {
   description = "CIDR for the VPC."
   type        = string

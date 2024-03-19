@@ -166,6 +166,7 @@ module "production_cluster" {
   opensearch_instance_type = "r6g.xlarge.search"
   opensearch_volume_size   = 500
 
-
   ses_email_domain = "spack.io"
+
+  github_actions_oidc_arn = aws_iam_openid_connect_provider.github_actions.arn
 }
