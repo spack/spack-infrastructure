@@ -159,3 +159,12 @@ module "production_cluster" {
 
   ses_email_domain = "spack.io"
 }
+
+module "gitlab_runner_configuration" {
+  source = "../modules/spack/modules/gitlab_runner_configuration"
+
+  deployment_name = "prod"
+
+  protected_binary_bucket_arn = module.production_cluster.protected_binary_bucket_arn
+  pr_binary_bucket_arn        = module.production_cluster.pr_binary_bucket_arn
+}

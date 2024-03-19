@@ -158,3 +158,12 @@ module "staging_cluster" {
 
   ses_email_domain = "staging.spack.io"
 }
+
+module "gitlab_runner_configuration" {
+  source = "../modules/spack/modules/gitlab_runner_configuration"
+
+  deployment_name = "staging"
+
+  protected_binary_bucket_arn = module.staging_cluster.protected_binary_bucket_arn
+  pr_binary_bucket_arn        = module.staging_cluster.pr_binary_bucket_arn
+}

@@ -1,3 +1,16 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+    gitlab = {
+      source  = "gitlabhq/gitlab"
+      version = "16.3.0"
+    }
+  }
+}
+
 locals {
   gitlab_domain = "gitlab${var.deployment_name == "prod" ? "" : ".staging"}.spack.io"
 
@@ -25,6 +38,7 @@ data "aws_caller_identity" "current" {}
 data "gitlab_project" "spack" {
   path_with_namespace = "spack/spack"
 }
+
 
 data "tls_certificate" "gitlab" {
   url = "https://${local.gitlab_domain}"
@@ -78,7 +92,7 @@ data "aws_iam_policy_document" "gitlab_runner" {
     actions = ["s3:PutObject", "s3:DeleteObject"]
 
     resources = [
-      each.key == "protected_binary_mirror" ? "${module.protected_binary_mirror.bucket_arn}/*" : "${module.pr_binary_mirror.bucket_arn}/*",
+      each.key == "protected_binary_mirror" ? "${var.protected_binary_bucket_arn}/*" : "${var.pr_binary_bucket_arn}/*",
     ]
   }
 }
@@ -110,7 +124,7 @@ resource "gitlab_project_variable" "binary_mirror_role_arn" {
 resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn" {
   project = data.gitlab_project.spack.id
   key     = "PR_BINARY_MIRROR_BUCKET_ARN"
-  value   = module.pr_binary_mirror.bucket_arn
+  value   = var.pr_binary_bucket_arn
 }
 
 # attachments for the pre-existing hardcoded policies in production
