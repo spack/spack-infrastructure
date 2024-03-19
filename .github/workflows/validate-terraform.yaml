@@ -1,0 +1,51 @@
+name: Check Terraform
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - 'terraform-bootstrap/**'
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5.2"
+
+      - name: Lint Terraform code
+        run: terraform fmt -check -diff -recursive
+
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory:
+          - terraform/production
+          - terraform/staging
+          - terraform-bootstrap
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5.2"
+
+      - name: Initialize Terraform (offline only)
+        run: terraform init -backend=false
+
+      - name: Validate Terraform code
+        run: terraform validate

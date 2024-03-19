@@ -21,17 +21,17 @@ locals {
 resource "aws_s3_bucket_policy" "protected_binaries_restricted" {
   for_each = local.s3_bucket_policies
 
-  bucket = "${each.key}"
+  bucket = each.key
 
   policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Sid": "PublicRead",
-        "Effect": "Allow",
-        "Principal": "*",
-        "Action": "s3:GetObject",
-        "Resource": "arn:aws:s3:::${each.key}/*"
+        "Sid" : "PublicRead",
+        "Effect" : "Allow",
+        "Principal" : "*",
+        "Action" : "s3:GetObject",
+        "Resource" : "arn:aws:s3:::${each.key}/*"
       }
     ]
   })

@@ -1,6 +1,6 @@
 locals {
-  gitlab_email_domain = "gitlab.${var.ses_email_domain}"
-  smtp_secret_name = "gitlab-ses-secrets"
+  gitlab_email_domain      = "gitlab.${var.ses_email_domain}"
+  smtp_secret_name         = "gitlab-ses-secrets"
   smtp_secret_password_key = "smtp-password"
 }
 

@@ -23,7 +23,7 @@ terraform {
       version = ">= 2.0.0"
     }
     flux = {
-      source = "fluxcd/flux"
+      source  = "fluxcd/flux"
       version = "1.2.2"
     }
     github = {
@@ -31,11 +31,11 @@ terraform {
       version = "~> 5.13.0"
     }
     gitlab = {
-      source = "gitlabhq/gitlab"
+      source  = "gitlabhq/gitlab"
       version = "16.3.0"
     }
     sentry = {
-      source = "jianyuan/sentry"
+      source  = "jianyuan/sentry"
       version = "0.11.2"
     }
   }
@@ -114,7 +114,7 @@ locals {
 
 provider "gitlab" {
   base_url = local.gitlab_url
-  token = jsondecode(data.aws_secretsmanager_secret_version.gitlab_token.secret_string).gitlab_terraform_provider_access_token
+  token    = jsondecode(data.aws_secretsmanager_secret_version.gitlab_token.secret_string).gitlab_terraform_provider_access_token
 }
 
 module "staging_cluster" {
