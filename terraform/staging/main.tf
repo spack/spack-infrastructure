@@ -41,6 +41,16 @@ terraform {
   }
 }
 
+variable "eks_cluster_role" {
+  type        = string
+  description = "Role for Terraform to assume that grants access to the EKS cluster."
+  default     = null
+}
+
+locals {
+  eks_cluster_role = coalesce(var.eks_cluster_role, module.staging_cluster.cluster_access_role_arn)
+}
+
 provider "aws" {
   region = "us-west-2"
 }
@@ -57,7 +67,7 @@ provider "helm" {
         "get-token",
         "--region", "us-west-2",
         "--cluster-name", module.staging_cluster.cluster_name,
-        "--role", module.staging_cluster.cluster_access_role_arn
+        "--role", local.eks_cluster_role,
       ]
     }
   }
@@ -74,7 +84,7 @@ provider "kubectl" {
       "get-token",
       "--region", "us-west-2",
       "--cluster-name", module.staging_cluster.cluster_name,
-      "--role", module.staging_cluster.cluster_access_role_arn
+      "--role", local.eks_cluster_role,
     ]
   }
 }
@@ -90,7 +100,7 @@ provider "kubernetes" {
       "get-token",
       "--region", "us-west-2",
       "--cluster-name", module.staging_cluster.cluster_name,
-      "--role", module.staging_cluster.cluster_access_role_arn
+      "--role", local.eks_cluster_role,
     ]
   }
 }
