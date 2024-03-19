@@ -13,7 +13,7 @@ terraform {
       version = ">= 2.0.0"
     }
     flux = {
-      source = "fluxcd/flux"
+      source  = "fluxcd/flux"
       version = "1.2.2"
     }
     github = {
@@ -21,11 +21,11 @@ terraform {
       version = "~> 5.13.0"
     }
     gitlab = {
-      source = "gitlabhq/gitlab"
+      source  = "gitlabhq/gitlab"
       version = "16.3.0"
     }
     sentry = {
-      source = "jianyuan/sentry"
+      source  = "jianyuan/sentry"
       version = "0.11.2"
     }
   }

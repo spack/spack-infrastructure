@@ -54,25 +54,25 @@ resource "helm_release" "karpenter" {
   # Set resource requests. Use the ones from the helm chart values.yaml:
   # https://github.com/aws/karpenter/blob/main/charts/karpenter/values.yaml
   set {
-    name = "controller.resources.requests.cpu"
+    name  = "controller.resources.requests.cpu"
     value = "1"
   }
   set {
-    name = "controller.resources.requests.memory"
+    name  = "controller.resources.requests.memory"
     value = "1Gi"
   }
   set {
-    name = "controller.resources.limits.cpu"
+    name  = "controller.resources.limits.cpu"
     value = "1"
   }
   set {
-    name = "controller.resources.limits.memory"
+    name  = "controller.resources.limits.memory"
     value = "1Gi"
   }
 
   # Enable service monitor for prometheus metrics
   set {
-    name = "serviceMonitor.enabled"
+    name  = "serviceMonitor.enabled"
     value = true
   }
 
@@ -82,7 +82,7 @@ resource "helm_release" "karpenter" {
 }
 
 resource "helm_release" "karpenter_crds" {
-  namespace = "karpenter"
+  namespace        = "karpenter"
   create_namespace = true
 
   name       = "karpenter-crd"

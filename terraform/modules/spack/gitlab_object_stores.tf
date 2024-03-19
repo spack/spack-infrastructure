@@ -108,10 +108,10 @@ resource "aws_iam_role_policy_attachment" "gitlab_object_stores" {
 
 locals {
   connection_secret_name = "gitlab-s3-bucket-secrets"
-  connection_secret_key = "connection"
+  connection_secret_key  = "connection"
 
   backups_secret_name = "gitlab-s3-backup-bucket-secrets"
-  backups_secret_key = "config"
+  backups_secret_key  = "config"
 }
 
 resource "kubectl_manifest" "gitlab_object_stores_config_map" {
