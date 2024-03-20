@@ -1,7 +1,7 @@
 name: Detect infrastructure drift
 on:
   schedule:
-    - cron: '0 * * * *'  # run once an hour
+    - cron: '16 * * * *'  # run once an hour
 
 permissions:
   id-token: write
