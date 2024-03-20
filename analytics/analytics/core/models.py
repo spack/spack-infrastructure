@@ -142,6 +142,9 @@ class Job(models.Model):
         self.node = Node.objects.get(name=self.node.name, system_uuid=self.node.system_uuid)
 
     class Meta:
+        indexes = [
+            models.Index(fields=["started_at"]),
+        ]
         constraints = [
             models.CheckConstraint(name="non-empty-package-name", check=~models.Q(package_name="")),
             # Ensure that either pod and node are both null or both not null
