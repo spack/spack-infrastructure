@@ -1,7 +1,11 @@
 name: Detect infrastructure drift
 on:
   schedule:
-    - cron: '16 * * * *'  # run once an hour
+    # Run once an hour.
+    # GitHub throttles scheduled jobs if too many are queued at once,
+    # so they recommend scheduling them at a random minute instead of
+    # minute 0. https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
+    - cron: '16 * * * *'
 
 permissions:
   id-token: write
