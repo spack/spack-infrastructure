@@ -28,6 +28,13 @@ module "eks" {
       username = "admin"
       groups   = ["system:masters"]
     },
+    {
+      rolearn  = aws_iam_role.github_actions.arn,
+      username = "github-actions",
+      # See ./github_actions_iam.tf for ClusterRole/ClusterRoleBinding
+      # for the permissions given to this group
+      groups = ["github-actions"],
+    }
   ]
   # This is required for DNS resolution to work on Windows nodes.
   # See info about aws-auth configmap here - https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support

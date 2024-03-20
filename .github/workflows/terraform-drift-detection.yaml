@@ -1,0 +1,67 @@
+name: Detect infrastructure drift
+on:
+  schedule:
+    - cron: '0 * * * *'  # run once an hour
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/production
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole-prod
+          aws-region: us-east-1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5.2"
+          terraform_wrapper: false
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Run Terraform Plan
+        run: terraform plan -lock=false -detailed-exitcode -no-color -input=false -out=tfplan > tfplan_output.txt 2>&1
+        env:
+          TF_VAR_eks_cluster_role: "arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole-prod"
+
+      - name: Send Slack alert on drift
+        if: failure()
+        run: |
+          # Post message
+          curl -X POST \
+          -H "Content-type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+          -d '{
+                "channel": "spack-alerts",
+                "text": ":rotating_light: :rotating_light: :rotating_light: Infrastructure drift detected! :rotating_light: :rotating_light: :rotating_light:"
+              }' \
+          https://slack.com/api/chat.postMessage
+
+          # Upload TF plan stdout
+          curl -F file=@tfplan_output.txt \
+          -F channels=spack-alerts \
+          -F title="tfplan_output.txt" \
+          -F filetype="text" \
+          -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+          https://slack.com/api/files.upload
+
+          # Upload TF plan binary file
+          curl -F file=@tfplan \
+          -F channels=spack-alerts \
+          -F title="tfplan" \
+          -F filetype="binary" \
+          -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+          https://slack.com/api/files.upload
