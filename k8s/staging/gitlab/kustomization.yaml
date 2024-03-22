@@ -37,15 +37,6 @@ patches:
         path: /spec/values/gitlab/webservice/minReplicas
         value: 1
       - op: replace
-        path: /spec/values/gitlab/webservice/maxReplicas
-        value: 3
-      - op: replace
-        path: /spec/values/gitlab/webservice/resources/requests/cpu
-        value: 550m
-      - op: replace
-        path: /spec/values/gitlab/webservice/resources/requests/memory
-        value: 2G
-      - op: replace
         path: /spec/values/gitlab/toolbox/replicas
         value: 1
 
