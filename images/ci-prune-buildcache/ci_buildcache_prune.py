@@ -8,11 +8,18 @@ import multiprocessing as mp
 import multiprocessing.pool as pool
 import os
 from io import BytesIO
+import sentry_sdk
 from urllib.parse import urlparse
 
 import buildcache
 import helper
 from pruner import DirectPruner, IndexPruner, OrphanPruner
+
+sentry_sdk.init(
+    # This cron job only runs once weekly,
+    # so just record all transactions.
+    traces_sample_rate=1.0,
+)
 
 # Script Config
 PRUNE_REF = os.environ.get("PRUNE_REF", "develop")
