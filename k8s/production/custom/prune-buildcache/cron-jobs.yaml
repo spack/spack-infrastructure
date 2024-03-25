@@ -34,6 +34,9 @@ spec:
               value: "develop"
             - name: PRUNE_SINCE_DAYS
               value: "14"
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
             args:
             - "$(date --iso-8601=seconds)"
           nodeSelector:
