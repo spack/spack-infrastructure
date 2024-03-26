@@ -20,10 +20,14 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: 43.1.1
+      version: 57.1.1
       sourceRef:
         kind: HelmRepository
         name: kube-prometheus-stack
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
   values:
     defaultRules:
       create: false
@@ -73,8 +77,8 @@ spec:
           api_url: https://api.github.com/user
 #          team_ids:
           allowed_organizations: spack
-          client_id: DEADBEEF # Will be overriden by environment vars
-          client_secret: DEADBEEF # Will be overriden by environment vars
+          # client_id: DEADBEEF # Will be overriden by environment vars
+          # client_secret: DEADBEEF # Will be overriden by environment vars
 
       # https://github.com/grafana/helm-charts/blob/673566ba032c2df7108514ad8cb51500fdb48de3/charts/grafana/values.yaml#L501-L505
       plugins:
