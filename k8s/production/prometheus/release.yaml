@@ -24,6 +24,10 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: kube-prometheus-stack
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
   values:
     defaultRules:
       create: false
