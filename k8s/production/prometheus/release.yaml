@@ -20,7 +20,7 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: 51.0.0
+      version: 54.0.0
       sourceRef:
         kind: HelmRepository
         name: kube-prometheus-stack
