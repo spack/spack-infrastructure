@@ -57,27 +57,14 @@ spec:
           pre_build_script = """
           Write-Output 'Executing Spack pre-build setup script'
 
-          $PY3 = $null
-          $pythonCmds = @('python3', 'python')
-
-          foreach ($cmd in $pythonCmds) {
-              if (Get-Command -ErrorAction SilentlyContinue $cmd) {
-                  $PY3 = Get-Command $cmd
-                  break
-              }
-          }
-
-          if (-not $PY3) {
-              Write-Output "Unable to find python3 executable"
-              exit 1
-          }
-
           $scriptPath = Join-Path $PSScriptRoot 'pre_build.py'
 
           $wc = New-Object System.Net.WebClient
           $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
 
-          & $PY3 $scriptPath | Out-File -FilePath 'envvars' -Encoding utf8
+          & python $scriptPath | Out-File -FilePath 'envvars.ps1' -Encoding utf8
+
+          ./envvars.ps1
 
           Remove-Item $scriptPath -Force
           Remove-Item 'envvars' -Force
