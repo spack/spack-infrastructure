@@ -111,9 +111,12 @@ if __name__ == "__main__":
 
     response = _gitlab_token_to_credentials(os.environ["GITLAB_OIDC_TOKEN"])
 
+    set_env_cmd = "export "
+    if sys.platform == "win32":
+        set_env_cmd = "$Env:"
     # print credentials to stdout
-    print(f'export AWS_ACCESS_KEY_ID="{response["AccessKeyId"]}"')
-    print(f'export AWS_SECRET_ACCESS_KEY="{response["SecretAccessKey"]}"')
-    print(f'export AWS_SESSION_TOKEN="{response["SessionToken"]}"')
+    print(f'{set_env_cmd}AWS_ACCESS_KEY_ID="{response["AccessKeyId"]}"')
+    print(f'{set_env_cmd}AWS_SECRET_ACCESS_KEY="{response["SecretAccessKey"]}"')
+    print(f'{set_env_cmd}AWS_SESSION_TOKEN="{response["SessionToken"]}"')
 
     print("done.", file=sys.stderr)
