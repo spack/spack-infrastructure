@@ -57,6 +57,14 @@ spec:
           pre_build_script = """
           Write-Output 'Executing Spack pre-build setup script'
 
+          $a=(get-command -ErrorAction SilentlyContinue fake)
+          if ( -not $a ) {
+            Write-Output @"
+              Python not available on system, please install or
+              add to the PATH
+              "@
+          }
+
           $scriptPath = Join-Path $PSScriptRoot 'pre_build.py'
 
           $wc = New-Object System.Net.WebClient
