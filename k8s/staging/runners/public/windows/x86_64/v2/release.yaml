@@ -63,6 +63,7 @@ spec:
               Python not available on system, please install or
               add to the PATH
               "@
+            exit 1
           }
 
           $scriptPath = Join-Path $PSScriptRoot 'pre_build.py'
