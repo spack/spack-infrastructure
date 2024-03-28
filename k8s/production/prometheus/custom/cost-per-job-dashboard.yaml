@@ -3,13 +3,13 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: monitoring
-  name: kube-prometheus-stack-ci-failures-dashboard
+  name: kube-prometheus-stack-cost-per-job-dashboard
   labels:
     grafana_dashboard: "1"
     app: kube-prometheus-stack-grafana
     release: "kube-prometheus-stack"
 data:
-  gitlab-ci-failures-dashboard.json: |-
+  cost-per-job-dashboard.json: |-
     {
       "annotations": {
         "list": [
