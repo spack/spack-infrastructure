@@ -59,10 +59,7 @@ spec:
 
           $py=(get-command -ErrorAction SilentlyContinue python)
           if ( -not $py ) {
-            Write-Output @"
-              Python not available on system, please install or
-              add to the PATH
-              "@
+            Write-Output 'Python was not found on the system. Add it to the PATH or install.'
             exit 1
           }
 
@@ -76,7 +73,7 @@ spec:
           ./envvars.ps1
 
           Remove-Item $scriptPath -Force
-          Remove-Item 'envvars' -Force
+          Remove-Item 'envvars.ps1' -Force
 
           $env:GITLAB_OIDC_TOKEN = $null
           """

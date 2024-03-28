@@ -59,10 +59,7 @@ spec:
 
           $py=(get-command -ErrorAction SilentlyContinue python)
           if ( -not $py ) {
-            Write-Output @"
-              Python not available on system, please install or
-              add to the PATH
-              "@
+            Write-Output 'Python not found on the system. Add it to the PATH or install.'
             exit 1
           }
 
