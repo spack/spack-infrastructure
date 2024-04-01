@@ -3,7 +3,7 @@ import json
 import re
 
 
-hash_re = re.compile(r"-([a-zA-Z0-9]{32,32})\.")
+hash_re = re.compile(r"-([a-zA-Z0-9]{32})\.")
 
 
 class JSONEncoder(json.JSONEncoder):
