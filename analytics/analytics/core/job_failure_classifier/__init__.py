@@ -172,8 +172,10 @@ def _collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
     name="upload_job_failure_classification",
     soft_time_limit=60,
     autoretry_for=(ReadTimeoutError, ConnectionTimeout),
-    retry_backoff=5,
-    max_retries=5,
+    retry_backoff=30,
+    retry_backoff_max=3600,
+    max_retries=10,
+    retry_jitter=True,
 )
 def upload_job_failure_classification(job_input_data_json: str) -> None:
     gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True)
