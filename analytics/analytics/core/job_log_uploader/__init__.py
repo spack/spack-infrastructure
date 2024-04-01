@@ -92,8 +92,10 @@ def _create_job_attempt(
     name="store_job_data",
     soft_time_limit=60,
     autoretry_for=(ReadTimeoutError, ConnectionTimeout),
-    retry_backoff=5,
-    max_retries=5,
+    retry_backoff=30,
+    retry_backoff_max=3600,
+    max_retries=10,
+    retry_jitter=True,
 )
 def store_job_data(job_input_data_json: str) -> None:
     job_input_data: dict[str, Any] = json.loads(job_input_data_json)
