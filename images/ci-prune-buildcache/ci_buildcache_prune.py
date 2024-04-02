@@ -7,7 +7,7 @@ import gitlab
 import multiprocessing as mp
 import multiprocessing.pool as pool
 import os
-from io import BytesIO
+from io import StringIO
 from urllib.parse import urlparse
 
 import buildcache
@@ -436,22 +436,23 @@ if __name__ == "__main__":
                     print("--   Nothing to prune")
                     continue
 
-                meta_file = BytesIO()
+                meta_file = StringIO()
                 for f in pruned:
                     meta = f"{f.last_modified} s3://{f.bucket_name}/{f.key} {f.method}\n"
-                    meta_file.write(str.encode(meta))
+                    meta_file.write(meta)
                 print(f"--   Writing meta file: {stack}{log_suffix}_meta.txt")
                 with open(f"{args.output_dir}/{stack}{log_suffix}_meta.txt", "w") as fd:
-                    fd.write(meta_file.getvalue().decode("utf-8"))
+                    fd.write(meta_file.getvalue())
+                meta_file.seek(0)
 
                 prune_list_file = f"{args.output_dir}/{stack}{log_suffix}_prunable.txt"
-                prune_file = BytesIO()
+                prune_file = StringIO()
                 for f in pruned:
-                    prune_file.write(str.encode(f.key))
-                    prune_file.write(b"\n")
+                    prune_file.write(f.key)
+                    prune_file.write("\n")
                 print(f"--   Writing file list: {prune_list_file}")
                 with open(f"{prune_list_file}", "w") as fd:
-                    fd.write(prune_file.getvalue().decode("utf-8"))
+                    fd.write(prune_file.getvalue())
                 prune_file.seek(0)
 
             if args.delete or args.delete_only:
@@ -477,24 +478,25 @@ if __name__ == "__main__":
                         print(f"--   Would have deleted of {len(lines)} from {stack} buildcache")
 
                 parsed = urlparse(BUILDCACHE_URL)
-                if parsed.scheme == "s3":
+                if False and parsed.scheme == "s3":
                     s3 = boto3.resource("s3")
                     bucket = s3.Bucket(parsed.netloc)
                     prefix = parsed.path.lstrip("/")
                     if meta_file:
                         bucket.put_object(
                             Key=f"{prefix}/pruning/{TODAY_STR}-{stack}{log_suffix}-meta.txt",
-                            Body=meta_file.getvalue(),
+                            Body=meta_file.getvalue().encode(),
                         )
 
                     bucket.put_object(
                         Key=f"{prefix}/{stack}/pruning/{TODAY_STR}-{stack}{log_suffix}.txt",
-                        Body=prune_file.getvalue(),
+                        Body=prune_file.getvalue().encode(),
                     )
         except Exception as e:
             print(f"Error -- Skipping pruning of {stack}")
             print(str(e))
+            raise "ff mode" from e
         finally:
             if prune_file:
                 prune_file.close()
-            continue
+            # continue

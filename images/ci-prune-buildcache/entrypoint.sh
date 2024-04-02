@@ -26,12 +26,12 @@ function update_index() {
 }
 
 # Perform direct pruning
-python3 ${SCRIPT_DIR}/ci_buildcache_prune.py --start-date ${now} --snapshot-dir ${snapshot_dir} --output-dir ./out --direct
+python3 ${SCRIPT_DIR}/ci_buildcache_prune.py --start-date ${now} --snapshot-dir ${snapshot_dir} --output-dir ./out --direct --delete
 
 # Add the mirrors detected by direct pruning
 add_mirrors
 
 # Perform orphan pruning
-python3 ${SCRIPT_DIR}/ci_buildcache_prune.py --start-date ${now} --snapshot-dir ${snapshot_dir} --output-dir ./out --orphaned --config ${snapshot_dir}/config
+python3 ${SCRIPT_DIR}/ci_buildcache_prune.py --start-date ${now} --snapshot-dir ${snapshot_dir} --output-dir ./out --orphaned --config ${snapshot_dir}/config --delete
 
 update_index
