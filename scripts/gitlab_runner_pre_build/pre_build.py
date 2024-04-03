@@ -68,18 +68,19 @@ def _durable_assume_role_request(assume_role_kwargs):
                     raise ValueError(
                         f"Unexpected response code from assume role request: {response.getcode()}"
                     )
-        except urllib.error.HTTPError as e:
-            print(e.read().decode("utf-8"), file=sys.stderr)
+        except urllib.error.URLError as e:
+            should_retry = type(e) is urllib.error.URLError or isinstance(e, urllib.error.HTTPError) and e.code == 400
 
-            if e.code == 400:
-                attempts += 1
-                print(
-                    f"Assume role request failed with 400, retrying ({attempts}/{max_attempts})",
-                    file=sys.stderr,
-                )
-                time.sleep(2 ** (1 + attempts))
-            else:
+            if not should_retry:
                 raise e
+
+            fail_reason = "HTTP 400" if isinstance(e, urllib.error.HTTPError) and e.code == 400 else e.reason
+            attempts += 1
+            print(
+                f"Assume role request failed ({fail_reason}), retrying ({attempts}/{max_attempts})",
+                file=sys.stderr,
+            )
+            time.sleep(2 ** (1 + attempts))
 
     raise Exception(f"Failed to assume role after {max_attempts} attempts")
 
