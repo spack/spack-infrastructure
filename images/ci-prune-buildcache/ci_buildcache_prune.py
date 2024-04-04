@@ -29,12 +29,12 @@ PRUNE_REF = os.environ.get("PRUNE_REF", "develop")
 SINCE_DAYS = int(os.environ.get("PRUNE_SINCE_DAYS", 14))
 
 # Gitlab API (for fetching artifacts)
-GITLAB_URL = os.environ.get("GITLAB_URL", "https://gitlab.spack.io")
+GITLAB_URL = os.environ["GITLAB_URL"]
 GITLAB_PROJECT = os.environ.get("GITLAB_PROJECT", "spack/spack")
 gl = gitlab.Gitlab(GITLAB_URL)
 
 # S3
-BUILDCACHE_URL = os.environ.get("BUILDCACHE_URL", f"s3://spack-binaries/{PRUNE_REF}").rstrip("/")
+BUILDCACHE_URL = os.environ["BUILDCACHE_URL"].rstrip("/")
 
 TODAY = datetime.today()
 TODAY_STR = TODAY.strftime("%Y.%m.%d")
@@ -58,7 +58,7 @@ class Cache:
         if not os.path.isdir(os.path.dirname(key_path)):
             try:
                 os.makedirs(os.path.dirname(key_path))
-            except:
+            except Exception:
                 pass
 
         print(f"writing to cache: {key}")
