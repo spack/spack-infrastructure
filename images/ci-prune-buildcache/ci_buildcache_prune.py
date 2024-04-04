@@ -15,13 +15,13 @@ import helper
 from pruner import DirectPruner, IndexPruner, OrphanPruner
 
 try:
-  import sentry_sdk
-  sentry_sdk.init(
-      # This cron job only runs once weekly,
-      # so just record all transactions.
-      traces_sample_rate=1.0,
-  )
-except:
+    import sentry_sdk
+    sentry_sdk.init(
+        # This cron job only runs once weekly,
+        # so just record all transactions.
+        traces_sample_rate=1.0,
+    )
+except Exception:
     print("Could not configure sentry.")
 
 # Script Config
