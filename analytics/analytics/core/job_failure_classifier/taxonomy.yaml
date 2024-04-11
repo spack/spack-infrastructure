@@ -137,7 +137,7 @@ taxonomy:
       grep_for:
         - 'exec /usr/bin/sh: exec format error'
 
-    rcp_failure:
+    rpc_failure:
       grep_for:
         - 'error: RPC failed'
 
@@ -283,7 +283,7 @@ taxonomy:
     - 'image_pull'
     - 'docker_daemon'
     - 'docker_format'
-    - 'rcp_failure'
+    - 'rpc_failure'
     - '5XX'
     - 'dial_backend'
     - 'remote_disconnect'
