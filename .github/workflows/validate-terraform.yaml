@@ -7,6 +7,9 @@ on:
       - 'terraform/**'
       - 'terraform-bootstrap/**'
   pull_request:
+    paths:
+      - 'terraform/**'
+      - 'terraform-bootstrap/**'
 
 jobs:
   lint:
