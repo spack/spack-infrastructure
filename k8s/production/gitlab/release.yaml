@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: gitlab
-      version: 7.10.0 # gitlab@16.10.0
+      version: 7.10.1 # gitlab@16.10.1
       sourceRef:
         kind: HelmRepository
         name: gitlab
@@ -40,10 +40,6 @@ spec:
     # See terraform/modules/spack/gitlab_redis.tf
     - kind: ConfigMap
       name: gitlab-elasticache-config
-      valuesKey: values.yaml
-    # See terraform/modules/sentry/sentry.tf
-    - kind: ConfigMap
-      name: gitlab-sentry-config
       valuesKey: values.yaml
 
   values:

@@ -34,10 +34,6 @@ terraform {
       source  = "gitlabhq/gitlab"
       version = "16.3.0"
     }
-    sentry = {
-      source  = "jianyuan/sentry"
-      version = "0.11.2"
-    }
   }
 }
 
