@@ -161,55 +161,6 @@ resource "sentry_team" "spack" {
   name = "spack"
 }
 
-resource "sentry_project" "gitlab_server" {
-  organization = data.sentry_organization.default.id
-
-  teams = [sentry_team.spack.id]
-  name  = "GitLab Server"
-  slug  = "gitlab-server"
-
-  platform = "ruby-rails"
-}
-
-data "sentry_key" "gitlab_server" {
-  organization = data.sentry_organization.default.id
-  project      = sentry_project.gitlab_server.id
-}
-
-resource "sentry_project" "gitlab_client" {
-  organization = data.sentry_organization.default.id
-
-  teams = [sentry_team.spack.id]
-  name  = "GitLab Client"
-  slug  = "gitlab-client"
-
-  platform = "ruby-rails"
-}
-
-data "sentry_key" "gitlab_client" {
-  organization = data.sentry_organization.default.id
-  project      = sentry_project.gitlab_client.id
-}
-
-resource "kubectl_manifest" "gitlab_sentry_config_map" {
-  yaml_body = <<-YAML
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: gitlab-sentry-config
-      namespace: gitlab
-    data:
-      values.yaml: |
-        global:
-          appConfig:
-            sentry:
-              enabled: true
-              dsn: ${data.sentry_key.gitlab_server.dsn_public}
-              clientside_dsn: ${data.sentry_key.gitlab_client.dsn_public}
-              environment: ${var.deployment_name}
-  YAML
-}
-
 resource "kubectl_manifest" "sentry_ses_config_map" {
   yaml_body = <<-YAML
     apiVersion: v1
