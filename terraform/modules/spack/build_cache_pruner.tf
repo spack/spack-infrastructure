@@ -23,7 +23,7 @@ resource "aws_iam_role" "full_crud_access_spack_binaries" {
 
 resource "aws_iam_policy" "put_spack_binaries" {
   name        = "PutObjectsInBucketSpackBinaries${local.suffix}"
-  description = "Managed by Terraform. Grant permission to PutObject for any object in the spack-binaries bucket"
+  description = "Allows writing any objects to the ${module.protected_binary_mirror.bucket_name} bucket"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -43,7 +43,7 @@ resource "aws_iam_role_policy_attachment" "put_spack_binaries" {
 
 resource "aws_iam_policy" "delete_spack_binaries" {
   name        = "DeleteObjectsFromBucketSpackBinaries${local.suffix}"
-  description = "Managed by Terraform. Grant permission to DeleteObject for any object in the spack-binaries bucket"
+  description = "Allows deletion of any object in the ${module.protected_binary_mirror.bucket_name} bucket."
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
