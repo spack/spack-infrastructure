@@ -57,24 +57,8 @@ resource "kubectl_manifest" "webhook_secrets" {
        gitlab-db-port: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["port"]}")}
        gitlab-db-name: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["dbname"]}")}
        gitlab-db-password: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["password"]}")}
-       sentry-dsn: ${base64encode("${data.sentry_key.webhook_handler.dsn_public}")}
+       sentry-dsn: ${base64encode("${local.sentry_dsns["webhook-handler"]}")}
        secret-key: ${base64encode("${random_password.webhook_handler.result}")}
        celery-broker-url: ${base64encode("redis://${aws_elasticache_replication_group.pr_binary_graduation_task_queue.primary_endpoint_address}:6379/1")}
    YAML
-}
-
-
-resource "sentry_project" "webhook_handler" {
-  organization = data.sentry_organization.default.id
-
-  teams = [sentry_team.spack.id]
-  name  = "Spack Webhook Handler"
-  slug  = "spack-webhook-handler"
-
-  platform = "python"
-}
-
-data "sentry_key" "webhook_handler" {
-  organization = data.sentry_organization.default.id
-  project      = sentry_project.webhook_handler.id
 }
