@@ -41,6 +41,8 @@ jobs:
             image-tags: ghcr.io/spack/cache-indexer:0.0.3
           - docker-image: ./analytics
             image-tags: ghcr.io/spack/django:0.2.8
+          - docker-image: ./images/ci-prune-buildcache
+            image-tags: ghcr.io/spack/ci-prune-buildcache:0.0.1
     steps:
       - name: Checkout
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
