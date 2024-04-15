@@ -17,7 +17,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.2
+            image: ghcr.io/spack/ci-prune-buildcache:0.0.3
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -25,7 +25,7 @@ spec:
                 memory: 500M
             env:
             - name: GITLAB_URL
-              value: "gitlab.spack.io"
+              value: "https://gitlab.spack.io"
             - name: GITLAB_PROJECT
               value: "spack/spack"
             - name: BUILDCACHE_URL
