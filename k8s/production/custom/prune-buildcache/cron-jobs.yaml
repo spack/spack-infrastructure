@@ -17,7 +17,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.1
+            image: ghcr.io/spack/ci-prune-buildcache:0.0.2
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -37,7 +37,5 @@ spec:
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config
-            args:
-            - "$(date --iso-8601=seconds)"
           nodeSelector:
             spack.io/node-pool: base

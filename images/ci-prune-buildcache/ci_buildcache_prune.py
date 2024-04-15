@@ -139,7 +139,7 @@ def fetch_job_hashes(pipeline_job: gitlab.v4.objects.ProjectPipelineJob):
         print(f"-- Failed to fetch spack.lock for {jid}/{pipeline_job.name}")
         print(f"--   url: {GITLAB_URL}/{GITLAB_PROJECT}/-/jobs/{jid}")
         print("--   ", str(e))
-        return []
+        return "<invalid lock>", []
 
 
 def configure_parser():
