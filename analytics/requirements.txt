@@ -83,7 +83,7 @@ rich==13.7.0
 rsa==4.9
 sentry-sdk==1.39.2
 six==1.16.0
-sqlparse==0.4.4
+sqlparse==0.5.0
 stack-data==0.6.3
 tox==4.12.1
 traitlets==5.14.1
