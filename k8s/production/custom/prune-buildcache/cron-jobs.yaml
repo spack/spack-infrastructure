@@ -37,7 +37,5 @@ spec:
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config
-            args:
-            - "$(date --iso-8601=seconds)"
           nodeSelector:
             spack.io/node-pool: base
