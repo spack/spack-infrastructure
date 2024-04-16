@@ -15,10 +15,15 @@ spec:
     - key: "node.kubernetes.io/instance-type"
       operator: In
       values:
+      # Instance types are partly based on gitlab's recommendations
+      # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
+      #
+      # The c6a.8xlarge is needed so that the webservice pod (requests 16 vCPUs) can be scheduled
+      # in the cluster alongside the necessary DaemonSet pods.
         - "t3.xlarge"
         - "m5.xlarge"
         - "m5.4xlarge"
-        - "c5.4xlarge"  # recommended by gitlab - https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
+        - "c5.4xlarge"
         - "c6a.8xlarge"
 
     # Always use on-demand
