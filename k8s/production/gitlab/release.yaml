@@ -139,12 +139,14 @@ spec:
         minReplicas: 4
         maxReplicas: 16
         resources:
+          # Based on webservice resources here
+          # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
           limits:
-            cpu: 1500m
-            memory: 3.5G
+            cpu: 48
+            memory: 32G
           requests:
-            cpu: 300m
-            memory: 2.5G
+            cpu: 16
+            memory: 14.4G
         nodeSelector:
           spack.io/node-pool: gitlab
       gitlab-exporter:
@@ -158,6 +160,12 @@ spec:
           spack.io/node-pool: gitlab
 
       sidekiq:
+        resources:
+          # Based on sidekiq resources here
+          # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
+          requests:
+            cpu: 4
+            memory: 15G
         nodeSelector:
           spack.io/node-pool: gitlab
 
