@@ -6,6 +6,7 @@ on:
     # so they recommend scheduling them at a random minute instead of
     # minute 0. https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
     - cron: '16 * * * *'
+  workflow_dispatch:
 
 permissions:
   id-token: write
