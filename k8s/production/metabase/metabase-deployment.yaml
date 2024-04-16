@@ -21,7 +21,7 @@ spec:
           resources:
             requests:
               cpu: 350m
-              memory: 2G
+              memory: 3G
           ports:
             - containerPort: 3000
           envFrom:
