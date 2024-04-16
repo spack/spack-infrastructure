@@ -34,7 +34,11 @@ jobs:
           terraform_wrapper: false
 
       - name: Initialize Terraform
-        run: terraform init
+        uses: nick-invision/retry@7152eba30c6575329ac0576536151aca5a72780e  # v3.0.0
+        with:
+          command: cd terraform/production && terraform init
+          max_attempts: 5
+          timeout_minutes: 5
 
       - name: Run Terraform Plan
         run: terraform plan -lock=false -detailed-exitcode -no-color -input=false -out=tfplan > tfplan_output.txt 2>&1
