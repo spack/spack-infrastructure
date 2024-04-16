@@ -16,6 +16,10 @@ spec:
           - name: skipped-pipelines
             image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.1
             imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 50M
             env:
             - name: GITLAB_TOKEN
               valueFrom:

@@ -42,6 +42,10 @@ spec:
         # Pinned due to https://github.com/oauth2-proxy/oauth2-proxy/issues/1724#issuecomment-1248713344
         image: quay.io/oauth2-proxy/oauth2-proxy:v7.2.1
         imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 100m
+            memory: 25M
         name: oauth2-proxy
         ports:
         - containerPort: 4180
@@ -64,4 +68,3 @@ spec:
     targetPort: 4180
   selector:
     k8s-app: oauth2-proxy
-
