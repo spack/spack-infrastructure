@@ -37,7 +37,7 @@ factory-boy==3.3.0
 Faker==22.5.1
 filelock==3.13.1
 google-auth==2.26.2
-gunicorn==21.2.0
+gunicorn==22.0.0
 idna==3.6
 iniconfig==2.0.0
 ipython==8.20.0
