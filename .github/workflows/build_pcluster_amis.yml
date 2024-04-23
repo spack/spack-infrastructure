@@ -39,10 +39,10 @@ jobs:
             aws-region: us-west-2
     steps:
       - name: Checkout `spack-infrastructure` repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Checkout `awslabs/amazon-eks-ami` repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: awslabs/amazon-eks-ami
           path: amazon-eks-ami
