@@ -1,0 +1,14 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tls-gantry
+  namespace: spack
+spec:
+  secretName: tls-gantry
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  commonName: gantry.spack.io
+  dnsNames:
+    - gantry.spack.io

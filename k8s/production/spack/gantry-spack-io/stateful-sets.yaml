@@ -1,0 +1,123 @@
+---
+# It is recommended to use a StatefulSet as they restrict the number of pods.
+# Applications using Litestream can only be run on a single node at a time.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gantry-spack-io
+  namespace: spack
+spec:
+  selector:
+    matchLabels:
+      app: gantry-spack-io
+  serviceName: gantry-spack-io
+
+  # Litestream only supports a single node so this must always be "1".
+  replicas: 1
+
+  # Persistent volume is recommended for better durability guarantees between restarts.
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 100Mi
+
+  template:
+    metadata:
+      labels:
+        app: gantry-spack-io
+    spec:
+
+      # The config map is used to pass in our Litestream configuration file.
+      volumes:
+      - name: configmap
+        configMap:
+          name: litestream
+
+      # Initialize using Litestream to restore data automatically
+      # before starting the application.
+      initContainers:
+      - name: init-litestream
+        image: litestream/litestream:0.3
+        args: ['restore', '-if-db-not-exists', '-if-replica-exists', '/var/lib/gantry/db']
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/gantry
+        - name: configmap
+          mountPath: /etc/litestream.yml
+          subPath: litestream.yml
+        env:
+        - name: LITESTREAM_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: gantry-credentials
+              key: s3_access_key_id
+        - name: LITESTREAM_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gantry-credentials
+              key: s3_secret_access_key
+              
+      # creates the db if it doesn't exist and applies migrations
+      - name: init-db
+        image: "ghcr.io/spack/spack-gantry:latest"
+        imagePullPolicy: Always
+        workingDir: /db
+        command: ["python", "init_db.py", "/var/lib/gantry/db"]
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/gantry
+
+      # litestream and the application share a PVC data directory.
+      containers:
+      - name: web
+        image: "ghcr.io/spack/spack-gantry:latest"
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+
+        env:
+        - name: DB_FILE
+          value: /var/lib/gantry/db
+        - name: GITLAB_URL
+          value: https://gitlab.spack.io/api/v4/projects/2
+        - name: GITLAB_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gantry-credentials
+              key: gitlab_api_token
+        - name: GITLAB_WEBHOOK_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gantry-credentials
+              key: gitlab_webhook_token
+        - name: PROMETHEUS_URL
+          value: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/gantry
+
+      - name: litestream
+        image: litestream/litestream:0.3
+        args: ['replicate']
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/gantry
+        - name: configmap
+          mountPath: /etc/litestream.yml
+          subPath: litestream.yml
+        env:
+        - name: LITESTREAM_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: gantry-credentials
+              key: s3_access_key_id
+        - name: LITESTREAM_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gantry-credentials
+              key: s3_secret_access_key
