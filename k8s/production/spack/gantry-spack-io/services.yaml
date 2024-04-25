@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: gantry-spack-io
+  name: spack-gantry
   namespace: spack
   labels:
-    app: gantry-spack-io
+    app: spack-gantry
     svc: web
 spec:
   type: ClusterIP
@@ -15,5 +15,5 @@ spec:
       port: 80
       targetPort: 8080
   selector:
-    app: gantry-spack-io
+    app: spack-gantry
     svc: web

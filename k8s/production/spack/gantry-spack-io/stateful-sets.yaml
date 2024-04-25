@@ -4,13 +4,13 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: gantry-spack-io
+  name: spack-gantry
   namespace: spack
 spec:
   selector:
     matchLabels:
-      app: gantry-spack-io
-  serviceName: gantry-spack-io
+      app: spack-gantry
+  serviceName: spack-gantry
 
   # Litestream only supports a single node so this must always be "1".
   replicas: 1
@@ -30,7 +30,7 @@ spec:
   template:
     metadata:
       labels:
-        app: gantry-spack-io
+        app: spack-gantry
     spec:
 
       # The config map is used to pass in our Litestream configuration file.
@@ -53,16 +53,6 @@ spec:
         - name: configmap
           mountPath: /etc/litestream.yml
           subPath: litestream.yml
-              
-      # creates the db if it doesn't exist and applies migrations
-      - name: init-db
-        image: "ghcr.io/spack/spack-gantry:latest"
-        imagePullPolicy: Always
-        workingDir: /db
-        command: ["python", "init_db.py", "/var/lib/gantry/db"]
-        volumeMounts:
-        - name: data
-          mountPath: /var/lib/gantry
 
       # litestream and the application share a PVC data directory.
       containers:
@@ -111,3 +101,5 @@ spec:
         - name: configmap
           mountPath: /etc/litestream.yml
           subPath: litestream.yml
+      nodeSelector:
+        spack.io/node-pool: base
