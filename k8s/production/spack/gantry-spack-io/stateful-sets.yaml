@@ -23,7 +23,9 @@ spec:
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
-          storage: 100Mi
+          # this assumes that old jobs will be pruned once they are no longer of use
+          # otherwise, we'll run out of space
+          storage: 500Mi
 
   template:
     metadata:
@@ -67,6 +69,11 @@ spec:
       - name: web
         image: "ghcr.io/spack/spack-gantry:latest"
         imagePullPolicy: Always
+        resources:
+          # measurements taken from running the application and sending constant traffic to the API endpoints
+          requests:
+            memory: "250Mi"
+            cpu: "250m"
         ports:
         - name: http
           containerPort: 8080
@@ -93,6 +100,10 @@ spec:
 
       - name: litestream
         image: litestream/litestream:0.3
+        resources:
+          requests:
+            memory: "60Mi"
+            cpu: "100m"
         args: ['replicate']
         volumeMounts:
         - name: data
