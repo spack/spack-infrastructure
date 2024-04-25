@@ -35,7 +35,9 @@ spec:
       volumes:
       - name: configmap
         configMap:
-          name: litestream
+          # see terraform/modules/spack/spack_gantry.tf
+          name: spack-gantry-config
+          namespace: spack
 
       # Initialize using Litestream to restore data automatically
       # before starting the application.
@@ -49,17 +51,6 @@ spec:
         - name: configmap
           mountPath: /etc/litestream.yml
           subPath: litestream.yml
-        env:
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: gantry-credentials
-              key: aws_access_key_id
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: gantry-credentials
-              key: aws_secret_access_key
               
       # creates the db if it doesn't exist and applies migrations
       - name: init-db
@@ -79,7 +70,6 @@ spec:
         ports:
         - name: http
           containerPort: 8080
-
         env:
         - name: DB_FILE
           value: /var/lib/gantry/db
@@ -110,14 +100,3 @@ spec:
         - name: configmap
           mountPath: /etc/litestream.yml
           subPath: litestream.yml
-        env:
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: gantry-credentials
-              key: aws_access_key_id
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: gantry-credentials
-              key: aws_secret_access_key

@@ -1,8 +1,0 @@
-dbs:
-  - path: /var/lib/gantry/db
-    replicas:
-      - type: s3
-        bucket: gantry
-        path: db
-        # todo replace with s3 url
-        endpoint: S3_URL
