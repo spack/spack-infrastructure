@@ -60,6 +60,25 @@ resource "aws_iam_role_policy_attachment" "spack_gantry" {
   policy_arn = aws_iam_policy.spack_gantry.arn
 }
 
+locals {
+  spack_gantry_token_expires_at = "2025-04-25"
+}
+
+resource "gitlab_personal_access_token" "spack_gantry" {
+  user_id    = data.gitlab_user.spackbot.id
+  name       = "spack-gantry personal access token."
+  expires_at = local.spack_gantry_token_expires_at
+
+  scopes = ["read_api"]
+
+  lifecycle {
+    precondition {
+      condition     = timecmp(timestamp(), "${local.spack_gantry_token_expires_at}T00:00:00Z") == -1
+      error_message = "The token has expired. Please update the expires_at date."
+    }
+  }
+}
+
 resource "kubectl_manifest" "spack_gantry_service_account" {
   yaml_body = <<-YAML
     apiVersion: v1
@@ -95,4 +114,16 @@ resource "kubectl_manifest" "spack_gantry_config" {
   depends_on = [
     aws_iam_role_policy_attachment.spack_gantry,
   ]
+}
+
+resource "kubectl_manifest" "spack_gantry_secrets" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: gantry-credentials
+      namespace: spack
+    data:
+      gitlab_api_token: ${base64encode("${gitlab_personal_access_token.spack_gantry.token}")}
+  YAML
 }
