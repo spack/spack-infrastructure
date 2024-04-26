@@ -31,7 +31,7 @@ def paginate(query_url):
 
         if resp.status_code == 401:
             print(" !!! Unauthorized to make request, check GITLAB_TOKEN !!!")
-            return []
+            resp.raise_for_status()
 
         next_batch = json.loads(resp.content)
 
