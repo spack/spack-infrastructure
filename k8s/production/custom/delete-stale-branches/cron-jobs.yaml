@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: delete-stale-branches
+  namespace: custom
+spec:
+  schedule: "0 4 * * 0"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 3600 # terminate any running job after 1 hour
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: delete-stale-branches
+            image: ghcr.io/spack/gitlab-delete-stale-branches:0.0.1
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 200M
+            env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-clear-pipelines
+                  key: gitlab-token
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
+          nodeSelector:
+            spack.io/node-pool: base

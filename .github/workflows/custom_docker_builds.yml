@@ -29,6 +29,8 @@ jobs:
             image-tags: ghcr.io/spack/stuckpods:0.0.1
           - docker-image: ./images/gitlab-clear-pipelines
             image-tags: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
+          - docker-image: ./images/gitlab-delete-stale-branches
+            image-tags: ghcr.io/spack/gitlab-delete-stale-branches:0.0.1
           - docker-image: ./images/gitlab-skipped-pipelines
             image-tags: ghcr.io/spack/gitlab-skipped-pipelines:0.0.1
           - docker-image: ./images/notary
