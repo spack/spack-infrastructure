@@ -19,7 +19,7 @@ spec:
             resources:
               requests:
                 cpu: 500m
-                memory: 50M
+                memory: 200M
             env:
             - name: GITLAB_TOKEN
               valueFrom:
