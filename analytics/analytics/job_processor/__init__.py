@@ -12,19 +12,20 @@ from django.db import transaction
 from gitlab.v4.objects import Project, ProjectJob
 
 from analytics import setup_gitlab_job_sentry_tags
+from analytics.core.models import Job
 from analytics.job_processor.artifacts import annotate_job_with_artifacts_data
 from analytics.job_processor.build_timings import create_build_timings
 from analytics.job_processor.prometheus import (
     JobPrometheusDataNotFound,
     PrometheusClient,
 )
-from analytics.core.models import Job
-
 
 UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
 
 
-def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob, job_trace: str) -> Job:
+def create_job(
+    gl: gitlab.Gitlab, project: Project, gljob: ProjectJob, job_trace: str
+) -> Job:
     # Create base fields on job that are independent of where it ran
     job = Job(
         job_id=gljob.get_id(),
@@ -61,7 +62,9 @@ def process_job(job_input_data_json: str):
     setup_gitlab_job_sentry_tags(job_input_data)
 
     # Retrieve project and job from gitlab API
-    gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True)
+    gl = gitlab.Gitlab(
+        settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True
+    )
     gl_project = gl.projects.get(job_input_data["project_id"])
     gl_job = gl_project.jobs.get(job_input_data["build_id"])
     job_trace: str = gl_job.trace().decode()

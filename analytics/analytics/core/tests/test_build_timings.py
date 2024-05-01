@@ -1,11 +1,11 @@
 import json
 from typing import Any
+
 import pytest
-from analytics.core.job_log_uploader import store_job_data
-from analytics.job_processor import process_job
 
 from analytics.core.job_log_uploader import store_job_data
 from analytics.core.models import Job
+from analytics.job_processor import process_job
 
 
 @pytest.fixture()

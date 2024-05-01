@@ -1,23 +1,25 @@
-from dataclasses import asdict
-from datetime import datetime
-from dateutil.parser import isoparse
 import json
 import re
+from dataclasses import asdict
+from datetime import datetime
 from typing import Any
 
+import gitlab
 from celery import shared_task
+from dateutil.parser import isoparse
 from django.conf import settings
 from django.db import transaction
-import gitlab
 from gitlab.v4.objects import Project, ProjectJob
 from opensearch_dsl import Date, Document, connections
 from opensearchpy import ConnectionTimeout
 from urllib3.exceptions import ReadTimeoutError
 
-
 from analytics import setup_gitlab_job_sentry_tags
+from analytics.core.job_failure_classifier import (
+    _assign_error_taxonomy,
+    _job_retry_data,
+)
 from analytics.core.models import JobAttempt
-from analytics.core.job_failure_classifier import _job_retry_data, _assign_error_taxonomy
 
 
 class JobLog(Document):
@@ -101,7 +103,9 @@ def store_job_data(job_input_data_json: str) -> None:
     job_input_data: dict[str, Any] = json.loads(job_input_data_json)
     setup_gitlab_job_sentry_tags(job_input_data)
 
-    gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True)
+    gl = gitlab.Gitlab(
+        settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True
+    )
 
     # Retrieve project and job from gitlab API
     project = gl.projects.get(job_input_data["project_id"])
@@ -118,7 +122,9 @@ def store_job_data(job_input_data_json: str) -> None:
 
     # Remove ANSI escape sequences from colorized output
     # TODO: this still leaves trailing ;m in the output
-    job_trace = re.sub(r"\x1b\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|G|K]?", "", job_trace)
+    job_trace = re.sub(
+        r"\x1b\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|G|K]?", "", job_trace
+    )
 
     connections.create_connection(
         hosts=[settings.OPENSEARCH_ENDPOINT],
