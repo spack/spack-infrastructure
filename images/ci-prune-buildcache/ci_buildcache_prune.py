@@ -10,7 +10,7 @@ import os
 from io import StringIO
 from urllib.parse import urlparse
 
-import buildcache
+from  s3_buildcache import S3BuildCache
 import helper
 from pruner import DirectPruner, IndexPruner, OrphanPruner
 
@@ -371,7 +371,7 @@ if __name__ == "__main__":
         else:
             url = f"{BUILDCACHE_URL}/{stack}/build_cache/"
 
-        bc = buildcache.S3BuildCache(url)
+        bc = S3BuildCache(url)
 
         snapshot_key = f"s3-snapshot-{stack}"
         if cache.exists(snapshot_key):
