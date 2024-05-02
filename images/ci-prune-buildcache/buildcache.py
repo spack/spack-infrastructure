@@ -71,14 +71,4 @@ class BuildCache:
         return Object
 
     def get_index(self):
-        key = f"{self.url.path}index.json".lstrip("/")
-        obj = next(self.list(key=key))
-        print("Fetching: ", key, obj)
-        try:
-            response = obj.get()
-            index = helper.load_json(response)
-        except Exception as e:
-            print("Could not fetch index: ", key)
-            raise e
-
-        return index, obj
+        raise Exception("Must implement per class")

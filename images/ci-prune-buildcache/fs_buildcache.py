@@ -95,3 +95,16 @@ class FileSystemBuildCache(BuildCache):
     def _list(self):
         for dir_obj in os.scandir(self.url.path):
             yield FileSystemObject(dir_obj)
+
+    def get_index(self):
+        key = f"{self.url.path}index.json"
+        obj = next(self.list(key=key))
+        print("Fetching: ", key, obj)
+        try:
+            response = obj.get()
+            index = helper.load_json(response)
+        except Exception as e:
+            print("Could not fetch index: ", key)
+            raise e
+
+        return index, obj
