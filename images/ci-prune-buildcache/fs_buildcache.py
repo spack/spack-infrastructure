@@ -3,14 +3,14 @@ import math
 import multiprocessing.pool as pool
 import os
 
-from datetime.datetime import fromtimestamp
+from datetime import datetime
 from buildcache import Object, BuildCache
 
 
 
 class FileSystemObject(Object):
     def __init__(self, entry: os.DirEntry):
-        lm = fromtimestamp(entry.stat_info.st_mtime)
+        lm = datetime.fromtimestamp(entry.stat_info.st_mtime)
         super().__init__(bucket_name=None, key=entry.path, last_modified = lm)
         if entry.is_file():
            self._get_method = self._get_file
@@ -32,7 +32,7 @@ class FileSystemObject(Object):
         return False
 
 
-class FileSystemBuildCache:
+class FileSystemBuildCache(BuildCache):
     def object_type(self):
         return FileSystemObject
 
@@ -72,7 +72,7 @@ class FileSystemBuildCache:
 
         def delete_keys_f(i: int):
             # TODO need to implement
-            return { "Deleted": [key for key in delete_keys[i:nkeys:stride]}
+            return { "Deleted": [key for key in delete_keys[i:nkeys:stride]]}
 
         failures  = []
         errors = []
