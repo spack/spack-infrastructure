@@ -10,7 +10,7 @@ from buildcache import Object, BuildCache
 
 class FileSystemObject(Object):
     def __init__(self, entry: os.DirEntry):
-        lm = datetime.fromtimestamp(entry.stat_info.st_mtime)
+        lm = datetime.fromtimestamp(entry.stat().st_mtime)
         super().__init__(bucket_name=None, key=entry.path, last_modified = lm)
         if entry.is_file():
            self._get_method = self._get_file
@@ -35,6 +35,9 @@ class FileSystemObject(Object):
 class FileSystemBuildCache(BuildCache):
     def object_type(self):
         return FileSystemObject
+
+    def load(self, snapshot_data: list):
+        raise Exception("Not implemented")
 
     def delete(self, keys : list = [], processes: int = 1, per_page: int = 1000):
         """Delete the listed keys from the buildcache, by default this will
@@ -90,5 +93,5 @@ class FileSystemBuildCache(BuildCache):
         return errors, failures
 
     def _list(self):
-        for dir_obj in os.scandir(self.url.path.lstrip("/")):
+        for dir_obj in os.scandir(self.url.path):
             yield FileSystemObject(dir_obj)

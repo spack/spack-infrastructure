@@ -1,5 +1,6 @@
 from urllib.parse import urlparse
 from datetime import datetime
+import copy
 import helper
 from io import StringIO
 
@@ -31,11 +32,7 @@ class BuildCache:
     def snapshot(self):
         self._listed = []
         for obj in self._list():
-            self._listed.append(self.object_type()(
-                obj.bucket_name,
-                obj.key,
-                obj.last_modified,
-            ))
+            self._listed.append(copy.deepcopy(obj))
 
         return self._listed
 
