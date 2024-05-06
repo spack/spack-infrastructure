@@ -54,7 +54,7 @@ jobs:
           aws-region: ${{ matrix.aws-region }}
 
       - name: Setup packer
-        uses: hashicorp/setup-packer@v3.0.0
+        uses: hashicorp/setup-packer@v3.1.0
         with:
           version: latest
 
