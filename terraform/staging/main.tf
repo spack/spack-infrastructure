@@ -166,3 +166,12 @@ module "staging_cluster" {
 
   github_actions_oidc_arn = data.aws_iam_openid_connect_provider.github_actions.arn
 }
+
+module "gitlab_runner_configuration" {
+  source = "../modules/spack/modules/gitlab_runner_configuration"
+
+  deployment_name = "staging"
+
+  protected_binary_bucket_arn = module.staging_cluster.protected_binary_bucket_arn
+  pr_binary_bucket_arn        = module.staging_cluster.pr_binary_bucket_arn
+}

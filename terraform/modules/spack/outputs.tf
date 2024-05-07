@@ -21,3 +21,11 @@ output "oidc_provider" {
 output "oidc_provider_arn" {
   value = module.eks.oidc_provider_arn
 }
+
+output "protected_binary_bucket_arn" {
+  value = module.protected_binary_mirror.bucket_arn
+}
+
+output "pr_binary_bucket_arn" {
+  value = module.pr_binary_mirror.bucket_arn
+}
