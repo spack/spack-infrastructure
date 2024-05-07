@@ -31,9 +31,11 @@ data "tls_certificate" "gitlab" {
 }
 
 resource "aws_iam_openid_connect_provider" "gitlab" {
-  url             = "https://${local.gitlab_domain}"
-  client_id_list  = keys(local.mirror_roles)
-  thumbprint_list = [data.tls_certificate.gitlab.certificates.0.sha1_fingerprint]
+  url            = "https://${local.gitlab_domain}"
+  client_id_list = keys(local.mirror_roles)
+
+  # Only use the last item in the list, since the first certificate is the root CA, and we don't want to use that.
+  thumbprint_list = [data.tls_certificate.gitlab.certificates[length(data.tls_certificate.gitlab.certificates) - 1].sha1_fingerprint]
 }
 
 data "aws_iam_policy_document" "gitlab_oidc_assume_role" {
