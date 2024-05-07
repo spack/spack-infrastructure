@@ -20,7 +20,7 @@ spec:
     spec:
       chart: gitlab-runner
       # Note: ensure this stays in sync with the `helper_image` field below
-      version: 0.64.0 # gitlab-runner@16.11.0
+      version: 0.64.1 # gitlab-runner@16.11.1
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v2-prot-windows
@@ -96,7 +96,7 @@ spec:
 
             # Image for windows 2022, runner helper
             image = "mcr.microsoft.com/windows/servercore:ltsc2022"
-            helper_image = "gitlab/gitlab-runner-helper:x86_64-v16.11.0-servercore21H2"
+            helper_image = "gitlab/gitlab-runner-helper:x86_64-v16.11.1-servercore21H2"
 
             # CPU requests/limits
             cpu_request = "750m"
