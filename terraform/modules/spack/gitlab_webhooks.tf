@@ -22,13 +22,23 @@ data "gitlab_user" "spackbot" {
   username = "spackbot"
 }
 
+locals {
+  webhook_handler_token_expires_at = "2024-12-03"
+}
+
 resource "gitlab_personal_access_token" "webhook_handler" {
-  user_id = data.gitlab_user.spackbot.id
-  name    = "Webhook handler token"
-  # TODO: How to deal with this expiring
-  expires_at = "2024-12-03"
+  user_id    = data.gitlab_user.spackbot.id
+  name       = "Webhook handler token"
+  expires_at = local.webhook_handler_token_expires_at
 
   scopes = ["read_api", "read_repository"]
+
+  lifecycle {
+    precondition {
+      condition     = timecmp(timestamp(), "${local.webhook_handler_token_expires_at}T00:00:00Z") == -1
+      error_message = "The token has expired. Please update the expires_at date."
+    }
+  }
 }
 
 resource "random_password" "webhook_handler" {
