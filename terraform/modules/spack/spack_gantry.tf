@@ -79,6 +79,14 @@ resource "gitlab_personal_access_token" "spack_gantry" {
   }
 }
 
+resource "gitlab_project_hook" "spack_gantry" {
+  project                 = data.gitlab_project.spack.id
+  url                     = "http://spack-gantry.spack.svc.cluster.local/v1/collect"
+  job_events              = true
+  push_events             = false
+  enable_ssl_verification = false
+}
+
 resource "kubectl_manifest" "spack_gantry_service_account" {
   yaml_body = <<-YAML
     apiVersion: v1
