@@ -7,11 +7,13 @@ import stat
 import subprocess
 import tempfile
 from concurrent.futures import as_completed, ThreadPoolExecutor
+from datetime import datetime, timedelta
 from threading import current_thread
 from typing import Callable, Dict, List, Optional
 
 import botocore.exceptions
 import boto3.session
+import gitlab
 import requests
 
 
@@ -25,7 +27,25 @@ class BuiltSpec:
         self.archive = archive
 
 
+GITLAB_URL = "https://gitlab.spack.io"
+GITLAB_PROJECT = "spack/spack"
 PREFIX_REGEX = re.compile(r"/build_cache/(.+)$")
+PROTECTED_REF_REGEXES = [
+    re.compile(r"^develop$"),
+    re.compile(r"^v[\d]+\.[\d]+\.[\d]+$"),
+    re.compile(r"^releases/v[\d]+\.[\d]+$"),
+    re.compile(r"^develop-[\d]{4}-[\d]{2}-[\d]{2}$"),
+]
+
+
+################################################################################
+#
+def is_ref_protected(ref):
+    for regex in PROTECTED_REF_REGEXES:
+        m = regex.match(ref)
+        if m:
+            return True
+    return False
 
 
 ################################################################################
@@ -149,19 +169,32 @@ def publish(
         for (_, stacks_dict) in missing_at_top.items()
     ]
 
-    # Dispatch work tasks with our s3_client
-    with ThreadPoolExecutor(max_workers=parallel) as executor:
-        futures = [executor.submit(publish_missing_spec, *task) for task in task_list]
-        for future in as_completed(futures):
-            try:
-                result = future.result()
-            except Exception as exc:
-                print(f"Exception: {exc}")
-            else:
-                if not result[0]:
-                    print(f"Publishing failed: {result[1]}")
+    if task_list:
+        # Dispatch work tasks with our s3_client
+        with ThreadPoolExecutor(max_workers=parallel) as executor:
+            futures = [
+                executor.submit(publish_missing_spec, *task) for task in task_list
+            ]
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    print(f"Exception: {exc}")
                 else:
-                    print(result[1])
+                    if not result[0]:
+                        print(f"Publishing failed: {result[1]}")
+                    else:
+                        print(result[1])
+
+        # When all the tasks are finished, rebuild the top-level index
+        mirror_url = f"s3://{bucket}/{ref}"
+        spack_root = os.environ["SPACK_ROOT"]
+        subprocess.run(
+            [f"{spack_root}/bin/spack", "buildcache", "update-index", mirror_url],
+            check=True,
+        )
+    else:
+        print(f"No specs missing from s3://{bucket}/{ref}, nothing to do.")
 
 
 ################################################################################
@@ -349,6 +382,24 @@ def generate_spec_catalogs(
 
 
 ################################################################################
+#
+def get_recently_run_protected_refs():
+    gl = gitlab.Gitlab(GITLAB_URL)
+    project = gl.projects.get(GITLAB_PROJECT)
+    now = datetime.now()
+    yesterday = now - timedelta(days=1)
+    recent_protected_refs = set()
+    print("Piplines in the last day:")
+    for pipeline in project.pipelines.list(
+        iterator=True, updated_before=now, updated_after=yesterday
+    ):
+        print(f"  {pipeline.id}: {pipeline.ref}")
+        if is_ref_protected(pipeline.ref):
+            recent_protected_refs.add(pipeline.ref)
+    return list(recent_protected_refs)
+
+
+################################################################################
 # If the cli didn't provide a working directory, we will create (and clean up)
 # a temporary directory.
 def get_workdir_context(workdir: Optional[str] = None):
@@ -370,7 +421,10 @@ def main():
         "-b", "--bucket", default="spack-binaries", help="Bucket to operate on"
     )
     parser.add_argument(
-        "-r", "--ref", default="develop", help="Ref to publish from stacks to root"
+        "-r",
+        "--ref",
+        default="develop",
+        help="Ref to publish from stacks to root, or 'recent' to publish any protected refs that had a pipeline recently",
     )
     parser.add_argument(
         "-f",
@@ -398,8 +452,26 @@ def main():
 
     args = parser.parse_args()
 
-    with get_workdir_context(args.workdir) as workdir:
-        publish(args.bucket, args.ref, args.exclude, args.force, args.parallel, workdir)
+    if args.ref == "recent":
+        refs = get_recently_run_protected_refs()
+    else:
+        refs = [args.ref]
+
+    exceptions = []
+
+    for ref in refs:
+        with get_workdir_context(args.workdir) as workdir:
+            print(f"Publishing missing specs for {args.bucket} / {ref}")
+            try:
+                publish(
+                    args.bucket, ref, args.exclude, args.force, args.parallel, workdir
+                )
+            except Exception as e:
+                print(f"Error publishing specs for {args.bucket} / {ref} due to {e}")
+                exceptions.append(e)
+
+    if exceptions:
+        raise exceptions[0]
 
 
 ################################################################################

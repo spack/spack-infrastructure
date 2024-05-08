@@ -1,8 +1,7 @@
 import json
 
-with open("./index_2024-04-29T08-29-50.json") as f:
+with open("/tmp/index.json") as f:
     index_data = json.load(f)
-
 
 installs = index_data["database"]["installs"]
 
