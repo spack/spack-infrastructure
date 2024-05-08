@@ -79,12 +79,17 @@ resource "gitlab_personal_access_token" "spack_gantry" {
   }
 }
 
+resource "random_password" "spack_gantry_token" {
+  length = 32
+}
+
 resource "gitlab_project_hook" "spack_gantry" {
   project                 = data.gitlab_project.spack.id
   url                     = "http://spack-gantry.spack.svc.cluster.local/v1/collect"
   job_events              = true
   push_events             = false
   enable_ssl_verification = false
+  token                   = random_password.spack_gantry_token.result
 }
 
 resource "kubectl_manifest" "spack_gantry_service_account" {
@@ -133,5 +138,6 @@ resource "kubectl_manifest" "spack_gantry_secrets" {
       namespace: spack
     data:
       gitlab_api_token: ${base64encode("${gitlab_personal_access_token.spack_gantry.token}")}
+      gitlab_webhook_token: ${base64encode("${random_password.spack_gantry_token.result}")}
   YAML
 }
