@@ -9,6 +9,12 @@ resources:
 - ../../production/runners/public/x86_64/v2/release.yaml
 - ../../production/runners/public/x86_64/v3/release.yaml
 - ../../production/runners/public/x86_64/v4/release.yaml
+- ../../production/runners/protected/graviton/2/release.yaml
+- ../../production/runners/protected/graviton/3/release.yaml
+- ../../production/runners/protected/x86_64/v2/release.yaml
+- ../../production/runners/protected/x86_64/v3/release.yaml
+- ../../production/runners/protected/x86_64/v4/release.yaml
+- ../../production/runners/signing/release.yaml
 
 patchesStrategicMerge:
   - rm-secrets.yaml
@@ -66,6 +72,60 @@ patches:
   - target:
       kind: HelmRelease
       name: runner-x86-v4-pub
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-graviton2-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-graviton3-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-x86-v2-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-x86-v3-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-x86-v4-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-spack-package-signing
       namespace: gitlab
     patch: |-
       - op: replace
