@@ -39,7 +39,6 @@ spec:
         configMap:
           # see terraform/modules/spack/spack_gantry.tf
           name: spack-gantry-config
-          namespace: spack
 
       # Initialize using Litestream to restore data automatically
       # before starting the application.
@@ -52,12 +51,12 @@ spec:
           mountPath: /var/lib/gantry
         - name: configmap
           mountPath: /etc/litestream.yml
-          subPath: litestream.yml
+          subPath: litestream-config.yaml
 
       # litestream and the application share a PVC data directory.
       containers:
       - name: web
-        image: "ghcr.io/spack/spack-gantry:latest"
+        image: "ghcr.io/spack/spack-gantry:develop"
         imagePullPolicy: Always
         resources:
           # measurements taken from running the application and sending constant traffic to the API endpoints
@@ -100,6 +99,6 @@ spec:
           mountPath: /var/lib/gantry
         - name: configmap
           mountPath: /etc/litestream.yml
-          subPath: litestream.yml
+          subPath: litestream-config.yaml
       nodeSelector:
         spack.io/node-pool: base
