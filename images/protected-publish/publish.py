@@ -15,6 +15,7 @@ import boto3.session
 import gitlab
 import requests
 
+SPACK_REPO = "https://github.com/spack/spack"
 GITLAB_URL = "https://gitlab.spack.io"
 GITLAB_PROJECT = "spack/spack"
 PREFIX_REGEX = re.compile(r"/build_cache/(.+)$")
@@ -186,15 +187,44 @@ def publish(
                         print(result[1])
 
         # When all the tasks are finished, rebuild the top-level index
+        clone_spack(ref)
         mirror_url = f"s3://{bucket}/{ref}"
-        spack_root = os.environ["SPACK_ROOT"]
         print(f"Publishing complete, rebuilding index at {mirror_url}")
         subprocess.run(
-            [f"{spack_root}/bin/spack", "buildcache", "update-index", mirror_url],
+            ["/spack/bin/spack", "buildcache", "update-index", mirror_url],
             check=True,
         )
     else:
         print(f"No specs missing from s3://{bucket}/{ref}, nothing to do.")
+
+
+################################################################################
+# Each mirror we might publish was built with a particular version of spack, and
+# in order to be able update the index for one of those mirrors, we need to
+# clone the matching version of spack.
+def clone_spack(ref: str):
+    if os.path.isdir("/spack"):
+        shutil.rmtree("/spack")
+
+    owd = os.getcwd()
+
+    try:
+        os.chdir("/")
+        subprocess.run(
+            [
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                "--single-branch",
+                "--branch",
+                f"{ref}",
+                SPACK_REPO,
+            ],
+            check=True,
+        )
+    finally:
+        os.chdir(owd)
 
 
 ################################################################################
@@ -286,7 +316,7 @@ def print_summary(missing_at_top: Dict[str, Dict[str, BuiltSpec]]):
 
     if incomplete_pairs:
         print(f"Stacks with incomplete pairs, by hash:")
-        for hash, stacks in incomplete_pairs:
+        for hash, stacks in incomplete_pairs.items():
             borked_stacks = ",".join(stacks)
             print(f"  {hash}: {borked_stacks}")
 
