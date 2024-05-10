@@ -132,16 +132,6 @@ def publish(
     if not os.path.isfile(listing_file) or force:
         list_prefix_contents(list_url, listing_file)
 
-    gnu_pg_home = os.path.join(workdir, ".gnupg")
-
-    if os.path.isdir(gnu_pg_home) and force is True:
-        shutil.rmtree(gnu_pg_home)
-
-    if not os.path.isdir(gnu_pg_home):
-        mode_owner_rwe = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
-        os.makedirs(gnu_pg_home, mode=mode_owner_rwe)
-        download_and_import_key(gnu_pg_home, workdir)
-
     # Build dictionaries of specs existing at the root and within stacks
     all_stack_specs, top_level_specs = generate_spec_catalogs(
         ref, listing_file, exclude
@@ -152,9 +142,17 @@ def publish(
 
     print_summary(missing_at_top)
 
+    if not missing_at_top:
+        print(f"No specs missing from s3://{bucket}/{ref}, nothing to do.")
+        return
+
+    gnu_pg_home = os.path.join(workdir, ".gnupg")
+    download_and_import_key(gnu_pg_home, workdir, force)
+
     session = boto3.session.Session()
     s3_client = session.client("s3")
 
+    # Build a list of tasks for threads
     task_list = [
         (
             s3_client,
@@ -169,33 +167,28 @@ def publish(
         for (_, stacks_dict) in missing_at_top.items()
     ]
 
-    if task_list:
-        # Dispatch work tasks
-        with ThreadPoolExecutor(max_workers=parallel) as executor:
-            futures = [
-                executor.submit(publish_missing_spec, *task) for task in task_list
-            ]
-            for future in as_completed(futures):
-                try:
-                    result = future.result()
-                except Exception as exc:
-                    print(f"Exception: {exc}")
+    # Dispatch work tasks
+    with ThreadPoolExecutor(max_workers=parallel) as executor:
+        futures = [executor.submit(publish_missing_spec, *task) for task in task_list]
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+            except Exception as exc:
+                print(f"Exception: {exc}")
+            else:
+                if not result[0]:
+                    print(f"Publishing failed: {result[1]}")
                 else:
-                    if not result[0]:
-                        print(f"Publishing failed: {result[1]}")
-                    else:
-                        print(result[1])
+                    print(result[1])
 
-        # When all the tasks are finished, rebuild the top-level index
-        clone_spack(ref)
-        mirror_url = f"s3://{bucket}/{ref}"
-        print(f"Publishing complete, rebuilding index at {mirror_url}")
-        subprocess.run(
-            ["/spack/bin/spack", "buildcache", "update-index", mirror_url],
-            check=True,
-        )
-    else:
-        print(f"No specs missing from s3://{bucket}/{ref}, nothing to do.")
+    # When all the tasks are finished, rebuild the top-level index
+    clone_spack(ref)
+    mirror_url = f"s3://{bucket}/{ref}"
+    print(f"Publishing complete, rebuilding index at {mirror_url}")
+    subprocess.run(
+        ["/spack/bin/spack", "buildcache", "update-index", mirror_url],
+        check=True,
+    )
 
 
 ################################################################################
@@ -238,7 +231,16 @@ def list_prefix_contents(url: str, output_file: str):
 
 ################################################################################
 #
-def download_and_import_key(gpg_home: str, tmpdir: str):
+def download_and_import_key(gpg_home: str, tmpdir: str, force: bool):
+    if os.path.isdir(gpg_home):
+        if force is True:
+            shutil.rmtree(gpg_home)
+        else:
+            return
+
+    mode_owner_rwe = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
+    os.makedirs(gpg_home, mode=mode_owner_rwe)
+
     public_key_url = "https://spack.github.io/keys/spack-public-binary-key.pub"
     public_key_id = "2C8DD3224EF3573A42BD221FA8E0CA3C1C2ADA2F"
 
