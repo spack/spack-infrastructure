@@ -288,7 +288,13 @@ def find_top_level_missing(
 
     for hash, stack_specs in all_stack_specs.items():
         if hash not in top_level_specs:
-            missing_at_top[hash] = stack_specs
+            for stack, built_spec in stack_specs.items():
+                # Only if at least one stack has a "complete" (both
+                # meta and archive are present) version of the spec
+                # do we really consider it missing from the root.
+                if built_spec.meta and built_spec.archive:
+                    viables = find_or_add(hash, missing_at_top, dict)
+                    viables[stack] = built_spec
 
     return missing_at_top
 
