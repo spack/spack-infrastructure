@@ -8,24 +8,12 @@ import subprocess
 import tempfile
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from datetime import datetime, timedelta
-from threading import current_thread
 from typing import Callable, Dict, List, Optional
 
 import botocore.exceptions
 import boto3.session
 import gitlab
 import requests
-
-
-################################################################################
-# Encapsulate information about a built spec in a mirror
-class BuiltSpec:
-    def __init__(self, hash=None, stack=None, meta=None, archive=None):
-        self.hash = hash
-        self.stack = stack
-        self.meta = meta
-        self.archive = archive
-
 
 GITLAB_URL = "https://gitlab.spack.io"
 GITLAB_PROJECT = "spack/spack"
@@ -39,7 +27,17 @@ PROTECTED_REF_REGEXES = [
 
 
 ################################################################################
-#
+# Encapsulate information about a built spec in a mirror
+class BuiltSpec:
+    def __init__(self, hash=None, stack=None, meta=None, archive=None):
+        self.hash = hash
+        self.stack = stack
+        self.meta = meta
+        self.archive = archive
+
+
+################################################################################
+# Check if the given ref matches one of the expected protected refs above.
 def is_ref_protected(ref):
     for regex in PROTECTED_REF_REGEXES:
         m = regex.match(ref)
@@ -113,6 +111,7 @@ def publish_missing_spec(s3_client, built_spec, bucket, ref, force, gpg_home, tm
 #         5c) If not valid signature, QUIT
 #         5d) Try to copy archive file from src to dst, and quit if you can't
 #         5e) Try to copy metadata file from src to dst
+#     6) Once all threads complete, rebuild the remote mirror index
 #
 def publish(
     bucket: str,
@@ -130,7 +129,7 @@ def publish(
         os.makedirs(tmp_storage_dir)
 
     if not os.path.isfile(listing_file) or force:
-        get_mirror_contents(list_url, listing_file)
+        list_prefix_contents(list_url, listing_file)
 
     gnu_pg_home = os.path.join(workdir, ".gnupg")
 
@@ -158,7 +157,7 @@ def publish(
     task_list = [
         (
             s3_client,
-            # Duplicates are effectively identical, just take the first one
+            # Duplicates are effectively identical, just take the "first" one
             next(iter(stacks_dict.values())),
             bucket,
             ref,
@@ -170,7 +169,7 @@ def publish(
     ]
 
     if task_list:
-        # Dispatch work tasks with our s3_client
+        # Dispatch work tasks
         with ThreadPoolExecutor(max_workers=parallel) as executor:
             futures = [
                 executor.submit(publish_missing_spec, *task) for task in task_list
@@ -189,6 +188,7 @@ def publish(
         # When all the tasks are finished, rebuild the top-level index
         mirror_url = f"s3://{bucket}/{ref}"
         spack_root = os.environ["SPACK_ROOT"]
+        print(f"Publishing complete, rebuilding index at {mirror_url}")
         subprocess.run(
             [f"{spack_root}/bin/spack", "buildcache", "update-index", mirror_url],
             check=True,
@@ -199,7 +199,7 @@ def publish(
 
 ################################################################################
 #
-def get_mirror_contents(url: str, output_file: str):
+def list_prefix_contents(url: str, output_file: str):
     list_cmd = ["aws", "s3", "ls", "--recursive", url]
 
     with open(output_file, "w") as f:
@@ -305,14 +305,16 @@ def find_or_add(key: str, d: dict, ctor: Callable):
 # specs exist in stacks, and which exist in the top-level buildcache.
 #
 #     (
-#         stack_specs = {
+#         # First element of tuple is the stack specs
+#         {
 #             <hash>: {
 #                 <stack>: <BuiltSpec>,
 #                 ...
 #             },
 #             ...
 #         },
-#         top_level_specs = {
+#         # Followed by specs at the top level
+#         {
 #             <hash>: <BuiltSpec>,
 #             ...
 #         }
@@ -350,8 +352,6 @@ def generate_spec_catalogs(
                 spec.archive = m.group(0)
                 continue
 
-            # Now we've ruled out its a top level spec
-
             m = stack_meta_regex.search(line)
             if m:
                 stack = m.group(1)
@@ -382,16 +382,17 @@ def generate_spec_catalogs(
 
 
 ################################################################################
-#
-def get_recently_run_protected_refs():
+# Filter through pipelines updated over the last_n_days to find all protected
+# branches that had a pipeline run.
+def get_recently_run_protected_refs(last_n_days):
     gl = gitlab.Gitlab(GITLAB_URL)
     project = gl.projects.get(GITLAB_PROJECT)
     now = datetime.now()
-    yesterday = now - timedelta(days=1)
+    previous = now - timedelta(days=last_n_days)
     recent_protected_refs = set()
-    print("Piplines in the last day:")
+    print(f"Piplines in the last {last_n_days} day(s):")
     for pipeline in project.pipelines.list(
-        iterator=True, updated_before=now, updated_after=yesterday
+        iterator=True, updated_before=now, updated_after=previous
     ):
         print(f"  {pipeline.id}: {pipeline.ref}")
         if is_ref_protected(pipeline.ref):
@@ -412,6 +413,9 @@ def get_workdir_context(workdir: Optional[str] = None):
 ################################################################################
 # Entry point
 def main():
+    start_time = datetime.now()
+    print(f"Publish script started at {start_time}")
+
     parser = argparse.ArgumentParser(
         prog="publish.py",
         description="Publish specs from stack-specific mirrors to the root",
@@ -424,7 +428,20 @@ def main():
         "-r",
         "--ref",
         default="develop",
-        help="Ref to publish from stacks to root, or 'recent' to publish any protected refs that had a pipeline recently",
+        help=(
+            "A single protected ref to publish, or else 'recent', to "
+            "publish any protected refs that had a pipeline recently"
+        ),
+    )
+    parser.add_argument(
+        "-d",
+        "--days",
+        type=int,
+        default=1,
+        help=(
+            "Number of days to look backward for recent protected "
+            "pipelines (only used if `--ref recent` is provided)"
+        ),
     )
     parser.add_argument(
         "-f",
@@ -453,7 +470,7 @@ def main():
     args = parser.parse_args()
 
     if args.ref == "recent":
-        refs = get_recently_run_protected_refs()
+        refs = get_recently_run_protected_refs(args.days)
     else:
         refs = [args.ref]
 
@@ -467,10 +484,17 @@ def main():
                     args.bucket, ref, args.exclude, args.force, args.parallel, workdir
                 )
             except Exception as e:
+                # Swallow exceptions here so we can proceed with remaining refs,
+                # but save the exceptions to raise at the end.
                 print(f"Error publishing specs for {args.bucket} / {ref} due to {e}")
                 exceptions.append(e)
 
+    end_time = datetime.now()
+    elapsed = end_time - start_time
+    print(f"Publish script finished at {end_time}, elapsed time: {elapsed}")
+
     if exceptions:
+        # Re-raise the first exception encountered, so we can see it in Sentry.
         raise exceptions[0]
 
 
