@@ -32,14 +32,10 @@ spec:
       valuesKey: values.yaml
 
   values:
-    image:
-      image: gitlab-org/gitlab-runner
-      tag: alpine-v16.7.0
     imagePullPolicy: IfNotPresent
-    replicas: 1
+    replicas: 6
 
-    # TODO: change to production when ready
-    gitlabUrl: "https://gitlab.staging.spack.io/"
+    gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600 # six hours
     concurrent: 20
@@ -80,36 +76,34 @@ spec:
 
           shell = "powershell"
           executor = "kubernetes"
-          output_limit = 4096
+          output_limit = 20480
 
           # Ensure windows paths are used
           [runners.feature_flags]
             FF_USE_POWERSHELL_PATH_RESOLVER = true
 
           [runners.kubernetes]
-            namespace = "pipeline"
-            service_account = "runner"
-            # Allow 30 minutes for the pod to be ready. This is necessary because
-            # the windows docker image can take a significantly long time to pull.
-            poll_timeout = 1800
             privileged = false
+            helper_memory_request = "1"
+
+            cpu_request = "750m"
+            cpu_request_overwrite_max_allowed = "12"
+
+            memory_request = "2G"
+            memory_request_overwrite_max_allowed = "64G"
+            memory_limit = "64G"
+            memory_limit_overwrite_max_allowed = "64G"
+
+            namespace = "pipeline"
+            # Allow 30 minutes for the pod to be ready. This is necessary because
+            # the windows docker image can take a significantly long time to pull/boot.
+            poll_timeout = 1800
+            service_account = "runner"
 
             # Image for windows 2022, runner helper
             image = "mcr.microsoft.com/windows/servercore:ltsc2022"
             helper_image = "gitlab/gitlab-runner-helper:x86_64-v16.11.1-servercore21H2"
 
-            # CPU requests/limits
-            cpu_request = "750m"
-            cpu_request_overwrite_max_allowed = "12"
-
-            # Memory requests/limits
-            helper_memory_request = "1"
-            memory_request = "2G"
-            memory_request_overwrite_max_allowed = "48G"
-            memory_limit = "48G"
-            memory_limit_overwrite_max_allowed = "48G"
-
-            # Storage requests/limits
             ephemeral_storage_request = "500M"
             helper_ephemeral_storage_request = "500M"
 
@@ -157,6 +151,11 @@ spec:
               "spack.io/runner-taint=true" = "NoSchedule"
               "windows=true" = "NoSchedule"
 
+            [[runners.kubernetes.volumes.secret]]
+              name = "spack-intermediate-ci-signing-key"
+              mount_path = "C:\\key"
+              read_only = true
+
       # default image
       image: "mcr.microsoft.com/windows/servercore:ltsc2022"
       imagePullPolicy: "if-not-present"
@@ -166,7 +165,9 @@ spec:
       runUntagged: false
 
       tags: "spack,protected,small,medium,win64,x86_64-win,x86_64_v2-win,aws"
-      secret: gitlab-gitlab-runner-secret # from gitlab release
+      secret: spack-project-runner-registration-token
+
+      serviceAccountName: runner
 
       cache: {}
 
