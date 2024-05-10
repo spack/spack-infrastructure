@@ -151,6 +151,11 @@ spec:
               "spack.io/runner-taint=true" = "NoSchedule"
               "windows=true" = "NoSchedule"
 
+            [[runners.kubernetes.volumes.secret]]
+              name = "spack-intermediate-ci-signing-key"
+              mount_path = "C:\\key"
+              read_only = true
+
       # default image
       image: "mcr.microsoft.com/windows/servercore:ltsc2022"
       imagePullPolicy: "if-not-present"
