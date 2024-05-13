@@ -30,7 +30,13 @@ PROTECTED_REF_REGEXES = [
 ################################################################################
 # Encapsulate information about a built spec in a mirror
 class BuiltSpec:
-    def __init__(self, hash=None, stack=None, meta=None, archive=None):
+    def __init__(
+        self,
+        hash: Optional[str] = None,
+        stack: Optional[str] = None,
+        meta: Optional[str] = None,
+        archive: Optional[str] = None,
+    ):
         self.hash = hash
         self.stack = stack
         self.meta = meta
@@ -100,19 +106,20 @@ def publish_missing_spec(s3_client, built_spec, bucket, ref, force, gpg_home, tm
 #     1) Get a listing of the bucket contents.  This will include entries for
 #        metadata and archive files for all specs at the root as well as in all
 #        stacks
-#     2) Download and trust the public part of the reputational signing key
-#     3) Use regular expressions to build dictionaries of all hashes in the
+#     2) Use regular expressions to build dictionaries of all hashes in the
 #        stack mirrors, as well as all hashes at the root.  Stored information
 #        for each includes url (path) to metadata and archive file.
-#     4) Determine which specs are missing from the root (should contain union
+#     3) Determine which specs are missing from the root (should contain union
 #        of all specs in stacks)
-#     5) In parallel, publish any missing specs:
-#         5a) Download meta file from stack mirror
-#         5b) Verify signature of metadata file
-#         5c) If not valid signature, QUIT
-#         5d) Try to copy archive file from src to dst, and quit if you can't
-#         5e) Try to copy metadata file from src to dst
-#     6) Once all threads complete, rebuild the remote mirror index
+#     4) If no specs are missing from the top level, quit
+#     5) Download and trust the public part of the reputational signing key
+#     6) In parallel, publish any missing specs:
+#         6a) Download meta file from stack mirror
+#         6b) Verify signature of metadata file
+#         6c) If not valid signature, QUIT
+#         6d) Try to copy archive file from src to dst, and quit if you can't
+#         6e) Try to copy metadata file from src to dst
+#     7) Once all threads complete, rebuild the remote mirror index
 #
 def publish(
     bucket: str,
