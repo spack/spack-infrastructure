@@ -65,6 +65,10 @@ spec:
           $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
 
           & python $scriptPath | Out-File -FilePath 'envvars.ps1' -Encoding utf8
+          if ($LASTEXITCODE -ne 0) {
+            Write-Output "Prebuild script pre_build.py failed with exit code $LASTEXITCODE. See error above for more info"
+            exit 1
+          }
 
           ./envvars.ps1
 
