@@ -143,10 +143,10 @@ spec:
           # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
           limits:
             cpu: 12
-            memory: 7G
+            memory: 20G
           requests:
             cpu: 4
-            memory: 5G
+            memory: 14G
         nodeSelector:
           spack.io/node-pool: gitlab
       gitlab-exporter:
