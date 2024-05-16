@@ -257,3 +257,21 @@ class OrphanPruner(BasePruner):
         #     print("\n".join(self.unmatched_binaries))
 
         return self.prunable_hashes
+
+
+def pruner_factory(cache, args, keep_hashes=[], since=None):
+    """ Factory with variable args a kwargs """
+    # make sure only one type was supplied
+    type_sum = int(args.direct) + int(args.orphaned) + int(args.check_index)
+    assert type_sum == 1
+
+    if args.direct:
+        return DirectPruner(cache, keep_hashes, args)
+    elif args.orphaned:
+        return OrphanPruner(cache, since, args)
+    elif args.check_index:
+        return IndexPruner(cache, keep_hashes, args)
+    else:
+        raise Exception("Pruner type not implemented")
+
+

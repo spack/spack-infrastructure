@@ -99,7 +99,7 @@ class FileSystemBuildCache(BuildCache):
     def get_index(self):
         key = f"{self.url.path}index.json"
         obj = next(self.list(key=key))
-        print("Fetching: ", key, obj)
+        print("Fetching: ", key)
         try:
             response = obj.get()
             index = helper.load_json(response)
