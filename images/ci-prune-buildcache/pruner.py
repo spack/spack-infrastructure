@@ -52,11 +52,13 @@ class BasePruner:
                 hashes.append(h)
 
         self.prunable_hashes.update(hashes)
+        print(self.prunable_hashes)
         return self.prunable_hashes
 
     def _prune_buildcache(self, obj: Object):
         """ Apply pruning to buildcache object
         """
+        breakpoint()
         prunit = self._is_prunable(obj)
         return obj, prunit
 
@@ -67,6 +69,7 @@ class BasePruner:
             ext : extension(s) to filter by
         """
         for obj in self.buildcache.list(ignore=lambda o: ext and not o.endswith(ext)):
+            breakpoint()
             if wrapped:
                 yield (obj,)
             else:
@@ -135,12 +138,13 @@ class DirectPruner(BasePruner):
         # keep_hashes list
         if obj.key.endswith(self.tarball_ext):
             if obj.last_modified.timestamp() > self.start_date.timestamp():
-                # print(f"{obj.key} is too new")
+                print(f"{obj.key} is too new")
                 return False
 
         return BasePruner._is_prunable(self, obj)
 
     def determine_prunable_hashes(self):
+        breakpoint()
         if not self.prunable_hashes:
             # Direct pruning requires filtering tarballs first due to one day buffer
             hashes: list = []

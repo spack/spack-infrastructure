@@ -91,13 +91,16 @@ def configure_parser():
 if __name__=="__main__":
 
     args = configure_parser().parse_args()
+    keep_hashes=[]
+    if args.keep_hashes:
+        keep_hashes = helper.load_json(args.keep_hashes)
 
     cache = FileSystemBuildCache(args.path)
 
     now = datetime.fromisoformat(args.start_date)
     time_window = now - timedelta(days=args.since_days)
 
-    pruner = pruner_factory(cache, args, since=time_window)
+    pruner = pruner_factory(cache, args, keep_hashes, since=time_window)
 
     print("--   Computing prunable hashes")
     prunable_hashes = pruner.determine_prunable_hashes()
