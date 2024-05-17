@@ -111,7 +111,10 @@ if __name__=="__main__":
     if prunable_hashes:
         print("--   Finding prunable files")
         pruned.extend(pruner.prune(prunable_hashes))
+        pruned_keys = [ obj.key for obj in pruned ]
         print(f"--   Found prunable {len(pruned)} files in buildcache")
+        with open(f"files_to_prune.json", "w") as fd:
+            helper.write_json(fd, pruned_keys)
     else:
         print("--   Nothing to prune")
 

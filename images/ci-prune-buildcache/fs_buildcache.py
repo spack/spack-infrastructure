@@ -74,8 +74,11 @@ class FileSystemBuildCache(BuildCache):
         processes = min(stride, processes)
 
         def delete_keys_f(i: int):
-            # TODO need to implement
-            return { "Deleted": [key for key in delete_keys[i:nkeys:stride]]}
+            deleted = []
+            for key in delete_keys[i:nkeys:stride]:
+                shutil.rmtree(key)
+                deleted.append(key)
+            return { "Deleted": deleted}
 
         failures  = []
         errors = []
@@ -93,8 +96,17 @@ class FileSystemBuildCache(BuildCache):
         return errors, failures
 
     def _list(self):
-        for dir_obj in os.scandir(self.url.path):
-            yield FileSystemObject(dir_obj)
+        def traverse_directory(directory):
+            for entry in os.scandir(directory):
+                if entry.is_file():
+                    yield entry
+                elif entry.is_dir():
+                    yield from traverse_directory(entry.path)
+
+        for file_obj in traverse_directory(self.url.path):
+            yield FileSystemObject(file_obj)
+
+
 
     def get_index(self):
         key = f"{self.url.path}index.json"
