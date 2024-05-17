@@ -74,24 +74,38 @@ class FileSystemBuildCache(BuildCache):
         processes = min(stride, processes)
 
         def delete_keys_f(i: int):
+            """
+            Delete keys/files and parent directory if it is empty
+            after the key has been removed
+            """
             deleted = []
+            errors = []
+            failures = []
             for key in delete_keys[i:nkeys:stride]:
-                shutil.rmtree(key)
-                deleted.append(key)
-            return { "Deleted": deleted}
+                parent_directory = os.path.dirname(key)
+                try:
+                    os.remove(key)
+                    if  not os.listdir(parent_directory):
+                        os.rmdir(parent_directory)
+                    deleted.append(key)
+                except PermissionError:
+                    failures.append((key, "permissions"))
+                except FileNotFoundError:
+                    errors.append((key, "file not found"))
+            return { "Deleted": deleted, "Errors": errors, "Failures": failures}
 
         failures  = []
         errors = []
         if processes > 1:
             with pool.ThreadPool(processes) as tp:
                 for response in tp.imap_unordered(helper.star(delete_keys_f), [(i,) for i in range(stride)]):
-                    failures.extend([obj for obj in response.get("Deleted", []) if not obj["DeleteMarker"]])
                     errors.extend(response.get("Errors", []))
+                    failures.extend(response.get("Failures", []))
         else:
             for i in range(stride):
                 response = delete_keys_f(i)
-                failures.extend([obj for obj in response.get("Deleted", []) if not obj["DeleteMarker"]])
                 errors.extend(response.get("Errors", []))
+                failures.extend(response.get("Failures", []))
 
         return errors, failures
 

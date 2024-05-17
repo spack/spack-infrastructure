@@ -135,7 +135,7 @@ class DirectPruner(BasePruner):
         # keep_hashes list
         if obj.key.endswith(self.tarball_ext):
             if obj.last_modified.timestamp() > self.start_date.timestamp():
-                print(f"{obj.key} is too new")
+                # print(f"{obj.key} is too new")
                 return False
 
         return BasePruner._is_prunable(self, obj)

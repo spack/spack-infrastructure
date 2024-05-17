@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import helper
 import os
@@ -44,13 +45,8 @@ def configure_parser():
         metavar="keep.json",
     )
     parser.add_argument(
-        "--snapshot-dir",
-        help="Directory containering snapshots of mirrors."
-             "If it exists they will be loaded, if it does not they will be written",
-        metavar="DIR",
-    )
-    parser.add_argument(
         "-o", "--output-dir",
+        default=os.getcwd(),
         help="output directory",
     )
     parser.add_argument(
@@ -59,7 +55,7 @@ def configure_parser():
     )
     parser.add_argument(
         "-D", "--delete",
-        help="Dry run",
+        help="attempt to delete the files",
         action="store_true",
     )
 
@@ -91,6 +87,24 @@ def configure_parser():
 if __name__=="__main__":
 
     args = configure_parser().parse_args()
+
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    if args.check_index:
+        prune_method = "Index Based"
+    elif args.orphaned:
+        prune_method = "Orphaned"
+    elif args.direct:
+        prune_method = "Direct"
+    else:
+        prune_method = config.get("method", "Direct")
+
+    prune_method_safe = "_".join(prune_method.split()).lower()
+    if not args.suffix:
+        log_suffix = "_" + prune_method_safe
+    else:
+        log_suffix = args.suffix
+
     keep_hashes=[]
     if args.keep_hashes:
         keep_hashes = helper.load_json(args.keep_hashes)
@@ -104,17 +118,36 @@ if __name__=="__main__":
 
     print("--   Computing prunable hashes")
     prunable_hashes = pruner.determine_prunable_hashes()
-    with open(f"log.json", "w") as fd:
-        helper.write_json(fd, prunable_hashes)
+    prune_hash_file = f"{args.output_dir}/prunable-hashes-{log_suffix}.txt"
+    with open(f"{prune_hash_file}", "w") as fd:
+        fd.writelines("\n".join(prunable_hashes))
 
-    pruned = []
     if prunable_hashes:
         print("--   Finding prunable files")
-        pruned.extend(pruner.prune(prunable_hashes))
+
+        pruned = pruner.prune(prunable_hashes)
         pruned_keys = [ obj.key for obj in pruned ]
+
         print(f"--   Found prunable {len(pruned)} files in buildcache")
-        with open(f"files_to_prune.json", "w") as fd:
-            helper.write_json(fd, pruned_keys)
+
+        prune_list_file = f"{args.output_dir}/prunable-files-{log_suffix}.txt"
+        with open(f"{prune_list_file}", "w") as fd:
+            fd.writelines("\n".join(pruned_keys))
     else:
         print("--   Nothing to prune")
+
+    if args.delete:
+        print("-- Pruning build cache")
+        err, fail = cache.delete(prune_keys, process=args.nprocs)
+        fname_template = f"{args.output_dir}/delete-{{0}}-{log_suffix}.json"
+        if err:
+            print(f"errors found")
+            with open(fname_template.format("errors")) as fd:
+                helper.write_json(fd, err)
+
+        if fail:
+            print(f"failures found")
+            with open(fname_template.format("failures")) as fd:
+                helper.write_json(fd, fail)
+
 
