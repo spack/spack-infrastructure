@@ -150,15 +150,30 @@ class PackageDimension(models.Model):
         ]
 
 
-# class PackageHashDimension(models.Model):
-#     hash = models.CharField(max_length=64, unique=True)
+class PackageHashDimension(models.Model):
+    hash = models.CharField(max_length=32, unique=True)
 
 
-# class TimerPhaseDimension(models.Model):
-#     name = models.CharField(max_length=64)
-#     path = models.CharField(max_length=64)
-#     is_subphase = models.BooleanField()
+class TimerPhaseDimension(models.Model):
+    path = models.CharField(max_length=64, unique=True)
+    is_subphase = models.BooleanField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                name="consistent-subphase-path",
+                check=(
+                    models.Q(is_subphase=True, path__contains="/")
+                    | (models.Q(is_subphase=False) & ~models.Q(path__contains="/"))
+                ),
+            )
+        ]
 
 
-# class TimerDataDimension(models.Model):
-#     cache = models.BooleanField()
+class TimerDataDimension(models.Model):
+    cache = models.BooleanField()
+
+    class Meta:
+        unique_together = [
+            "cache",
+        ]
