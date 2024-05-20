@@ -117,7 +117,12 @@ if __name__=="__main__":
     pruner = pruner_factory(cache, args, keep_hashes, since=time_window)
 
     print("--   Computing prunable hashes")
-    prunable_hashes = pruner.determine_prunable_hashes()
+    prunable_hashes = []
+    if args.prune_hashes:
+        prunable_hashes.extend( helper.load_json(args.prune_hashes))
+    else:
+        prunable_hashes.extend(pruner.determine_prunable_hashes())
+
     prune_hash_file = f"{args.output_dir}/prunable-hashes-{log_suffix}.txt"
     with open(f"{prune_hash_file}", "w") as fd:
         fd.writelines("\n".join(prunable_hashes))
