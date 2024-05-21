@@ -7,12 +7,12 @@ from tqdm import tqdm
 
 from analytics.core.models import (
     DateDimension,
-    Job,
-    JobAttempt,
     JobDataDimension,
     JobFact,
-    JobPod,
-    Node,
+    LegacyJob,
+    LegacyJobAttempt,
+    LegacyJobPod,
+    LegacyNode,
     NodeCapacityType,
     NodeDimension,
     PackageDimension,
@@ -44,7 +44,7 @@ def create_all_times():
             pass
 
 
-def get_related_attr(obj: Node | JobPod | None, field: str):
+def get_related_attr(obj: LegacyNode | LegacyJobPod | None, field: str):
     if obj is None:
         return None
 
@@ -109,7 +109,7 @@ def migrate_data():
         )
 
     # Run through existing jobs and place data in new models
-    jobs = Job.objects.select_related("node", "pod").all()
+    jobs = LegacyJob.objects.select_related("node", "pod").all()
 
     # for job in tqdm(jobs.iterator(), total=jobs.count()):
     for job in tqdm(jobs):
@@ -158,7 +158,7 @@ def migrate_data():
         )
 
         # Get potential data from job_attempt model
-        job_attempt = JobAttempt.objects.filter(job_id=job.job_id).first()
+        job_attempt = LegacyJobAttempt.objects.filter(job_id=job.job_id).first()
         if job_attempt is None:
             is_retry = False
             is_manual_retry = False

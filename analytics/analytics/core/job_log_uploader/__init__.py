@@ -19,7 +19,7 @@ from analytics.core.job_failure_classifier import (
     _assign_error_taxonomy,
     _job_retry_data,
 )
-from analytics.core.models import JobAttempt
+from analytics.core.models import LegacyJobAttempt
 
 
 class JobLog(Document):
@@ -55,7 +55,7 @@ def _create_job_attempt(
     gl_job: ProjectJob,
     webhook_payload: dict[str, Any],
     job_trace: str,
-) -> JobAttempt:
+) -> LegacyJobAttempt:
     retry_info = _job_retry_data(
         job_id=gl_job.get_id(),
         job_name=gl_job.name,
@@ -68,7 +68,7 @@ def _create_job_attempt(
     if webhook_payload["build_status"] == "failed":
         _assign_error_taxonomy(webhook_payload, job_trace)
 
-    return JobAttempt.objects.create(
+    return LegacyJobAttempt.objects.create(
         job_id=gl_job.get_id(),
         project_id=project.get_id(),
         commit_id=webhook_payload["commit"]["id"],

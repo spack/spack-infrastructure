@@ -2,7 +2,7 @@ import json
 
 from gitlab.v4.objects import ProjectJob
 
-from analytics.core.models import Job, Timer, TimerPhase
+from analytics.core.models import LegacyJob, LegacyTimer, LegacyTimerPhase
 from analytics.job_processor.artifacts import get_job_artifacts_file
 
 
@@ -12,7 +12,7 @@ def get_timings_json(job: ProjectJob) -> list[dict]:
         return json.load(file)
 
 
-def create_build_timings(job: Job, gl_job: ProjectJob):
+def create_build_timings(job: LegacyJob, gl_job: ProjectJob):
     timings = get_timings_json(gl_job)
 
     # Iterate through each timer and create timers and phase results
@@ -25,11 +25,11 @@ def create_build_timings(job: Job, gl_job: ProjectJob):
 
         # Check for timer and skip if already exists
         pkghash = entry.get("hash")
-        if Timer.objects.filter(job=job, name=name, hash=pkghash).exists():
+        if LegacyTimer.objects.filter(job=job, name=name, hash=pkghash).exists():
             continue
 
         # Create timer
-        timer = Timer.objects.create(
+        timer = LegacyTimer.objects.create(
             job=job,
             name=name,
             hash=pkghash,
@@ -40,7 +40,7 @@ def create_build_timings(job: Job, gl_job: ProjectJob):
         # Add all phases to bulk phase list
         phases.extend(
             [
-                TimerPhase(
+                LegacyTimerPhase(
                     timer=timer,
                     name=phase["name"],
                     path=phase["path"],
@@ -53,4 +53,4 @@ def create_build_timings(job: Job, gl_job: ProjectJob):
         )
 
     # Bulk create phases
-    TimerPhase.objects.bulk_create(phases)
+    LegacyTimerPhase.objects.bulk_create(phases)

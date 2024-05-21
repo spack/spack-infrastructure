@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 import requests
 from kubernetes.utils.quantity import parse_quantity
 
-from analytics.core.models import Job, JobPod, Node
+from analytics.core.models import LegacyJob, LegacyJobPod, LegacyNode
 
 PROM_MAX_RESOLUTION = 10_000
 
@@ -116,7 +116,7 @@ class PrometheusClient:
             single_result=single_result,
         )
 
-    def annotate_resource_requests_and_limits(self, job: Job):
+    def annotate_resource_requests_and_limits(self, job: LegacyJob):
         """Annotate cpu and memory resource requests and limits."""
         pod = job.pod.name
 
@@ -170,7 +170,7 @@ class PrometheusClient:
             )
         )
 
-    def annotate_usage_and_occupancy(self, job: Job):
+    def annotate_usage_and_occupancy(self, job: LegacyJob):
         node = job.node.name
         pod = job.pod.name
 
@@ -219,7 +219,7 @@ class PrometheusClient:
         job.pod.max_mem = max(byte_values)
         job.pod.avg_mem = statistics.mean(byte_values)
 
-    def annotate_annotations_and_labels(self, job: Job):
+    def annotate_annotations_and_labels(self, job: LegacyJob):
         """Annotate the job model with any necessary fields, returning the pod it ran on."""
         try:
             annotations: dict = self.query_single(
@@ -233,7 +233,7 @@ class PrometheusClient:
 
         # job.pod is one-to-one and so is always created when a Job is created
         pod = annotations["pod"]
-        job.pod = JobPod(name=pod)
+        job.pod = LegacyJobPod(name=pod)
 
         # Get pod labels
         labels = self.query_single(
@@ -260,7 +260,7 @@ class PrometheusClient:
 
         return pod
 
-    def annotate_node_data(self, job: Job):
+    def annotate_node_data(self, job: LegacyJob):
         pod = job.pod.name
 
         # Use this for step value to have a pretty good guarauntee that we'll find the data,
@@ -284,7 +284,7 @@ class PrometheusClient:
         )["metric"]["system_uuid"]
 
         # Check if this node has already been created
-        existing_node = Node.objects.filter(
+        existing_node = LegacyNode.objects.filter(
             name=node_name, system_uuid=node_system_uuid
         ).first()
         if existing_node is not None:
@@ -292,7 +292,7 @@ class PrometheusClient:
             return
 
         # Create new node
-        node = Node(name=node_name, system_uuid=node_system_uuid)
+        node = LegacyNode(name=node_name, system_uuid=node_system_uuid)
 
         # Get node labels
         node_labels = self.query_single(
@@ -323,7 +323,7 @@ class PrometheusClient:
         # Save and set as job node
         job.node = node
 
-    def annotate_job(self, job: Job):
+    def annotate_job(self, job: LegacyJob):
         # The order of these functions is important, as they set values on `job` in a specific order
 
         # After this call, job.pod will be set

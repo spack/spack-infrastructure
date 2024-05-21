@@ -5,7 +5,7 @@ from contextlib import contextmanager
 import yaml
 from gitlab.v4.objects import ProjectJob
 
-from analytics.core.models import Job
+from analytics.core.models import LegacyJob
 
 
 class JobArtifactFileNotFound(Exception):
@@ -30,7 +30,7 @@ def get_job_artifacts_file(job: ProjectJob, filename: str):
                 raise JobArtifactFileNotFound(job, filename)
 
 
-def annotate_job_with_artifacts_data(gljob: ProjectJob, job: Job):
+def annotate_job_with_artifacts_data(gljob: ProjectJob, job: LegacyJob):
     """Fetch the artifacts of a job to retrieve info about it."""
     pipeline_yml_filename = "jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml"
     with get_job_artifacts_file(gljob, pipeline_yml_filename) as pipeline_file:

@@ -12,7 +12,7 @@ from django.db import transaction
 from gitlab.v4.objects import Project, ProjectJob
 
 from analytics import setup_gitlab_job_sentry_tags
-from analytics.core.models import Job
+from analytics.core.models import LegacyJob
 from analytics.job_processor.artifacts import annotate_job_with_artifacts_data
 from analytics.job_processor.build_timings import create_build_timings
 from analytics.job_processor.prometheus import (
@@ -25,9 +25,9 @@ UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match"
 
 def create_job(
     gl: gitlab.Gitlab, project: Project, gljob: ProjectJob, job_trace: str
-) -> Job:
+) -> LegacyJob:
     # Create base fields on job that are independent of where it ran
-    job = Job(
+    job = LegacyJob(
         job_id=gljob.get_id(),
         project_id=project.get_id(),
         name=gljob.name,

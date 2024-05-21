@@ -6,7 +6,7 @@ from analytics.core.models.dimensions import NodeCapacityType
 from analytics.core.models.facts import *  # noqa: F403
 
 
-class Node(models.Model):
+class LegacyNode(models.Model):
     name = models.CharField(max_length=64)
     system_uuid = models.UUIDField()
     cpu = models.PositiveIntegerField()
@@ -31,7 +31,7 @@ class Node(models.Model):
         ]
 
 
-class JobPod(models.Model):
+class LegacyJobPod(models.Model):
     """Information about the kubernetes pod that a job ran on."""
 
     name = models.CharField(max_length=128)
@@ -54,7 +54,7 @@ class JobPod(models.Model):
     memory_limit = models.PositiveBigIntegerField(null=True, default=None)
 
 
-class JobAttempt(models.Model):
+class LegacyJobAttempt(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -84,7 +84,7 @@ class JobAttempt(models.Model):
     )
 
 
-class Job(models.Model):
+class LegacyJob(models.Model):
     # Core job fields
     job_id = models.PositiveBigIntegerField(primary_key=True)
     project_id = models.PositiveBigIntegerField()
@@ -100,9 +100,9 @@ class Job(models.Model):
 
     # Node and pod will be null for non-aws jobs
     node = models.ForeignKey(
-        Node, related_name="jobs", on_delete=models.PROTECT, null=True
+        LegacyNode, related_name="jobs", on_delete=models.PROTECT, null=True
     )
-    pod = models.OneToOneField(JobPod, on_delete=models.PROTECT, null=True)
+    pod = models.OneToOneField(LegacyJobPod, on_delete=models.PROTECT, null=True)
 
     # Extra data fields (null allowed to accomodate historical data)
     package_version = models.CharField(max_length=128, null=True)
@@ -143,7 +143,7 @@ class Job(models.Model):
                 raise
 
         # Node already exists, set node field to the existing node
-        self.node = Node.objects.get(
+        self.node = LegacyNode.objects.get(
             name=self.node.name, system_uuid=self.node.system_uuid
         )
 
@@ -164,8 +164,8 @@ class Job(models.Model):
         ]
 
 
-class Timer(models.Model):
-    job = models.ForeignKey(Job, related_name="timers", on_delete=models.CASCADE)
+class LegacyTimer(models.Model):
+    job = models.ForeignKey(LegacyJob, related_name="timers", on_delete=models.CASCADE)
     name = models.CharField(max_length=256)
     time_total = models.FloatField()
     hash = models.CharField(max_length=128, null=True)
@@ -193,8 +193,10 @@ class Timer(models.Model):
         ]
 
 
-class TimerPhase(models.Model):
-    timer = models.ForeignKey(Timer, related_name="phases", on_delete=models.CASCADE)
+class LegacyTimerPhase(models.Model):
+    timer = models.ForeignKey(
+        LegacyTimer, related_name="phases", on_delete=models.CASCADE
+    )
     name = models.CharField(max_length=128)
     is_subphase = models.BooleanField(default=False)
     path = models.CharField(max_length=128)
@@ -207,7 +209,7 @@ class TimerPhase(models.Model):
         ]
 
 
-class ErrorTaxonomy(models.Model):
+class LegacyErrorTaxonomy(models.Model):
     job_id = models.PositiveBigIntegerField(primary_key=True)
 
     created = models.DateTimeField(auto_now_add=True)
