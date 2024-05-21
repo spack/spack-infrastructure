@@ -5,6 +5,8 @@ metadata:
   name: protected-publish
   namespace: custom
 spec:
+  # TODO: unsuspend once tested
+  suspend: true
   schedule: "0 */3 * * *" # At the start of every 3rd hour
   concurrencyPolicy: Forbid
   jobTemplate:
@@ -17,7 +19,7 @@ spec:
           containers:
           - name: protected-publish
             # TODO: Use the official published image
-            image: ghcr.io/scottwittenburg/protected-publish:0.0.1
+            image: ghcr.io/scottwittenburg/protected-publish:0.0.2
             imagePullPolicy: IfNotPresent
             resources:
               requests:
