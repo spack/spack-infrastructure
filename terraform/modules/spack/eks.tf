@@ -24,16 +24,18 @@ module "eks" {
   manage_aws_auth_configmap = true
   aws_auth_roles = [
     {
+      # Admin/superuser access to the cluster
       rolearn  = aws_iam_role.eks_cluster_access.arn
       username = "admin"
       groups   = ["system:masters"]
     },
     {
-      rolearn  = aws_iam_role.github_actions.arn,
-      username = "github-actions",
-      # See ./github_actions_iam.tf for ClusterRole/ClusterRoleBinding
-      # for the permissions given to this group
-      groups = ["github-actions"],
+      # Read-only access to the cluster
+      rolearn  = aws_iam_role.readonly_clusterrole.arn,
+      username = "readonly-access",
+      # See the ClusterRole/ClusterRoleBinding at the bottom of
+      # this file for the permissions given to this group
+      groups = ["readonly-access"],
     }
   ]
   # This is required for DNS resolution to work on Windows nodes.
@@ -151,17 +153,34 @@ resource "aws_iam_role" "eks_cluster_access" {
         "Principal" : {
           "AWS" : [
             "arn:aws:iam::588562868276:user/scott",
-            "arn:aws:iam::588562868276:user/vsoch",
             "arn:aws:iam::588562868276:user/jacob",
-            "arn:aws:iam::588562868276:user/tgamblin",
             "arn:aws:iam::588562868276:user/krattiger1",
             "arn:aws:iam::588562868276:user/mike",
-            "arn:aws:iam::588562868276:user/alecscott",
             "arn:aws:iam::588562868276:user/zack",
-            "arn:aws:iam::588562868276:user/joesnyder",
             "arn:aws:iam::588562868276:user/dan",
             "arn:aws:iam::588562868276:user/william",
             "arn:aws:iam::588562868276:user/caetanomelone",
+          ]
+        },
+        "Action" : "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role" "readonly_clusterrole" {
+  name = "SpackEKSReadOnlyClusterAccess-${var.deployment_name}"
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : [
+            "arn:aws:iam::588562868276:user/joesnyder",
+            "arn:aws:iam::588562868276:user/alecscott",
+            "arn:aws:iam::588562868276:user/tgamblin",
+            "arn:aws:iam::588562868276:user/vsoch",
           ]
         },
         "Action" : "sts:AssumeRole"
@@ -342,4 +361,36 @@ resource "kubectl_manifest" "cluster_name_config_map" {
     data:
         cluster-name: ${module.eks.cluster_name}
   YAML
+}
+
+# This ClusterRole and ClusterRoleBinding allow for read-only access to the
+# Kubernetes cluster.
+resource "kubectl_manifest" "readonly_clusterrole" {
+  yaml_body = <<YAML
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: readonly-access
+    rules:
+    - apiGroups: ["*"]
+      resources: ["*"]
+      verbs: ["get", "list", "watch"]
+  YAML
+}
+
+resource "kubectl_manifest" "readonly_clusterrolebinding" {
+  yaml_body = <<YAML
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: readonly-access
+    subjects:
+    - kind: Group
+      name: readonly-access
+      apiGroup: rbac.authorization.k8s.io
+    roleRef:
+      kind: ClusterRole
+      name: ${kubectl_manifest.readonly_clusterrole.name}
+      apiGroup: rbac.authorization.k8s.io
+    YAML
 }
