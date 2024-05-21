@@ -198,7 +198,7 @@ Optionally you can specify a local file instead with `--file` and an absolute pa
 
 The application retrieves an object listing from S3 and saves it to disk, and it may also download and store spec metadata files from the remote stack mirrors.  Normally the application does this in a temporary directory that is automatically cleaned up.
 
-To examine the files produced by the application (possibly useful for debugging or measuring), you can provide the `--work-dir` option.  In this case the application will use any existing working files it finds on disk (instead of downloading them again), and also it will not clean up after itself when finished.
+To examine the files produced by the application (possibly useful for debugging or measuring), you can provide the `--workdir` option.  In this case the application will use any existing working files it finds on disk (instead of downloading them again), and also it will not clean up after itself when finished.
 
 To publish specs from stacks to the top level for a ref, while re-using preserved working files, mount a directory and provide the `--workdir` option:
 
