@@ -55,6 +55,13 @@ def create_job(
     return job
 
 
+# TODO:
+# First, create all dimensions for this job fact
+# Then, create the job fact (includes attempting to extract prometheus info)
+# Then, create all dimensions for the timer data
+# Then, create timer and phase facts
+
+
 @shared_task(name="process_job")
 def process_job(job_input_data_json: str):
     # Read input data and extract params
