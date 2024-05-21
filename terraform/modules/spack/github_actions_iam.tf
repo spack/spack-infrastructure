@@ -58,35 +58,3 @@ resource "aws_iam_role_policy_attachment" "github_actions" {
   role       = aws_iam_role.github_actions.name
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
-
-# This ClusterRole and ClusterRoleBinding allow for read-only access to the
-# Kubernetes cluster. This allows the GitHub Actions role to run a `terraform plan`,
-# but crucially, not a `terraform apply` or other mutable actions.
-resource "kubectl_manifest" "github_actions_clusterrole" {
-  yaml_body = <<YAML
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: ClusterRole
-    metadata:
-      name: github-actions-oidc
-    rules:
-    - apiGroups: ["*"]
-      resources: ["*"]
-      verbs: ["get", "list", "watch"]
-  YAML
-}
-resource "kubectl_manifest" "github_actions_clusterrolebinding" {
-  yaml_body = <<YAML
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: ClusterRoleBinding
-    metadata:
-      name: github-actions-oidc
-    subjects:
-    - kind: Group
-      name: github-actions
-      apiGroup: rbac.authorization.k8s.io
-    roleRef:
-      kind: ClusterRole
-      name: ${kubectl_manifest.github_actions_clusterrole.name}
-      apiGroup: rbac.authorization.k8s.io
-    YAML
-}
