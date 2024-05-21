@@ -180,6 +180,7 @@ resource "aws_iam_role" "readonly_clusterrole" {
             "arn:aws:iam::588562868276:user/alecscott",
             "arn:aws:iam::588562868276:user/tgamblin",
             "arn:aws:iam::588562868276:user/vsoch",
+            "arn:aws:iam::588562868276:user/caetanomelone",
           ]
         },
         "Action" : "sts:AssumeRole"
