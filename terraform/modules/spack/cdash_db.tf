@@ -19,7 +19,7 @@ module "cdash_db" {
   maintenance_window           = "Sun:00:00-Sun:03:00"
   backup_window                = "03:00-06:00"
   create_cloudwatch_log_group  = true
-  performance_insights_enabled = true
+  performance_insights_enabled = var.deployment_name == "prod"
 
   backup_retention_period = 7
   skip_final_snapshot     = true
