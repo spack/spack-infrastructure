@@ -93,7 +93,7 @@ Another problem with the previous approach is that it added too much time to eac
 
 The `protected-publish` job will no longer exist, instead we will use an external program to publish specs from stack-specific mirrors to the top level.
 
-The program should examine all the stack mirrors within the prefix of a ref, as well as the top level mirror, and identify any built specs which are present in at least one stack mirror, but missing from the top level mirror.  For the identified set of missing specs, the program should download the spec metadata file and verify that it is correctly signed using the reputational key.  Assuming a proper signature, the program should copy the archive file and metadata file from any stack that has both files, into the top level mirror.  After copying all missing specs to the top level, the program should rebuild the index of the top level mirror. If the program determines there are no missing specs at the top level, it should not update the index top level index.
+The program should examine all the stack mirrors within the prefix of a ref, as well as the top level mirror, and identify any built specs which are present in at least one stack mirror, but missing from the top level mirror.  For the identified set of missing specs, the program should select any stack that has both the metadata and archive file, then download the spec metadata file and verify that it is correctly signed using the reputational key.  Assuming a proper signature, the program should copy the associated archive file as well as the metadata file into the top level mirror.  After copying all missing specs to the top level, the program should rebuild the index of the top level mirror. If the program determines there are no missing specs at the top level, it should not update the index top level index.
 
 The program described above should be triggered to run upon completion of any protected pipline, so that the newly built specs from the pipeline are immediately published to the top level mirror.  A github webhook can be used for this purpose, but in case any key events are missed, the program can also be run as a cron job in order to perform a daily (for example) publish of all refs that saw pipeline activity that day.
 
@@ -104,7 +104,7 @@ This directory contains an implementation of the program as a docker image.
 The container has two entrypoints:
 
 1. `python publish.py` (the default) Publish stack-specific mirrors to the top level
-2. `python validate_index.py` Read a mirror index and report on any missing specs (specs present in at least one stack, but missing at the top level).
+2. `python validate_index.py` Read a mirror index and report on any missing specs (non-external specs marked as `in_buildcache: False`).
 
 The container application assumes the structure of the mirror is as described earlier in this document.  To publish the stacks for a single ref, you must provide a bucket and a ref (e.g. `develop`).  Other options allow:
 
@@ -153,8 +153,8 @@ docker run --rm \
     -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
     -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
     -ti protected-publish:latest \
-    spack-binaries \
-    develop
+    --bucket spack-binaries \
+    --ref develop
 ```
 
 > [!NOTE]
@@ -167,8 +167,8 @@ To publish all refs with recent pipeline activity, use the special "ref", `recen
 ```
 docker run --rm \
     -ti protected-publish:latest \
-    spack-binaries \
-    recent
+    --bucket spack-binaries \
+    --ref recent
 ```
 
 To indicate what you mean by recent, you can provide a number of days to look back:
@@ -176,8 +176,8 @@ To indicate what you mean by recent, you can provide a number of days to look ba
 ```
 docker run --rm \
     -ti protected-publish:latest \
-    spack-binaries \
-    recent \
+    --bucket spack-binaries \
+    --ref recent \
     --days 7
 ```
 
@@ -206,8 +206,8 @@ To publish specs from stacks to the top level for a ref, while re-using preserve
 docker run --rm \
     -v /path/on/your/host:/path/in/container
     -ti protected-publish:latest \
-    spack-binaries \
-    develop \
+    --bucket spack-binaries \
+    --ref develop \
     --workdir /path/in/container
 ```
 
