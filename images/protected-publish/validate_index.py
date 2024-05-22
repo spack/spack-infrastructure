@@ -7,6 +7,9 @@ from datetime import datetime
 
 import botocore.exceptions
 import boto3.session
+import sentry_sdk
+
+sentry_sdk.init(traces_sample_rate=1.0)
 
 
 ################################################################################
