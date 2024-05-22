@@ -15,6 +15,7 @@ import boto3.session
 import gitlab
 import requests
 import sentry_sdk
+from boto3.s3.transfer import TransferConfig
 
 sentry_sdk.init(traces_sample_rate=1.0)
 
@@ -28,6 +29,11 @@ PROTECTED_REF_REGEXES = [
     re.compile(r"^releases/v[\d]+\.[\d]+$"),
     re.compile(r"^develop-[\d]{4}-[\d]{2}-[\d]{2}$"),
 ]
+MB = 1024 ** 2
+MULTIPART_THRESHOLD = 100 * MB
+MULTIPART_CHUNKSIZE=20 * MB
+MAX_CONCURRENCY=10
+USE_THREADS=True
 
 
 ################################################################################
@@ -58,12 +64,16 @@ def is_ref_protected(ref):
 
 ################################################################################
 # Thread worker function
-def publish_missing_spec(s3_client, built_spec, bucket, ref, force, gpg_home, tmpdir):
+def publish_missing_spec(built_spec, bucket, ref, force, gpg_home, tmpdir):
     hash = built_spec.hash
     meta_suffix = built_spec.meta
     archive_suffix = built_spec.archive
 
     specfile_path = os.path.join(tmpdir, f"{hash}.spec.json.sig")
+
+    session = boto3.session.Session()
+    s3_resource = session.resource('s3')
+    s3_client = s3_resource.meta.client
 
     if not os.path.isfile(specfile_path) or force is True:
         # First we have to download the file locally
@@ -84,17 +94,24 @@ def publish_missing_spec(s3_client, built_spec, bucket, ref, force, gpg_home, tm
         print(f"Failed to verify signature of {meta_suffix} due to {error_msg}")
         return False, error_msg
 
+    config = TransferConfig(
+        multipart_threshold=MULTIPART_THRESHOLD,
+        multipart_chunksize=MULTIPART_CHUNKSIZE,
+        max_concurrency=MAX_CONCURRENCY,
+        use_threads=USE_THREADS,
+    )
+
     # Finally, copy the files directly from source to dest, starting with the tarball
     for suffix in [archive_suffix, meta_suffix]:
         m = PREFIX_REGEX.search(suffix)
         if m:
             dest_prefix = f"{ref}/build_cache/{m.group(1)}"
             try:
-                s3_client.copy_object(
-                    Bucket=bucket,
-                    CopySource={"Bucket": bucket, "Key": suffix},
-                    Key=dest_prefix,
-                )
+                copy_source = {
+                    'Bucket': bucket,
+                    'Key': suffix,
+                }
+                s3_client.copy(copy_source, bucket, dest_prefix, Config=config)
             except botocore.exceptions.ClientError as error:
                 error_msg = getattr(error, "message", error)
                 error_msg = f"Failed to copy_object({suffix}) due to {error_msg}"
@@ -159,13 +176,9 @@ def publish(
     gnu_pg_home = os.path.join(workdir, ".gnupg")
     download_and_import_key(gnu_pg_home, workdir, force)
 
-    session = boto3.session.Session()
-    s3_client = session.client("s3")
-
     # Build a list of tasks for threads
     task_list = [
         (
-            s3_client,
             # Duplicates are effectively identical, just take the "first" one
             next(iter(stacks_dict.values())),
             bucket,
