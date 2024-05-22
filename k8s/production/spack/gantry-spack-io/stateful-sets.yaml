@@ -1,0 +1,104 @@
+---
+# It is recommended to use a StatefulSet as they restrict the number of pods.
+# Applications using Litestream can only be run on a single node at a time.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spack-gantry
+  namespace: spack
+spec:
+  selector:
+    matchLabels:
+      app: spack-gantry
+  serviceName: spack-gantry
+
+  # Litestream only supports a single node so this must always be "1".
+  replicas: 1
+
+  # Persistent volume is recommended for better durability guarantees between restarts.
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          # this assumes that old jobs will be pruned once they are no longer of use
+          # otherwise, we'll run out of space
+          storage: 500Mi
+
+  template:
+    metadata:
+      labels:
+        app: spack-gantry
+    spec:
+
+      # The config map is used to pass in our Litestream configuration file.
+      volumes:
+      - name: configmap
+        configMap:
+          # see terraform/modules/spack/spack_gantry.tf
+          name: spack-gantry-config
+
+      # Initialize using Litestream to restore data automatically
+      # before starting the application.
+      initContainers:
+      - name: init-litestream
+        image: litestream/litestream:0.3
+        args: ['restore', '-if-db-not-exists', '-if-replica-exists', '/var/lib/gantry/db']
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/gantry
+        - name: configmap
+          mountPath: /etc/litestream.yml
+          subPath: litestream-config.yaml
+
+      # litestream and the application share a PVC data directory.
+      containers:
+      - name: web
+        image: "ghcr.io/spack/spack-gantry:develop"
+        imagePullPolicy: Always
+        resources:
+          # measurements taken from running the application and sending constant traffic to the API endpoints
+          requests:
+            memory: "250Mi"
+            cpu: "250m"
+        ports:
+        - name: http
+          containerPort: 8080
+        env:
+        - name: DB_FILE
+          value: /var/lib/gantry/db
+        - name: GITLAB_URL
+          value: https://gitlab.spack.io/api/v4/projects/2
+        - name: GITLAB_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gantry-credentials
+              key: gitlab_api_token
+        - name: GITLAB_WEBHOOK_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gantry-credentials
+              key: gitlab_webhook_token
+        - name: PROMETHEUS_URL
+          value: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/gantry
+
+      - name: litestream
+        image: litestream/litestream:0.3
+        resources:
+          requests:
+            memory: "60Mi"
+            cpu: "100m"
+        args: ['replicate']
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/gantry
+        - name: configmap
+          mountPath: /etc/litestream.yml
+          subPath: litestream-config.yaml
+      nodeSelector:
+        spack.io/node-pool: base
