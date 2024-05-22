@@ -33,6 +33,9 @@ spec:
         app: spack-gantry
     spec:
 
+      # Grants permission to access S3 bucket for Litestream
+      serviceAccountName: spack-gantry
+
       # The config map is used to pass in our Litestream configuration file.
       volumes:
       - name: configmap
