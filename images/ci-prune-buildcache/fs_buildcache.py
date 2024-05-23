@@ -54,8 +54,8 @@ class FileSystemBuildCache(BuildCache):
             keys = [obj.key for obj in self.list()]
 
         # Get the keys to delete that exists in this buildcache
-        prefix = self.url.path.lstrip("/")
-        delete_keys = [{"Key": k} for k in keys if prefix in k]
+        prefix = self.url.path
+        delete_keys = [k for k in keys if prefix in k]
 
         # Nothing to delete
         if not delete_keys:
