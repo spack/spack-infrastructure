@@ -87,7 +87,7 @@ The previous approach to accomplish this copying of specs from stack-specific mi
 
 When pipeline generation runs, it produces a manifest of everything new the pipeline will build, and this was provided via artifacts to the `protected-publish` job, so that it could only copy the new things to the top level.  One problem with the previous approach is that holes were produced in the top level mirror when any of the child pipelines failed, and thus the `protected-publish` job failed to run.  Information about exactly what was in those "holes" was scattered around in the artifacts of skipped `protected-publish` jobs.
 
-Another problem with the previous approach is that it added too much time to each protected pipeline.  Rebuilding a mirror index can take a long time, not to mention the time to copy potentiall large files from one prefix to another.  This resulted in hours extra delay before another protected pipeline could run on the same ref.
+Another problem with the previous approach is that it added too much time to each protected pipeline.  Rebuilding a mirror index can take a long time, not to mention the time to copy potentially large files from one prefix to another.  This resulted in hours extra delay before another protected pipeline could run on the same ref.
 
 ## Next approach
 
