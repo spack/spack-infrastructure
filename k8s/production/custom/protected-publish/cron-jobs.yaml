@@ -21,7 +21,7 @@ spec:
             resources:
               requests:
                 cpu: 1500m
-                memory: 2G
+                memory: 3G
                 ephemeral-storage: "50G"
             envFrom:
               - configMapRef:
