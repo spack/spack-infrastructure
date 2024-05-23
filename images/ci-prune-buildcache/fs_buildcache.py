@@ -10,8 +10,9 @@ from buildcache import Object, BuildCache
 
 class FileSystemObject(Object):
     def __init__(self, entry: os.DirEntry):
-        lm = datetime.fromtimestamp(entry.stat().st_mtime)
-        super().__init__(bucket_name=None, key=entry.path, last_modified = lm)
+        stat = entry.stat()
+        lm = datetime.fromtimestamp(stat.st_mtime)
+        super().__init__(bucket_name=None, key=entry.path, last_modified = lm, size = stat.st_size)
         if entry.is_file():
            self._get_method = self._get_file
         elif entry.is_dir():

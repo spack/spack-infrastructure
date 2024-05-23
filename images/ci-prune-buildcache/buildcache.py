@@ -6,9 +6,10 @@ from io import StringIO
 
 
 class Object:
-    def __init__(self, bucket_name: str, key: str, last_modified):
+    def __init__(self, bucket_name: str, key: str, last_modified, size = 0):
         self.bucket_name = bucket_name
         self.key = key
+        self.size = size
         if isinstance(last_modified, datetime):
             self.last_modified = last_modified
         else:

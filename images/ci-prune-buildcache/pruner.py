@@ -1,8 +1,18 @@
 from buildcache import BuildCache, Object
 from datetime import datetime, timedelta, timezone
+import argparse
 import helper
 import multiprocessing.pool as pool
 
+
+CLI_ARGS_DICT = {
+    "start_date": None,
+    "delete": False,
+    "nprocs": 1,
+}
+
+DEFAULT_CLI_ARGS = argparse.Namespace()
+DEFAULT_CLI_ARGS.__dict__.update(CLI_ARGS_DICT)
 
 class PrunedObject(Object):
     def __init__(self, obj: Object, method: str):
@@ -14,7 +24,7 @@ class BasePruner:
     spec_ext = (".spec.json", ".spec.yaml", ".spec.json.sig")
     tarball_ext = (".spack", ".tar.gz")
 
-    def __init__(self, buildcache: BuildCache, keep_hash_list, cli_args):
+    def __init__(self, buildcache: BuildCache, keep_hash_list, cli_args=DEFAULT_CLI_ARGS):
         self.buildcache = buildcache
         self.keep_hashes = keep_hash_list
         self.cli_args = cli_args
@@ -22,7 +32,10 @@ class BasePruner:
         self.prunable_hashes = set()
         self.prune_ext = self.spec_ext + self.tarball_ext
 
-        self.start_date = datetime.fromisoformat(cli_args.start_date)
+        if isinstance(cli_args.start_date, datetime):
+            self.start_date = cli_args.start_date
+        else:
+            self.start_date = datetime.fromisoformat(cli_args.start_date)
 
         self.enable_delete = self.cli_args.delete
 
@@ -72,7 +85,7 @@ class BasePruner:
             else:
                 yield obj
 
-    def prune(self, prunable_hashes=None):
+    def prune(self, prunable_hashes=None, compute_size=False):
         """ Prune the buildcache
         """
         # Get the list of prunable hashes
@@ -191,7 +204,7 @@ class OrphanPruner(BasePruner):
     """Pruning Strategy that looks for .spack binaries with no matching spec.json
        buildcache
     """
-    def __init__(self, buildcache: BuildCache, date_cutoff: datetime, cli_args):
+    def __init__(self, buildcache: BuildCache, date_cutoff: datetime, cli_args=DEFAULT_CLI_ARGS):
         BasePruner.__init__(self, buildcache, None, cli_args)
         self.date_cutoff = datetime.fromisoformat(cli_args.start_date)
 
@@ -258,20 +271,35 @@ class OrphanPruner(BasePruner):
 
         return self.prunable_hashes
 
+PRUNER_TYPES = {
+        "direct": DirectPruner,
+        "orphan": OrphanPruner,
+        "index": IndexPruner,
+        }
 
-def pruner_factory(cache, args, keep_hashes=[], since=None):
+def pruner_factory(cache, method, args=DEFAULT_CLI_ARGS, keep_hashes=[], since=None):
     """ Factory with variable args a kwargs """
-    # make sure only one type was supplied
-    type_sum = int(args.direct) + int(args.orphaned) + int(args.check_index)
-    assert type_sum == 1
+    obj = PRUNER_TYPES.get(method, None)
 
-    if args.direct:
-        return DirectPruner(cache, keep_hashes, args)
-    elif args.orphaned:
-        return OrphanPruner(cache, since, args)
-    elif args.check_index:
-        return IndexPruner(cache, keep_hashes, args)
+    # check's that the arguments passed meet the needs of the pruner objects
+    new_args = argparse.Namespace()
+    new_args.__dict__.update(CLI_ARGS_DICT)
+    # Update the first namespace with values from the second namespace
+    for key, value in args.__dict__.items():
+            if key in new_args.__dict__ and key in args.__dict__:
+                        new_args.__dict__[key] = value
+            elif key not in new_args.__dict__:
+                continue
+            else:
+                raise Exception(f"Missing {key} in the arguments passed to the pruner factory")
+
+
+
+    if method=="direct" or method=="index":
+        return obj(cache, keep_hashes, new_args)
+    elif method=="orphan":
+        return obj(cache, since, new_args)
     else:
-        raise Exception("Pruner type not implemented")
+        raise Exception(f"Pruner {method} type not implemented")
 
 
