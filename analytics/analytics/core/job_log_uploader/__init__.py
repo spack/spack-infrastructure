@@ -8,7 +8,6 @@ import gitlab
 from celery import shared_task
 from dateutil.parser import isoparse
 from django.conf import settings
-from django.db import transaction
 from gitlab.v4.objects import Project, ProjectJob
 from opensearch_dsl import Date, Document, connections
 from opensearchpy import ConnectionTimeout
@@ -64,9 +63,11 @@ def _create_job_attempt(
     )
 
     section_timers = _get_section_timers(job_trace)
-
-    if webhook_payload["build_status"] == "failed":
-        _assign_error_taxonomy(webhook_payload, job_trace)
+    error_taxonomy = (
+        _assign_error_taxonomy(webhook_payload, job_trace)[0]
+        if webhook_payload["build_status"] == "failed"
+        else None
+    )
 
     return LegacyJobAttempt.objects.create(
         job_id=gl_job.get_id(),
@@ -81,11 +82,7 @@ def _create_job_attempt(
         attempt_number=retry_info.attempt_number,
         final_attempt=retry_info.final_attempt,
         status=webhook_payload["build_status"],
-        error_taxonomy=(
-            webhook_payload["error_taxonomy"]
-            if webhook_payload["build_status"] == "failed"
-            else None
-        ),
+        error_taxonomy=error_taxonomy,
         section_timers=section_timers,
     )
 

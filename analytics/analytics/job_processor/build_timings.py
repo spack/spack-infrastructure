@@ -2,8 +2,16 @@ import json
 
 from gitlab.v4.objects import ProjectJob
 
-from analytics.core.models import LegacyJob, LegacyTimer, LegacyTimerPhase
+from analytics.core.models.dimensions import (
+    PackageDimension,
+    PackageHashDimension,
+    TimerDataDimension,
+    TimerPhaseDimension,
+)
+from analytics.core.models.facts import JobFact, TimerFact, TimerPhaseFact
 from analytics.job_processor.artifacts import get_job_artifacts_file
+
+BuildTimingFacts = tuple[list[TimerFact], list[TimerPhaseFact]]
 
 
 def get_timings_json(job: ProjectJob) -> list[dict]:
@@ -12,45 +20,59 @@ def get_timings_json(job: ProjectJob) -> list[dict]:
         return json.load(file)
 
 
-def create_build_timings(job: LegacyJob, gl_job: ProjectJob):
-    timings = get_timings_json(gl_job)
+def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimingFacts:
+    timings = get_timings_json(gljob)
 
     # Iterate through each timer and create timers and phase results
-    phases = []
+    timer_facts = []
+    phase_facts = []
     for entry in timings:
         # Sometimes name can be missing, skip if so
-        name = entry.get("name")
-        if name is None:
+        package_name = entry.get("name")
+        phash = entry.get("hash")
+        if package_name is None or phash is None:
             continue
 
-        # Check for timer and skip if already exists
-        pkghash = entry.get("hash")
-        if LegacyTimer.objects.filter(job=job, name=name, hash=pkghash).exists():
-            continue
+        # Create dimensions
+        timer_data = TimerDataDimension.objects.get(cache=entry["cache"])
+        package_hash, _ = PackageHashDimension.objects.get_or_create(hash=phash)
+        package, _ = PackageDimension.objects.get_or_create(
+            name=package_name,
+            version="",
+            compiler_name="",
+            compiler_version="",
+            arch="",
+            variants="",
+        )
 
         # Create timer
-        timer = LegacyTimer.objects.create(
-            job=job,
-            name=name,
-            hash=pkghash,
-            cache=entry["cache"],
-            time_total=entry["total"],
+        total_time = entry["total"]
+        timer_fact, _ = TimerFact.objects.get_or_create(
+            job=job_fact.job,
+            timer_data=timer_data,
+            package=package,
+            package_hash=package_hash,
+            total_time=total_time,
         )
+        timer_facts.append(timer_fact)
 
         # Add all phases to bulk phase list
-        phases.extend(
-            [
-                LegacyTimerPhase(
-                    timer=timer,
-                    name=phase["name"],
-                    path=phase["path"],
-                    seconds=phase["seconds"],
-                    count=phase["count"],
-                    is_subphase=("/" in phase["path"]),
-                )
-                for phase in entry["phases"]
-            ]
-        )
+        for phase_entry in entry["phases"]:
+            phase, _ = TimerPhaseDimension.objects.get_or_create(
+                path=phase_entry["path"], is_subphase=("/" in phase_entry["path"])
+            )
 
-    # Bulk create phases
-    LegacyTimerPhase.objects.bulk_create(phases)
+            # TODO: Add date and time dimensions
+            phase_time = phase["seconds"]
+            phase_fact, _ = TimerPhaseFact.objects.get_or_create(
+                job=job_fact.job,
+                timer_data=timer_data,
+                phase=phase,
+                package=package,
+                package_hash=package_hash,
+                time=phase_time,
+                ratio_of_total=phase_time / total_time,
+            )
+            phase_facts.append(phase_fact)
+
+    return (timer_facts, phase_facts)

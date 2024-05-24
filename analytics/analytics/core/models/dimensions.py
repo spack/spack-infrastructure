@@ -1,3 +1,6 @@
+import datetime
+
+from dateutil.parser import isoparse
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
@@ -25,6 +28,13 @@ class DateDimension(models.Model):
                 name="date-key-value", check=models.Q(date_key__lt=2044_01_01)
             ),
         ]
+
+    @staticmethod
+    def date_key_from_datetime(d: datetime.datetime | datetime.date | str):
+        if isinstance(d, str):
+            d = isoparse(d)
+
+        return int(d.strftime("%Y%m%d"))
 
 
 class TimeDimension(models.Model):
@@ -60,6 +70,13 @@ class TimeDimension(models.Model):
                 check=models.Q(time_key__range=(0, 23_59_59)),
             ),
         ]
+
+    @staticmethod
+    def time_key_from_datetime(t: datetime.datetime | datetime.time | str):
+        if isinstance(t, str):
+            t = isoparse(t)
+
+        return int(t.strftime("%H%M%S"))
 
 
 class JobDataDimension(models.Model):
@@ -127,6 +144,7 @@ class RunnerDimension(models.Model):
     in_cluster = models.BooleanField()
 
 
+# TODO: Split up variants into it's own dimension
 class PackageDimension(models.Model):
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=32, blank=True)

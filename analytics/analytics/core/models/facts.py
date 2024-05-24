@@ -127,6 +127,7 @@ class JobFact(models.Model):
         ]
 
 
+# TODO: Add date and time dimensions
 class TimerFact(models.Model):
     job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
@@ -140,6 +141,7 @@ class TimerFact(models.Model):
         unique_together = ["job", "timer_data", "package", "package_hash"]
 
 
+# TODO: Add date and time dimensions
 class TimerPhaseFact(models.Model):
     job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)

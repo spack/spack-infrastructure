@@ -1,17 +1,17 @@
+import json
+import re
 from dataclasses import asdict, dataclass
 from datetime import datetime
-import json
 from pathlib import Path
-import re
 from typing import Any
 
-from celery import shared_task
-from django.conf import settings
-from django.db import connections
 import gitlab
 import opensearch_dsl
 import sentry_sdk
 import yaml
+from celery import shared_task
+from django.conf import settings
+from django.db import connections
 from opensearchpy import ConnectionTimeout
 from urllib3.exceptions import ReadTimeoutError
 
@@ -87,7 +87,9 @@ def _job_retry_data(
         retry_reasons = retry_config["when"]
         # final_attempt is defined as an attempt that won't be retried for the retry_reasons
         # or because it's gone beyond the max number of retries.
-        retryable_by_reason = "always" in retry_reasons or job_failure_reason in retry_reasons
+        retryable_by_reason = (
+            "always" in retry_reasons or job_failure_reason in retry_reasons
+        )
         retryable_by_number = attempt_number <= retry_max
         final_attempt = not (retryable_by_reason and retryable_by_number)
 
@@ -107,7 +109,8 @@ def _assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
     # Read taxonomy file
     with open(Path(__file__).parent / "taxonomy.yaml") as f:
         taxonomy = yaml.safe_load(f)["taxonomy"]
-    job_input_data["error_taxonomy_version"] = taxonomy["version"]
+
+    error_taxonomy_version = taxonomy["version"]
 
     # Compile matching patterns from job trace
     matching_patterns = set()
@@ -137,8 +140,7 @@ def _assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
         ):
             job_error_class = job_input_data["build_failure_reason"]
 
-    job_input_data["error_taxonomy"] = job_error_class
-    return
+    return job_error_class, error_taxonomy_version
 
 
 def _collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
@@ -178,7 +180,9 @@ def _collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
     retry_jitter=True,
 )
 def upload_job_failure_classification(job_input_data_json: str) -> None:
-    gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True)
+    gl = gitlab.Gitlab(
+        settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True
+    )
 
     # Read input data and extract params
     job_input_data = json.loads(job_input_data_json)
@@ -212,7 +216,11 @@ def upload_job_failure_classification(job_input_data_json: str) -> None:
     _collect_pod_status(job_input_data, job_trace)
 
     # Assign any/all relevant errors
-    _assign_error_taxonomy(job_input_data, job_trace)
+    error_taxonomy, error_taxonomy_version = _assign_error_taxonomy(
+        job_input_data, job_trace
+    )
+    job_input_data["error_taxonomy"] = error_taxonomy
+    job_input_data["error_taxonomy_version"] = error_taxonomy_version
 
     opensearch_dsl.connections.create_connection(
         hosts=[settings.OPENSEARCH_ENDPOINT],
