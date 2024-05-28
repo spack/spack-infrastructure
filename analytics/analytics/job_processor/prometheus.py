@@ -383,16 +383,18 @@ class PrometheusClient:
 
         # Retrieve the price of this node
         zone = node_labels["label_topology_kubernetes_io_zone"]
-        spot_price = self.query_range(
-            "karpenter_cloudprovider_instance_type_price_estimate{"
-            f"capacity_type='{capacity_type}',"
-            f"instance_type='{instance_type}',"
-            f"zone='{zone}'"
-            "}",
-            start=start,
-            end=end,
-            single_result=True,
-        )["values"][0][1]
+        spot_price = float(
+            self.query_range(
+                "karpenter_cloudprovider_instance_type_price_estimate{"
+                f"capacity_type='{capacity_type}',"
+                f"instance_type='{instance_type}',"
+                f"zone='{zone}'"
+                "}",
+                start=start,
+                end=end,
+                single_result=True,
+            )["values"][0][1]
+        )
 
         # Save and set as job node
         return NodeData(

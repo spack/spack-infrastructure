@@ -46,13 +46,9 @@ def create_job_data_dimension(
     job_trace: str,
 ) -> JobDataDimension:
     job_id = job_input_data["build_id"]
-    job_data_id = (
-        JobDataDimension.objects.filter(job_id=job_id)
-        .values_list("id", flat=True)
-        .first()
-    )
-    if job_data_id is not None:
-        return job_data_id
+    existing_job = JobDataDimension.objects.filter(job_id=job_id).first()
+    if existing_job is not None:
+        return existing_job
 
     job_name = job_input_data["build_name"]
     job_commit_id = job_input_data["commit"]["id"]
@@ -115,27 +111,19 @@ class JobFactDimensions:
 def create_date_time_dimensions(
     gljob: ProjectJob
 ) -> tuple[DateDimension, TimeDimension, DateDimension, TimeDimension]:
-    start_date, _ = DateDimension.objects.get_or_create(
-        date_key=DateDimension.date_key_from_datetime(gljob.started_at)
-    )
-    start_time, _ = TimeDimension.objects.get_or_create(
-        time_key=TimeDimension.time_key_from_datetime(gljob.started_at)
-    )
+    start_date = DateDimension.ensure_exists(gljob.started_at)
+    start_time = TimeDimension.ensure_exists(gljob.started_at)
 
     finished_at = isoparse(gljob.started_at) + timedelta(seconds=gljob.duration)
-    end_date, _ = DateDimension.objects.get_or_create(
-        date_key=DateDimension.date_key_from_datetime(finished_at)
-    )
-    end_time, _ = TimeDimension.objects.get_or_create(
-        time_key=TimeDimension.time_key_from_datetime(finished_at)
-    )
+    end_date = DateDimension.ensure_exists(finished_at)
+    end_time = TimeDimension.ensure_exists(finished_at)
 
     return (start_date, start_time, end_date, end_time)
 
 
 def create_node_dimension(info: NodeInfo | MissingNodeInfo) -> NodeDimension:
     if isinstance(info, MissingNodeInfo):
-        return NodeDimension.objects.get(name="").pk
+        return NodeDimension.objects.get(name="")
 
     node, _ = NodeDimension.objects.get_or_create(
         system_uuid=info.system_uuid,
@@ -232,7 +220,7 @@ def create_job_fact(
         job=job_data,
         # numeric
         duration=timedelta(seconds=gljob.duration),
-        duration_seconds=gljob.duration.total_seconds(),
+        duration_seconds=gljob.duration,
         # Will be null on non-cluster jobs
         cost=job_cost,
         pod_node_occupancy=job_info.pod.node_occupancy,

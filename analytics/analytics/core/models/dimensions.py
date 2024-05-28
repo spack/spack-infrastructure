@@ -2,6 +2,7 @@ import datetime
 
 from dateutil.parser import isoparse
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 
 
@@ -35,6 +36,33 @@ class DateDimension(models.Model):
             d = isoparse(d)
 
         return int(d.strftime("%Y%m%d"))
+
+    @classmethod
+    def ensure_exists(cls, d: datetime.datetime | datetime.date | str):
+        if isinstance(d, str):
+            d = isoparse(d)
+
+        date = d.date() if isinstance(d, datetime.datetime) else d
+        date_key = cls.date_key_from_datetime(date)
+        try:
+            return cls.objects.get(date_key=date_key)
+        except ObjectDoesNotExist:  # For some reason cls.DoesNotExist doesn't work here
+            pass
+
+        return cls.objects.create(
+            date_key=date_key,
+            date=date,
+            date_description=date.strftime("%B %d, %Y"),
+            day_of_week=date.weekday() + 1,
+            day_of_month=date.day,
+            day_of_year=int(date.strftime("%j")),
+            day_name=date.strftime("%A"),
+            weekday=date.weekday() not in [5, 6],
+            month=date.month,
+            month_name=date.strftime("%B"),
+            quarter=(date.month - 1) // 3,
+            year=date.year,
+        )
 
 
 class TimeDimension(models.Model):
@@ -77,6 +105,31 @@ class TimeDimension(models.Model):
             t = isoparse(t)
 
         return int(t.strftime("%H%M%S"))
+
+    @classmethod
+    def ensure_exists(cls, d: datetime.datetime | datetime.time | str):
+        if isinstance(d, str):
+            d = isoparse(d)
+
+        time = d.time() if isinstance(d, datetime.datetime) else d
+        time_key = cls.time_key_from_datetime(time)
+        try:
+            return cls.objects.get(time_key=time_key)
+        except ObjectDoesNotExist:  # For some reason cls.DoesNotExist doesn't work here
+            pass
+
+        return cls.objects.create(
+            time_key=time_key,
+            time=time,
+            am_or_pm=time.strftime("%p"),
+            hour_12=int(time.strftime("%I")),
+            hour_24=time.hour,
+            minute=time.minute,
+            minute_of_day=time.hour * 60 + time.minute,
+            second=time.second,
+            second_of_hour=time.minute * 60 + time.second,
+            second_of_day=time.hour * 3600 + time.minute * 60 + time.second,
+        )
 
 
 class JobDataDimension(models.Model):
