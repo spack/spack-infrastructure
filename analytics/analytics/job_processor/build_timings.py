@@ -20,59 +20,110 @@ def get_timings_json(job: ProjectJob) -> list[dict]:
         return json.load(file)
 
 
-def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimingFacts:
-    timings = get_timings_json(gljob)
-
-    # Iterate through each timer and create timers and phase results
-    timer_facts = []
-    phase_facts = []
+def get_phase_mapping(timings: list[dict]) -> dict[str, TimerPhaseDimension]:
+    phases: set[tuple[str, bool]] = set()
     for entry in timings:
-        # Sometimes name can be missing, skip if so
-        package_name = entry.get("name")
-        phash = entry.get("hash")
-        if package_name is None or phash is None:
-            continue
+        phases |= {(phase["path"], ("/" in phase["path"])) for phase in entry["phases"]}
 
-        # Create dimensions
-        timer_data = TimerDataDimension.objects.get(cache=entry["cache"])
-        package_hash, _ = PackageHashDimension.objects.get_or_create(hash=phash)
-        package, _ = PackageDimension.objects.get_or_create(
-            name=package_name,
+    TimerPhaseDimension.objects.bulk_create(
+        [
+            TimerPhaseDimension(path=path, is_subphase=is_subphase)
+            for path, is_subphase in phases
+        ],
+        ignore_conflicts=True,
+    )
+
+    paths = [p[0] for p in phases]
+    return {obj.path: obj for obj in TimerPhaseDimension.objects.filter(path__in=paths)}
+
+
+def get_package_hash_mapping(timings: list[dict]) -> dict[str, PackageHashDimension]:
+    hashes: set[str] = {entry["hash"] for entry in timings}
+    PackageHashDimension.objects.bulk_create(
+        [PackageHashDimension(hash=hash) for hash in hashes], ignore_conflicts=True
+    )
+
+    return {
+        obj.hash: obj for obj in PackageHashDimension.objects.filter(hash__in=hashes)
+    }
+
+
+def get_package_mapping(timings: list[dict]) -> dict[str, PackageDimension]:
+    packages: set[str] = {entry["name"] for entry in timings}
+    PackageDimension.objects.bulk_create(
+        [
+            PackageDimension(
+                name=package_name,
+                version="",
+                compiler_name="",
+                compiler_version="",
+                arch="",
+                variants="",
+            )
+            for package_name in packages
+        ],
+        ignore_conflicts=True,
+    )
+
+    return {
+        obj.name: obj
+        for obj in PackageDimension.objects.filter(
+            name__in=packages,
             version="",
             compiler_name="",
             compiler_version="",
             arch="",
             variants="",
         )
+    }
 
-        # Create timer
+
+def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimingFacts:
+    timings = [t for t in get_timings_json(gljob) if t.get("name") and t.get("hash")]
+
+    package_hash_mapping = get_package_hash_mapping(timings=timings)
+    package_mapping = get_package_mapping(timings=timings)
+    timer_data_mapping = {obj.cache: obj for obj in TimerDataDimension.objects.all()}
+    phase_mapping = get_phase_mapping(timings=timings)
+
+    # Now that we have all the dimensions covered, go through and construct facts to bulk create
+    timer_facts = []
+    phase_facts = []
+    for entry in timings:
+        timer_data = timer_data_mapping[entry["cache"]]
+        package = package_mapping[entry["name"]]
+        package_hash = package_hash_mapping[entry["hash"]]
         total_time = entry["total"]
-        timer_fact, _ = TimerFact.objects.get_or_create(
-            job=job_fact.job,
-            timer_data=timer_data,
-            package=package,
-            package_hash=package_hash,
-            total_time=total_time,
-        )
-        timer_facts.append(timer_fact)
-
-        # Add all phases to bulk phase list
-        for phase_entry in entry["phases"]:
-            phase, _ = TimerPhaseDimension.objects.get_or_create(
-                path=phase_entry["path"], is_subphase=("/" in phase_entry["path"])
-            )
-
-            # TODO: Add date and time dimensions
-            phase_time = phase["seconds"]
-            phase_fact, _ = TimerPhaseFact.objects.get_or_create(
+        timer_facts.append(
+            TimerFact(
                 job=job_fact.job,
                 timer_data=timer_data,
-                phase=phase,
                 package=package,
                 package_hash=package_hash,
-                time=phase_time,
-                ratio_of_total=phase_time / total_time,
+                total_time=total_time,
             )
-            phase_facts.append(phase_fact)
+        )
+
+        # Add all phases to bulk phase list
+        for phase in entry["phases"]:
+            phase_time = phase["seconds"]
+            phase_facts.append(
+                # TODO: Add date and time dimensions
+                TimerPhaseFact(
+                    # Shared with timer
+                    job=job_fact.job,
+                    timer_data=timer_data,
+                    package=package,
+                    package_hash=package_hash,
+                    # For phases only
+                    phase=phase_mapping[phase["path"]],
+                    time=phase_time,
+                    ratio_of_total=phase_time / total_time,
+                )
+            )
+
+    # Bulk create all at once
+    timer_facts = TimerFact.objects.bulk_create(timer_facts)
+    phase_facts = TimerPhaseFact.objects.bulk_create(phase_facts)
 
     return (timer_facts, phase_facts)
