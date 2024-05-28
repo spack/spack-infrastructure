@@ -70,7 +70,7 @@ SELECT
     EXTRACT(day from d),
     EXTRACT(doy from d),
     EXTRACT(isodow from d),
-    EXTRACT(dow from d) IN (5, 6), -- days 5 and 6 are saturday and sunday
+    EXTRACT(dow from d) NOT IN (5, 6), -- days 5 and 6 are saturday and sunday
     EXTRACT(month from d),
     to_char(d, 'FMMonth'),
     EXTRACT(quarter from d),
