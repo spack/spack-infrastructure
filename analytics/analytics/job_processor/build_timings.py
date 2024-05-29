@@ -100,7 +100,7 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimi
                 timer_data=timer_data,
                 package=package,
                 package_hash=package_hash,
-                total_time=total_time,
+                total_duration=total_time,
             )
         )
 
@@ -108,16 +108,17 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimi
         for phase in entry["phases"]:
             phase_time = phase["seconds"]
             phase_facts.append(
-                # TODO: Add date and time dimensions
                 TimerPhaseFact(
                     # Shared with timer
                     job=job_fact.job,
+                    date=job_fact.start_date,
+                    time=job_fact.start_time,
                     timer_data=timer_data,
                     package=package,
                     package_hash=package_hash,
                     # For phases only
                     phase=phase_mapping[phase["path"]],
-                    time=phase_time,
+                    duration=phase_time,
                     ratio_of_total=phase_time / total_time,
                 )
             )

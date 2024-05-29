@@ -74,18 +74,24 @@ ON CONFLICT DO NOTHING
 -- Create all timer facts from the existing timer table
 INSERT INTO core_timerfact (
     job_id,
+    date_id,
+    time_id,
     timer_data_id,
     package_id,
     package_hash_id,
-    total_time
+    total_duration
 )
 SELECT
-    job_id,
+    core_timer.job_id,
+    to_char(core_job.started_at, 'YYYYMMDD')::int,
+    to_char(core_job.started_at, 'HH24MISS')::int,
     tdd.id,
     pd.id,
     phd.id,
     time_total
 FROM core_timer
+LEFT JOIN
+    core_job ON core_timer.job_id = core_job.job_id
 LEFT JOIN core_timerdatadimension tdd ON
     core_timer.cache = tdd.cache
 LEFT JOIN core_packagedimension pd ON
@@ -132,15 +138,19 @@ BEGIN
     LOOP
         INSERT INTO core_timerphasefact (
             job_id,
+            date_id,
+            time_id,
             timer_data_id,
             phase_id,
             package_id,
             package_hash_id,
-            time,
+            duration,
             ratio_of_total
         )
         SELECT
-            job_id,
+            core_timer.job_id,
+            to_char(core_job.started_at, 'YYYYMMDD')::int,
+            to_char(core_job.started_at, 'HH24MISS')::int,
             tdd.id,
             tpd.id,
             pd.id,
@@ -150,6 +160,8 @@ BEGIN
         FROM core_timerphase
         LEFT JOIN
             core_timer ON core_timerphase.timer_id = core_timer.id
+        LEFT JOIN
+            core_job ON core_timer.job_id = core_job.job_id
         LEFT JOIN core_timerdatadimension tdd ON
             core_timer.cache = tdd.cache
         LEFT JOIN core_packagedimension pd ON

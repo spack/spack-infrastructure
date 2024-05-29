@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("total_time", models.FloatField()),
+                ("total_duration", models.FloatField()),
             ],
         ),
         migrations.CreateModel(
@@ -83,7 +83,7 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("time", models.FloatField()),
+                ("duration", models.FloatField()),
                 (
                     "ratio_of_total",
                     models.FloatField(
@@ -95,6 +95,20 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
                         to="core.jobdatadimension",
+                    ),
+                ),
+                (
+                    "date",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="core.datedimension",
+                    ),
+                ),
+                (
+                    "time",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="core.timedimension",
                     ),
                 ),
                 (
@@ -146,6 +160,20 @@ class Migration(migrations.Migration):
             name="job",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.PROTECT, to="core.jobdatadimension"
+            ),
+        ),
+        migrations.AddField(
+            model_name="timerfact",
+            name="date",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, to="core.datedimension"
+            ),
+        ),
+        migrations.AddField(
+            model_name="timerfact",
+            name="time",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, to="core.timedimension"
             ),
         ),
         migrations.AddField(

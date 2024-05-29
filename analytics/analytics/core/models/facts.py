@@ -127,29 +127,31 @@ class JobFact(models.Model):
         ]
 
 
-# TODO: Add date and time dimensions
 class TimerFact(models.Model):
     job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
+    date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
+    time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
     package = models.ForeignKey(PackageDimension, on_delete=models.PROTECT)
     package_hash = models.ForeignKey(PackageHashDimension, on_delete=models.PROTECT)
 
-    total_time = models.FloatField()
+    total_duration = models.FloatField()
 
     class Meta:
         # All FKs should make up the composite primary key
         unique_together = ["job", "timer_data", "package", "package_hash"]
 
 
-# TODO: Add date and time dimensions
 class TimerPhaseFact(models.Model):
     job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
+    date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
+    time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
     phase = models.ForeignKey(TimerPhaseDimension, on_delete=models.PROTECT)
     package = models.ForeignKey(PackageDimension, on_delete=models.PROTECT)
     package_hash = models.ForeignKey(PackageHashDimension, on_delete=models.PROTECT)
 
-    time = models.FloatField()
+    duration = models.FloatField()
     ratio_of_total = models.FloatField(
         help_text="The fraction of the timer total that this phase contributes to."
     )
