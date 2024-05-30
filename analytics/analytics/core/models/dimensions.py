@@ -192,12 +192,20 @@ class RunnerDimension(models.Model):
     runner_id = models.PositiveIntegerField(primary_key=True)
     name = models.CharField(max_length=64, unique=True)
     platform = models.CharField(max_length=64)
-    host = models.CharField(max_length=64)
-    metal = models.BooleanField()
+    host = models.CharField(max_length=32)
+    arch = models.CharField(max_length=32)
+    tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
     in_cluster = models.BooleanField()
 
 
 # TODO: Split up variants into it's own dimension
+# Query to get variants (without patches) from packages
+# SELECT
+#     DISTINCT(TRIM(UNNEST(regexp_matches(variants, '(~[^+~ ]+|\+[^+~ ]+|\s+(?!patches)[^+~ ]+=[^+~ ]+)', 'g'))))
+#     AS variant
+# FROM core_packagedimension
+
+
 class PackageDimension(models.Model):
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=32, blank=True)

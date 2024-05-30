@@ -195,8 +195,16 @@ class Migration(migrations.Migration):
                 ),
                 ("name", models.CharField(max_length=64, unique=True)),
                 ("platform", models.CharField(max_length=64)),
-                ("host", models.CharField(max_length=64)),
-                ("metal", models.BooleanField()),
+                ("host", models.CharField(max_length=32)),
+                ("arch", models.CharField(max_length=32)),
+                (
+                    "tags",
+                    django.contrib.postgres.fields.ArrayField(
+                        base_field=models.CharField(max_length=32),
+                        default=list,
+                        size=None,
+                    ),
+                ),
                 ("in_cluster", models.BooleanField()),
             ],
         ),

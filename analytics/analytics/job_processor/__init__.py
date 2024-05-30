@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 import gitlab
+import gitlab.exceptions
 from celery import shared_task
 from dateutil.parser import isoparse
 from django.conf import settings
@@ -137,10 +138,44 @@ def create_node_dimension(info: NodeInfo | MissingNodeInfo) -> NodeDimension:
     return node
 
 
-# Since this isn't info that we currently collect, just return the empty runner here
-# TODO: Add this info
-def create_runner_dimension() -> RunnerDimension:
-    return RunnerDimension.objects.get(name="")
+def create_runner_dimension(
+    gl: gitlab.Gitlab, gljob: ProjectJob, incluster: bool
+) -> RunnerDimension:
+    empty_runner = RunnerDimension.objects.get(name="")
+
+    _runner: dict | None = getattr(gljob, "runner", None)
+    if _runner is None:
+        return empty_runner
+
+    runner_id = _runner["id"]
+    existing_runner = RunnerDimension.objects.filter(runner_id=runner_id).first()
+    if existing_runner is not None:
+        return existing_runner
+
+    # Attempt to fetch this runner from gitlab
+    try:
+        runner = gl.runners.get(runner_id)
+    except gitlab.exceptions.GitlabGetError as e:
+        if e.response_code != 404:
+            raise
+
+        return empty_runner
+
+    # Create and return new runner
+    runner_name: str = runner.description
+    host = "cluster" if incluster else "unknown"
+    if runner_name.startswith("uo-"):
+        host = "uo"
+
+    return RunnerDimension.objects.create(
+        runner_id=runner_id,
+        name=runner.description,
+        platform=runner.platform,
+        host=host,
+        arch=runner.architecture,
+        tags=runner.tag_list,
+        in_cluster=incluster,
+    )
 
 
 def create_package_dimension(info: PackageInfo) -> PackageDimension:
@@ -164,11 +199,14 @@ def calculate_job_cost(info: JobInfo, duration: float) -> float | None:
 
 
 def create_job_fact(
+    gl: gitlab.Gitlab,
     gljob: ProjectJob,
     job_input_data: dict,
     job_trace: str,
 ) -> JobFact:
     job_info = retrieve_job_info(gljob=gljob)
+    job_incluster = isinstance(job_info, ClusterJobInfo)
+
     start_date, start_time, end_date, end_time = create_date_time_dimensions(
         gljob=gljob
     )
@@ -181,7 +219,7 @@ def create_job_fact(
     )
 
     node = create_node_dimension(job_info.node)
-    runner = create_runner_dimension()
+    runner = create_runner_dimension(gl=gl, gljob=gljob, incluster=job_incluster)
     package = create_package_dimension(job_info.package)
 
     # Now that we have all the dimensions, we need to calculate any derived fields
@@ -255,5 +293,5 @@ def process_job(job_input_data_json: str):
 
     # Use a transaction, to account for transient failures
     with transaction.atomic():
-        job = create_job_fact(gl_job, job_input_data, job_trace)
+        job = create_job_fact(gl, gl_job, job_input_data, job_trace)
         create_build_timing_facts(job_fact=job, gljob=gl_job)

@@ -155,14 +155,16 @@ INSERT INTO core_runnerdimension (
     name,
     platform,
     host,
-    metal,
+    arch,
+    tags,
     in_cluster
 ) SELECT
     0,
     '',
     '',
     '',
-    FALSE,
+    '',
+    {},
     FALSE
 ;
 
