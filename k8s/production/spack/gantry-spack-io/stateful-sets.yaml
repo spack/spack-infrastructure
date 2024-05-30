@@ -6,6 +6,9 @@ kind: StatefulSet
 metadata:
   name: spack-gantry
   namespace: spack
+  labels:
+    app: spack-gantry
+    svc: web
 spec:
   selector:
     matchLabels:
@@ -31,6 +34,7 @@ spec:
     metadata:
       labels:
         app: spack-gantry
+        svc: web
     spec:
 
       # Grants permission to access S3 bucket for Litestream
