@@ -1,7 +1,5 @@
 import json
 import re
-import uuid
-from dataclasses import dataclass
 from datetime import timedelta
 
 import gitlab
@@ -94,21 +92,6 @@ def create_job_data_dimension(
     )
 
     return job_data
-
-
-@dataclass
-class JobFactDimensions:
-    """Refers to the primary keys of the dimensions that have been created for a job fact."""
-
-    start_date: int
-    start_time: int
-    end_date: int
-    end_time: int
-
-    job_data: int
-    node: uuid.UUID
-    runner: int
-    package: int
 
 
 def create_date_time_dimensions(
