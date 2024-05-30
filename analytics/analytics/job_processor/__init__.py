@@ -67,6 +67,9 @@ def create_job_data_dimension(
         else None
     )
 
+    rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
+    runner_version = rvmatch.group(1) if rvmatch is not None else ""
+
     job_data = JobDataDimension.objects.create(
         job_id=job_id,
         commit_id=job_commit_id,
@@ -85,8 +88,7 @@ def create_job_data_dimension(
         error_taxonomy=error_taxonomy,
         unnecessary=UNNECESSARY_JOB_REGEX.search(job_trace) is not None,
         pod_name=job_info.pod.name,
-        # TODO: Once this info is available, update this
-        gitlab_runner_version="",
+        gitlab_runner_version=runner_version,
         # TODO: Once this is also used to process failed jobs, change this
         is_build=True,
     )
