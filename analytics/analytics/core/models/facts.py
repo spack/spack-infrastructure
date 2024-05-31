@@ -5,7 +5,6 @@ from analytics.core.models.dimensions import (
     JobDataDimension,
     NodeDimension,
     PackageDimension,
-    PackageHashDimension,
     RunnerDimension,
     TimeDimension,
     TimerDataDimension,
@@ -133,13 +132,18 @@ class TimerFact(models.Model):
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
     package = models.ForeignKey(PackageDimension, on_delete=models.PROTECT)
-    package_hash = models.ForeignKey(PackageHashDimension, on_delete=models.PROTECT)
 
     total_duration = models.FloatField()
 
     class Meta:
         # All FKs should make up the composite primary key
-        unique_together = ["job", "timer_data", "package", "package_hash"]
+        unique_together = [
+            "job",
+            "date",
+            "time",
+            "timer_data",
+            "package",
+        ]
 
 
 class TimerPhaseFact(models.Model):
@@ -149,7 +153,6 @@ class TimerPhaseFact(models.Model):
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
     phase = models.ForeignKey(TimerPhaseDimension, on_delete=models.PROTECT)
     package = models.ForeignKey(PackageDimension, on_delete=models.PROTECT)
-    package_hash = models.ForeignKey(PackageHashDimension, on_delete=models.PROTECT)
 
     duration = models.FloatField()
     ratio_of_total = models.FloatField(
@@ -158,4 +161,11 @@ class TimerPhaseFact(models.Model):
 
     class Meta:
         # All FKs should make up the composite primary key
-        unique_together = ["job", "timer_data", "phase", "package", "package_hash"]
+        unique_together = [
+            "job",
+            "date",
+            "time",
+            "timer_data",
+            "phase",
+            "package",
+        ]

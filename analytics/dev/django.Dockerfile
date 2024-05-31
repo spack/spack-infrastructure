@@ -3,7 +3,7 @@ FROM python:3.10-slim
 # * psycopg2
 RUN apt-get update && \
     apt-get install --no-install-recommends --yes \
-        libpq-dev gcc libc6-dev && \
+    libpq-dev gcc libc6-dev git && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -15,6 +15,14 @@ ENV PYTHONUNBUFFERED 1
 # and all package modules are importable.
 COPY ./setup.py /opt/django-project/setup.py
 RUN pip install --editable /opt/django-project[dev]
+
+
+# Install spack
+RUN git clone -c feature.manyFiles=true https://github.com/spack/spack.git /opt/spack
+RUN pip install hatch
+RUN cd /opt/spack && hatch build -t wheel
+RUN pip install /opt/spack/dist/*.whl
+
 
 # Use a directory name which will never be an import name, as isort considers this as first-party.
 WORKDIR /opt/django-project

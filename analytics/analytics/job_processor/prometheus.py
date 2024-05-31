@@ -48,6 +48,7 @@ class PodResourceUsage:
 
 @dataclass
 class PodLabels:
+    package_hash: str
     package_name: str
     package_version: str
     compiler_name: str
@@ -318,6 +319,7 @@ class PrometheusClient:
             f"kube_pod_labels{{pod='{pod}'}}", start=start, end=end, single_result=True
         )["metric"]
 
+        package_hash = annotations["annotation_metrics_spack_job_spec_dag_hash"]
         package_name = annotations["annotation_metrics_spack_job_spec_pkg_name"]
         package_version = annotations["annotation_metrics_spack_job_spec_pkg_version"]
         compiler_name = annotations["annotation_metrics_spack_job_spec_compiler_name"]
@@ -335,6 +337,7 @@ class PrometheusClient:
             build_jobs = int(build_jobs)
 
         return PodLabels(
+            package_hash=package_hash,
             package_name=package_name,
             package_version=package_version,
             compiler_name=compiler_name,

@@ -14,6 +14,7 @@ from analytics.job_processor.prometheus import PrometheusClient
 @dataclass
 class PackageInfo:
     name: str
+    hash: str
     version: str
     compiler_name: str
     compiler_version: str
@@ -117,6 +118,7 @@ def retrieve_job_info(gljob: ProjectJob) -> JobInfo:
         return NonClusterJobInfo(
             package=PackageInfo(
                 name=artifacts.package_name,
+                hash=artifacts.package_hash,
                 version=artifacts.package_version,
                 compiler_name=artifacts.compiler_name,
                 compiler_version=artifacts.compiler_name,
@@ -145,6 +147,7 @@ def retrieve_job_info(gljob: ProjectJob) -> JobInfo:
     return ClusterJobInfo(
         package=PackageInfo(
             name=pod_labels.package_name,
+            hash=pod_labels.package_hash,
             version=pod_labels.package_version,
             compiler_name=pod_labels.compiler_name,
             compiler_version=pod_labels.compiler_name,

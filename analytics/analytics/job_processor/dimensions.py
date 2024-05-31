@@ -156,6 +156,7 @@ def create_runner_dimension(
 def create_package_dimension(info: PackageInfo) -> PackageDimension:
     package, _ = PackageDimension.objects.get_or_create(
         name=info.name,
+        hash=info.hash,
         version=info.version,
         compiler_name=info.compiler_name,
         compiler_version=info.compiler_version,

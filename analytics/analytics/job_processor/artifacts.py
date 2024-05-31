@@ -31,6 +31,7 @@ def get_job_artifacts_file(job: ProjectJob, filename: str):
 
 @dataclass
 class JobArtifactsData:
+    package_hash: str
     package_name: str
     package_version: str
     compiler_name: str
@@ -56,6 +57,7 @@ def get_job_artifacts_data(gljob: ProjectJob) -> JobArtifactsData:
         raise Exception(f"Empty job variables for job {gljob.id}")
 
     return JobArtifactsData(
+        package_hash=job_vars["SPACK_JOB_SPEC_DAG_HASH"],
         package_name=job_vars["SPACK_JOB_SPEC_PKG_NAME"],
         package_version=job_vars["SPACK_JOB_SPEC_PKG_VERSION"],
         compiler_name=job_vars["SPACK_JOB_SPEC_COMPILER_NAME"],

@@ -208,29 +208,40 @@ class RunnerDimension(models.Model):
 
 class PackageDimension(models.Model):
     name = models.CharField(max_length=128)
-    version = models.CharField(max_length=32, blank=True)
-    compiler_name = models.CharField(max_length=32, blank=True)
-    compiler_version = models.CharField(max_length=32, blank=True)
-    arch = models.CharField(max_length=64, blank=True)
+    hash = models.CharField(max_length=32, unique=True)
+    version = models.CharField(max_length=32)
+    compiler_name = models.CharField(max_length=32)
+    compiler_version = models.CharField(max_length=32)
+    arch = models.CharField(max_length=64)
     variants = models.TextField(default="", blank=True)
 
     class Meta:
-        unique_together = [
-            "name",
-            "version",
-            "compiler_name",
-            "compiler_version",
-            "arch",
-            "variants",
-        ]
-
         constraints = [
-            models.CheckConstraint(name="no-empty-name", check=~models.Q(name=""))
+            # Ensure that the same data can't be stored under a different hash
+            models.UniqueConstraint(
+                name="unique-package-params",
+                fields=[
+                    "name",
+                    "version",
+                    "compiler_name",
+                    "compiler_version",
+                    "arch",
+                    "variants",
+                ],
+            ),
+            models.CheckConstraint(
+                # Variants is the only one allowed to be empty
+                name="no-empty-fields",
+                check=models.Q(
+                    name__length__gt=0,
+                    hash__length__gt=0,
+                    version__length__gt=0,
+                    compiler_name__length__gt=0,
+                    compiler_version__length__gt=0,
+                    arch__length__gt=0,
+                ),
+            ),
         ]
-
-
-class PackageHashDimension(models.Model):
-    hash = models.CharField(max_length=32, unique=True)
 
 
 class TimerPhaseDimension(models.Model):
