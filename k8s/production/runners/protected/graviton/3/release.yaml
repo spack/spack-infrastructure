@@ -131,6 +131,7 @@ spec:
               "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
               "gitlab/ci_job_id" = "$CI_JOB_ID"
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
+              "metrics/spack_job_spec_hash" = "$SPACK_JOB_SPEC_DAG_HASH"
               "metrics/spack_job_spec_pkg_version" = "$SPACK_JOB_SPEC_PKG_VERSION"
               "metrics/spack_job_spec_compiler_name" = "$SPACK_JOB_SPEC_COMPILER_NAME"
               "metrics/spack_job_spec_compiler_version" = "$SPACK_JOB_SPEC_COMPILER_VERSION"
