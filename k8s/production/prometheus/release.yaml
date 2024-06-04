@@ -20,7 +20,7 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: 58.4.0 # prometheus-operator@v0.73.2
+      version: 59.1.0 # prometheus-operator@v0.74.0
       sourceRef:
         kind: HelmRepository
         name: kube-prometheus-stack
