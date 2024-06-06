@@ -15,20 +15,8 @@ from analytics.core.models.dimensions import (
 
 class JobFact(models.Model):
     # Foreign Keys
-    start_date = models.ForeignKey(
-        DateDimension, related_name="+", on_delete=models.PROTECT
-    )
-    start_time = models.ForeignKey(
-        TimeDimension, related_name="+", on_delete=models.PROTECT
-    )
-
-    # TODO: Remove end date/time
-    end_date = models.ForeignKey(
-        DateDimension, related_name="+", on_delete=models.PROTECT
-    )
-    end_time = models.ForeignKey(
-        TimeDimension, related_name="+", on_delete=models.PROTECT
-    )
+    start_date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
+    start_time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
 
     node = models.ForeignKey(NodeDimension, on_delete=models.PROTECT)
     runner = models.ForeignKey(RunnerDimension, on_delete=models.PROTECT)
@@ -84,8 +72,6 @@ class JobFact(models.Model):
                 fields=[
                     "start_date",
                     "start_time",
-                    "end_date",
-                    "end_time",
                     "node",
                     "runner",
                     "package",

@@ -43,10 +43,7 @@ def create_job_fact(
     job_info = retrieve_job_info(gljob=gljob)
     job_incluster = isinstance(job_info, ClusterJobInfo)
 
-    start_date, start_time, end_date, end_time = create_date_time_dimensions(
-        gljob=gljob
-    )
-
+    start_date, start_time = create_date_time_dimensions(gljob=gljob)
     job_data = create_job_data_dimension(
         job_input_data=job_input_data,
         job_info=job_info,
@@ -72,8 +69,6 @@ def create_job_fact(
     existing_job_fact = JobFact.objects.filter(
         start_date=start_date,
         start_time=start_time,
-        end_date=end_date,
-        end_time=end_time,
         node=node,
         runner=runner,
         package=package,
@@ -88,8 +83,6 @@ def create_job_fact(
         # Foreign Keys
         start_date=start_date,
         start_time=start_time,
-        end_date=end_date,
-        end_time=end_time,
         node=node,
         runner=runner,
         package=package,

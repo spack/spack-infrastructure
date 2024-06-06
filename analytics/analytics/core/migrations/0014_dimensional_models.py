@@ -293,24 +293,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="jobfact",
-            name="end_date",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT,
-                related_name="+",
-                to="core.datedimension",
-            ),
-        ),
-        migrations.AddField(
-            model_name="jobfact",
-            name="end_time",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT,
-                related_name="+",
-                to="core.timedimension",
-            ),
-        ),
-        migrations.AddField(
-            model_name="jobfact",
             name="job",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.PROTECT, to="core.jobdatadimension"
@@ -349,18 +331,14 @@ class Migration(migrations.Migration):
             model_name="jobfact",
             name="start_date",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT,
-                related_name="+",
-                to="core.datedimension",
+                on_delete=django.db.models.deletion.PROTECT, to="core.datedimension"
             ),
         ),
         migrations.AddField(
             model_name="jobfact",
             name="start_time",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT,
-                related_name="+",
-                to="core.timedimension",
+                on_delete=django.db.models.deletion.PROTECT, to="core.timedimension"
             ),
         ),
         migrations.AddConstraint(
@@ -413,8 +391,6 @@ class Migration(migrations.Migration):
                 fields=(
                     "start_date",
                     "start_time",
-                    "end_date",
-                    "end_time",
                     "node",
                     "runner",
                     "package",

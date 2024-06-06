@@ -44,9 +44,6 @@ ON CONFLICT (time_key) DO NOTHING
 WITH dates as (
     SELECT started_at::date as d
     from core_job
-    UNION DISTINCT
-    SELECT (started_at + duration)::date as d
-    from core_job
 )
 INSERT INTO core_datedimension (
     date_key,
@@ -281,8 +278,6 @@ FROM core_job
 INSERT INTO core_jobfact (
     start_date_id,
     start_time_id,
-    end_date_id,
-    end_time_id,
     node_id,
     runner_id,
     package_id,
@@ -311,8 +306,6 @@ INSERT INTO core_jobfact (
 SELECT
     to_char(started_at, 'YYYYMMDD')::int,
     to_char(started_at, 'HH24MISS')::int,
-    to_char(started_at + duration, 'YYYYMMDD')::int,
-    to_char(started_at + duration, 'HH24MISS')::int,
     COALESCE(
         core_node.system_uuid,
         (SELECT system_uuid FROM core_nodedimension WHERE name = '' LIMIT 1)

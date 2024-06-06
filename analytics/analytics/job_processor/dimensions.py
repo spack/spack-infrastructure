@@ -87,15 +87,11 @@ def create_job_data_dimension(
 
 def create_date_time_dimensions(
     gljob: ProjectJob
-) -> tuple[DateDimension, TimeDimension, DateDimension, TimeDimension]:
+) -> tuple[DateDimension, TimeDimension]:
     start_date = DateDimension.ensure_exists(gljob.started_at)
     start_time = TimeDimension.ensure_exists(gljob.started_at)
 
-    finished_at = isoparse(gljob.started_at) + timedelta(seconds=gljob.duration)
-    end_date = DateDimension.ensure_exists(finished_at)
-    end_time = TimeDimension.ensure_exists(finished_at)
-
-    return (start_date, start_time, end_date, end_time)
+    return (start_date, start_time)
 
 
 def create_node_dimension(info: NodeInfo | MissingNodeInfo) -> NodeDimension:
