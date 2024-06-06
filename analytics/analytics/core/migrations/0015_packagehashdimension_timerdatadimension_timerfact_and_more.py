@@ -100,6 +100,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="timerphasefact",
+            name="spec",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                to="core.packagespecdimension",
+            ),
+        ),
+        migrations.AddField(
+            model_name="timerphasefact",
             name="phase",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.PROTECT,
@@ -158,6 +166,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="timerfact",
+            name="spec",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                to="core.packagespecdimension",
+            ),
+        ),
+        migrations.AddField(
+            model_name="timerfact",
             name="time",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.PROTECT, to="core.timedimension"
@@ -175,12 +191,26 @@ class Migration(migrations.Migration):
             name="timerdatadimension",
             unique_together={("cache",)},
         ),
-        migrations.AlterUniqueTogether(
-            name="timerphasefact",
-            unique_together={("job", "date", "time", "timer_data", "phase", "package")},
+        migrations.AddConstraint(
+            model_name="timerfact",
+            constraint=models.UniqueConstraint(
+                fields=("job", "date", "time", "timer_data", "package", "spec"),
+                name="timer-fact-composite-key",
+            ),
         ),
-        migrations.AlterUniqueTogether(
-            name="timerfact",
-            unique_together={("job", "date", "time", "timer_data", "package")},
+        migrations.AddConstraint(
+            model_name="timerphasefact",
+            constraint=models.UniqueConstraint(
+                fields=(
+                    "job",
+                    "date",
+                    "time",
+                    "timer_data",
+                    "package",
+                    "spec",
+                    "phase",
+                ),
+                name="timerphase-fact-composite-key",
+            ),
         ),
     ]

@@ -110,6 +110,7 @@ SELECT
 
 
 -- Fix package names so that there's not duplicates
+-- Some have a package name of '<name>@<version>'
 UPDATE core_job
 SET
     package_name    = split_part(core_job.package_name, '@', 1),
@@ -118,10 +119,26 @@ WHERE
     core_job.package_name LIKE '%@%'
 ;
 
+-- Some have a package name of '(specs) <name>'
+UPDATE core_job
+SET
+    package_name = split_part(core_job.package_name, '(specs) ', 2)
+WHERE
+    core_job.package_name LIKE '(specs) %'
+;
 
 -- Create all packages from existing jobs
-INSERT INTO core_packagedimension (
+INSERT INTO core_packagedimension (name)
+SELECT DISTINCT(package_name)
+FROM core_job
+-- Also include empty row
+UNION VALUES ('')
+;
+
+
+INSERT INTO core_packagespecdimension (
     name,
+    hash,
     version,
     compiler_name,
     compiler_version,
@@ -129,24 +146,59 @@ INSERT INTO core_packagedimension (
     variants
 )
 SELECT
-    DISTINCT ON (
-        package_name,
-        COALESCE(package_version,  ''),
-        COALESCE(compiler_name, ''),
-        COALESCE(compiler_version, ''),
-        COALESCE(arch, ''),
-        COALESCE(package_variants, '')
-    )
+    DISTINCT ON (core_timer.hash)
+
     package_name,
-    COALESCE(package_version,  ''),
-    COALESCE(compiler_name, ''),
-    COALESCE(compiler_version, ''),
-    COALESCE(arch, ''),
-    COALESCE(package_variants, '')
+    core_timer.hash,
+    package_version,
+    compiler_name,
+    compiler_version,
+    arch,
+    package_variants
 FROM
     core_job
+/*
+    Join jobs with all timers that have data for that job's specific spec, which gives us full spec information.
+    This relies on the job id, package name, and job name (which contains the first 7 characters of the hash).
+    Usually just the job_id and package_name would suffice, but sometimes the same package under two different
+    hashes is built for a job, so the final conditions resolves that.
+*/
+INNER JOIN core_timer ON
+        core_timer.job_id   = core_job.job_id
+    AND core_timer.name     = core_job.package_name
+    AND core_job.name LIKE '%' || substring(core_timer.hash, 1, 7) || '%'
+WHERE
+        COALESCE(package_name, '')        != ''
+    AND COALESCE(package_version, '')     != ''
+    AND COALESCE(compiler_name, '')       != ''
+    AND COALESCE(compiler_version, '')    != ''
+    AND COALESCE(arch, '')                != ''
+    AND COALESCE(package_variants, '')    != ''
 ON CONFLICT DO NOTHING
 ;
+-- Takes ~25 seconds, inserts ~26k rows
+
+
+--- Create the unknown package spec row
+INSERT INTO core_packagespecdimension (
+    name,
+    hash,
+    version,
+    compiler_name,
+    compiler_version,
+    arch,
+    variants
+)
+VALUES (
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
+);
+
 
 
 -- Since we don't currently have this info, just create the empty runner
@@ -158,14 +210,15 @@ INSERT INTO core_runnerdimension (
     arch,
     tags,
     in_cluster
-) SELECT
+) VALUES (
     0,
     '',
     '',
     '',
     '',
-    {},
+    array[]::text[],
     FALSE
+)
 ;
 
 
@@ -233,6 +286,7 @@ INSERT INTO core_jobfact (
     node_id,
     runner_id,
     package_id,
+    spec_id,
     job_id,
 
     duration,
@@ -265,9 +319,15 @@ SELECT
     ),
     -- Insert empty runner since we don't have this data yet
     (SELECT runner_id FROM core_runnerdimension WHERE name = '' LIMIT 1),
-    core_packagedimension.id,
+    pd.name,
+    -- Default to the "empty spec" if join failed
+    COALESCE(
+        psd.id,
+        (SELECT id FROM core_packagespecdimension WHERE hash = '')
+    ),
     core_jobdatadimension.job_id,
 
+    -- Numeric data
     duration,
     EXTRACT(EPOCH FROM core_job.duration),
 
@@ -286,22 +346,19 @@ SELECT
     core_jobpod.memory_limit,
 
     EXTRACT(EPOCH FROM core_job.duration) * core_jobpod.node_occupancy * (core_node.instance_type_spot_price / 3600)
-
 FROM core_job
     LEFT JOIN core_node ON core_job.node_id = core_node.id
     LEFT JOIN core_jobpod ON core_job.pod_id = core_jobpod.id
     LEFT JOIN core_jobdatadimension ON core_job.job_id = core_jobdatadimension.job_id
-    -- Join package dimension so we can reference the package_id. Since we already created the packagedimension
-    -- from these same values in the jobs table, it's guaranteed to be matched.
-    LEFT JOIN core_packagedimension ON
-    (
-                            core_job.package_name       = core_packagedimension.name
-        AND COALESCE(core_job.package_version, '')      = core_packagedimension.version
-        AND COALESCE(core_job.compiler_name, '')        = core_packagedimension.compiler_name
-        AND COALESCE(core_job.compiler_version, '')     = core_packagedimension.compiler_version
-        AND COALESCE(core_job.arch, '')                 = core_packagedimension.arch
-        AND COALESCE(core_job.package_variants, '')     = core_packagedimension.variants
-    )
+    LEFT JOIN core_packagedimension pd ON core_job.package_name = pd.name
+
+    -- The below joins might be NULL, which is why the coalesce above is present
+    LEFT JOIN core_timer ON
+            core_timer.job_id   = core_job.job_id
+        AND core_timer.name     = core_job.package_name
+        AND core_job.name LIKE '%' || substring(core_timer.hash, 1, 7) || '%'
+    LEFT JOIN core_packagespecdimension psd ON
+        psd.hash = core_timer.hash
 ;
 """
 
@@ -311,4 +368,4 @@ class Migration(migrations.Migration):
         ("core", "0015_packagehashdimension_timerdatadimension_timerfact_and_more"),
     ]
 
-    operations = [migrations.RunSQL(RAW_SQL)]
+    operations = [migrations.RunSQL(RAW_SQL, reverse_sql="")]

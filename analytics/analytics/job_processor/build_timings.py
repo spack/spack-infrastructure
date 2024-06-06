@@ -6,13 +6,12 @@ from gitlab.v4.objects import ProjectJob
 
 from analytics.core.models.dimensions import (
     PackageDimension,
+    PackageSpecDimension,
     TimerDataDimension,
     TimerPhaseDimension,
 )
 from analytics.core.models.facts import JobFact, TimerFact, TimerPhaseFact
 from analytics.job_processor.artifacts import get_job_artifacts_file
-
-BuildTimingFacts = tuple[list[TimerFact], list[TimerPhaseFact]]
 
 
 def get_timings_json(job: ProjectJob) -> list[dict]:
@@ -31,20 +30,22 @@ def get_spec_json(job: ProjectJob) -> list[dict]:
     with get_job_artifacts_file(job, spec_file) as file:
         spec = json.load(file)
 
-    return spec["spec"]["nodes"]
+    return spec
 
 
-def create_spec_packages(job: ProjectJob):
+def create_packages_and_specs(job: ProjectJob):
     spec = get_spec_json(job=job)
     root_spec = spack.spec.Spec.from_dict(spec)
 
     # Construct a list of specs to create by going through each node and pulling out the relevant info
-    packages = []
+    package_names = set()
+    specs = []
     for node in spack.traverse.traverse_nodes([root_spec], depth=False):  # type: ignore
         node: spack.spec.Spec
 
-        packages.append(
-            PackageDimension(
+        package_names.add(node.name)
+        specs.append(
+            PackageSpecDimension(
                 name=node.name,
                 hash=node.dag_hash(),
                 version=node.version.string,
@@ -56,7 +57,10 @@ def create_spec_packages(job: ProjectJob):
         )
 
     # Bulk create
-    PackageDimension.objects.bulk_create(packages, ignore_conflicts=True)
+    PackageSpecDimension.objects.bulk_create(specs, ignore_conflicts=True)
+    PackageDimension.objects.bulk_create(
+        [PackageDimension(name=name) for name in package_names], ignore_conflicts=True
+    )
 
 
 def get_phase_mapping(timings: list[dict]) -> dict[str, TimerPhaseDimension]:
@@ -76,17 +80,25 @@ def get_phase_mapping(timings: list[dict]) -> dict[str, TimerPhaseDimension]:
     return {obj.path: obj for obj in TimerPhaseDimension.objects.filter(path__in=paths)}
 
 
-def get_package_mapping(timings: list[dict]) -> dict[str, PackageDimension]:
+def get_package_spec_mapping(timings: list[dict]) -> dict[str, PackageSpecDimension]:
     hashes: set[str] = {entry["hash"] for entry in timings}
-    return {obj.hash: obj for obj in PackageDimension.objects.filter(hash__in=hashes)}
+    return {
+        obj.hash: obj for obj in PackageSpecDimension.objects.filter(hash__in=hashes)
+    }
 
 
-def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimingFacts:
+def get_package_mapping(timings: list[dict]) -> dict[str, PackageDimension]:
+    names: set[str] = {entry["name"] for entry in timings}
+    return {obj.name: obj for obj in PackageDimension.objects.filter(name__in=names)}
+
+
+def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob):
     timings = [t for t in get_timings_json(gljob) if t.get("name") and t.get("hash")]
 
-    # First, ensure that all specs are entered into the db. Then, fetch all timing packages
-    create_spec_packages(gljob)
+    # First, ensure that all packages and specs are entered into the db. Then, fetch all timing packages
+    create_packages_and_specs(gljob)
     package_mapping = get_package_mapping(timings=timings)
+    package_spec_mapping = get_package_spec_mapping(timings=timings)
 
     timer_data_mapping = {obj.cache: obj for obj in TimerDataDimension.objects.all()}
     phase_mapping = get_phase_mapping(timings=timings)
@@ -96,7 +108,8 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimi
     phase_facts = []
     for entry in timings:
         timer_data = timer_data_mapping[entry["cache"]]
-        package = package_mapping[entry["hash"]]
+        package = package_mapping[entry["name"]]
+        spec = package_spec_mapping[entry["hash"]]
         total_time = entry["total"]
         timer_facts.append(
             TimerFact(
@@ -105,6 +118,7 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimi
                 time=job_fact.start_time,
                 timer_data=timer_data,
                 package=package,
+                spec=spec,
                 total_duration=total_time,
             )
         )
@@ -120,6 +134,7 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimi
                     time=job_fact.start_time,
                     timer_data=timer_data,
                     package=package,
+                    spec=spec,
                     # For phases only
                     phase=phase_mapping[phase["path"]],
                     duration=phase_time,
@@ -128,7 +143,5 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob) -> BuildTimi
             )
 
     # Bulk create all at once
-    timer_facts = TimerFact.objects.bulk_create(timer_facts)
-    phase_facts = TimerPhaseFact.objects.bulk_create(phase_facts)
-
-    return (timer_facts, phase_facts)
+    timer_facts = TimerFact.objects.bulk_create(timer_facts, ignore_conflicts=True)
+    phase_facts = TimerPhaseFact.objects.bulk_create(phase_facts, ignore_conflicts=True)

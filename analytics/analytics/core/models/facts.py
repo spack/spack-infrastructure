@@ -5,6 +5,7 @@ from analytics.core.models.dimensions import (
     JobDataDimension,
     NodeDimension,
     PackageDimension,
+    PackageSpecDimension,
     RunnerDimension,
     TimeDimension,
     TimerDataDimension,
@@ -21,6 +22,7 @@ class JobFact(models.Model):
         TimeDimension, related_name="+", on_delete=models.PROTECT
     )
 
+    # TODO: Remove end date/time
     end_date = models.ForeignKey(
         DateDimension, related_name="+", on_delete=models.PROTECT
     )
@@ -31,6 +33,7 @@ class JobFact(models.Model):
     node = models.ForeignKey(NodeDimension, on_delete=models.PROTECT)
     runner = models.ForeignKey(RunnerDimension, on_delete=models.PROTECT)
     package = models.ForeignKey(PackageDimension, on_delete=models.PROTECT)
+    spec = models.ForeignKey(PackageSpecDimension, on_delete=models.PROTECT)
     job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
 
     # ############
@@ -75,19 +78,22 @@ class JobFact(models.Model):
 
     class Meta:
         # All FKs should make up the composite primary key
-        unique_together = [
-            "start_date",
-            "start_time",
-            "end_date",
-            "end_time",
-            "node",
-            "runner",
-            "package",
-            "job",
-        ]
-
-        # Ensure that these nullable fields are consistent
         constraints = [
+            models.UniqueConstraint(
+                name="job-fact-composite-key",
+                fields=[
+                    "start_date",
+                    "start_time",
+                    "end_date",
+                    "end_time",
+                    "node",
+                    "runner",
+                    "package",
+                    "spec",
+                    "job",
+                ],
+            ),
+            # Ensure that these nullable fields are consistent
             models.CheckConstraint(
                 name="nullable-field-consistency",
                 check=(
@@ -132,17 +138,24 @@ class TimerFact(models.Model):
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
     package = models.ForeignKey(PackageDimension, on_delete=models.PROTECT)
+    spec = models.ForeignKey(PackageSpecDimension, on_delete=models.PROTECT)
 
     total_duration = models.FloatField()
 
     class Meta:
-        # All FKs should make up the composite primary key
-        unique_together = [
-            "job",
-            "date",
-            "time",
-            "timer_data",
-            "package",
+        constraints = [
+            # All FKs should make up the composite primary key
+            models.UniqueConstraint(
+                name="timer-fact-composite-key",
+                fields=[
+                    "job",
+                    "date",
+                    "time",
+                    "timer_data",
+                    "package",
+                    "spec",
+                ],
+            )
         ]
 
 
@@ -151,8 +164,10 @@ class TimerPhaseFact(models.Model):
     date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
-    phase = models.ForeignKey(TimerPhaseDimension, on_delete=models.PROTECT)
     package = models.ForeignKey(PackageDimension, on_delete=models.PROTECT)
+    spec = models.ForeignKey(PackageSpecDimension, on_delete=models.PROTECT)
+
+    phase = models.ForeignKey(TimerPhaseDimension, on_delete=models.PROTECT)
 
     duration = models.FloatField()
     ratio_of_total = models.FloatField(
@@ -160,12 +175,18 @@ class TimerPhaseFact(models.Model):
     )
 
     class Meta:
-        # All FKs should make up the composite primary key
-        unique_together = [
-            "job",
-            "date",
-            "time",
-            "timer_data",
-            "phase",
-            "package",
+        constraints = [
+            # All FKs should make up the composite primary key
+            models.UniqueConstraint(
+                name="timerphase-fact-composite-key",
+                fields=[
+                    "job",
+                    "date",
+                    "time",
+                    "timer_data",
+                    "package",
+                    "spec",
+                    "phase",
+                ],
+            )
         ]

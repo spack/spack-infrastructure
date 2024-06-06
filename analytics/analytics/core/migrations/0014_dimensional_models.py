@@ -170,6 +170,15 @@ class Migration(migrations.Migration):
             name="PackageDimension",
             fields=[
                 (
+                    "name",
+                    models.CharField(max_length=128, primary_key=True, serialize=False),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name="PackageSpecDimension",
+            fields=[
+                (
                     "id",
                     models.BigAutoField(
                         auto_created=True,
@@ -251,31 +260,29 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AddConstraint(
-            model_name="packagedimension",
-            constraint=models.UniqueConstraint(
-                fields=(
-                    "name",
-                    "version",
-                    "compiler_name",
-                    "compiler_version",
-                    "arch",
-                    "variants",
-                ),
-                name="unique-package-params",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="packagedimension",
+            model_name="packagespecdimension",
             constraint=models.CheckConstraint(
                 check=models.Q(
-                    ("arch__length__gt", 0),
-                    ("compiler_name__length__gt", 0),
-                    ("compiler_version__length__gt", 0),
-                    ("hash__length__gt", 0),
-                    ("name__length__gt", 0),
-                    ("version__length__gt", 0),
+                    models.Q(
+                        ("arch__length__gt", 0),
+                        ("compiler_name__length__gt", 0),
+                        ("compiler_version__length__gt", 0),
+                        ("hash__length", 32),
+                        ("name__length__gt", 0),
+                        ("version__length__gt", 0),
+                    ),
+                    models.Q(
+                        ("arch", ""),
+                        ("compiler_name", ""),
+                        ("compiler_version", ""),
+                        ("hash", ""),
+                        ("name", ""),
+                        ("variants", ""),
+                        ("version", ""),
+                    ),
+                    _connector="OR",
                 ),
-                name="no-empty-fields",
+                name="no-missing-fields",
             ),
         ),
         migrations.AddConstraint(
@@ -321,6 +328,14 @@ class Migration(migrations.Migration):
             name="package",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.PROTECT, to="core.packagedimension"
+            ),
+        ),
+        migrations.AddField(
+            model_name="jobfact",
+            name="spec",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                to="core.packagespecdimension",
             ),
         ),
         migrations.AddField(
@@ -392,10 +407,10 @@ class Migration(migrations.Migration):
                 name="nullable-field-consistency",
             ),
         ),
-        migrations.AlterUniqueTogether(
-            name="jobfact",
-            unique_together={
-                (
+        migrations.AddConstraint(
+            model_name="jobfact",
+            constraint=models.UniqueConstraint(
+                fields=(
                     "start_date",
                     "start_time",
                     "end_date",
@@ -403,8 +418,10 @@ class Migration(migrations.Migration):
                     "node",
                     "runner",
                     "package",
+                    "spec",
                     "job",
-                )
-            },
+                ),
+                name="job-fact-composite-key",
+            ),
         ),
     ]

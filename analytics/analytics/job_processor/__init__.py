@@ -16,6 +16,7 @@ from analytics.job_processor.dimensions import (
     create_job_data_dimension,
     create_node_dimension,
     create_package_dimension,
+    create_package_spec_dimension,
     create_runner_dimension,
 )
 from analytics.job_processor.metadata import (
@@ -56,6 +57,7 @@ def create_job_fact(
     node = create_node_dimension(job_info.node)
     runner = create_runner_dimension(gl=gl, gljob=gljob, incluster=job_incluster)
     package = create_package_dimension(job_info.package)
+    spec = create_package_spec_dimension(job_info.package)
 
     # Now that we have all the dimensions, we need to calculate any derived fields
     job_cost = calculate_job_cost(info=job_info, duration=gljob.duration)
@@ -75,6 +77,7 @@ def create_job_fact(
         node=node,
         runner=runner,
         package=package,
+        spec=spec,
         job=job_data,
     ).first()
     if existing_job_fact is not None:
@@ -90,6 +93,7 @@ def create_job_fact(
         node=node,
         runner=runner,
         package=package,
+        spec=spec,
         job=job_data,
         # numeric
         duration=timedelta(seconds=gljob.duration),
@@ -119,6 +123,7 @@ def process_job(job_input_data_json: str):
     setup_gitlab_job_sentry_tags(job_input_data)
 
     # Retrieve project and job from gitlab API
+    # TODO: Seems to be very slow and sometimes times out. Look into using shared session?
     gl = gitlab.Gitlab(
         settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True
     )

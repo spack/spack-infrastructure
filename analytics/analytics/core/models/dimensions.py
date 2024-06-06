@@ -4,6 +4,7 @@ from dateutil.parser import isoparse
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.db.models.functions import Length
 
 
 class DateDimension(models.Model):
@@ -206,9 +207,17 @@ class RunnerDimension(models.Model):
 # FROM core_packagedimension
 
 
-class PackageDimension(models.Model):
-    name = models.CharField(max_length=128)
+# Necessary for the length check constraints
+models.CharField.register_lookup(Length)
+
+
+class PackageSpecDimension(models.Model):
+    """Represents a concrete spec."""
+
+    # Hash is unique
     hash = models.CharField(max_length=32, unique=True)
+
+    name = models.CharField(max_length=128)
     version = models.CharField(max_length=32)
     compiler_name = models.CharField(max_length=32)
     compiler_version = models.CharField(max_length=32)
@@ -217,31 +226,37 @@ class PackageDimension(models.Model):
 
     class Meta:
         constraints = [
-            # Ensure that the same data can't be stored under a different hash
-            models.UniqueConstraint(
-                name="unique-package-params",
-                fields=[
-                    "name",
-                    "version",
-                    "compiler_name",
-                    "compiler_version",
-                    "arch",
-                    "variants",
-                ],
-            ),
             models.CheckConstraint(
+                # All fields must either have data, or must all be empty (for the 'empty' row)
                 # Variants is the only one allowed to be empty
-                name="no-empty-fields",
-                check=models.Q(
-                    name__length__gt=0,
-                    hash__length__gt=0,
-                    version__length__gt=0,
-                    compiler_name__length__gt=0,
-                    compiler_version__length__gt=0,
-                    arch__length__gt=0,
+                name="no-missing-fields",
+                check=(
+                    models.Q(
+                        name__length__gt=0,
+                        hash__length=32,
+                        version__length__gt=0,
+                        compiler_name__length__gt=0,
+                        compiler_version__length__gt=0,
+                        arch__length__gt=0,
+                    )
+                    | models.Q(
+                        name="",
+                        hash="",
+                        version="",
+                        compiler_name="",
+                        compiler_version="",
+                        arch="",
+                        variants="",
+                    )
                 ),
             ),
         ]
+
+
+class PackageDimension(models.Model):
+    """A loose representation of a package."""
+
+    name = models.CharField(max_length=128, primary_key=True)
 
 
 class TimerPhaseDimension(models.Model):

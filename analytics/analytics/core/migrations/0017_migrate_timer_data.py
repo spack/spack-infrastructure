@@ -5,20 +5,6 @@ from django.db import migrations
 RAW_SQL = """
 BEGIN;
 
--- Ensure all package hashes exist in this dimension
-INSERT INTO core_packagehashdimension (
-    hash
-)
-VALUES ('')  -- Include empty hash value
-UNION ALL
-SELECT
-    DISTINCT (hash)
-FROM
-    core_timer
-;
--- Takes ~32 seconds, Scans ~50M rows, Inserts ~1M rows
-
-
 -- This table is odd because it has one boolean column, so a maximum of two rows
 INSERT INTO core_timerdatadimension (
     cache
@@ -35,10 +21,7 @@ INSERT INTO core_timerphasedimension (
     is_subphase
 )
 SELECT
-    DISTINCT ON (
-        path,
-        is_subphase
-    )
+    DISTINCT ON (path)
 
     path,
     is_subphase
@@ -49,26 +32,11 @@ FROM core_timerphase
 
 -- Ensure that for all timer facts an entry in the package dimension
 -- exists that consists of the package name with all other columns empty.
-INSERT INTO core_packagedimension (
-    name,
-    version,
-    compiler_name,
-    compiler_version,
-    arch,
-    variants
-)
-SELECT
-    DISTINCT (name),
-    '',
-    '',
-    '',
-    '',
-    ''
-FROM
-    core_timer
+INSERT INTO core_packagedimension (name)
+SELECT DISTINCT (name)
+FROM core_timer
 ON CONFLICT DO NOTHING
 ;
--- Takes ~15 seconds, Scans ~50M rows, Inserts ~1500 rows
 
 
 -- Create all timer facts from the existing timer table
@@ -78,7 +46,7 @@ INSERT INTO core_timerfact (
     time_id,
     timer_data_id,
     package_id,
-    package_hash_id,
+    spec_id,
     total_duration
 )
 SELECT
@@ -86,25 +54,26 @@ SELECT
     to_char(core_job.started_at, 'YYYYMMDD')::int,
     to_char(core_job.started_at, 'HH24MISS')::int,
     tdd.id,
-    pd.id,
-    phd.id,
+    pd.name,
+    COALESCE(
+        psd.id,
+        (SELECT id FROM core_packagespecdimension WHERE hash = '')
+    ),
     time_total
 FROM core_timer
-LEFT JOIN
-    core_job ON core_timer.job_id = core_job.job_id
-LEFT JOIN core_timerdatadimension tdd ON
+INNER JOIN core_job ON
+        core_timer.job_id       = core_job.job_id
+INNER JOIN core_timerdatadimension tdd ON
     core_timer.cache = tdd.cache
-LEFT JOIN core_packagedimension pd ON
-    pd.name                     = core_timer.name
-    AND pd.version              = ''
-    AND pd.compiler_name        = ''
-    AND pd.compiler_version     = ''
-    AND pd.arch                 = ''
-    AND pd.variants             = ''
-LEFT JOIN core_packagehashdimension phd ON
-    core_timer.hash = phd.hash
+INNER JOIN core_packagedimension pd ON
+    pd.name = core_timer.name
+LEFT JOIN core_packagespecdimension psd ON
+    psd.hash = core_timer.hash
+
+-- There are ~3k entries that are duplicate in all dimensions
+ON CONFLICT DO NOTHING
 ;
--- Takes ~20 minutes, Scans ~50M rows, Inserts ~50M rows
+-- Takes ~45 minutes, Inserts ~50M rows
 
 
 -- This query seems scary but it's just creating the upper and lower
@@ -141,9 +110,9 @@ BEGIN
             date_id,
             time_id,
             timer_data_id,
-            phase_id,
             package_id,
-            package_hash_id,
+            spec_id,
+            phase_id,
             duration,
             ratio_of_total
         )
@@ -152,9 +121,13 @@ BEGIN
             to_char(core_job.started_at, 'YYYYMMDD')::int,
             to_char(core_job.started_at, 'HH24MISS')::int,
             tdd.id,
+            pd.name,
+            -- Default to the "empty spec" if join failed
+            COALESCE(
+                psd.id,
+                (SELECT id FROM core_packagespecdimension WHERE hash = '')
+            ),
             tpd.id,
-            pd.id,
-            phd.id,
             seconds,
             seconds / time_total
         FROM core_timerphase
@@ -165,22 +138,24 @@ BEGIN
         LEFT JOIN core_timerdatadimension tdd ON
             core_timer.cache = tdd.cache
         LEFT JOIN core_packagedimension pd ON
-            pd.name                     = core_timer.name
-            AND pd.version              = ''
-            AND pd.compiler_name        = ''
-            AND pd.compiler_version     = ''
-            AND pd.arch                 = ''
-            AND pd.variants             = ''
-        LEFT JOIN core_packagehashdimension phd ON core_timer.hash = phd.hash
-        LEFT JOIN core_timerphasedimension tpd ON core_timerphase.path = tpd.path
-        WHERE core_timerphase.id > batch.lower AND core_timerphase.id <= batch.upper
+            core_timer.name = pd.name
+        LEFT JOIN core_packagespecdimension psd ON
+            psd.hash = core_timer.hash
+        LEFT JOIN core_timerphasedimension tpd ON
+            core_timerphase.path = tpd.path
+        WHERE
+                core_timerphase.id > batch.lower
+            AND core_timerphase.id <= batch.upper
+
+        -- There are ~13k duplicate rows
+        ON CONFLICT DO NOTHING
         ;
     END LOOP;
 END;
 $body$
 LANGUAGE 'plpgsql'
 ;
--- Took 2 hours, scanned ~240M rows + joins, inserted ~240M rows
+-- Took 3.6 hours, scanned ~240M rows + joins, inserted ~240M rows
 
 
 -- Final commit
@@ -193,4 +168,4 @@ class Migration(migrations.Migration):
         ("core", "0016_migrate_job_data"),
     ]
 
-    operations = [migrations.RunSQL(RAW_SQL)]
+    operations = [migrations.RunSQL(RAW_SQL, reverse_sql="")]
