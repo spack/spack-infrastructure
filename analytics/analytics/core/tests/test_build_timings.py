@@ -3,7 +3,7 @@ import json
 import pytest
 
 from analytics.core.job_log_uploader import store_job_data
-from analytics.core.models import LegacyJob
+from analytics.core.models.legacy import LegacyJob
 from analytics.job_processor import process_job
 
 

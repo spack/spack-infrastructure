@@ -18,7 +18,7 @@ from analytics.core.job_failure_classifier import (
     _assign_error_taxonomy,
     _job_retry_data,
 )
-from analytics.core.models import LegacyJobAttempt
+from analytics.core.models.legacy import LegacyJobAttempt
 
 
 class JobLog(Document):
