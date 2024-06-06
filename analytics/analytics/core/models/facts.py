@@ -103,18 +103,6 @@ class JobFact(models.Model):
                     )
                 ),
             ),
-            # models.CheckConstraint(
-            #     name="duration-consistency",
-            #     check=(
-            #         models.Q(
-            #             duration_seconds=models.functions.Extract(
-            #                 models.F("duration"),
-            #                 "epoch",
-            #                 output_field=models.FloatField(),
-            #             )
-            #         )
-            #     ),
-            # ),
         ]
 
 

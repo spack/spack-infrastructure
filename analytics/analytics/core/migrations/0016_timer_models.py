@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("core", "0014_dimensional_models"),
+        ("core", "0015_migrate_job_data"),
     ]
 
     operations = [

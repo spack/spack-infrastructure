@@ -354,11 +354,12 @@ FROM core_job
         psd.hash = core_timer.hash
 ;
 """
+# Migration takes ~5 minutes
 
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("core", "0015_packagehashdimension_timerdatadimension_timerfact_and_more"),
+        ("core", "0014_job_models"),
     ]
 
     operations = [migrations.RunSQL(RAW_SQL, reverse_sql="")]

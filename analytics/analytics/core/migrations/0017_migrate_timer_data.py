@@ -165,7 +165,7 @@ COMMIT;
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("core", "0016_migrate_job_data"),
+        ("core", "0016_timer_models"),
     ]
 
     operations = [migrations.RunSQL(RAW_SQL, reverse_sql="")]

@@ -1,9 +1,7 @@
 import re
-from datetime import timedelta
 
 import gitlab
 import gitlab.exceptions
-from dateutil.parser import isoparse
 from gitlab.v4.objects import ProjectJob
 
 from analytics.core.job_failure_classifier import (
