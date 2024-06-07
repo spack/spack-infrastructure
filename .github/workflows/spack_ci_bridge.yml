@@ -1,6 +1,9 @@
 name: spack_ci_bridge
 
-on: pull_request
+on:
+  pull_request:
+    paths:
+      - images/gh-gl-sync/**
 
 jobs:
   spack_ci_bridge:
