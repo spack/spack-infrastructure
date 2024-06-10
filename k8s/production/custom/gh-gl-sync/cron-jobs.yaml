@@ -49,5 +49,7 @@ spec:
               - "develop"
               - "--prereq-check"
               - "prechecks / style"
+              - "--hidden-ref"
+              - "refs/snapshots/develop-latest"
           nodeSelector:
             spack.io/node-pool: base
