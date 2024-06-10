@@ -101,5 +101,7 @@ spec:
               - "develop"
               - "--prereq-check"
               - "all-prechecks"
+              - "--hidden-ref"
+              - "refs/snapshots/develop-latest"
           nodeSelector:
             spack.io/node-pool: base
