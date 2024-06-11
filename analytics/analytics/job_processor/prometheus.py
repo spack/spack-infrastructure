@@ -319,7 +319,7 @@ class PrometheusClient:
             f"kube_pod_labels{{pod='{pod}'}}", start=start, end=end, single_result=True
         )["metric"]
 
-        package_hash = annotations["annotation_metrics_spack_job_spec_dag_hash"]
+        package_hash = annotations["annotation_metrics_spack_job_spec_hash"]
         package_name = annotations["annotation_metrics_spack_job_spec_pkg_name"]
         package_version = annotations["annotation_metrics_spack_job_spec_pkg_version"]
         compiler_name = annotations["annotation_metrics_spack_job_spec_compiler_name"]
