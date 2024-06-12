@@ -145,6 +145,7 @@ spec:
               "metrics/gitlab_ci_commit_ref_name" = "$CI_COMMIT_REF_NAME"
               "metrics/spack_ci_stack_name" = "$SPACK_CI_STACK_NAME"
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
+              "metrics/spack_job_spec_hash" = "$SPACK_JOB_SPEC_DAG_HASH"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
               "kubernetes.io/os" = "windows"
