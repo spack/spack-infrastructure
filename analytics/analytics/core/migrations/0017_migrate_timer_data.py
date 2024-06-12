@@ -73,7 +73,7 @@ LEFT JOIN core_packagespecdimension psd ON
 -- There are ~3k entries that are duplicate in all dimensions
 ON CONFLICT DO NOTHING
 ;
--- Takes ~45 minutes, Inserts ~50M rows
+-- Takes ~1 hour, Inserts ~50M rows
 
 
 -- This query seems scary but it's just creating the upper and lower
