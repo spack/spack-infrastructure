@@ -1,0 +1,43 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gitlab-restart-webservice
+  namespace: gitlab
+spec:
+  # Run daily at 12:30am UTC.
+  schedule: "30 0 * * *"
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid
+  # Only save the most recent run to avoid overpopulating the pod list in the gitlab namespace.
+  successfulJobsHistoryLimit: 1
+  jobTemplate:
+    metadata:
+      labels:
+        app: gitlab-restart-webservice
+    spec:
+      template:
+        metadata:
+          name: gitlab-restart-webservice
+          namespace: gitlab
+          labels:
+            app: gitlab-restart-webservice
+        spec:
+          serviceAccountName: gitlab-restart-webservice
+          restartPolicy: Never
+          containers:
+            - name: restarter
+              image: bitnami/kubectl
+              imagePullPolicy: IfNotPresent
+              command: ["kubectl"]
+              args:
+                [
+                  "-n",
+                  "gitlab",
+                  "rollout",
+                  "restart",
+                  "deployment",
+                  "gitlab-webservice-default",
+                ]
+          nodeSelector:
+            spack.io/node-pool: base
