@@ -30,8 +30,8 @@ class JobFact(models.Model):
 
     duration = models.DurationField()
     duration_seconds = models.FloatField(
-        help_text="The duration of this job represented as seconds"
-    )
+        db_comment="The duration of this job represented as seconds"
+    )  # type: ignore
 
     # Pod and node info (null if not run in cluster)
     pod_node_occupancy = models.FloatField(null=True, default=None)
@@ -41,10 +41,10 @@ class JobFact(models.Model):
     node_price_per_second = models.DecimalField(
         max_digits=9,
         decimal_places=8,
-        help_text="The price per second (in USD) of the spot instance this job ran on, at the time of running.",
+        db_comment="The price per second (in USD) of the spot instance this job ran on, at the time of running.",
         null=True,
         default=None,
-    )
+    )  # type: ignore
     node_cpu = models.PositiveIntegerField(null=True, default=None)
     node_memory = models.PositiveBigIntegerField(null=True, default=None)
 
@@ -59,10 +59,10 @@ class JobFact(models.Model):
     cost = models.DecimalField(
         max_digits=13,
         decimal_places=10,
-        help_text="The cost of this job, determined by the node occupancy, duration, and node price.",
+        db_comment="The cost of this job, determined by the node occupancy, duration, and node price.",
         null=True,
         default=None,
-    )
+    )  # type: ignore
 
     class Meta:
         # All FKs should make up the composite primary key
@@ -145,8 +145,8 @@ class TimerPhaseFact(models.Model):
 
     duration = models.FloatField()
     ratio_of_total = models.FloatField(
-        help_text="The fraction of the timer total that this phase contributes to."
-    )
+        db_comment="The fraction of the timer total that this phase contributes to."
+    )  # type: ignore
 
     class Meta:
         constraints = [

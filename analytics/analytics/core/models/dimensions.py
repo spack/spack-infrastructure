@@ -69,12 +69,12 @@ class DateDimension(models.Model):
 class TimeDimension(models.Model):
     time_key = models.PositiveIntegerField(
         primary_key=True,
-        help_text="The time this row represents formatted as <HOUR><MINUTE><SECOND>",
-    )
+        db_comment="The time this row represents formatted as <HOUR><MINUTE><SECOND>",
+    )  # type: ignore
     time = models.TimeField(
         unique=True,
-        help_text="The time represented as a DB time field, with precision to the second.",
-    )
+        db_comment="The time represented as a DB time field, with precision to the second.",
+    )  # type: ignore
     am_or_pm = models.CharField(max_length=2)
 
     hour_12 = models.PositiveSmallIntegerField()
@@ -160,8 +160,8 @@ class JobDataDimension(models.Model):
     error_taxonomy = models.CharField(max_length=64, null=True)
     unnecessary = models.BooleanField(
         default=False,
-        help_text="Whether this job has 'No need to rebuild' in its trace.",
-    )
+        db_comment="Whether this job has 'No need to rebuild' in its trace.",
+    )  # type: ignore
 
     pod_name = models.CharField(max_length=128, null=True, blank=True)
     gitlab_runner_version = models.CharField(max_length=16)
