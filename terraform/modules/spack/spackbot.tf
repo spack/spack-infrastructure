@@ -135,15 +135,3 @@ resource "kubectl_manifest" "spackbot_gitlab_credentials" {
       gitlab_token: ${base64encode("${gitlab_personal_access_token.spackbot.token}")}
   YAML
 }
-
-resource "kubectl_manifest" "gitlab_api_scrape_credentials" {
-  yaml_body = <<-YAML
-    apiVersion: v1
-    kind: Secret
-    metadata:
-      name: gitlab-api-scrape
-      namespace: custom
-    data:
-      gitlab-private-token: ${base64encode("${gitlab_personal_access_token.spackbot.token}")}
-  YAML
-}
