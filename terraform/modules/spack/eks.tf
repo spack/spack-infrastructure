@@ -30,13 +30,21 @@ module "eks" {
       groups   = ["system:masters"]
     },
     {
-      # Read-only access to the cluster
+      # Read-only access to the cluster (for users)
       rolearn  = aws_iam_role.readonly_clusterrole.arn,
       username = "readonly-access",
       # See the ClusterRole/ClusterRoleBinding at the bottom of
       # this file for the permissions given to this group
       groups = ["readonly-access"],
-    }
+    },
+    {
+      # Read-only access to the cluster (for github actions)
+      rolearn  = aws_iam_role.github_actions.arn,
+      username = "github-actions",
+      # See the ClusterRole/ClusterRoleBinding at the bottom of
+      # this file for the permissions given to this group
+      groups = ["readonly-access"],
+    },
   ]
   # This is required for DNS resolution to work on Windows nodes.
   # See info about aws-auth configmap here - https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support
