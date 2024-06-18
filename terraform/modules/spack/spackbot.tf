@@ -129,7 +129,7 @@ resource "kubectl_manifest" "spackbot_gitlab_credentials" {
     apiVersion: v1
     kind: Secret
     metadata:
-      name: spackbot-gitlab-credentials
+      name: spack-bot-gitlab-credentials
       namespace: spack
     data:
       gitlab_token: ${base64encode("${gitlab_personal_access_token.spackbot.token}")}
