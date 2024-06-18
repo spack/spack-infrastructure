@@ -1,7 +1,5 @@
 import json
 
-import spack.spec
-import spack.traverse
 from gitlab.v4.objects import ProjectJob
 
 from analytics.core.models.dimensions import (
@@ -34,6 +32,9 @@ def get_spec_json(job: ProjectJob) -> list[dict]:
 
 
 def create_packages_and_specs(job: ProjectJob):
+    import spack.spec
+    import spack.traverse
+
     spec = get_spec_json(job=job)
     root_spec = spack.spec.Spec.from_dict(spec)
 
