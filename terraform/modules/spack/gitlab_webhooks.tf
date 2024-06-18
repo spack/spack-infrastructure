@@ -1,14 +1,6 @@
-locals {
-  job_webhooks = ["http://gitlab-error-processor.custom.svc.cluster.local",
-  "http://webhook-handler.custom.svc.cluster.local"]
-}
-
-
 resource "gitlab_project_hook" "job_webhook" {
-  for_each = toset(local.job_webhooks)
-
   project                 = data.gitlab_project.spack.id
-  url                     = each.value
+  url                     = "http://webhook-handler.custom.svc.cluster.local"
   job_events              = true
   push_events             = false
   enable_ssl_verification = false
