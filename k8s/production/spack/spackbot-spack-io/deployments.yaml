@@ -52,17 +52,17 @@ spec:
         - name: GITLAB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-gitlab-credentials
               key: gitlab_token
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-github-credentials
               key: github_private_key
         - name: GITHUB_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-github-credentials
               key: github_webhook_secret
       nodeSelector:
         spack.io/node-pool: base
@@ -126,17 +126,17 @@ spec:
         - name: GITLAB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-gitlab-credentials
               key: gitlab_token
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-github-credentials
               key: github_private_key
         - name: GITHUB_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-github-credentials
               key: github_webhook_secret
       volumes:
       - name: spack-bot-idrsa
@@ -207,17 +207,17 @@ spec:
         - name: GITLAB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-gitlab-credentials
               key: gitlab_token
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-github-credentials
               key: github_private_key
         - name: GITHUB_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spack-bot-github-credentials
               key: github_webhook_secret
       volumes:
       - name: spack-bot-idrsa
