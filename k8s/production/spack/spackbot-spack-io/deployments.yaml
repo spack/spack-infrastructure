@@ -52,7 +52,7 @@ spec:
         - name: GITLAB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spackbot-gitlab-credentials
               key: gitlab_token
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
@@ -126,7 +126,7 @@ spec:
         - name: GITLAB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spackbot-gitlab-credentials
               key: gitlab_token
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
@@ -207,7 +207,7 @@ spec:
         - name: GITLAB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: spack-bot-credentials
+              name: spackbot-gitlab-credentials
               key: gitlab_token
         - name: GITHUB_PRIVATE_KEY
           valueFrom:
