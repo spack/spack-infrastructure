@@ -70,6 +70,11 @@ resource "helm_release" "karpenter" {
     value = "1Gi"
   }
 
+  set {
+    name = "tolerations[0].key"
+    value = "SpackBootstrap"
+  }
+
   # Enable service monitor for prometheus metrics
   set {
     name  = "serviceMonitor.enabled"

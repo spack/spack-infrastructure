@@ -26,3 +26,7 @@ spec:
   values:
     nodeSelector:
       spack.io/node-pool: base
+    tolerations:
+      - key: SpackBootstrap
+        operator: Equal
+        effect: NoSchedule

@@ -24,5 +24,6 @@ provider "flux" {
 }
 
 resource "flux_bootstrap_git" "this" {
-  path = "k8s/production/"
+  path            = "k8s/production/"
+  toleration_keys = ["SpackBootstrap"]
 }

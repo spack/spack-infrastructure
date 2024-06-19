@@ -84,6 +84,13 @@ module "eks" {
 
       create_iam_role = false
       iam_role_arn    = aws_iam_role.managed_node_group.arn
+
+      taints = {
+        spack-bootstrap = {
+          key    = "SpackBootstrap"
+          effect = "NO_SCHEDULE"
+        }
+      }
     }
   }
 
