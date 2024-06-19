@@ -71,7 +71,7 @@ resource "helm_release" "karpenter" {
   }
 
   set {
-    name = "tolerations[0].key"
+    name  = "tolerations[0].key"
     value = "SpackBootstrap"
   }
 
