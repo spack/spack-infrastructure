@@ -130,7 +130,7 @@ module "production_cluster" {
 
   gitlab_url = local.gitlab_url
 
-  kubernetes_version = "1.28"
+  kubernetes_version = "1.29"
 
   availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
