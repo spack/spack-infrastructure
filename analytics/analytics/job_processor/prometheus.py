@@ -1,12 +1,14 @@
 import math
 import statistics
-from datetime import datetime
+import uuid
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import requests
+from dateutil.parser import isoparse
+from gitlab.v4.objects import ProjectJob
 from kubernetes.utils.quantity import parse_quantity
-
-from analytics.core.models import Job, JobPod, Node
 
 PROM_MAX_RESOLUTION = 10_000
 
@@ -26,6 +28,47 @@ class UnexpectedPrometheusResult(Exception):
     def __init__(self, message: str, query: str) -> None:
         super().__init__(message)
         self.query = query
+
+
+@dataclass
+class PodCpuRequestsLimits:
+    cpu_request: float | None
+    cpu_limit: float | None
+    memory_request: float | None
+    memory_limit: float | None
+
+
+@dataclass
+class PodResourceUsage:
+    cpu_usage_seconds: float
+    node_occupancy: float
+    max_memory: int
+    avg_memory: float
+
+
+@dataclass
+class PodLabels:
+    package_hash: str
+    package_name: str
+    package_version: str
+    compiler_name: str
+    compiler_version: str
+    arch: str
+    package_variants: str
+    job_size: str
+    stack: str
+    build_jobs: int | None
+
+
+@dataclass
+class NodeData:
+    name: str
+    system_uuid: uuid.UUID
+    cpu: int
+    memory: int
+    capacity_type: str
+    instance_type: str
+    spot_price: float
 
 
 def calculate_node_occupancy(data: list[dict], step: int):
@@ -57,6 +100,10 @@ def calculate_node_occupancy(data: list[dict], step: int):
 
 
 class PrometheusClient:
+    @staticmethod
+    def _default_range_step(duration: float):
+        return math.ceil(duration / 10)
+
     def __init__(self, url: str) -> None:
         # URL should include protocol
         self.api_url = f"{url.rstrip('/')}/api/v1"
@@ -100,9 +147,10 @@ class PrometheusClient:
         query: str,
         start: datetime,
         end: datetime,
-        step: int,
+        step: int | None = None,
         single_result=False,
     ):
+        step = step or self._default_range_step((end - start).total_seconds())
         params = {
             "query": query,
             "start": start.timestamp(),
@@ -116,63 +164,78 @@ class PrometheusClient:
             single_result=single_result,
         )
 
-    def annotate_resource_requests_and_limits(self, job: Job):
-        """Annotate cpu and memory resource requests and limits."""
-        pod = job.pod.name
+    def get_pod_resource_requests_and_limits(
+        self, pod: str, start: datetime, end: datetime
+    ) -> PodCpuRequestsLimits:
+        """Get cpu and memory resource requests and limits."""
 
-        def extract_value(result: dict | None) -> int | float | None:
+        def extract_first_value(result: dict | None) -> int | float | None:
             if result is None:
                 return None
 
-            num = float(result["value"][1])
+            num = float(result["values"][0][1])
             if num.is_integer():
                 num = int(num)
 
             return num
 
-        # list where one entry is cpu, the other is mem
-        resource_requests = self.query_single(
+        # Result is a list where one entry is cpu, the other is mem
+        resource_requests = self.query_range(
             f"kube_pod_container_resource_requests{{container='build', pod='{pod}'}}",
-            time=job.midpoint,
+            start=start,
+            end=end,
         )
-        job.pod.cpu_request = extract_value(
+
+        cpu_request = extract_first_value(
             next(
                 (rr for rr in resource_requests if rr["metric"]["resource"] == "cpu"),
                 None,
             )
         )
-        job.pod.memory_request = extract_value(
+        memory_request = extract_first_value(
             next(
-                (rr for rr in resource_requests if rr["metric"]["resource"] == "memory"),
+                (
+                    rr
+                    for rr in resource_requests
+                    if rr["metric"]["resource"] == "memory"
+                ),
                 None,
             )
         )
 
         # list where one entry is cpu, the other is mem
-        resource_limits = self.query_single(
+        resource_limits = self.query_range(
             f"kube_pod_container_resource_limits{{container='build', pod='{pod}'}}",
-            time=job.midpoint,
+            start=start,
+            end=end,
         )
-        job.pod.cpu_limit = extract_value(
+        cpu_limit = extract_first_value(
             next(
                 (rr for rr in resource_limits if rr["metric"]["resource"] == "cpu"),
                 None,
             )
         )
-        job.pod.memory_limit = extract_value(
+        memory_limit = extract_first_value(
             next(
                 (rr for rr in resource_limits if rr["metric"]["resource"] == "memory"),
                 None,
             )
         )
 
-    def annotate_usage_and_occupancy(self, job: Job):
-        node = job.node.name
-        pod = job.pod.name
+        return PodCpuRequestsLimits(
+            cpu_request=cpu_request,
+            cpu_limit=cpu_limit,
+            memory_request=memory_request,
+            memory_limit=memory_limit,
+        )
 
-        # Step is seconds between samples. Use a hundredth of the duration as the step, to ensure
-        # we get a proper amount of data.
-        step = math.ceil(job.duration.total_seconds() / 100)
+    def get_pod_usage_and_occupancy(
+        self, pod: str, node: str, start: datetime, end: datetime
+    ) -> PodResourceUsage:
+        duration = end - start
+
+        # Custom step for finer grain results
+        step = math.ceil(duration.total_seconds() / 100)
 
         # Get cpu seconds usage
         cpu_seconds_query = (
@@ -180,8 +243,8 @@ class PrometheusClient:
         )
         results = self.query_range(
             cpu_seconds_query,
-            start=job.started_at,
-            end=job.finished_at,
+            start=start,
+            end=end,
             step=step,
         )
 
@@ -196,130 +259,153 @@ class PrometheusClient:
                 query=cpu_seconds_query,
             )
 
-        job.pod.cpu_usage_seconds = float(pod_results["values"][-1][1])
+        cpu_usage_seconds = float(pod_results["values"][-1][1])
 
         # Then use the same cpu usage results to determine node occupancy, since it gives us a timline of pods on this node
-        job.pod.node_occupancy = calculate_node_occupancy(results, step)
+        node_occupancy = calculate_node_occupancy(results, step)
 
         # Finally, determine the node memory usage
         memory_usage = self.query_range(
             f"container_memory_working_set_bytes{{container='build', pod='{pod}'}}",
-            start=job.started_at,
-            end=job.finished_at,
+            start=start,
+            end=end,
             step=step,
             single_result=True,
         )["values"]
 
         # Results consist of arrays: [timestamp, "value"]
         byte_values = [int(x) for _, x in memory_usage]
-        job.pod.max_mem = max(byte_values)
-        job.pod.avg_mem = statistics.mean(byte_values)
+        max_mem = max(byte_values)
+        avg_mem = statistics.mean(byte_values)
 
-    def annotate_annotations_and_labels(self, job: Job):
-        """Annotate the job model with any necessary fields, returning the pod it ran on."""
+        return PodResourceUsage(
+            cpu_usage_seconds=cpu_usage_seconds,
+            node_occupancy=node_occupancy,
+            max_memory=max_mem,
+            avg_memory=avg_mem,
+        )
+
+    def get_pod_name_from_gitlab_job(self, gljob: ProjectJob) -> str | None:
+        started_at = isoparse(gljob.started_at)
+        duration = timedelta(seconds=gljob.duration)
+        finished_at = isoparse(gljob.started_at) + duration
+
+        step = math.ceil(duration.total_seconds() / 10)
         try:
-            annotations: dict = self.query_single(
-                f"kube_pod_annotations{{annotation_gitlab_ci_job_id='{job.job_id}'}}",
-                time=job.midpoint,
+            annotations: dict = self.query_range(
+                f"kube_pod_annotations{{annotation_gitlab_ci_job_id='{gljob.get_id()}'}}",
+                start=started_at,
+                end=finished_at,
+                step=step,
                 single_result=True,
             )["metric"]
         except UnexpectedPrometheusResult:
-            # Raise this exception instead to indicate that this job can't use prometheus
-            raise JobPrometheusDataNotFound(job_id=job.job_id)
+            return None
 
-        # job.pod is one-to-one and so is always created when a Job is created
-        pod = annotations["pod"]
-        job.pod = JobPod(name=pod)
+        return annotations["pod"]
 
-        # Get pod labels
-        labels = self.query_single(
-            f"kube_pod_labels{{pod='{pod}'}}", time=job.midpoint, single_result=True
+    def get_pod_labels(self, pod: str, start: datetime, end: datetime) -> PodLabels:
+        """Get pod annotations and labels."""
+        # Get pod annotations
+        annotations: dict = self.query_range(
+            f"kube_pod_annotations{{pod='{pod}'}}",
+            start=start,
+            end=end,
+            single_result=True,
         )["metric"]
 
-        job.package_name = annotations["annotation_metrics_spack_job_spec_pkg_name"]
-        job.package_version = annotations["annotation_metrics_spack_job_spec_pkg_version"]
-        job.compiler_name = annotations["annotation_metrics_spack_job_spec_compiler_name"]
-        job.compiler_version = annotations["annotation_metrics_spack_job_spec_compiler_version"]
-        job.arch = annotations["annotation_metrics_spack_job_spec_arch"]
-        job.package_variants = annotations["annotation_metrics_spack_job_spec_variants"]
-        job.job_size = labels["label_gitlab_ci_job_size"]
-        job.stack = labels["label_metrics_spack_ci_stack_name"]
+        # Get pod labels
+        labels = self.query_range(
+            f"kube_pod_labels{{pod='{pod}'}}", start=start, end=end, single_result=True
+        )["metric"]
+
+        package_hash = annotations["annotation_metrics_spack_job_spec_hash"]
+        package_name = annotations["annotation_metrics_spack_job_spec_pkg_name"]
+        package_version = annotations["annotation_metrics_spack_job_spec_pkg_version"]
+        compiler_name = annotations["annotation_metrics_spack_job_spec_compiler_name"]
+        compiler_version = annotations[
+            "annotation_metrics_spack_job_spec_compiler_version"
+        ]
+        arch = annotations["annotation_metrics_spack_job_spec_arch"]
+        package_variants = annotations["annotation_metrics_spack_job_spec_variants"]
+        job_size = labels["label_gitlab_ci_job_size"]
+        stack = labels["label_metrics_spack_ci_stack_name"]
 
         # Build jobs isn't always specified
-        job.build_jobs = annotations.get("annotation_metrics_spack_job_build_jobs")
+        build_jobs = annotations.get("annotation_metrics_spack_job_build_jobs")
+        if build_jobs is not None:
+            build_jobs = int(build_jobs)
 
-        return pod
+        return PodLabels(
+            package_hash=package_hash,
+            package_name=package_name,
+            package_version=package_version,
+            compiler_name=compiler_name,
+            compiler_version=compiler_version,
+            arch=arch,
+            package_variants=package_variants,
+            job_size=job_size,
+            stack=stack,
+            build_jobs=build_jobs,
+        )
 
-    def annotate_node_data(self, job: Job):
-        pod = job.pod.name
-
-        # Use this for step value to have a pretty good guarauntee that we'll find the data,
-        # without grabbing too much
-        step = math.ceil(job.duration.total_seconds() / 10)
-
+    def get_pod_node_data(self, pod: str, start: datetime, end: datetime) -> NodeData:
         # Use this query to get the node the pod was running on at the time
         node_name = self.query_range(
             f"kube_pod_info{{pod='{pod}', node=~'.+', pod_ip=~'.+'}}",
-            start=job.started_at,
-            end=job.finished_at,
-            step=step,
+            start=start,
+            end=end,
             single_result=True,
         )["metric"]["node"]
 
         # Get the node system_uuid from the node name
-        node_system_uuid = self.query_single(
-            f"kube_node_info{{node='{node_name}'}}",
-            time=job.midpoint,
-            single_result=True,
-        )["metric"]["system_uuid"]
-
-        # Check if this node has already been created
-        existing_node = Node.objects.filter(name=node_name, system_uuid=node_system_uuid).first()
-        if existing_node is not None:
-            job.node = existing_node
-            return
-
-        # Create new node
-        node = Node(name=node_name, system_uuid=node_system_uuid)
+        node_system_uuid = uuid.UUID(
+            self.query_range(
+                f"kube_node_info{{node='{node_name}'}}",
+                start=start,
+                end=end,
+                single_result=True,
+            )["metric"]["system_uuid"]
+        )
 
         # Get node labels
-        node_labels = self.query_single(
+        node_labels = self.query_range(
             f"kube_node_labels{{node='{node_name}'}}",
-            time=job.midpoint,
+            start=start,
+            end=end,
             single_result=True,
         )["metric"]
-        node.cpu = int(node_labels["label_karpenter_k8s_aws_instance_cpu"])
+        cpu = int(node_labels["label_karpenter_k8s_aws_instance_cpu"])
 
         # It seems these values are in Megabytes (base 1000)
-        mem = node_labels["label_karpenter_k8s_aws_instance_memory"]
-        node.memory = int(parse_quantity(f"{mem}M"))
-        node.capacity_type = node_labels["label_karpenter_sh_capacity_type"]
-        node.instance_type = node_labels["label_node_kubernetes_io_instance_type"]
+        memory = int(
+            parse_quantity(f"{node_labels['label_karpenter_k8s_aws_instance_memory']}M")
+        )
+        capacity_type = node_labels["label_karpenter_sh_capacity_type"]
+        instance_type = node_labels["label_node_kubernetes_io_instance_type"]
 
         # Retrieve the price of this node
         zone = node_labels["label_topology_kubernetes_io_zone"]
-        node.instance_type_spot_price = self.query_single(
-            "karpenter_cloudprovider_instance_type_price_estimate{"
-            f"capacity_type='{node.capacity_type}',"
-            f"instance_type='{node.instance_type}',"
-            f"zone='{zone}'"
-            "}",
-            time=job.midpoint,
-            single_result=True,
-        )["value"][1]
+        spot_price = float(
+            self.query_range(
+                "karpenter_cloudprovider_instance_type_price_estimate{"
+                f"capacity_type='{capacity_type}',"
+                f"instance_type='{instance_type}',"
+                f"zone='{zone}'"
+                "}",
+                start=start,
+                end=end,
+                single_result=True,
+            )["values"][0][1]
+        )
 
         # Save and set as job node
-        job.node = node
-
-    def annotate_job(self, job: Job):
-        # The order of these functions is important, as they set values on `job` in a specific order
-
-        # After this call, job.pod will be set
-        self.annotate_annotations_and_labels(job=job)
-        self.annotate_resource_requests_and_limits(job=job)
-
-        # After this call, job.node will be set
-        self.annotate_node_data(job=job)
-
-        # This call sets fields on job.pod, but needs job.pod and job.node to be set first
-        self.annotate_usage_and_occupancy(job=job)
+        return NodeData(
+            name=node_name,
+            system_uuid=node_system_uuid,
+            cpu=cpu,
+            memory=memory,
+            capacity_type=capacity_type,
+            instance_type=instance_type,
+            spot_price=spot_price,
+        )

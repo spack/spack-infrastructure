@@ -1,57 +1,112 @@
 import json
-import re
 from datetime import timedelta
-from typing import Any
 
 import gitlab
-import sentry_sdk
+import gitlab.exceptions
 from celery import shared_task
-from dateutil.parser import isoparse
 from django.conf import settings
 from django.db import transaction
-from gitlab.v4.objects import Project, ProjectJob
+from gitlab.v4.objects import ProjectJob
 
 from analytics import setup_gitlab_job_sentry_tags
-from analytics.job_processor.artifacts import annotate_job_with_artifacts_data
-from analytics.job_processor.build_timings import create_build_timings
-from analytics.job_processor.prometheus import (
-    JobPrometheusDataNotFound,
-    PrometheusClient,
+from analytics.core.models.facts import JobFact
+from analytics.job_processor.build_timings import create_build_timing_facts
+from analytics.job_processor.dimensions import (
+    create_date_time_dimensions,
+    create_job_data_dimension,
+    create_node_dimension,
+    create_package_dimension,
+    create_package_spec_dimension,
+    create_runner_dimension,
 )
-from analytics.core.models import Job
+from analytics.job_processor.metadata import (
+    ClusterJobInfo,
+    JobInfo,
+    NonClusterJobInfo,
+    retrieve_job_info,
+)
 
 
-UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
+def calculate_job_cost(info: JobInfo, duration: float) -> float | None:
+    if isinstance(info, NonClusterJobInfo):
+        return None
+
+    return duration * info.pod.node_occupancy * (float(info.node.spot_price) / 3600)
 
 
-def create_job(gl: gitlab.Gitlab, project: Project, gljob: ProjectJob, job_trace: str) -> Job:
-    # Create base fields on job that are independent of where it ran
-    job = Job(
-        job_id=gljob.get_id(),
-        project_id=project.get_id(),
-        name=gljob.name,
-        started_at=isoparse(gljob.started_at),
-        duration=timedelta(seconds=gljob.duration),
-        ref=gljob.ref,
-        tags=gljob.tag_list,
-        aws=True,  # Default until proven otherwise
-        unnecessary=UNNECESSARY_JOB_REGEX.search(job_trace) is not None,
+def create_job_fact(
+    gl: gitlab.Gitlab,
+    gljob: ProjectJob,
+    job_input_data: dict,
+    job_trace: str,
+) -> JobFact:
+    job_info = retrieve_job_info(gljob=gljob)
+    job_incluster = isinstance(job_info, ClusterJobInfo)
+
+    start_date, start_time = create_date_time_dimensions(gljob=gljob)
+    job_data = create_job_data_dimension(
+        job_input_data=job_input_data,
+        job_info=job_info,
+        gljob=gljob,
+        job_trace=job_trace,
     )
 
-    # Prometheus data will either be found and the job annotated, or not, and set aws to False
-    try:
-        PrometheusClient(settings.PROMETHEUS_URL).annotate_job(job=job)
+    node = create_node_dimension(job_info.node)
+    runner = create_runner_dimension(gl=gl, gljob=gljob, incluster=job_incluster)
+    package = create_package_dimension(job_info.package)
+    spec = create_package_spec_dimension(job_info.package)
 
-        # Ensure node creation isn't caught in a race condition
-        job.save_or_set_node()
-        job.pod.save()
-    except JobPrometheusDataNotFound:
-        job.aws = False
-        annotate_job_with_artifacts_data(gljob=gljob, job=job)
+    # Now that we have all the dimensions, we need to calculate any derived fields
+    job_cost = calculate_job_cost(info=job_info, duration=gljob.duration)
+    node_price_per_second = (
+        job_info.node.spot_price / 3600
+        if isinstance(job_info, ClusterJobInfo)
+        else None
+    )
 
-    # Save and return new job
-    job.save()
-    return job
+    # Check that this fact hasn't already been created. If it has, return that value
+    # A fact table is unique to it's foreign keys
+    existing_job_fact = JobFact.objects.filter(
+        start_date=start_date,
+        start_time=start_time,
+        node=node,
+        runner=runner,
+        package=package,
+        spec=spec,
+        job=job_data,
+    ).first()
+    if existing_job_fact is not None:
+        return existing_job_fact
+
+    # Hasn't been created yet, create and return it
+    return JobFact.objects.create(
+        # Foreign Keys
+        start_date=start_date,
+        start_time=start_time,
+        node=node,
+        runner=runner,
+        package=package,
+        spec=spec,
+        job=job_data,
+        # numeric
+        duration=timedelta(seconds=gljob.duration),
+        duration_seconds=gljob.duration,
+        # Will be null on non-cluster jobs
+        cost=job_cost,
+        pod_node_occupancy=job_info.pod.node_occupancy,
+        pod_cpu_usage_seconds=job_info.pod.cpu_usage_seconds,
+        pod_max_mem=job_info.pod.max_memory,
+        pod_avg_mem=job_info.pod.avg_memory,
+        node_price_per_second=node_price_per_second,
+        node_cpu=job_info.node.cpu,
+        node_memory=job_info.node.memory,
+        # Can be null on any job
+        build_jobs=job_info.misc.build_jobs,
+        pod_cpu_request=job_info.pod.cpu_request,
+        pod_cpu_limit=job_info.pod.cpu_limit,
+        pod_memory_request=job_info.pod.memory_request,
+        pod_memory_limit=job_info.pod.memory_limit,
+    )
 
 
 @shared_task(name="process_job")
@@ -61,12 +116,15 @@ def process_job(job_input_data_json: str):
     setup_gitlab_job_sentry_tags(job_input_data)
 
     # Retrieve project and job from gitlab API
-    gl = gitlab.Gitlab(settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True)
+    # TODO: Seems to be very slow and sometimes times out. Look into using shared session?
+    gl = gitlab.Gitlab(
+        settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True
+    )
     gl_project = gl.projects.get(job_input_data["project_id"])
     gl_job = gl_project.jobs.get(job_input_data["build_id"])
-    job_trace: str = gl_job.trace().decode()
+    job_trace: str = gl_job.trace().decode()  # type: ignore
 
     # Use a transaction, to account for transient failures
     with transaction.atomic():
-        job = create_job(gl, gl_project, gl_job, job_trace)
-        create_build_timings(job, gl_job)
+        job = create_job_fact(gl, gl_job, job_input_data, job_trace)
+        create_build_timing_facts(job_fact=job, gljob=gl_job)

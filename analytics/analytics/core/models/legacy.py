@@ -1,13 +1,10 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import IntegrityError, models, transaction
 
-
-class NodeCapacityType(models.TextChoices):
-    SPOT = "spot"
-    ON_DEMAND = "on-demand"
+from analytics.core.models.dimensions import NodeCapacityType
 
 
-class Node(models.Model):
+class LegacyNode(models.Model):
     name = models.CharField(max_length=64)
     system_uuid = models.UUIDField()
     cpu = models.PositiveIntegerField()
@@ -26,11 +23,13 @@ class Node(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(name="unique-name-system-uuid", fields=["name", "system_uuid"]),
+            models.UniqueConstraint(
+                name="unique-name-system-uuid", fields=["name", "system_uuid"]
+            )
         ]
 
 
-class JobPod(models.Model):
+class LegacyJobPod(models.Model):
     """Information about the kubernetes pod that a job ran on."""
 
     name = models.CharField(max_length=128)
@@ -53,7 +52,7 @@ class JobPod(models.Model):
     memory_limit = models.PositiveBigIntegerField(null=True, default=None)
 
 
-class JobAttempt(models.Model):
+class LegacyJobAttempt(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -83,7 +82,7 @@ class JobAttempt(models.Model):
     )
 
 
-class Job(models.Model):
+class LegacyJob(models.Model):
     # Core job fields
     job_id = models.PositiveBigIntegerField(primary_key=True)
     project_id = models.PositiveBigIntegerField()
@@ -98,8 +97,10 @@ class Job(models.Model):
     aws = models.BooleanField(default=True)
 
     # Node and pod will be null for non-aws jobs
-    node = models.ForeignKey(Node, related_name="jobs", on_delete=models.PROTECT, null=True)
-    pod = models.OneToOneField(JobPod, on_delete=models.PROTECT, null=True)
+    node = models.ForeignKey(
+        LegacyNode, related_name="jobs", on_delete=models.PROTECT, null=True
+    )
+    pod = models.OneToOneField(LegacyJobPod, on_delete=models.PROTECT, null=True)
 
     # Extra data fields (null allowed to accomodate historical data)
     package_version = models.CharField(max_length=128, null=True)
@@ -112,7 +113,8 @@ class Job(models.Model):
     stack = models.CharField(max_length=128, null=True)
 
     unnecessary = models.BooleanField(
-        default=False, help_text="Whether this job has 'No need to rebuild' in its trace."
+        default=False,
+        help_text="Whether this job has 'No need to rebuild' in its trace.",
     )
 
     @property
@@ -139,14 +141,18 @@ class Job(models.Model):
                 raise
 
         # Node already exists, set node field to the existing node
-        self.node = Node.objects.get(name=self.node.name, system_uuid=self.node.system_uuid)
+        self.node = LegacyNode.objects.get(
+            name=self.node.name, system_uuid=self.node.system_uuid
+        )
 
     class Meta:
         indexes = [
             models.Index(fields=["started_at"]),
         ]
         constraints = [
-            models.CheckConstraint(name="non-empty-package-name", check=~models.Q(package_name="")),
+            models.CheckConstraint(
+                name="non-empty-package-name", check=~models.Q(package_name="")
+            ),
             # Ensure that either pod and node are both null or both not null
             models.CheckConstraint(
                 name="node-pod-consistency",
@@ -156,8 +162,8 @@ class Job(models.Model):
         ]
 
 
-class Timer(models.Model):
-    job = models.ForeignKey(Job, related_name="timers", on_delete=models.CASCADE)
+class LegacyTimer(models.Model):
+    job = models.ForeignKey(LegacyJob, related_name="timers", on_delete=models.CASCADE)
     name = models.CharField(max_length=256)
     time_total = models.FloatField()
     hash = models.CharField(max_length=128, null=True)
@@ -165,13 +171,17 @@ class Timer(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(name="unique-hash-name-job", fields=["hash", "name", "job"]),
+            models.UniqueConstraint(
+                name="unique-hash-name-job", fields=["hash", "name", "job"]
+            ),
             # Ensure that if a timer name starts with a "." (internal timer), that cache and hash
             # are null, and that otherwise they are present
             models.CheckConstraint(
                 name="internal-timer-consistent-hash-and-cache",
                 check=(
-                    models.Q(name__startswith=".", hash__isnull=True, cache__isnull=True)
+                    models.Q(
+                        name__startswith=".", hash__isnull=True, cache__isnull=True
+                    )
                     | (
                         ~models.Q(name__startswith=".")
                         & models.Q(hash__isnull=False, cache__isnull=False)
@@ -181,8 +191,10 @@ class Timer(models.Model):
         ]
 
 
-class TimerPhase(models.Model):
-    timer = models.ForeignKey(Timer, related_name="phases", on_delete=models.CASCADE)
+class LegacyTimerPhase(models.Model):
+    timer = models.ForeignKey(
+        LegacyTimer, related_name="phases", on_delete=models.CASCADE
+    )
     name = models.CharField(max_length=128)
     is_subphase = models.BooleanField(default=False)
     path = models.CharField(max_length=128)
@@ -195,7 +207,7 @@ class TimerPhase(models.Model):
         ]
 
 
-class ErrorTaxonomy(models.Model):
+class LegacyErrorTaxonomy(models.Model):
     job_id = models.PositiveBigIntegerField(primary_key=True)
 
     created = models.DateTimeField(auto_now_add=True)

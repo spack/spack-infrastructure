@@ -1,11 +1,10 @@
 import json
-from typing import Any
+
 import pytest
-from analytics.core.job_log_uploader import store_job_data
-from analytics.job_processor import process_job
 
 from analytics.core.job_log_uploader import store_job_data
-from analytics.core.models import Job
+from analytics.core.models.legacy import LegacyJob
+from analytics.job_processor import process_job
 
 
 @pytest.fixture()
@@ -46,8 +45,8 @@ def test_process_job_unnecessary_jobs(request, job_json_string, unnecessary):
     job_json_string = request.getfixturevalue(job_json_string)
     process_job(job_json_string)
 
-    assert Job.objects.count() == 1
-    assert Job.objects.first().unnecessary == unnecessary
+    assert LegacyJob.objects.count() == 1
+    assert LegacyJob.objects.first().unnecessary == unnecessary
 
 
 @pytest.mark.django_db

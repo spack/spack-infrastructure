@@ -1,11 +1,10 @@
 import tempfile
 import zipfile
 from contextlib import contextmanager
+from dataclasses import dataclass
 
 import yaml
 from gitlab.v4.objects import ProjectJob
-
-from analytics.core.models import Job
 
 
 class JobArtifactFileNotFound(Exception):
@@ -30,7 +29,23 @@ def get_job_artifacts_file(job: ProjectJob, filename: str):
                 raise JobArtifactFileNotFound(job, filename)
 
 
-def annotate_job_with_artifacts_data(gljob: ProjectJob, job: Job):
+@dataclass
+class JobArtifactsData:
+    package_hash: str
+    package_name: str
+    package_version: str
+    compiler_name: str
+    compiler_version: str
+    arch: str
+    package_variants: str
+    job_size: str
+    stack: str
+
+    # This var isn't guaranteed to be present
+    build_jobs: int | None
+
+
+def get_job_artifacts_data(gljob: ProjectJob) -> JobArtifactsData:
     """Fetch the artifacts of a job to retrieve info about it."""
     pipeline_yml_filename = "jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml"
     with get_job_artifacts_file(gljob, pipeline_yml_filename) as pipeline_file:
@@ -41,14 +56,15 @@ def annotate_job_with_artifacts_data(gljob: ProjectJob, job: Job):
     if not job_vars:
         raise Exception(f"Empty job variables for job {gljob.id}")
 
-    job.package_name = job_vars["SPACK_JOB_SPEC_PKG_NAME"]
-    job.package_version = job_vars["SPACK_JOB_SPEC_PKG_VERSION"]
-    job.compiler_name = job_vars["SPACK_JOB_SPEC_COMPILER_NAME"]
-    job.compiler_version = job_vars["SPACK_JOB_SPEC_COMPILER_VERSION"]
-    job.arch = job_vars["SPACK_JOB_SPEC_ARCH"]
-    job.package_variants = job_vars["SPACK_JOB_SPEC_VARIANTS"]
-    job.job_size = job_vars["CI_JOB_SIZE"]
-    job.stack = pipeline_vars["SPACK_CI_STACK_NAME"]
-
-    # This var isn't guaranteed to be present
-    job.build_jobs = job_vars.get("SPACK_BUILD_JOBS")
+    return JobArtifactsData(
+        package_hash=job_vars["SPACK_JOB_SPEC_DAG_HASH"],
+        package_name=job_vars["SPACK_JOB_SPEC_PKG_NAME"],
+        package_version=job_vars["SPACK_JOB_SPEC_PKG_VERSION"],
+        compiler_name=job_vars["SPACK_JOB_SPEC_COMPILER_NAME"],
+        compiler_version=job_vars["SPACK_JOB_SPEC_COMPILER_VERSION"],
+        arch=job_vars["SPACK_JOB_SPEC_ARCH"],
+        package_variants=job_vars["SPACK_JOB_SPEC_VARIANTS"],
+        job_size=job_vars["CI_JOB_SIZE"],
+        stack=pipeline_vars["SPACK_CI_STACK_NAME"],
+        build_jobs=job_vars.get("SPACK_BUILD_JOBS"),
+    )
