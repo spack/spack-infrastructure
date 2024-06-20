@@ -93,6 +93,10 @@ spec:
           type: ClusterIP
           servicePort: 9913
 
+      podAnnotations:
+        # fluent-bit has a built-in parser for the k8s-nginx-ingress log format
+        fluentbit.io/parser: k8s-nginx-ingress
+
     ## Default 404 backend
     defaultBackend:
       enabled: true
