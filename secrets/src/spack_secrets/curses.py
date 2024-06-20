@@ -1,5 +1,6 @@
 import curses
 import typing
+from dataclasses import dataclass
 
 import click
 
@@ -66,8 +67,16 @@ def select_value(stdscr, values: list[str], titles: list[str] = list):
         k = stdscr.getch()
 
 
-def select_secret(secrets: list[str]):
-    return curses.wrapper(select_value, secrets, titles=["Please select the secret to update:"])
+def select_secret(secret_docs: list[dict]):
+    secret_names = [doc["metadata"]["name"] for doc in secret_docs] + ["<Create New Secret>"]
+    secret_index = curses.wrapper(
+        select_value, secret_names, titles=["Please select the secret to update:"]
+    )
+
+    new_secret = secret_index == len(secret_names) - 1
+    secret = secret_docs[secret_index] if not new_secret else None
+
+    return secret, (secret_index if not new_secret else None), new_secret
 
 
 def select_key(secret_name: str, keys: list[str]):
@@ -82,13 +91,7 @@ def select_key(secret_name: str, keys: list[str]):
     )
 
 
-def select_secret_and_key(secret_docs: list[dict]):
-    # Select which secret to modify
-    secret_names = [doc["metadata"]["name"] for doc in secret_docs]
-    secret_index = select_secret(secret_names) if len(secret_docs) > 1 else 0
-
-    # Select which key to modify
-    secret = secret_docs[secret_index]
+def select_secret_key(secret: dict):
     secret_name = secret["metadata"]["name"]
 
     # Check that object we're modifying is a sealed secret to begin with
@@ -112,4 +115,4 @@ def select_secret_and_key(secret_docs: list[dict]):
         adding_new_key = True
         key_to_update = click.prompt("Please enter new secret name")
 
-    return (secret, secret_index, key_to_update, adding_new_key)
+    return (key_to_update, adding_new_key)
