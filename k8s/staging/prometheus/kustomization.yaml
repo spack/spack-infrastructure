@@ -90,7 +90,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/alertmanager/alertmanagerSpec/externalUrl
-        value: alertmanager.staging.spack.io
+        value: https://alertmanager.staging.spack.io
 
   - target:
       kind: HelmRelease
@@ -99,7 +99,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/grafana/grafana.ini/server/root_url
-        value: grafana.staging.spack.io
+        value: https://grafana.staging.spack.io
 
   - target:
       kind: HelmRelease
@@ -108,7 +108,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/prometheus/prometheusSpec/externalUrl
-        value: prometheus.staging.spack.io
+        value: https://prometheus.staging.spack.io
       - op: replace
         path: /spec/values/prometheus/prometheusSpec/additionalScrapeConfigs/0/static_configs/0/targets/0
         value: gitlab.staging.spack.io
