@@ -13,7 +13,6 @@ spec:
       backoffLimit: 0
       template:
         spec:
-          serviceAccountName: gh-gl-sync
           restartPolicy: Never
           containers:
           - name: sync
