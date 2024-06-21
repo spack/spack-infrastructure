@@ -50,6 +50,8 @@ spec:
         spack.io/node-pool: base
       ingress:
         enabled: false
+      persistence:
+        enabled: true
       admin:
         existingSecret: "kube-prometheus-stack-grafana" # See: secrets.yaml
         userKey: admin-user
