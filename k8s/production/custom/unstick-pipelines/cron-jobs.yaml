@@ -21,7 +21,7 @@ spec:
             - name: GITLAB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: gitlab-clear-pipelines
+                  name: delete-stale-branches-credentials
                   key: gitlab-token
             args:
               - "--num-days"
