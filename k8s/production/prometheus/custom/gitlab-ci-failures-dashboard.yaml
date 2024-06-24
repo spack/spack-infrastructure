@@ -50,6 +50,7 @@ data:
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -73,7 +74,7 @@ data:
                 {
                   "targetBlank": true,
                   "title": "OpenSearch",
-                  "url": " https://opensearch.spack.io/_dashboards/app/discover#/view/81a77920-be9e-11ed-9686-f3b558bb6f9d?_a=(columns:!(_source),filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:a3cd1530-5947-11ed-8e73-4fb26a200a42,key:error_taxonomy,negate:!f,params:(query:${__data.fields[\"error_taxonomy.keyword\"]}),type:phrase),query:(match_phrase:(error_taxonomy:${__data.fields[\"error_taxonomy.keyword\"]})))),index:a3cd1530-5947-11ed-8e73-4fb26a200a42,interval:auto,query:(language:lucene,query:''),sort:!(!(timestamp,desc)))&_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:'${__from:date:iso}',to:'${__to:date:iso}'))"
+                  "url": " https://opensearch.spack.io/_dashboards/app/discover#/view/81a77920-be9e-11ed-9686-f3b558bb6f9d?_a=(columns:!(_source),filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:1bb07e30-3262-11ef-a4e3-13cd74040310,key:error_taxonomy,negate:!f,params:(query:${__data.fields[\"error_taxonomy.keyword\"]}),type:phrase),query:(match_phrase:(error_taxonomy:${__data.fields[\"error_taxonomy.keyword\"]})))),index:1bb07e30-3262-11ef-a4e3-13cd74040310,interval:auto,query:(language:lucene,query:''),sort:!(!(timestamp,desc)))&_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:'${__from:date:iso}',to:'${__to:date:iso}'))"
                 }
               ],
               "mappings": [],
@@ -103,6 +104,7 @@ data:
           "options": {
             "barRadius": 0,
             "barWidth": 0.97,
+            "fullHighlight": false,
             "groupWidth": 0.7,
             "legend": {
               "calcs": [],
@@ -114,6 +116,7 @@ data:
             "showValue": "auto",
             "stacking": "none",
             "tooltip": {
+              "maxHeight": 600,
               "mode": "single",
               "sort": "none"
             },
@@ -203,6 +206,7 @@ data:
               "values": false
             },
             "tooltip": {
+              "maxHeight": 600,
               "mode": "single",
               "sort": "none"
             }
@@ -283,6 +287,7 @@ data:
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -329,6 +334,7 @@ data:
           "options": {
             "barRadius": 0,
             "barWidth": 0.97,
+            "fullHighlight": false,
             "groupWidth": 0.7,
             "legend": {
               "calcs": [],
@@ -340,6 +346,7 @@ data:
             "showValue": "auto",
             "stacking": "none",
             "tooltip": {
+              "maxHeight": 600,
               "mode": "single",
               "sort": "none"
             },
@@ -425,9 +432,11 @@ data:
               "fields": "",
               "values": false
             },
-            "textMode": "auto"
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.3.1",
+          "pluginVersion": "11.0.0",
           "targets": [
             {
               "datasource": {
@@ -472,6 +481,7 @@ data:
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "Number of failures",
@@ -485,6 +495,7 @@ data:
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -533,6 +544,7 @@ data:
               "showLegend": true
             },
             "tooltip": {
+              "maxHeight": 600,
               "mode": "single",
               "sort": "none"
             }
@@ -571,62 +583,52 @@ data:
           "type": "timeseries"
         },
         {
-          "id": 14,
-          "gridPos": {
-            "h": 10,
-            "w": 24,
-            "x": 0,
-            "y": 26
-          },
-          "type": "timeseries",
-          "title": "Failed jobs (PR vs protected)",
           "datasource": {
-            "uid": "PCC52D03280B7034C",
-            "type": "postgres"
+            "type": "postgres",
+            "uid": "PCC52D03280B7034C"
           },
           "fieldConfig": {
             "defaults": {
+              "color": {
+                "mode": "palette-classic",
+                "seriesBy": "last"
+              },
               "custom": {
-                "drawStyle": "bars",
-                "lineInterpolation": "linear",
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "Number of failures",
+                "axisPlacement": "auto",
                 "barAlignment": 0,
-                "lineWidth": 1,
+                "drawStyle": "bars",
                 "fillOpacity": 100,
                 "gradientMode": "none",
-                "spanNulls": false,
-                "showPoints": "auto",
-                "pointSize": 5,
-                "stacking": {
-                  "mode": "normal",
-                  "group": "A"
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
                 },
-                "axisPlacement": "auto",
-                "axisLabel": "Number of failures",
-                "axisColorMode": "text",
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "axisCenteredZero": false,
-                "hideFrom": {
-                  "tooltip": false,
-                  "viz": false,
-                  "legend": false
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
                 },
                 "thresholdsStyle": {
                   "mode": "off"
                 }
-              },
-              "color": {
-                "mode": "palette-classic",
-                "seriesBy": "last"
               },
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -645,8 +647,8 @@ data:
                   {
                     "id": "color",
                     "value": {
-                      "mode": "fixed",
-                      "fixedColor": "dark-green"
+                      "fixedColor": "dark-green",
+                      "mode": "fixed"
                     }
                   }
                 ]
@@ -660,110 +662,118 @@ data:
                   {
                     "id": "color",
                     "value": {
-                      "mode": "fixed",
-                      "fixedColor": "super-light-green"
+                      "fixedColor": "super-light-green",
+                      "mode": "fixed"
                     }
                   }
                 ]
               }
             ]
           },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 26
+          },
+          "id": 14,
+          "interval": "6hr",
           "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
             "tooltip": {
               "mode": "single",
               "sort": "none"
-            },
-            "legend": {
-              "showLegend": true,
-              "displayMode": "list",
-              "placement": "bottom",
-              "calcs": []
             }
           },
           "targets": [
             {
-              "refId": "A",
-              "datasource": {
-                "type": "postgres",
-                "uid": "PCC52D03280B7034C"
-              },
-              "query": "",
-              "queryType": "lucene",
               "alias": "",
-              "metrics": [
-                {
-                  "type": "count",
-                  "id": "1"
-                }
-              ],
               "bucketAggs": [
                 {
-                  "type": "date_histogram",
+                  "field": "timestamp",
                   "id": "2",
                   "settings": {
                     "interval": "auto"
                   },
-                  "field": "timestamp"
+                  "type": "date_histogram"
                 }
               ],
-              "format": "table",
-              "timeField": "timestamp",
-              "rawSql": "SELECT $__timeGroup(finished_at, $__interval) as time, COUNT(*) as PR from ci_builds\nWHERE \n  $__timeFilter(\"finished_at\")\n  AND status = 'failed'\n  AND stage != 'build'\n  AND ref ~ 'pr[\\d]+_.+'\n  GROUP BY time\n;",
+              "datasource": {
+                "type": "postgres",
+                "uid": "PCC52D03280B7034C"
+              },
               "editorMode": "code",
+              "format": "table",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "query": "",
+              "queryType": "lucene",
+              "rawQuery": true,
+              "rawSql": "SELECT $__timeGroup(finished_at, $__interval) as time, COUNT(*) as PR from ci_builds\nWHERE \n  $__timeFilter(\"finished_at\")\n  AND status = 'failed'\n  AND stage != 'build'\n  AND ref ~ 'pr[\\d]+_.+'\n  GROUP BY time\n;",
+              "refId": "A",
               "sql": {
                 "columns": [
                   {
-                    "type": "function",
-                    "parameters": []
+                    "parameters": [],
+                    "type": "function"
                   }
                 ],
                 "groupBy": [
                   {
-                    "type": "groupBy",
                     "property": {
                       "type": "string"
-                    }
+                    },
+                    "type": "groupBy"
                   }
                 ],
                 "limit": 50
               },
-              "rawQuery": true
+              "timeField": "timestamp"
             },
             {
               "datasource": {
-                "uid": "PCC52D03280B7034C",
-                "type": "postgres"
+                "type": "postgres",
+                "uid": "PCC52D03280B7034C"
               },
-              "refId": "B",
-              "hide": false,
-              "format": "table",
-              "rawSql": "SELECT $__timeGroup(finished_at, $__interval) as time, COUNT(*) as protected from ci_builds\nWHERE \n  $__timeFilter(\"finished_at\")\n  AND status = 'failed'\n  AND stage != 'build'\n  AND ref !~ 'pr[\\d]+_.+'\n  GROUP BY time\n;",
               "editorMode": "code",
+              "format": "table",
+              "hide": false,
+              "rawQuery": true,
+              "rawSql": "SELECT $__timeGroup(finished_at, $__interval) as time, COUNT(*) as protected from ci_builds\nWHERE \n  $__timeFilter(\"finished_at\")\n  AND status = 'failed'\n  AND stage != 'build'\n  AND ref !~ 'pr[\\d]+_.+'\n  GROUP BY time\n;",
+              "refId": "B",
               "sql": {
                 "columns": [
                   {
-                    "type": "function",
-                    "parameters": []
+                    "parameters": [],
+                    "type": "function"
                   }
                 ],
                 "groupBy": [
                   {
-                    "type": "groupBy",
                     "property": {
                       "type": "string"
-                    }
+                    },
+                    "type": "groupBy"
                   }
                 ],
                 "limit": 50
-              },
-              "rawQuery": true
+              }
             }
           ],
-          "interval": "6hr"
+          "title": "Failed jobs (PR vs protected)",
+          "type": "timeseries"
         }
       ],
-      "schemaVersion": 37,
-      "style": "dark",
+      "schemaVersion": 39,
       "tags": [
         "production"
       ],
@@ -774,10 +784,11 @@ data:
         "from": "now-7d",
         "to": "now"
       },
+      "timeRangeUpdatedDuringEditOrView": false,
       "timepicker": {},
       "timezone": "",
       "title": "GitLab CI Failures",
       "uid": "4o5_AQAVz",
-      "version": 8,
+      "version": 1,
       "weekStart": ""
     }
