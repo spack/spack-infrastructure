@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from unittest.mock import create_autospec, patch, Mock
+from unittest.mock import create_autospec, Mock
 
 import SpackCIBridge
 
@@ -390,29 +390,34 @@ def test_post_pipeline_status(capfd):
     gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
     gh_repo = Mock()
     gh_repo.get_commit.return_value = gh_commit
+    session = Mock()
+    session.get = Mock(
+        return_value=FakeResponse(
+            data=[
+                {
+                    "id": 1,
+                    "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "ref": "pr1_readme",
+                    "status": "failed",
+                    "created_at": "2020-08-26T17:26:30.216Z",
+                    "updated_at": "2020-08-26T17:26:36.807Z",
+                    "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/1",
+                }
+            ]
+        )
+    )
 
     bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
                                          gitlab_project="zack/my_test_proj",
                                          github_project="zack/my_test_proj")
     bridge.py_gh_repo = gh_repo
+    bridge.session = session
     os.environ["GITHUB_TOKEN"] = "my_github_token"
 
-    mock_data = [
-        {
-            "id": 1,
-            "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "ref": "pr1_readme",
-            "status": "failed",
-            "created_at": "2020-08-26T17:26:30.216Z",
-            "updated_at": "2020-08-26T17:26:36.807Z",
-            "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/1"
-        }
-    ]
-    with patch('requests.get', return_value=FakeResponse(data=mock_data)) as mock_requests_get:
-        bridge.post_pipeline_status(open_prs, [])
-        assert mock_requests_get.call_count == 2
-        assert gh_repo.get_commit.call_count == 1
-        assert gh_commit.create_status.call_count == 1
+    bridge.post_pipeline_status(open_prs, [])
+    assert bridge.session.get.call_count == 2
+    assert gh_repo.get_commit.call_count == 1
+    assert gh_commit.create_status.call_count == 1
     out, err = capfd.readouterr()
     expected_content = "  pr1_readme -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
     assert expected_content in out
