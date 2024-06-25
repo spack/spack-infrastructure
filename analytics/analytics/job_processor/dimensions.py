@@ -139,7 +139,7 @@ def create_runner_dimension(
 
     return RunnerDimension.objects.create(
         runner_id=runner_id,
-        name=runner.description,
+        name=runner_name,
         platform=runner.platform,
         host=host,
         arch=runner.architecture,

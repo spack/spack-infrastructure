@@ -191,7 +191,7 @@ class NodeDimension(models.Model):
 
 class RunnerDimension(models.Model):
     runner_id = models.PositiveIntegerField(primary_key=True)
-    name = models.CharField(max_length=64, unique=True)
+    name = models.CharField(max_length=64)
     platform = models.CharField(max_length=64)
     host = models.CharField(max_length=32)
     arch = models.CharField(max_length=32)
