@@ -21,7 +21,7 @@ spec:
       values:
         - "t3.small"
         - "t3.medium"
-        - "m4.large"
+        - "m4.xlarge"
 
     # Always use on-demand
     - key: "karpenter.sh/capacity-type"
