@@ -9,7 +9,8 @@ from github import Github
 import json
 import os
 import re
-import requests
+from requests import Session
+from requests.adapters import HTTPAdapter, Retry
 import subprocess
 import sys
 import tempfile
@@ -32,6 +33,18 @@ class SpackCIBridge(object):
         self.github_repo = "https://{0}@github.com/{1}.git".format(github_token, self.github_project)
         self.py_github = Github(github_token)
         self.py_gh_repo = self.py_github.get_repo(self.github_project, lazy=True)
+
+        self.session = Session()
+        self.session.mount(
+            "https://",
+            HTTPAdapter(
+                max_retries=Retry(
+                    total=5,
+                    backoff_factor=2,
+                    backoff_jitter=1,
+                ),
+            ),
+        )
 
         self.merge_msg_regex = re.compile(r"Merge\s+([^\s]+)\s+into\s+([^\s]+)")
         self.unmergeable_shas = []
@@ -443,7 +456,7 @@ class SpackCIBridge(object):
         if "GITLAB_TOKEN" in os.environ:
             headers['PRIVATE-TOKEN'] = os.environ["GITLAB_TOKEN"]
         try:
-            response = requests.get(api_url, headers=headers, timeout=10)
+            response = self.session.get(api_url, headers=headers, timeout=10)
         except OSError:
             print('Failed to fetch commit for tested sha {0}'.format(tested_sha))
             return None
@@ -482,7 +495,7 @@ class SpackCIBridge(object):
             headers['PRIVATE-TOKEN'] = os.environ["GITLAB_TOKEN"]
 
         try:
-            response = requests.get(api_url, headers=headers, timeout=10)
+            response = self.session.get(api_url, headers=headers, timeout=10)
         except OSError as inst:
             print("GitLab API request error accessing {0}".format(api_url))
             print(inst)
