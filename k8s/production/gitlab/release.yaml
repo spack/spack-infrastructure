@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: gitlab
-      version: 7.11.4 # gitlab@16.11.4
+      version: 7.11.5 # gitlab@16.11.5
       sourceRef:
         kind: HelmRepository
         name: gitlab
