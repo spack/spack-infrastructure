@@ -14,12 +14,31 @@ from requests.adapters import HTTPAdapter, Retry
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.parse
 import urllib.request
 
 import sentry_sdk
 
 sentry_sdk.init(traces_sample_rate=0.1)
+
+
+def _durable_subprocess_run(*args, **kwargs):
+    """
+    Calls subprocess.run with retries/exponential backoff on failure.
+    """
+    max_attempts = 5
+    for attempt_num in range(max_attempts):
+        try:
+            return subprocess.run(*args, **kwargs, check=True)
+        except subprocess.CalledProcessError as e:
+            if attempt_num == max_attempts - 1:
+                raise e
+            print(
+                f"Subprocess failed ({e}), retrying ({attempt_num+1}/{max_attempts})",
+                file=sys.stderr,
+            )
+            time.sleep(2 ** (1 + attempt_num))
 
 
 class SpackCIBridge(object):
@@ -77,12 +96,12 @@ class SpackCIBridge(object):
         """Shutdown ssh-agent upon program termination."""
         if "SSH_AGENT_PID" in os.environ:
             print("    Shutting down ssh-agent({0})".format(os.environ["SSH_AGENT_PID"]))
-            subprocess.run(["ssh-agent", "-k"], check=True)
+            _durable_subprocess_run(["ssh-agent", "-k"])
 
     def setup_ssh(self, ssh_key_base64):
         """Start the ssh agent."""
         print("Starting ssh-agent")
-        output = subprocess.run(["ssh-agent", "-s"], check=True, stdout=subprocess.PIPE).stdout
+        output = _durable_subprocess_run(["ssh-agent", "-s"], stdout=subprocess.PIPE).stdout
 
         # Search for PID in output.
         pid_regexp = re.compile(r"SSH_AGENT_PID=([0-9]+)")
@@ -111,7 +130,7 @@ class SpackCIBridge(object):
         with tempfile.NamedTemporaryFile() as fp:
             fp.write(ssh_key)
             fp.seek(0)
-            subprocess.run(["ssh-add", fp.name], check=True)
+            _durable_subprocess_run(["ssh-add", fp.name])
 
     def get_commit(self, commit):
         """ Check our cache for a commit on GitHub.
@@ -149,8 +168,8 @@ class SpackCIBridge(object):
                 # 2) we have pushed it before, but the HEAD sha has changed since we pushed it last
                 log_args = ["git", "log", "--pretty=%s", "gitlab/{0}".format(pr_string)]
                 try:
-                    merge_commit_msg = subprocess.run(
-                        log_args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+                    merge_commit_msg = _durable_subprocess_run(
+                        log_args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
                     match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
                     if match and (match.group(1) == pull.head.sha or match.group(2) == pull.head.sha):
                         print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
@@ -187,22 +206,22 @@ class SpackCIBridge(object):
                         # Check if we should defer pushing/testing this PR because it is based on "too new" of a commit
                         # of the main branch.
                         tmp_pr_branch = f"temporary_{pr_string}"
-                        subprocess.run(["git", "fetch", "--unshallow", "github",
-                                       f"refs/pull/{pull.number}/head:{tmp_pr_branch}"], check=True)
+                        _durable_subprocess_run(["git", "fetch", "--unshallow", "github",
+                                                f"refs/pull/{pull.number}/head:{tmp_pr_branch}"])
                         # Get the merge base between this PR and the main branch.
                         try:
-                            merge_base_sha = subprocess.run(
+                            merge_base_sha = _durable_subprocess_run(
                                 ["git", "merge-base", tmp_pr_branch, f"github/{self.main_branch}"],
-                                check=True, stdout=subprocess.PIPE).stdout.strip()
+                                stdout=subprocess.PIPE).stdout.strip()
                         except subprocess.CalledProcessError:
                             print(f"'git merge-base {tmp_pr_branch} github/{self.main_branch}' "
                                   "returned non-zero. Skipping")
                             self.unmergeable_shas.append(pull.head.sha)
                             continue
 
-                        repo_head_sha = subprocess.run(
+                        repo_head_sha = _durable_subprocess_run(
                             ["git", "rev-parse", tmp_pr_branch],
-                            check=True, stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
+                            stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
 
                         if pull.head.sha != repo_head_sha:
                             # If gh repo and api don't agree on what the head sha is, don't
@@ -213,24 +232,24 @@ class SpackCIBridge(object):
                             backlogged = f"GitHub HEAD shas out of sync (repo={r_sha}, API={a_sha})"
                             push = False
                         # Check if our PR's merge base is an ancestor of the latest tested main branch commit.
-                        elif subprocess.run(
+                        elif _durable_subprocess_run(
                                 ["git", "merge-base", "--is-ancestor", merge_base_sha, self.latest_tested_main_commit]
                                 ).returncode == 0:
                             print(f"{tmp_pr_branch}'s merge base IS an ancestor of latest_tested_main "
                                   f"{merge_base_sha} vs. {self.latest_tested_main_commit}")
                             try:
-                                subprocess.run(["git", "checkout", self.latest_tested_main_commit], check=True)
-                                subprocess.run(["git", "checkout", "-b", pr_string], check=True)
+                                _durable_subprocess_run(["git", "checkout", self.latest_tested_main_commit])
+                                _durable_subprocess_run(["git", "checkout", "-b", pr_string])
                                 commit_msg = f"Merge {pull.head.sha} into {self.latest_tested_main_commit}"
-                                subprocess.run(
+                                _durable_subprocess_run(
                                     ["git", "merge", "--no-ff", "-m", commit_msg, tmp_pr_branch],
-                                    check=True)
+                                )
                                 print(f"Merge succeeded, ready to push {pr_string} to GitLab for CI pipeline testing")
                             except subprocess.CalledProcessError:
                                 print(f"Failed to merge PR {pull.number} ({pull.head.ref}) with latest tested "
                                       f"{self.main_branch} ({self.latest_tested_main_commit}). Skipping")
                                 self.unmergeable_shas.append(pull.head.sha)
-                                subprocess.run(["git", "merge", "--abort"])
+                                _durable_subprocess_run(["git", "merge", "--abort"])
                                 backlogged = "merge conflicts with {}".format(self.main_branch)
                                 push = False
                                 continue
@@ -244,8 +263,8 @@ class SpackCIBridge(object):
                         # then we will push the merge commit that was automatically created by GitHub to GitLab
                         # where it will kick off a CI pipeline.
                         try:
-                            subprocess.run(["git", "fetch", "--unshallow", "github",
-                                           f"{pull.merge_commit_sha}:{pr_string}"], check=True)
+                            _durable_subprocess_run(["git", "fetch", "--unshallow", "github",
+                                                    f"{pull.merge_commit_sha}:{pr_string}"])
                         except subprocess.CalledProcessError:
                             print("Failed to locally checkout PR {0} ({1}). Skipping"
                                   .format(pull.number, pull.merge_commit_sha))
@@ -313,18 +332,18 @@ class SpackCIBridge(object):
         one for GitHub and one for GitLab.
         If main_branch was specified, we also fetch that branch from GitHub.
         """
-        subprocess.run(["git", "init"], check=True)
-        subprocess.run(["git", "config", "user.email", "noreply@spack.io"], check=True)
-        subprocess.run(["git", "config", "user.name", "spackbot"], check=True)
-        subprocess.run(["git", "config", "advice.detachedHead", "false"], check=True)
-        subprocess.run(["git", "remote", "add", "github", self.github_repo], check=True)
-        subprocess.run(["git", "remote", "add", "gitlab", self.gitlab_repo], check=True)
+        _durable_subprocess_run(["git", "init"])
+        _durable_subprocess_run(["git", "config", "user.email", "noreply@spack.io"])
+        _durable_subprocess_run(["git", "config", "user.name", "spackbot"])
+        _durable_subprocess_run(["git", "config", "advice.detachedHead", "false"])
+        _durable_subprocess_run(["git", "remote", "add", "github", self.github_repo])
+        _durable_subprocess_run(["git", "remote", "add", "gitlab", self.gitlab_repo])
 
         # Shallow fetch from GitLab.
         self.gitlab_shallow_fetch()
 
         if self.main_branch:
-            subprocess.run(["git", "fetch", "--unshallow", "github", self.main_branch], check=True)
+            _durable_subprocess_run(["git", "fetch", "--unshallow", "github", self.main_branch])
 
     def get_gitlab_pr_branches(self):
         """Query GitLab for branches that have already been copied over from GitHub PRs.
@@ -332,12 +351,12 @@ class SpackCIBridge(object):
         """
         branch_args = ["git", "branch", "--remotes", "--list", "gitlab/pr*"]
         self.gitlab_pr_output = \
-            subprocess.run(branch_args, check=True, stdout=subprocess.PIPE).stdout
+            _durable_subprocess_run(branch_args, stdout=subprocess.PIPE).stdout
 
     def gitlab_shallow_fetch(self):
         """Perform a shallow fetch from GitLab"""
         fetch_args = ["git", "fetch", "-q", "--depth=1", "gitlab"]
-        subprocess.run(fetch_args, check=True, stdout=subprocess.PIPE).stdout
+        _durable_subprocess_run(fetch_args, stdout=subprocess.PIPE).stdout
 
     def get_open_refspecs(self, open_prs):
         """Return a list of refspecs to push given a list of open PRs."""
@@ -369,7 +388,7 @@ class SpackCIBridge(object):
         """Perform `git fetch` for a given list of refspecs."""
         print("Fetching GitHub refs for open PRs")
         fetch_args = ["git", "fetch", "-q", "--unshallow", "github"] + fetch_refspecs
-        subprocess.run(fetch_args, check=True)
+        _durable_subprocess_run(fetch_args)
 
     def build_local_branches(self, protected_branches):
         """Create local branches for a list of protected branches."""
@@ -377,7 +396,7 @@ class SpackCIBridge(object):
         for branch in protected_branches:
             local_branch_name = "{0}".format(branch)
             remote_branch_name = "refs/remotes/{0}".format(branch)
-            subprocess.run(["git", "branch", "-q", local_branch_name, remote_branch_name], check=True)
+            _durable_subprocess_run(["git", "branch", "-q", local_branch_name, remote_branch_name])
 
     def make_status_for_pipeline(self, pipeline):
         """Generate POST data to create a GitHub status from a GitLab pipeline
@@ -659,7 +678,7 @@ class SpackCIBridge(object):
             if open_refspecs:
                 print("Syncing to GitLab")
                 push_args = ["git", "push", "--porcelain", "-f", "gitlab"] + open_refspecs
-                subprocess.run(push_args, check=True)
+                _durable_subprocess_run(push_args)
 
             # Post pipeline status to GitHub for each open PR, if enabled
             if self.post_status:

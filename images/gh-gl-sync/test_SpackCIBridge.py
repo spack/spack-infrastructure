@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import subprocess
 from unittest.mock import create_autospec, Mock
 
 import SpackCIBridge
@@ -16,6 +17,33 @@ class AttrDict(dict):
                 self.__dict__[key] = AttrDict(value)
             else:
                 self.__dict__[key] = value
+
+
+def test_durable_subprocess_run(capfd):
+    """Test that the durable subprocess run function works and performs retries when necessary."""
+
+    # Create a fake subprocess.run method that will return a non-zero return code the first time it's called.
+    actual_run_method = subprocess.run
+    subprocess.run = create_autospec(subprocess.run)
+    called = False
+
+    def side_effect(*args, **kwargs):
+        nonlocal called
+        if not called:
+            called = True
+            raise subprocess.CalledProcessError(1, args[0], "Error occurred")
+        else:
+            return Mock(stdout=b"Success", returncode=0)
+    subprocess.run.side_effect = side_effect
+
+    # Call the durable subprocess run method.
+    SpackCIBridge._durable_subprocess_run(["echo", "hello"])
+
+    # Verify that the subprocess.run method was called twice.
+    assert subprocess.run.call_count == 2
+
+    # Restore the original subprocess.run method
+    subprocess.run = actual_run_method
 
 
 def test_list_github_prs(capfd):
