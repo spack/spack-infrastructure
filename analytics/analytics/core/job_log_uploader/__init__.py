@@ -11,6 +11,7 @@ from django.conf import settings
 from gitlab.v4.objects import Project, ProjectJob
 from opensearch_dsl import Date, Document, connections
 from opensearchpy import ConnectionTimeout
+from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
 from analytics import setup_gitlab_job_sentry_tags
@@ -90,7 +91,7 @@ def _create_job_attempt(
 @shared_task(
     name="store_job_data",
     soft_time_limit=60,
-    autoretry_for=(ReadTimeoutError, ConnectionTimeout),
+    autoretry_for=(ReadTimeoutError, ConnectionTimeout, ReadTimeout),
     retry_backoff=30,
     retry_backoff_max=3600,
     max_retries=10,
@@ -101,7 +102,10 @@ def store_job_data(job_input_data_json: str) -> None:
     setup_gitlab_job_sentry_tags(job_input_data)
 
     gl = gitlab.Gitlab(
-        settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True
+        settings.GITLAB_ENDPOINT,
+        settings.GITLAB_TOKEN,
+        retry_transient_errors=True,
+        timeout=15,
     )
 
     # Retrieve project and job from gitlab API
