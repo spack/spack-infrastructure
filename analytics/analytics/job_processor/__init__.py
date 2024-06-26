@@ -118,7 +118,10 @@ def process_job(job_input_data_json: str):
     # Retrieve project and job from gitlab API
     # TODO: Seems to be very slow and sometimes times out. Look into using shared session?
     gl = gitlab.Gitlab(
-        settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True
+        settings.GITLAB_ENDPOINT,
+        settings.GITLAB_TOKEN,
+        retry_transient_errors=True,
+        timeout=15,
     )
     gl_project = gl.projects.get(job_input_data["project_id"])
     gl_job = gl_project.jobs.get(job_input_data["build_id"])
