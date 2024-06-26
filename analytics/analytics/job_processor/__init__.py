@@ -113,6 +113,7 @@ def create_job_fact(
 @shared_task(
     name="process_job",
     autoretry_for=(ReadTimeout,),
+    max_retries=3,
 )
 def process_job(job_input_data_json: str):
     # Read input data and extract params
