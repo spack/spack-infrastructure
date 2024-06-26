@@ -23,7 +23,7 @@ spec:
       serviceAccountName: webhook-handler
       containers:
         - name: webhook-handler
-          image: ghcr.io/spack/django:0.3.1
+          image: ghcr.io/spack/django:0.3.2
           imagePullPolicy: Always
           resources:
             requests:
@@ -146,8 +146,18 @@ spec:
       serviceAccountName: webhook-handler
       containers:
         - name: webhook-handler-worker
-          image: ghcr.io/spack/django:0.3.1
-          command: ["celery", "-A", "analytics.celery", "worker", "-l", "info", "-Q", "celery"]
+          image: ghcr.io/spack/django:0.3.2
+          command:
+            [
+              "celery",
+              "-A",
+              "analytics.celery",
+              "worker",
+              "-l",
+              "info",
+              "-Q",
+              "celery",
+            ]
           imagePullPolicy: Always
           resources:
             requests:
