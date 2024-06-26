@@ -22,6 +22,7 @@ import sentry_sdk
 
 sentry_sdk.init(traces_sample_rate=0.1)
 
+
 def _durable_subprocess_run(*args, **kwargs):
     """
     Calls subprocess.run with retries/exponential backoff on failure.
@@ -38,6 +39,7 @@ def _durable_subprocess_run(*args, **kwargs):
                 file=sys.stderr,
             )
             time.sleep(2 ** (1 + attempt_num))
+
 
 class SpackCIBridge(object):
 
@@ -205,7 +207,7 @@ class SpackCIBridge(object):
                         # of the main branch.
                         tmp_pr_branch = f"temporary_{pr_string}"
                         _durable_subprocess_run(["git", "fetch", "--unshallow", "github",
-                                       f"refs/pull/{pull.number}/head:{tmp_pr_branch}"])
+                                                f"refs/pull/{pull.number}/head:{tmp_pr_branch}"])
                         # Get the merge base between this PR and the main branch.
                         try:
                             merge_base_sha = _durable_subprocess_run(
@@ -262,7 +264,7 @@ class SpackCIBridge(object):
                         # where it will kick off a CI pipeline.
                         try:
                             _durable_subprocess_run(["git", "fetch", "--unshallow", "github",
-                                           f"{pull.merge_commit_sha}:{pr_string}"])
+                                                    f"{pull.merge_commit_sha}:{pr_string}"])
                         except subprocess.CalledProcessError:
                             print("Failed to locally checkout PR {0} ({1}). Skipping"
                                   .format(pull.number, pull.merge_commit_sha))

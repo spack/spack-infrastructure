@@ -45,6 +45,7 @@ def test_durable_subprocess_run(capfd):
     # Restore the original subprocess.run method
     subprocess.run = actual_run_method
 
+
 def test_list_github_prs(capfd):
     """Test the list_github_prs method."""
     dt = datetime.now()
