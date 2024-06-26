@@ -28,5 +28,5 @@ spec:
       spack.io/node-pool: base
     tolerations:
       - key: CriticalAddonsOnly
-        operator: Equal
+        operator: Exists
         effect: NoSchedule
