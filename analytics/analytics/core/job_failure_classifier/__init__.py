@@ -13,6 +13,7 @@ from celery import shared_task
 from django.conf import settings
 from django.db import connections
 from opensearchpy import ConnectionTimeout
+from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
 
@@ -173,7 +174,7 @@ def _collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
 @shared_task(
     name="upload_job_failure_classification",
     soft_time_limit=60,
-    autoretry_for=(ReadTimeoutError, ConnectionTimeout),
+    autoretry_for=(ReadTimeoutError, ConnectionTimeout, ReadTimeout),
     retry_backoff=30,
     retry_backoff_max=3600,
     max_retries=10,
