@@ -181,7 +181,10 @@ def _collect_pod_status(job_input_data: dict[str, Any], job_trace: str):
 )
 def upload_job_failure_classification(job_input_data_json: str) -> None:
     gl = gitlab.Gitlab(
-        settings.GITLAB_ENDPOINT, settings.GITLAB_TOKEN, retry_transient_errors=True
+        settings.GITLAB_ENDPOINT,
+        settings.GITLAB_TOKEN,
+        retry_transient_errors=True,
+        timeout=15,
     )
 
     # Read input data and extract params
