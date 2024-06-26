@@ -12,8 +12,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Install spack
-RUN git clone -c feature.manyFiles=true https://github.com/spack/spack.git /opt/spack
-RUN cd /opt/spack && git checkout v0.22.0
+RUN git clone -c feature.manyFiles=true --depth 1 --branch v0.22.0 https://github.com/spack/spack.git /opt/spack
 
 # Include spack import paths for python packages. Order is important
 ENV PYTHONPATH "/opt/spack/lib/spack:$PYTHONPATH"
