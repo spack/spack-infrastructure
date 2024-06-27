@@ -20,7 +20,7 @@ jobs:
       matrix:
         include:
           - docker-image: ./images/gh-gl-sync
-            image-tags: ghcr.io/spack/ci-bridge:0.0.41
+            image-tags: ghcr.io/spack/ci-bridge:0.0.42
           - docker-image: ./images/ci-key-clear
             image-tags: ghcr.io/spack/ci-key-clear:0.0.2
           - docker-image: ./images/gitlab-stuckpods

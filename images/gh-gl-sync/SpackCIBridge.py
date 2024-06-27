@@ -168,8 +168,8 @@ class SpackCIBridge(object):
                 # 2) we have pushed it before, but the HEAD sha has changed since we pushed it last
                 log_args = ["git", "log", "--pretty=%s", "gitlab/{0}".format(pr_string)]
                 try:
-                    merge_commit_msg = _durable_subprocess_run(
-                        log_args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+                    merge_commit_msg = subprocess.run(
+                        log_args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
                     match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
                     if match and (match.group(1) == pull.head.sha or match.group(2) == pull.head.sha):
                         print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
@@ -232,7 +232,7 @@ class SpackCIBridge(object):
                             backlogged = f"GitHub HEAD shas out of sync (repo={r_sha}, API={a_sha})"
                             push = False
                         # Check if our PR's merge base is an ancestor of the latest tested main branch commit.
-                        elif _durable_subprocess_run(
+                        elif subprocess.run(
                                 ["git", "merge-base", "--is-ancestor", merge_base_sha, self.latest_tested_main_commit]
                                 ).returncode == 0:
                             print(f"{tmp_pr_branch}'s merge base IS an ancestor of latest_tested_main "
