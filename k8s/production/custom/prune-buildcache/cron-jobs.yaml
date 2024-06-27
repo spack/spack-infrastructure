@@ -17,7 +17,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.3
+            image: ghcr.io/spack/ci-prune-buildcache:0.0.4
             imagePullPolicy: IfNotPresent
             resources:
               requests:
