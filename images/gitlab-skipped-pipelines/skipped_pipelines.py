@@ -6,7 +6,8 @@ import re
 import urllib.parse
 from datetime import datetime, timedelta, timezone
 
-import requests
+from requests import Session
+from requests.adapters import HTTPAdapter, Retry
 import sentry_sdk
 
 sentry_sdk.init(
@@ -21,13 +22,29 @@ AUTH_HEADER = {
     "PRIVATE-TOKEN": os.environ.get("GITLAB_TOKEN", None)
 }
 
+session = Session()
+session.mount(
+    "https://",
+    HTTPAdapter(
+        max_retries=Retry(
+            total=5,
+            backoff_factor=2,
+            backoff_jitter=1,
+        ),
+    ),
+)
+
 
 def paginate(query_url):
     """Helper method to get all pages of paginated query results"""
     results = []
 
     while query_url:
-        resp = requests.get(query_url, headers=AUTH_HEADER)
+        try:
+            resp = session.get(query_url, headers=AUTH_HEADER, timeout=10)
+        except OSError:
+            print(f"Request to {query_url} failed")
+            return []
 
         if resp.status_code == 401:
             print(" !!! Unauthorized to make request, check GITLAB_TOKEN !!!")
@@ -59,7 +76,12 @@ def run_new_pipeline(pipeline_ref):
     enc_ref = urllib.parse.quote_plus(pipeline_ref)
     run_url = f"{GITLAB_API_URL}/pipeline?ref={enc_ref}"
     print(f"    !!!! running new pipeline for {pipeline_ref}")
-    print_response(requests.post(run_url, headers=AUTH_HEADER), "      ")
+    try:
+        resp = session.post(run_url, headers=AUTH_HEADER, timeout=10)
+    except OSError:
+        print(f"Request to {run_url} failed")
+        return None
+    print_response(resp, "      ")
 
 
 def find_and_run_skipped_pipelines():
