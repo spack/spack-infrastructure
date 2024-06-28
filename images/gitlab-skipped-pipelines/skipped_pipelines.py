@@ -42,8 +42,9 @@ def paginate(query_url):
     while query_url:
         try:
             resp = session.get(query_url, headers=AUTH_HEADER, timeout=10)
-        except OSError:
+        except OSError as e:
             print(f"Request to {query_url} failed")
+            sentry_sdk.capture_exception(e)
             return []
 
         if resp.status_code == 401:
