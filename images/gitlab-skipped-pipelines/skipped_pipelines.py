@@ -79,8 +79,9 @@ def run_new_pipeline(pipeline_ref):
     print(f"    !!!! running new pipeline for {pipeline_ref}")
     try:
         resp = session.post(run_url, headers=AUTH_HEADER, timeout=10)
-    except OSError:
+    except OSError as e:
         print(f"Request to {run_url} failed")
+        sentry_sdk.capture_exception(e)
         return None
     print_response(resp, "      ")
 
