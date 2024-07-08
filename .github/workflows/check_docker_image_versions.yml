@@ -1,0 +1,17 @@
+name: Check Docker Image Versions
+
+on:
+  pull_request:
+
+jobs:
+  check-image:
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-image-bump') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - run: git fetch --no-tags --prune --depth=1 origin main
+
+      - name: Check for modified directories that need an image bump
+        run: ./.github/scripts/check_docker_image_versions.sh
