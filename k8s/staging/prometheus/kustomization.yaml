@@ -1,0 +1,133 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../production/prometheus/certificates.yaml
+  - ../../production/prometheus/ingress.yaml
+  - ../../production/prometheus/release.yaml
+  - ../../production/prometheus/oauth2-proxy.yaml
+
+patches:
+  - target:
+      kind: Certificate
+      name: prometheus
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: prometheus.staging.spack.io
+
+  - target:
+      kind: Certificate
+      name: grafana
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: grafana.staging.spack.io
+
+  - target:
+      kind: Certificate
+      name: alertmanager
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: alertmanager.staging.spack.io
+
+  - target:
+      kind: Ingress
+      name: oauth2-proxy
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: prometheus.staging.spack.io
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: prometheus.staging.spack.io
+
+  - target:
+      kind: Ingress
+      name: kube-prometheus-stack-prometheus
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: prometheus.staging.spack.io
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: prometheus.staging.spack.io
+
+  - target:
+      kind: Ingress
+      name: kube-prometheus-stack-alertmanager
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: alertmanager.staging.spack.io
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: alertmanager.staging.spack.io
+
+  - target:
+      kind: Ingress
+      name: kube-prometheus-stack-grafana
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: grafana.staging.spack.io
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: grafana.staging.spack.io
+
+  - target:
+      kind: HelmRelease
+      name: kube-prometheus-stack
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/values/alertmanager/alertmanagerSpec/externalUrl
+        value: https://alertmanager.staging.spack.io
+
+  - target:
+      kind: HelmRelease
+      name: kube-prometheus-stack
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/values/grafana/grafana.ini/server/root_url
+        value: https://grafana.staging.spack.io
+
+  - target:
+      kind: HelmRelease
+      name: kube-prometheus-stack
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/values/prometheus/prometheusSpec/externalUrl
+        value: https://prometheus.staging.spack.io
+      - op: replace
+        path: /spec/values/prometheus/prometheusSpec/additionalScrapeConfigs/0/static_configs/0/targets/0
+        value: gitlab.staging.spack.io
+
+  - target:
+      kind: Deployment
+      name: oauth2-proxy
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - --github-user=danlamanna,mvandenburgh,zackgalbreath,jjnesbitt,scottwittenburg,kwryankrattiger,alecbcs,cmelone,vsoch
+          - --provider=github
+          - --email-domain=*
+          - --upstream=file:///dev/null
+          - --http-address=0.0.0.0:4180
+          - --redirect-url=https://prometheus.staging.spack.io/oauth2/callback
+
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/value
+        value: 5346c6b5d5bea71fb115

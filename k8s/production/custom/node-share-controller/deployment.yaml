@@ -1,0 +1,40 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-share-controller
+  namespace: custom
+  labels:
+    app: node-share-controller
+spec:
+  selector:
+    matchLabels:
+      app: node-share-controller
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: node-share-controller
+    spec:
+      serviceAccountName: node-share-controller
+      containers:
+        - name: main
+          image: alpine:3.12
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 150m
+              memory: 100M
+          command: ["sh", "/script"]
+          volumeMounts:
+            - name: script
+              mountPath: /script
+              subPath: script
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: node-share-controller-script
+            defaultMode: 0700
+      nodeSelector:
+        spack.io/node-pool: base

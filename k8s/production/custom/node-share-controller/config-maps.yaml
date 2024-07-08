@@ -1,0 +1,68 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-share-controller-script
+  namespace: custom
+data:
+  script: |
+    #!/bin/sh
+    set -euo pipefail
+
+    # gracefully handle the TERM signal sent when deleting the daemonset
+    trap 'exit' TERM
+
+    # do the work
+    apk add curl
+
+    k8s_url="https://storage.googleapis.com/kubernetes-release/release"
+    stable_k8s_version="$( curl -s "$k8s_url/stable.txt" )"
+    kubectl_url="$k8s_url/$stable_k8s_version/bin/linux/amd64/kubectl"
+
+    k8s_secret_dir="/run/secrets/kubernetes.io/serviceaccount"
+    cacert="$k8s_secret_dir/ca.crt"
+    namespace="$( cat "$k8s_secret_dir/namespace" )"
+    token="$( cat "$k8s_secret_dir/token" )"
+
+    curl -sLO "$kubectl_url"
+    chmod +x ./kubectl
+
+    if ./kubectl auth can-i get pods -n "$namespace" &> /dev/null ; then
+        if ./kubectl auth can-i patch nodes --all-namespaces &> /dev/null ; then
+            endpoint_prefix="https://${KUBERNETES_SERVICE_HOST}"
+            endpoint_prefix="${endpoint_prefix}:${KUBERNETES_SERVICE_PORT}"
+
+            while sleep 5 ; do
+                for node in \
+                    $( ./kubectl get nodes -o \
+                        jsonpath='{.items[*].metadata.name}' )
+                do
+                    # PATCH the node entry (must be done through REST API,
+                    # because nodes are read-only when using kubectl)
+                    endpoint="${endpoint_prefix}/api/v1/nodes/${node}/status"
+
+                    if curl -s -S \
+                            --request PATCH \
+                            --header \
+                                "Content-Type: application/json-patch+json" \
+                            --header "Authorization: Bearer $token" \
+                            --cacert "$cacert" \
+                            --data '[{
+                                "op": "add",
+                                "path": "/status/capacity/spack.io~1node-share",
+                                "value": "1Gi"
+                            }]' \
+                            "$endpoint" > /dev/null
+                    then
+                        true
+                    else
+                        echo "Error: node patch failed for $node" >&2
+                    fi
+                done
+            done
+        else
+            echo "Error: not authorized to patch nodes" >&2
+        fi
+    else
+        echo "Error: not authorized to query pods in namespace '$namespace'" >&2
+    fi

@@ -1,0 +1,16 @@
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    # TODO(opadron): switch this back to Todd's email after completing the
+    #                migration
+    email: michael.vandenburgh@kitware.com
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging
+      key: letsencrypt-staging
+    solvers:
+      - http01: {"ingress": {"class": "nginx"}}

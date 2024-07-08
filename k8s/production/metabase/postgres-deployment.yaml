@@ -1,0 +1,42 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metabase-postgres
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metabase-postgres
+  template:
+    metadata:
+      labels:
+        app: metabase-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14.0
+          imagePullPolicy: "IfNotPresent"
+          resources:
+            requests:
+              cpu: 350m
+              memory: 1G
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: metabase-postgresql-password
+                  key: postgresql-password
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgredb
+      volumes:
+        - name: postgredb
+          persistentVolumeClaim:
+            claimName: metabase-postgresql

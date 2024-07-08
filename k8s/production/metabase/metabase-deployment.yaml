@@ -1,0 +1,53 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metabase
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metabase
+  template:
+    metadata:
+      labels:
+        app: metabase
+    spec:
+      containers:
+        - name: metabase
+          image: metabase/metabase:v0.50.5
+          imagePullPolicy: "IfNotPresent"
+          resources:
+            requests:
+              cpu: 350m
+              memory: 3G
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: metabase-config
+          env:
+            - name: MB_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: metabase-postgresql-password
+                  key: postgresql-password
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            timeoutSeconds: 1
+            periodSeconds: 10
+            failureThreshold: 3
+      nodeSelector:
+        spack.io/node-pool: beefy

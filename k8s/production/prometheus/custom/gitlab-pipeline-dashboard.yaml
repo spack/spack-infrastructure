@@ -1,0 +1,1627 @@
+# Pipeline Namespace dashboard
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: monitoring
+  name: kube-prometheus-stack-pipeline-namespace-overview
+  labels:
+    grafana_dashboard: "1"
+    app: kube-prometheus-stack-grafana
+    release: "kube-prometheus-stack"
+data:
+  pipeline-namespace-overview.json: |-
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {
+              "type": "grafana",
+              "uid": "-- Grafana --"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "target": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "collapsed": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+          },
+          "id": 14,
+          "panels": [],
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Quick Stats",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "noValue": "0",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 3,
+            "x": 0,
+            "y": 1
+          },
+          "id": 4,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum(kube_node_labels{label_spack_io_pipeline=\"true\"})",
+              "hide": false,
+              "instant": true,
+              "interval": "",
+              "legendFormat": "Instance",
+              "refId": "Node Count"
+            }
+          ],
+          "title": "Node Count",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "noValue": "0",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 95
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 3,
+            "x": 3,
+            "y": 1
+          },
+          "id": 28,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "exemplar": false,
+              "expr": "avg(\n(kube_node_labels{label_spack_io_pipeline=\"true\"} * on(node) group_left(internal_ip) kube_node_info) * on(internal_ip) group_left label_replace(100 * sum by(instance) (sum without (cpu)(irate(node_cpu_seconds_total{mode!=\"idle\"}[3m])) / ignoring(mode) group_left sum without(mode, cpu) (irate(node_cpu_seconds_total[3m]))), 'internal_ip', '$1', 'instance', '(.+):.+'))",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "refId": "CPU"
+            }
+          ],
+          "title": "CPU Total Utilization",
+          "type": "gauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "noValue": "0",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 95
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 3,
+            "x": 6,
+            "y": 1
+          },
+          "id": 30,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "exemplar": false,
+              "expr": "avg(kube_node_info * on(internal_ip) group_right(node) label_replace(((node_memory_MemTotal_bytes - node_memory_MemFree_bytes) / node_memory_MemTotal_bytes) * 100, 'internal_ip', '$1', 'instance', '(.+):.+') and on(internal_ip) (kube_node_labels{label_spack_io_node_pool=~\"glr.*\"} * on(node) group_left(internal_ip) kube_node_info))",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "refId": "RAM"
+            }
+          ],
+          "title": "RAM Total Utilization",
+          "type": "gauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "noValue": "0",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 3,
+            "x": 9,
+            "y": 1
+          },
+          "id": 16,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "exemplar": false,
+              "expr": "sum(kube_pod_info{namespace=\"pipeline\"})",
+              "hide": false,
+              "instant": true,
+              "interval": "",
+              "legendFormat": "Pods",
+              "refId": "Node Count"
+            }
+          ],
+          "title": "Pod Count",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "noValue": "0",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 3,
+            "x": 12,
+            "y": 1
+          },
+          "id": 38,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "exemplar": false,
+              "expr": "count(sum by(label_metrics_gitlab_ci_commit_ref_name) (kube_pod_info{namespace=\"pipeline\"} * on(pod) group_left(label_metrics_gitlab_ci_commit_ref_name) kube_pod_labels{namespace=\"pipeline\"}))",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "",
+              "refId": "A"
+            }
+          ],
+          "title": "Pipeline Count",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "noValue": "0",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 9,
+            "x": 15,
+            "y": 1
+          },
+          "id": 36,
+          "options": {
+            "displayMode": "gradient",
+            "minVizHeight": 10,
+            "minVizWidth": 0,
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "exemplar": false,
+              "expr": "sum by(label_metrics_gitlab_ci_commit_ref_name) (kube_pod_info{namespace=\"pipeline\"} * on(pod) group_left(label_metrics_gitlab_ci_commit_ref_name) kube_pod_labels{namespace=\"pipeline\"})",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "{{ label_metrics_gitlab_ci_commit_ref_name }}",
+              "refId": "A"
+            }
+          ],
+          "title": "Pod number by Pipeline",
+          "type": "bargauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "displayMode": "auto",
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "label_karpenter_k8s_aws_instance_memory"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 147
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "label_karpenter_k8s_aws_instance_generation"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 172
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "label_karpenter_k8s_aws_instance_cpu"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 153
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "node"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 222
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Pods"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 68
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "CPU"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 149
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 16,
+            "w": 6,
+            "x": 0,
+            "y": 9
+          },
+          "id": 40,
+          "options": {
+            "footer": {
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "frameIndex": 1,
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": false,
+                "displayName": "CPU"
+              }
+            ]
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "kube_node_labels{label_spack_io_pipeline=\"true\"} * on(node) group_left() sum by(node) (kube_pod_info{namespace=\"pipeline\", node!=\"\"})",
+              "format": "table",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "{{node}}",
+              "range": false,
+              "refId": "pods per node"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "(kube_node_labels{label_spack_io_pipeline=\"true\"} * on(node) group_left(internal_ip) kube_node_info) * on(internal_ip) group_left label_replace(100 * sum by(instance) (sum without (cpu)(irate(node_cpu_seconds_total{mode!=\"idle\"}[3m])) / ignoring(mode) group_left sum without(mode, cpu) (irate(node_cpu_seconds_total[3m]))), 'internal_ip', '$1', 'instance', '(.+):.+')",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "{{node}}",
+              "range": false,
+              "refId": "cpu per node"
+            }
+          ],
+          "title": "Pods per Node",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "node",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Value #cpu per node": false,
+                  "Value #pods per node": false,
+                  "container": true,
+                  "container 1": true,
+                  "container 2": true,
+                  "endpoint": true,
+                  "endpoint 1": true,
+                  "endpoint 2": true,
+                  "instance": true,
+                  "instance 1": true,
+                  "instance 2": true,
+                  "internal_ip": true,
+                  "job": true,
+                  "job 1": true,
+                  "job 2": true,
+                  "label_beta_kubernetes_io_arch": true,
+                  "label_beta_kubernetes_io_arch 1": true,
+                  "label_beta_kubernetes_io_arch 2": true,
+                  "label_beta_kubernetes_io_instance_type": true,
+                  "label_beta_kubernetes_io_instance_type 1": true,
+                  "label_beta_kubernetes_io_instance_type 2": true,
+                  "label_beta_kubernetes_io_os": true,
+                  "label_beta_kubernetes_io_os 1": true,
+                  "label_beta_kubernetes_io_os 2": true,
+                  "label_failure_domain_beta_kubernetes_io_region": true,
+                  "label_failure_domain_beta_kubernetes_io_region 1": true,
+                  "label_failure_domain_beta_kubernetes_io_region 2": true,
+                  "label_failure_domain_beta_kubernetes_io_zone": true,
+                  "label_failure_domain_beta_kubernetes_io_zone 1": true,
+                  "label_failure_domain_beta_kubernetes_io_zone 2": true,
+                  "label_k8s_io_cloud_provider_aws": true,
+                  "label_k8s_io_cloud_provider_aws 1": true,
+                  "label_k8s_io_cloud_provider_aws 2": true,
+                  "label_karpenter_k8s_aws_instance_ami_id": true,
+                  "label_karpenter_k8s_aws_instance_ami_id 1": true,
+                  "label_karpenter_k8s_aws_instance_ami_id 2": true,
+                  "label_karpenter_k8s_aws_instance_category": true,
+                  "label_karpenter_k8s_aws_instance_category 1": true,
+                  "label_karpenter_k8s_aws_instance_category 2": true,
+                  "label_karpenter_k8s_aws_instance_cpu": true,
+                  "label_karpenter_k8s_aws_instance_cpu 1": true,
+                  "label_karpenter_k8s_aws_instance_cpu 2": true,
+                  "label_karpenter_k8s_aws_instance_family": true,
+                  "label_karpenter_k8s_aws_instance_family 1": true,
+                  "label_karpenter_k8s_aws_instance_family 2": true,
+                  "label_karpenter_k8s_aws_instance_generation": true,
+                  "label_karpenter_k8s_aws_instance_generation 1": true,
+                  "label_karpenter_k8s_aws_instance_generation 2": true,
+                  "label_karpenter_k8s_aws_instance_hypervisor": true,
+                  "label_karpenter_k8s_aws_instance_hypervisor 1": true,
+                  "label_karpenter_k8s_aws_instance_hypervisor 2": true,
+                  "label_karpenter_k8s_aws_instance_local_nvme": true,
+                  "label_karpenter_k8s_aws_instance_local_nvme 1": true,
+                  "label_karpenter_k8s_aws_instance_local_nvme 2": true,
+                  "label_karpenter_k8s_aws_instance_memory": true,
+                  "label_karpenter_k8s_aws_instance_memory 1": true,
+                  "label_karpenter_k8s_aws_instance_memory 2": true,
+                  "label_karpenter_k8s_aws_instance_pods": true,
+                  "label_karpenter_k8s_aws_instance_pods 1": true,
+                  "label_karpenter_k8s_aws_instance_pods 2": true,
+                  "label_karpenter_k8s_aws_instance_size": true,
+                  "label_karpenter_k8s_aws_instance_size 1": true,
+                  "label_karpenter_k8s_aws_instance_size 2": true,
+                  "label_karpenter_sh_capacity_type": true,
+                  "label_karpenter_sh_capacity_type 1": true,
+                  "label_karpenter_sh_capacity_type 2": true,
+                  "label_karpenter_sh_initialized": true,
+                  "label_karpenter_sh_initialized 1": true,
+                  "label_karpenter_sh_initialized 2": true,
+                  "label_karpenter_sh_provisioner_name": true,
+                  "label_karpenter_sh_provisioner_name 1": true,
+                  "label_karpenter_sh_provisioner_name 2": true,
+                  "label_kubernetes_io_arch": true,
+                  "label_kubernetes_io_arch 1": true,
+                  "label_kubernetes_io_arch 2": true,
+                  "label_kubernetes_io_hostname": true,
+                  "label_kubernetes_io_hostname 1": true,
+                  "label_kubernetes_io_hostname 2": true,
+                  "label_kubernetes_io_os": true,
+                  "label_kubernetes_io_os 1": true,
+                  "label_kubernetes_io_os 2": true,
+                  "label_node_kubernetes_io_instance_type": true,
+                  "label_node_kubernetes_io_instance_type 1": true,
+                  "label_node_kubernetes_io_instance_type 2": true,
+                  "label_spack_io_node_pool": true,
+                  "label_spack_io_node_pool 1": true,
+                  "label_spack_io_node_pool 2": true,
+                  "label_spack_io_pipeline": true,
+                  "label_spack_io_pipeline 1": true,
+                  "label_spack_io_pipeline 2": true,
+                  "label_topology_ebs_csi_aws_com_zone": true,
+                  "label_topology_ebs_csi_aws_com_zone 1": true,
+                  "label_topology_ebs_csi_aws_com_zone 2": true,
+                  "label_topology_kubernetes_io_region": true,
+                  "label_topology_kubernetes_io_region 1": true,
+                  "label_topology_kubernetes_io_region 2": true,
+                  "label_topology_kubernetes_io_zone": true,
+                  "label_topology_kubernetes_io_zone 1": true,
+                  "label_topology_kubernetes_io_zone 2": true,
+                  "namespace": true,
+                  "namespace 1": true,
+                  "namespace 2": true,
+                  "pod": true,
+                  "pod 1": true,
+                  "pod 2": true,
+                  "service": true,
+                  "service 1": true,
+                  "service 2": true
+                },
+                "indexByName": {
+                  "Time 1": 3,
+                  "Time 2": 39,
+                  "Value #cpu per node": 1,
+                  "Value #pods per node": 2,
+                  "container 1": 4,
+                  "container 2": 40,
+                  "endpoint 1": 5,
+                  "endpoint 2": 41,
+                  "instance 1": 6,
+                  "instance 2": 42,
+                  "internal_ip": 43,
+                  "job 1": 7,
+                  "job 2": 44,
+                  "label_beta_kubernetes_io_arch 1": 8,
+                  "label_beta_kubernetes_io_arch 2": 45,
+                  "label_beta_kubernetes_io_instance_type 1": 9,
+                  "label_beta_kubernetes_io_instance_type 2": 46,
+                  "label_beta_kubernetes_io_os 1": 10,
+                  "label_beta_kubernetes_io_os 2": 47,
+                  "label_failure_domain_beta_kubernetes_io_region 1": 11,
+                  "label_failure_domain_beta_kubernetes_io_region 2": 48,
+                  "label_failure_domain_beta_kubernetes_io_zone 1": 12,
+                  "label_failure_domain_beta_kubernetes_io_zone 2": 49,
+                  "label_k8s_io_cloud_provider_aws 1": 13,
+                  "label_k8s_io_cloud_provider_aws 2": 50,
+                  "label_karpenter_k8s_aws_instance_ami_id 1": 14,
+                  "label_karpenter_k8s_aws_instance_ami_id 2": 51,
+                  "label_karpenter_k8s_aws_instance_category 1": 15,
+                  "label_karpenter_k8s_aws_instance_category 2": 52,
+                  "label_karpenter_k8s_aws_instance_cpu 1": 16,
+                  "label_karpenter_k8s_aws_instance_cpu 2": 53,
+                  "label_karpenter_k8s_aws_instance_family 1": 17,
+                  "label_karpenter_k8s_aws_instance_family 2": 54,
+                  "label_karpenter_k8s_aws_instance_generation 1": 18,
+                  "label_karpenter_k8s_aws_instance_generation 2": 55,
+                  "label_karpenter_k8s_aws_instance_hypervisor 1": 19,
+                  "label_karpenter_k8s_aws_instance_hypervisor 2": 56,
+                  "label_karpenter_k8s_aws_instance_local_nvme 1": 38,
+                  "label_karpenter_k8s_aws_instance_local_nvme 2": 75,
+                  "label_karpenter_k8s_aws_instance_memory 1": 20,
+                  "label_karpenter_k8s_aws_instance_memory 2": 57,
+                  "label_karpenter_k8s_aws_instance_pods 1": 21,
+                  "label_karpenter_k8s_aws_instance_pods 2": 58,
+                  "label_karpenter_k8s_aws_instance_size 1": 22,
+                  "label_karpenter_k8s_aws_instance_size 2": 59,
+                  "label_karpenter_sh_capacity_type 1": 23,
+                  "label_karpenter_sh_capacity_type 2": 60,
+                  "label_karpenter_sh_initialized 1": 24,
+                  "label_karpenter_sh_initialized 2": 61,
+                  "label_karpenter_sh_provisioner_name 1": 25,
+                  "label_karpenter_sh_provisioner_name 2": 62,
+                  "label_kubernetes_io_arch 1": 26,
+                  "label_kubernetes_io_arch 2": 63,
+                  "label_kubernetes_io_hostname 1": 27,
+                  "label_kubernetes_io_hostname 2": 64,
+                  "label_kubernetes_io_os 1": 28,
+                  "label_kubernetes_io_os 2": 65,
+                  "label_node_kubernetes_io_instance_type 1": 29,
+                  "label_node_kubernetes_io_instance_type 2": 66,
+                  "label_spack_io_node_pool 1": 30,
+                  "label_spack_io_node_pool 2": 67,
+                  "label_spack_io_pipeline 1": 31,
+                  "label_spack_io_pipeline 2": 68,
+                  "label_topology_ebs_csi_aws_com_zone 1": 32,
+                  "label_topology_ebs_csi_aws_com_zone 2": 69,
+                  "label_topology_kubernetes_io_region 1": 33,
+                  "label_topology_kubernetes_io_region 2": 70,
+                  "label_topology_kubernetes_io_zone 1": 34,
+                  "label_topology_kubernetes_io_zone 2": 71,
+                  "namespace 1": 35,
+                  "namespace 2": 72,
+                  "node": 0,
+                  "pod 1": 36,
+                  "pod 2": 73,
+                  "service 1": 37,
+                  "service 2": 74
+                },
+                "renameByName": {
+                  "Value": "Pods",
+                  "Value #cpu per node": "CPU",
+                  "Value #pods per node": "Pods"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 95
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 18,
+            "x": 6,
+            "y": 9
+          },
+          "id": 32,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "exemplar": false,
+              "expr": "(kube_node_labels{label_spack_io_pipeline=\"true\"} * on(node) group_left(internal_ip) kube_node_info) * on(internal_ip) group_left label_replace(100 * sum by(instance) (sum without (cpu)(irate(node_cpu_seconds_total{mode!=\"idle\"}[3m])) / ignoring(mode) group_left sum without(mode, cpu) (irate(node_cpu_seconds_total[3m]))), 'internal_ip', '$1', 'instance', '(.+):.+')",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "{{ node }}",
+              "refId": "A"
+            }
+          ],
+          "title": "CPU Utilization",
+          "type": "gauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 95
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 18,
+            "x": 6,
+            "y": 17
+          },
+          "id": 34,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "9.3.1",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "exemplar": false,
+              "expr": "(kube_node_labels{label_spack_io_pipeline=\"true\"} * on(node) group_left(internal_ip) kube_node_info) * on(internal_ip) group_left label_replace(((node_memory_MemTotal_bytes - node_memory_MemFree_bytes) / node_memory_MemTotal_bytes) * 100, 'internal_ip', '$1', 'instance', '(.+):.+') ",
+              "instant": true,
+              "interval": "",
+              "legendFormat": "{{ node }}",
+              "refId": "A"
+            }
+          ],
+          "title": "RAM Utilization",
+          "type": "gauge"
+        },
+        {
+          "collapsed": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 25
+          },
+          "id": 12,
+          "panels": [],
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Pods",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 26
+          },
+          "id": 10,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "sum by(label_metrics_gitlab_ci_commit_ref_name) (kube_pod_labels{namespace=\"pipeline\"})",
+              "interval": "",
+              "legendFormat": "{{label_metrics_gitlab_ci_commit_ref_name}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Pod count per CI Ref",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 38
+          },
+          "id": 39,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "sum (label_replace(kube_pod_labels{namespace=\"pipeline\",label_metrics_gitlab_ci_commit_ref_name=~\"(pr|develop).*\"}, \"develop_or_pr\", \"$1\", \"label_metrics_gitlab_ci_commit_ref_name\", \"(pr|develop).*\")) by (develop_or_pr)",
+              "interval": "",
+              "legendFormat": "{{label_metrics_gitlab_ci_commit_ref_name}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Pod counts for PRs/develop",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 50
+          },
+          "id": 2,
+          "panels": [],
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Nodes",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 95
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 51
+          },
+          "id": 24,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "8.3.4",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "avg(label_replace(node_uname_info, \"node\", '$1', 'nodename', \"(.*)\") * on(node) group_right(instance) kube_node_labels{label_spack_io_pipeline=\"true\"} * on(instance) (((node_memory_MemTotal_bytes - node_memory_MemFree_bytes) / node_memory_MemTotal_bytes) * 100))\n\n",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "legendFormat": "RAM",
+              "refId": "RAM"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "avg(label_replace(node_uname_info, \"node\", '$1', 'nodename', \"(.*)\") * on(node) group_right(instance) kube_node_labels{label_spack_io_pipeline=\"true\"}  * on(instance) (100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\"}[1m])) * 100)))\n",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "CPU",
+              "range": true,
+              "refId": "CPU"
+            }
+          ],
+          "title": "Utilization",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "opacity",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "__systemRef": "hideSeriesFrom",
+                "matcher": {
+                  "id": "byNames",
+                  "options": {
+                    "mode": "exclude",
+                    "names": [
+                      "Value"
+                    ],
+                    "prefix": "All except:",
+                    "readOnly": true
+                  }
+                },
+                "properties": [
+                  {
+                    "id": "custom.hideFrom",
+                    "value": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": true
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 61
+          },
+          "id": 6,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "sum by(label_node_kubernetes_io_instance_type) (kube_node_labels{label_spack_io_pipeline=\"true\"})",
+              "interval": "",
+              "legendFormat": "{{label_beta_kubernetes_io_instance_type}}",
+              "range": true,
+              "refId": "Nodes by Type"
+            }
+          ],
+          "title": "Node Count  by Type",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 70
+          },
+          "id": 8,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "avg by(label_beta_kubernetes_io_instance_type) (kube_node_labels{label_spack_io_pipeline=\"true\"} * on(node) group_left() sum by(node) (kube_pod_info{namespace=\"pipeline\", node!=\"\"}))",
+              "interval": "",
+              "legendFormat": "{{node}}",
+              "range": true,
+              "refId": "pods per node"
+            }
+          ],
+          "title": "Avg Pods per Instance Type",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 79
+          },
+          "id": 26,
+          "panels": [],
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "refId": "A"
+            }
+          ],
+          "title": "Testing",
+          "type": "row"
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 37,
+      "style": "dark",
+      "tags": [
+        "production"
+      ],
+      "templating": {
+        "list": [
+          {
+            "current": {
+              "selected": false,
+              "text": "default",
+              "value": "default"
+            },
+            "hide": 0,
+            "includeAll": false,
+            "label": "Data Source",
+            "multi": false,
+            "name": "DS_PROMETHEUS",
+            "options": [],
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "type": "datasource"
+          }
+        ]
+      },
+      "time": {
+        "from": "now-3h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "",
+      "title": "Pipeline / Overview",
+      "uid": "UMI_eRy7z",
+      "version": 1,
+      "weekStart": ""
+    }

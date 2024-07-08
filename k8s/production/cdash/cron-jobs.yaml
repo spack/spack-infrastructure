@@ -1,0 +1,37 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cdash-updater
+  namespace: cdash
+spec:
+  schedule: "0 */6 * * *"
+  jobTemplate:
+    metadata:
+      labels:
+        app: cdash
+        svc: updater
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cdash
+            svc: updater
+        spec:
+          serviceAccountName: cdash-updater
+          restartPolicy: OnFailure
+          containers:
+          - name: updater
+            image: "busybox"
+            imagePullPolicy: IfNotPresent
+            args: ["/update/script"]
+            volumeMounts:
+              - name: update
+                mountPath: "/update"
+          volumes:
+            - name: update
+              configMap:
+                name: cdash-updater
+                defaultMode: 0700
+          nodeSelector:
+            spack.io/node-pool: base

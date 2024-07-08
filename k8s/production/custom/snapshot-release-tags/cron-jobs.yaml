@@ -1,0 +1,35 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snapshot-release-tags
+  namespace: custom
+spec:
+  schedule: "0 1 * * 0" # 1am on Sunday
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: snapshot-release-tags
+            image: ghcr.io/spack/snapshot-release-tags:0.0.4
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 500M
+            env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: github-public-repo-token
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
+          nodeSelector:
+            spack.io/node-pool: base

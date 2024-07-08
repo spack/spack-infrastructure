@@ -1,0 +1,11 @@
+%echo Generating a basic OpenPGP key
+Key-Type: RSA
+Key-Length: 2048
+Subkey-Type: RSA
+Subkey-Length: 2048
+Name-Real: Spack Build Pipeline
+Name-Comment: Demo Key
+Name-Email: key@spack.demo
+Expire-Date: 0
+%commit
+%echo done

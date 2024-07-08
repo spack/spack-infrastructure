@@ -1,0 +1,14 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tls-metabase
+  namespace: monitoring
+spec:
+  secretName: tls-metabase
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  commonName: metabase.spack.io
+  dnsNames:
+    - metabase.spack.io

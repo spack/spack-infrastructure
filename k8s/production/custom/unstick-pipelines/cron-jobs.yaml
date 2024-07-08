@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cancel-and-restart-stuck-pipelines
+  namespace: custom
+spec:
+  suspend: true
+  schedule: "0 */3 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: cancel-and-restart-stuck-pipelines
+            image: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: delete-stale-branches-credentials
+                  key: gitlab-token
+            args:
+              - "--num-days"
+              - "0"
+          nodeSelector:
+            spack.io/node-pool: base

@@ -1,0 +1,53 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-create-ro-gitlab-postgres-user
+  namespace: gitlab
+  annotations:
+    kustomize.toolkit.fluxcd.io/reconcile: disabled
+spec:
+  template:
+    metadata:
+      labels:
+        job: create-ro-gitlab-postgres-user
+    spec:
+      securityContext:
+        fsGroup: 1001
+      restartPolicy: Never
+      containers:
+        - name: create-ro-gitlab-postgres-user-container
+          image: docker.io/bitnami/postgresql:11.9.0
+          command: ["/bin/bash", "-c"]
+          args:
+            - psql -c "
+              DO \$\$
+              BEGIN
+              CREATE ROLE gitlab_ro_user;
+              EXCEPTION WHEN duplicate_object THEN RAISE NOTICE '%, skipping', SQLERRM USING ERRCODE = SQLSTATE;
+              END
+              \$\$;
+              ALTER ROLE gitlab_ro_user LOGIN PASSWORD '$RO_PGPASSWORD';
+              GRANT CONNECT ON DATABASE $PGDATABASE TO gitlab_ro_user;
+              GRANT SELECT ON ALL TABLES IN SCHEMA public TO gitlab_ro_user;
+              ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO gitlab_ro_user;";
+          env:
+          - name: PGUSER
+            value: postgres
+          - name: PGHOST
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-postgresql-secrets
+                key: gitlab-postgresql-host
+          - name: PGDATABASE
+            value: gitlabhq_production
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-postgresql-secrets
+                key: gitlab-postgresql-password
+          - name: RO_PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-ro-postgresql-password
+                key: postgresql-gitlab-ro-user-password

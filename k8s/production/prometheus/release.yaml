@@ -1,0 +1,196 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  interval: 10m
+  url: https://prometheus-community.github.io/helm-charts
+
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: 60.2.0 # prometheus-operator@v0.74.0, grafana@8.0.*
+      sourceRef:
+        kind: HelmRepository
+        name: kube-prometheus-stack
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
+  values:
+    defaultRules:
+      create: false
+      additionalRuleLabels:
+        namespace: monitoring
+        source_namespace: '{{ $labels.namespace }}'
+
+    namespaceOverride: monitoring
+    alertmanager:
+      ingress:
+        enabled: false
+      alertmanagerSpec:
+        externalUrl: "https://alertmanager.spack.io"
+        alertmanagerConfigSelector:
+          matchLabels:
+            alertmanagerConfig: spack
+
+    grafana:
+      nodeSelector:
+        spack.io/node-pool: base
+      ingress:
+        enabled: false
+      persistence:
+        enabled: true
+      admin:
+        existingSecret: "kube-prometheus-stack-grafana" # See: secrets.yaml
+        userKey: admin-user
+        passwordKey: admin-password
+      grafana.ini:
+        paths:
+          data: /var/lib/grafana/
+          logs: /var/log/grafana
+          plugins: /var/lib/grafana/plugins
+          provisioning: /etc/grafana/provisioning
+        analytics:
+          check_for_updates: true
+        log:
+          mode: console
+        grafana_net:
+          url: https://grafana.net
+        server:
+          root_url: https://grafana.spack.io
+        auth.github:
+          enabled: true
+          allow_sign_up: true
+          scopes: user:email,read:org
+          auth_url: https://github.com/login/oauth/authorize
+          token_url: https://github.com/login/oauth/access_token
+          api_url: https://api.github.com/user
+#          team_ids:
+          allowed_organizations: spack
+          # client_id: DEADBEEF # Will be overriden by environment vars
+          # client_secret: DEADBEEF # Will be overriden by environment vars
+
+      # https://github.com/grafana/helm-charts/blob/673566ba032c2df7108514ad8cb51500fdb48de3/charts/grafana/values.yaml#L501-L505
+      plugins:
+        # Install OpenSearch plugin
+        - grafana-opensearch-datasource
+
+
+
+      envValueFrom:
+        GF_AUTH_GITHUB_CLIENT_ID:
+          secretKeyRef:
+            name: grafana-github-oauth-client
+            key: client-id
+        GF_AUTH_GITHUB_CLIENT_SECRET:
+          secretKeyRef:
+            name: grafana-github-oauth-client
+            key: client-secret
+
+
+    prometheus:
+      ingress:
+        enabled: false
+      prometheusSpec:
+        externalUrl: "https://prometheus.spack.io"
+        retention: 30d  # How long to retain metrics
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: gp3
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 200Gi
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 50G
+
+        # These three values allow prometheus to pick up ServiceMonitors from *any* namespace,
+        # not just the "monitoring" namespace.
+        serviceMonitorNamespaceSelector:
+          any: true
+        serviceMonitorSelector: {}
+        serviceMonitorSelectorNilUsesHelmValues: false
+
+        additionalScrapeConfigs:
+          - job_name: "gitlab-metrics"
+            metrics_path: "/-/metrics"
+            scheme: "https"
+            static_configs:
+              - targets: ["gitlab.spack.io"]
+        nodeSelector:
+          spack.io/node-pool: beefy
+
+    prometheusOperator:
+      resources:
+        requests:
+          cpu: 750m
+          memory: 300M
+      nodeSelector:
+        spack.io/node-pool: base
+      admissionWebhooks:
+        patch:
+          nodeSelector:
+            spack.io/node-pool: base
+
+
+    kube-state-metrics:
+      nodeSelector:
+        spack.io/node-pool: base
+      metricLabelsAllowlist:
+        - pods=[*]
+        - nodes=[*]
+      metricAnnotationsAllowList:
+        - pods=[gitlab/ci_job_id,metrics/spack_job_spec_pkg_name,metrics/spack_job_spec_hash,metrics/spack_job_spec_pkg_version,metrics/spack_job_spec_compiler_name,metrics/spack_job_spec_compiler_version,metrics/spack_job_spec_arch,metrics/spack_job_spec_variants,metrics/spack_job_build_jobs,metrics/spack_ci_stack_name]
+
+  # Configure OpenSearch datasource
+  valuesFrom:
+    - kind: Secret
+      name: grafana-additional-datasources
+      valuesKey: values.yaml
+      optional: false
+
+
+# NOTE:
+#
+# Currently it is not possible to pass kube-state-metrics partial wild card
+# matches for whitelisted labels (i.e. metrics/* will not work). The other
+# option - to grab all labels with the generic wild card (i.e. *) and use
+# prometheus metric_relabel_configs to handle filtering. This _should_ be
+# possible using something like the configuration below, however it turns out it
+# is not CURRENTLY possible (2022-02-23) because labelmap validation of
+# ServiceMonitor CRD's is incorrect in the prometheus-operator (v.54.0). There
+# is a merged PR in prometheus-operator:release-0.54 but a new patch release
+# (i.e. v0.54.1) has not been cut yet. Once it is (and that propigates into the
+# helm chart - or we forcibly set the image to
+# quay.io/prometheus-operator/prometheus-operator:v0.54.1) Then we should be
+# able to "correctly" handle this labeling issue.
+#
+# See: https://github.com/prometheus-operator/prometheus-operator/pull/4574
+#
+#        - pods=[*]
+#
+#      prometheus:
+#        monitor:
+#          metricRelabelings:
+#            # create new labels like the following:
+#            # lable_metrics_gitlab_ci_commit_ref_name=test-ci -> gitlab_ci_commit_ref_name=test-ci
+#            # Note that the original label_metrics_* labels will still exist
+#            - action: labelmap
+#              regex: "label_metrics_(.+)"
+#            - action: labeldrop
+#              regex: "label_*"

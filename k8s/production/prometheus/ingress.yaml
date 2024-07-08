@@ -1,0 +1,109 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/auth-url: "https://$host/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$escaped_request_uri"
+  labels:
+    app: kube-prometheus-stack-prometheus
+    app.kubernetes.io/instance: kube-prometheus-stack
+  name: kube-prometheus-stack-prometheus
+  namespace: monitoring
+spec:
+  rules:
+  - host: prometheus.spack.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: kube-prometheus-stack-prometheus
+            port:
+              number: 9090
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - prometheus.spack.io
+    secretName: tls-prometheus-webservice
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oauth2-proxy
+  namespace: monitoring
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: prometheus.spack.io
+    http:
+      paths:
+      - path: /oauth2
+        pathType: Prefix
+        backend:
+          service:
+            name: oauth2-proxy
+            port:
+              number: 4180
+  tls:
+  - hosts:
+    - prometheus.spack.io
+    secretName: tls-prometheus-webservice
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
+    nginx.ingress.kubernetes.io/auth-tls-secret: "ingress-nginx/client-ca"
+  labels:
+    app: kube-prometheus-stack-alertmanager
+    app.kubernetes.io/instance: kube-prometheus-stack
+  name: kube-prometheus-stack-alertmanager
+  namespace: monitoring
+spec:
+  rules:
+  - host: alertmanager.spack.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: kube-prometheus-stack-alertmanager
+            port:
+              number: 9093
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - alertmanager.spack.io
+    secretName: tls-alertmanager-webservice
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  labels:
+    app: kube-prometheus-stack-grafana
+    app.kubernetes.io/instance: kube-prometheus-stack
+  name: kube-prometheus-stack-grafana
+  namespace: monitoring
+spec:
+  rules:
+  - host: grafana.spack.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: kube-prometheus-stack-grafana
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - grafana.spack.io
+    secretName: tls-grafana-webservice

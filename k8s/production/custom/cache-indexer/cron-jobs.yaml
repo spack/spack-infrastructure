@@ -1,0 +1,29 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: index-binary-caches
+  namespace: custom
+spec:
+  schedule: "0 23 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: index-binary-caches
+          restartPolicy: Never
+          containers:
+          - name: index-binary-caches
+            image: ghcr.io/spack/cache-indexer:0.0.3
+            imagePullPolicy: IfNotPresent
+            env:
+              - name: BUCKET_NAME
+                valueFrom:
+                  configMapKeyRef:
+                    name: cache-indexer-config
+                    key: bucket_name
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
+          nodeSelector:
+            spack.io/node-pool: base

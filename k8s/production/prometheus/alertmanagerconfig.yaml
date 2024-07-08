@@ -1,0 +1,40 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+  labels:
+    alertmanagerConfig: spack
+spec:
+  route:
+    groupBy: ['alertname']
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 12h
+    receiver: 'slack'
+  receivers:
+  - name: 'slack'
+    slackConfigs:
+      - channel: '#monitoring-alerts'
+        apiURL:
+          name: slack-webhook-alertmanager
+          key: webhook
+        iconEmoji: ':warning:'
+        title: |-
+          [{{ .CommonLabels.severity }}] {{ .GroupLabels.alertname }} ({{ .Alerts.Firing | len }}) - {{ .CommonAnnotations.summary }}
+        text: |-
+          {{ .CommonAnnotations.description }}
+          {{ range .Alerts }}
+          *{{.Labels.alertname}}* ({{ .Fingerprint }}): <{{ .GeneratorURL }}|:chart_with_upwards_trend:>
+          {{.Annotations.description}}
+
+          {{ end }}
+  inhibitRules:
+    - targetMatch:
+        - name: severity
+          value: warning
+      sourceMatch:
+        - name: severity
+          value: critical
+      equal:
+        - group

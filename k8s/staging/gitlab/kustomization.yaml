@@ -1,0 +1,56 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../production/gitlab/certificates.yaml
+  - ../../production/gitlab/namespace.yaml
+  - ../../production/gitlab/release.yaml
+  - ../../production/gitlab/sealed-secrets.yaml
+  - ../../production/gitlab/pod-cleanup.yaml
+patches:
+  - target:
+      kind: Certificate
+      name: gitlab-webservice
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: gitlab.staging.spack.io
+
+  - target:
+      kind: HelmRelease
+      name: gitlab
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/global/hosts/domain
+        value: staging.spack.io
+      - op: replace
+        path: /spec/values/global/hosts/gitlab/name
+        value: gitlab.staging.spack.io
+      - op: replace
+        path: /spec/values/global/hosts/ssh
+        value: ssh.gitlab.staging.spack.io
+      - op: remove
+        path: /spec/values/global/grafana
+      - op: replace
+        path: /spec/values/gitlab/webservice/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/values/gitlab/toolbox/replicas
+        value: 1
+
+  - target:
+      kind: SealedSecret
+      name: gitlab-secrets
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/encryptedData/postgres-password
+        value: AgBrhGn3MnFaDZIyzfLlb32sIczl33zXjQ1HS1LSJ1IXqGO7e4soTGrLjMgI37kr7/1ftPF1Zzmj5Ud3DdDzm2pBpBY9GcOKZgupPdFBnRU6T+wNJ5QbYI/ZihD8QLKHkUojc0oNac3rcK1u9Cqc9lyMU5n0QKXbLODXrggwyDfeccL2EWikOWVsz3gKDZFXB7XNab5WyigDFlf3C4toYypAkXIQhEwOfZ9rAo68KdjkAFcHgWt6Z8ceQU2Ik6c5pdMl88KDZwLA141kQP6Cda8MM9IUdwu8IReNrS/3G7rZoHwJR00CaM6fw3BiNtBDOlDndLMOtGRslU0Xr/PLeUu/EaysEnk2tjydPNImayz2Dm1a1FHcRKBCpZB5hslSs8Crrni04cNrKz6J/SDxNYQw9hQbrruZASjKj4YLamiQPEv1jOIpbzUfGsyDC8uxq0Wsp1l5fW5rtMfqB8rZbXwgCp7lO1Rm3fwEaqX9FuT/lP8RgyCT+cbb6JXrhe+lA9bJgjixpk64QwbSf32KrwopHgd071To3SajxYAnDeOYdaZICxoPj19emPlsu595P24tGKqHk5VgRz/RGcd2TtspO9BR24iTWviDjqxEo+BVk0iC0B9EDAHyuVNWCvE8MgORL/nwChqrHijX06U4/dECz5PBJxQ4TDRc+yOcbDjUEZIZajE2wvnVshezHMHRCJ+GkVbs/fZCpDDb6mLYYnyG0G9Bcw==
+      - op: replace
+        path: /spec/encryptedData/smtp-password
+        value: AgBxq/Exrot6AQ2Ix30FHcv3GLsYD3b2VGGBe2NDD6FuSnW4tNkKsYJkyw9zYVCQoKBM2/YgddQNSJFKKU2VqiIOUo6xQ74nV49A45ADKq9nErXf377TfwDgQCjaxST8HXGrUgUyGHjAoFlYmI5xuA9D8v4DE3HUCHZNBT1XAWyift9A1oE19JO76BpArzNsewn0RoYFIeB2oRIOd2+UZo1mcby6JfjM1sb+bNVHNbqf9SNHxyGsL1J9M3K8pUZUliDOZFlsFukWKUxigb5YV11QTzmPrPOtQCqCvoOGcKw5PqI5wj/EVU7MEqPNkVKZvduNb3YaKnyWkMRp/FkSANQLNoTlxc+bzqFTBeR6/jftVNJrwDbUB41aAPpLbFgzJA/dXMA9oGErlZHVxDSc6vVdha26ZFwpOI/cWh59nVFovV7gkZu5uUjGnUUSeoCVU7YhVE3THu2jeGXz/GXCU0PKdgb2HOEFMYIFdIn2KDzBsBgJzbzppVjuh28NF/38L+Xt++wIR6PznOX2sbVuwrgk6sAgCnrmSrKWDbvyAefm5EwHngfWf4YEE/YLwDZhuYS0o7psllVcQy4b5TTmhTDvdG/s1avGg4/FIpfGJmNqKCki8lunAeunVNvmmyCH18CnwQlbT9J0qLRGJj61OGul+PVpWJE+6wJZMJXqev1V4SFk7GJdZ+aNRQ4rS8lHrDo=
+      - op: replace
+        path: /spec/encryptedData/values.yaml
+        value: AgAqkxqZpt47BIajymrkjNbYzKjR6qiTipUZvufNUal/hId4RBPSBXPlpdLWJBxlwQ0vsL1ZfC7QQCr9ECC+D5UWsnY6VWkmbFK5K/H5CHErxZUnv4Y8A6kJLV2B0wWbf2YlemATySyxqUlF1SUjazcTyYjpBjWdj7xva16Y+tBrjPq/bQm0WoUBSSPwkYtmK2PWPUN05zM2748AUMcUEK7n+7WGOExl4o17PD+qPbHG72jWRG/x45RIyrmSRMcKQjft94IG5p4hDlV/fJLS7UAGbKff5U5Tfm4Ybq7dol1tmrTt6xsG1nFRV/Rio/t1M8hnusMFRXfIUY8ngDRtSLVC1FX5YdmVpv3AwweIkbBeKgzpvFR2rYYHWN3zAq9vQTE+sULKnDFPS9ZldIXn6CubORTg0lh8Cz9OXfU4g4YSduwXdwYD614N1IXxRtFxr72ec1Xxho/woQF+a7pnlPfdGqwo7b+0ANuNrTpm2wWmpJq5NJXLAFlNRoYhfZntqM7GaqlHDgRLJQQ7CzoXvYSvNeo7Br1t/s6D1jbw+LYfJuE2vz19cQG4K/zeH6kacGtuoErXo5mMhoR1RFadthbYEA8Tac778w2O88t9EJgGMKlHeDRFQVmsx2OhLBf/wqzl8cbVhaa971nHWFNVO3CnO7F9Gn3g0M9WCdyVOUqx7IjJP7O/LjWDMgWnBurv3yiBqOIYzP9ljyWLeqw40H3B9nwbZSVzdy0oPFNKN4MtGJkFVUXVxiMHwRD7SpPorVG58BH9iJ/tkedqDRoaCJNPsmIsGLcyQQ9HWjgEMcX00E8=

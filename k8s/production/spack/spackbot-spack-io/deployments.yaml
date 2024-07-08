@@ -1,0 +1,228 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spackbot-spack-io
+  namespace: spack
+  labels:
+    app: spackbot-spack-io
+    svc: web
+spec:
+  selector:
+    matchLabels:
+      app: spackbot-spack-io
+      svc: web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: spackbot-spack-io
+        svc: web
+    spec:
+      containers:
+      - name: web
+        image: "ghcr.io/spack/spack-bot:latest"
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 110m
+            memory: 200M
+        ports:
+        - name: http
+          containerPort: 8080
+        env:
+        - name: SPACKBOT_LOG_LEVEL
+          value: "INFO"
+        - name: REDIS_HOST
+          value: pr-binary-graduation-queue-prod.cev8lh.ng.0001.use1.cache.amazonaws.com
+        - name: REDIS_PORT
+          value: "6379"
+        - name: TASK_QUEUE_SHORT
+          value: "tasksproduction"
+        - name: TASK_QUEUE_LONG
+          value: "tasksproduction_ltask"
+        - name: WORKER_JOB_TIMEOUT
+          value: "6000"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: GITHUB_APP_IDENTIFIER
+          value: "123749"
+        - name: GITHUB_APP_REQUESTER
+          value: "spackbot"
+        - name: GITLAB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-gitlab-credentials
+              key: gitlab_token
+        - name: GITHUB_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-github-credentials
+              key: github_private_key
+        - name: GITHUB_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-github-credentials
+              key: github_webhook_secret
+      nodeSelector:
+        spack.io/node-pool: base
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spackbot-workers
+  namespace: spack
+  labels:
+    app: spackbot-workers
+    svc: workers
+spec:
+  selector:
+    matchLabels:
+      app: spackbot-workers
+      svc: workers
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: spackbot-workers
+        svc: workers
+    spec:
+      serviceAccountName: spackbot-spack-io
+      containers:
+      - name: worker
+        image: "ghcr.io/spack/spackbot-workers:latest"
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 1500m
+            memory: 1G
+        # Mount secrets to non-existing location
+        volumeMounts:
+        - mountPath: "/git_rsa"
+          name: spack-bot-idrsa
+          readOnly: true
+        env:
+        - name: SPACKBOT_LOG_LEVEL
+          value: "INFO"
+        - name: REDIS_HOST
+          value: pr-binary-graduation-queue-prod.cev8lh.ng.0001.use1.cache.amazonaws.com
+        - name: REDIS_PORT
+          value: "6379"
+        - name: TASK_QUEUE_SHORT
+          value: "tasksproduction"
+        - name: TASK_QUEUE_LONG
+          value: "tasksproduction_ltask"
+        - name: WORKER_TASK_QUEUE
+          value: "tasksproduction"
+        - name: WORKER_JOB_TIMEOUT
+          value: "6000"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: GITHUB_APP_IDENTIFIER
+          value: "123749"
+        - name: GITHUB_APP_REQUESTER
+          value: "spackbot"
+        - name: GITLAB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-gitlab-credentials
+              key: gitlab_token
+        - name: GITHUB_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-github-credentials
+              key: github_private_key
+        - name: GITHUB_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-github-credentials
+              key: github_webhook_secret
+      volumes:
+      - name: spack-bot-idrsa
+        secret:
+          secretName: spack-bot-idrsa
+          defaultMode: 0600
+      nodeSelector:
+        spack.io/node-pool: base
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spackbot-lworkers
+  namespace: spack
+  labels:
+    app: spackbot-lworkers
+    svc: workers
+spec:
+  selector:
+    matchLabels:
+      app: spackbot-lworkers
+      svc: workers
+  # replicas cannot exceed 1 until
+  # rq jobs can be properly sync'd
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: spackbot-lworkers
+        svc: workers
+    spec:
+      serviceAccountName: spackbot-spack-io
+      containers:
+      - name: long-task-worker
+        image: "ghcr.io/spack/spackbot-workers:latest"
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 1500m
+            memory: 1G
+        # Mount secrets to non-existing location
+        volumeMounts:
+        - mountPath: "/git_rsa"
+          name: spack-bot-idrsa
+          readOnly: true
+        env:
+        - name: SPACKBOT_LOG_LEVEL
+          value: "INFO"
+        - name: REDIS_HOST
+          value: pr-binary-graduation-queue-prod.cev8lh.ng.0001.use1.cache.amazonaws.com
+        - name: REDIS_PORT
+          value: "6379"
+        - name: TASK_QUEUE_SHORT
+          value: "tasksproduction"
+        - name: TASK_QUEUE_LONG
+          value: "tasksproduction_ltask"
+        - name: WORKER_TASK_QUEUE
+          value: "tasksproduction_ltask"
+        - name: WORKER_JOB_TIMEOUT
+          value: "6000"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: GITHUB_APP_IDENTIFIER
+          value: "123749"
+        - name: GITHUB_APP_REQUESTER
+          value: "spackbot"
+        - name: GITLAB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-gitlab-credentials
+              key: gitlab_token
+        - name: GITHUB_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-github-credentials
+              key: github_private_key
+        - name: GITHUB_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-github-credentials
+              key: github_webhook_secret
+      volumes:
+      - name: spack-bot-idrsa
+        secret:
+          secretName: spack-bot-idrsa
+          defaultMode: 0600
+      nodeSelector:
+        spack.io/node-pool: base

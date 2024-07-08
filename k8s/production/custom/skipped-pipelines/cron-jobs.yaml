@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: skipped-pipelines
+  namespace: custom
+spec:
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: skipped-pipelines
+            image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.2
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 50M
+            env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: delete-stale-branches-credentials
+                  key: gitlab-token
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
+          nodeSelector:
+            spack.io/node-pool: base

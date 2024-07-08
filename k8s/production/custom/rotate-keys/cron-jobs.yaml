@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: clear-admin-keys
+  namespace: custom
+spec:
+  schedule: "0 0 10 */2 *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: clear-admin-keys
+          restartPolicy: Never
+          containers:
+          - name: clear-admin-keys
+            image: ghcr.io/spack/ci-key-clear:0.0.2
+            imagePullPolicy: IfNotPresent
+          nodeSelector:
+            spack.io/node-pool: base

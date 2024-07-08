@@ -1,0 +1,22 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metabase
+  namespace: monitoring
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  tls:
+  - secretName: tls-metabase
+  rules:
+  - host: metabase.spack.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: metabase
+            port:
+              number: 3000
+        path: /
+        pathType: ImplementationSpecific

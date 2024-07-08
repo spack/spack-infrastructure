@@ -1,0 +1,202 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: gitlab
+  namespace: gitlab
+spec:
+  interval: 10m
+  url: https://charts.gitlab.io
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: gitlab
+  namespace: gitlab
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: gitlab
+      version: 7.11.5 # gitlab@16.11.5
+      sourceRef:
+        kind: HelmRepository
+        name: gitlab
+
+  valuesFrom:
+    - kind: Secret
+      name: gitlab-secrets
+      valuesKey: values.yaml
+      optional: false
+    # See terraform/modules/spack/ses.tf
+    - kind: ConfigMap
+      name: gitlab-ses-config
+      valuesKey: values.yaml
+    # See terraform/modules/spack/gitlab_object_stores.tf
+    - kind: ConfigMap
+      name: gitlab-s3-bucket-config
+      valuesKey: values.yaml
+    # See terraform/modules/spack/gitlab_redis.tf
+    - kind: ConfigMap
+      name: gitlab-elasticache-config
+      valuesKey: values.yaml
+
+  values:
+    nodeSelector:
+      spack.io/node-pool: gitlab
+
+    global:
+      common:
+        labels: {}
+
+      operator:
+        enabled: false
+
+      edition: ee
+
+      hosts:
+        domain: spack.io
+        https: true
+        gitlab:
+          name: gitlab.spack.io
+        smartcard:
+          enabled: false
+        ssh: ssh.gitlab.spack.io
+
+      ingress:
+        apiVersion: networking.k8s.io/v1
+        configureCertmanager: false
+        class: nginx
+
+      gitlab:
+        license: {}
+
+      initialRootPassword: {}
+
+      # These are managed by a config map;
+      # see terraform/modules/spack/ses.tf
+      # email:
+      # smtp:
+
+      psql:
+        connectTimeout:
+        password:
+          secret: gitlab-secrets
+          key: postgres-password
+        port: 5432
+        database: gitlabhq_production
+        username: gitlab
+
+      minio:
+        enabled: false
+
+      grafana:
+        enabled: false
+
+      kas:
+        enabled: false
+
+      registry:
+        enabled: false
+
+      appConfig:
+        smartcard:
+          enabled: false
+        lfs:
+          enabled: false
+        packages:
+          enabled: false
+
+      antiAffinity: hard
+    ### END OF GLOBAL SECTION
+
+    certmanager:
+      install: false
+
+    prometheus:
+      install: false
+
+    nginx-ingress:
+      enabled: false
+
+    registry:
+      enabled: false
+
+    gitlab-runner:
+      install: false
+
+    gitlab:
+      ingress:
+        tls:
+          enabled: true
+      webservice:
+        ingress:
+          enabled: true
+          tls:
+            enabled: true
+            secretName: tls-gitlab-webservice
+        minReplicas: 4
+        maxReplicas: 16
+        resources:
+          # Based on webservice resources here
+          # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
+          limits:
+            cpu: 12
+            memory: 20G
+          requests:
+            cpu: 4
+            memory: 14G
+        nodeSelector:
+          spack.io/node-pool: gitlab
+      gitlab-exporter:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+      gitlab-shell:
+        service:
+          type: LoadBalancer
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+      sidekiq:
+        resources:
+          # Based on sidekiq resources here
+          # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
+          requests:
+            cpu: 4
+            memory: 15G
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+      toolbox:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+        replicas: 8
+        antiAffinityLabels:
+          matchLabels:
+            app: "gitaly"
+
+      gitaly:
+        resources:
+          requests:
+            cpu: 15000m
+            memory: 54Gi
+        nodeSelector:
+          spack.io/node-pool: gitlab
+          node.kubernetes.io/instance-type: m5.4xlarge
+        metrics:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+
+      migrations:
+        nodeSelector:
+          spack.io/node-pool: gitlab
+
+    postgresql:
+      install: false
+
+    redis:
+      install: false

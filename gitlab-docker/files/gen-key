@@ -1,0 +1,13 @@
+#! /bin/sh
+
+apk add gnupg
+gpg --batch                                  \
+    --gen-key                                \
+    --pinentry-mode=loopback --passphrase "" \
+    /files/gpg-script
+
+(
+    gpg --export --armor \
+ && gpg --export-secret-keys --armor
+) | base64 | tr -d '\n' > /gpg/package-signing-key
+
