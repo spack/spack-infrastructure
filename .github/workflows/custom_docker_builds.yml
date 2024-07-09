@@ -40,7 +40,7 @@ jobs:
           - docker-image: ./images/cache-indexer
             image-tags: ghcr.io/spack/cache-indexer:0.0.3
           - docker-image: ./analytics
-            image-tags: ghcr.io/spack/django:0.3.6
+            image-tags: ghcr.io/spack/django:0.3.7
           - docker-image: ./images/ci-prune-buildcache
             image-tags: ghcr.io/spack/ci-prune-buildcache:0.0.4
           - docker-image: ./images/protected-publish
