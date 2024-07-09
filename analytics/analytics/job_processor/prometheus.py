@@ -368,11 +368,11 @@ class PrometheusClient:
             )["metric"]["system_uuid"]
         )
 
-        # Get node labels. Include the karpenter label to prevent the results being split up
+        # Get node labels. Include extra labels to prevent the results being split up
         # into two sets (one before this label was added and one after). This can occur if
         # the job is scheduled on a newly created node
         node_labels = self.query_range(
-            f"kube_node_labels{{node='{node_name}', label_karpenter_sh_initialized='true'}}",
+            f"kube_node_labels{{node='{node_name}', label_karpenter_sh_initialized='true', label_topology_ebs_csi_aws_com_zone=~'.+'}}",
             start=start,
             end=end,
             single_result=True,
