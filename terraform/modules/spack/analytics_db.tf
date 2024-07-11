@@ -10,7 +10,7 @@ locals {
 
 module "analytics_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "5.9.0"
+  version = "6.0.0"
 
   identifier = "analytics-${var.deployment_name}"
 
@@ -21,11 +21,11 @@ module "analytics_db" {
   instance_class       = var.gitlab_db_instance_class
 
   # Credentials
-  db_name                = "analytics"
-  username               = "postgres"
-  port                   = "5432"
-  create_random_password = false
-  password               = local.analytics_db_master_password
+  db_name                     = "analytics"
+  username                    = "postgres"
+  port                        = "5432"
+  password                    = local.analytics_db_master_password
+  manage_master_user_password = false
 
   publicly_accessible  = false
   db_subnet_group_name = aws_db_subnet_group.spack.name

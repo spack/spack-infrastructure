@@ -1,6 +1,6 @@
 module "cdash_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "5.9.0"
+  version = "6.0.0"
 
   identifier = "cdash-${var.deployment_name}"
 
@@ -10,8 +10,9 @@ module "cdash_db" {
   major_engine_version = "8.0"
   instance_class       = var.cdash_db_instance_class
 
-  username = "admin"
-  port     = "3306"
+  username                    = "admin"
+  port                        = "3306"
+  manage_master_user_password = false
 
   publicly_accessible  = false
   db_subnet_group_name = aws_db_subnet_group.spack.name

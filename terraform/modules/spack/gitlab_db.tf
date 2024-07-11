@@ -69,7 +69,7 @@ locals {
 
 module "gitlab_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "5.9.0"
+  version = "6.0.0"
 
   identifier = "gitlab-${var.deployment_name}"
 
@@ -79,11 +79,11 @@ module "gitlab_db" {
   major_engine_version = "14"
   instance_class       = var.gitlab_db_instance_class
 
-  db_name                = "gitlabhq_production"
-  username               = "postgres"
-  port                   = "5432"
-  create_random_password = false
-  password               = local.gitlab_db_master_password
+  db_name                     = "gitlabhq_production"
+  username                    = "postgres"
+  port                        = "5432"
+  password                    = local.gitlab_db_master_password
+  manage_master_user_password = false
 
   publicly_accessible  = false
   db_subnet_group_name = aws_db_subnet_group.spack.name

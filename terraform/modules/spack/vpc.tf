@@ -1,7 +1,7 @@
 module "vpc" {
   # https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest
   source  = "terraform-aws-modules/vpc/aws"
-  version = "4.0.2"
+  version = "5.0.0"
 
   name = "spack-${var.deployment_name}"
   cidr = var.vpc_cidr

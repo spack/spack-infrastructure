@@ -5,7 +5,7 @@ locals {
 module "eks" {
   # https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest
   source  = "terraform-aws-modules/eks/aws"
-  version = "19.5.1"
+  version = "20.0.0"
 
   cluster_name    = local.cluster_name
   cluster_version = var.kubernetes_version
@@ -20,35 +20,6 @@ module "eks" {
   cluster_encryption_config = {}
 
   cluster_endpoint_public_access = true
-
-  manage_aws_auth_configmap = true
-  aws_auth_roles = [
-    {
-      # Admin/superuser access to the cluster
-      rolearn  = aws_iam_role.eks_cluster_access.arn
-      username = "admin"
-      groups   = ["system:masters"]
-    },
-    {
-      # Read-only access to the cluster (for users)
-      rolearn  = aws_iam_role.readonly_clusterrole.arn,
-      username = "readonly-access",
-      # See the ClusterRole/ClusterRoleBinding at the bottom of
-      # this file for the permissions given to this group
-      groups = ["readonly-access"],
-    },
-    {
-      # Read-only access to the cluster (for github actions)
-      rolearn  = aws_iam_role.github_actions.arn,
-      username = "github-actions",
-      # See the ClusterRole/ClusterRoleBinding at the bottom of
-      # this file for the permissions given to this group
-      groups = ["readonly-access"],
-    },
-  ]
-  # This is required for DNS resolution to work on Windows nodes.
-  # See info about aws-auth configmap here - https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support
-  aws_auth_node_iam_role_arns_windows = [aws_iam_role.managed_node_group.arn]
 
   node_security_group_additional_rules = {
     ingress_self_all = {
@@ -100,6 +71,8 @@ module "eks" {
       service_account_role_arn = aws_iam_role.ebs_efs_csi_driver.arn
     }
   }
+
+  authentication_mode = "CONFIG_MAP"
 }
 
 resource "aws_iam_role" "managed_node_group" {
@@ -408,4 +381,42 @@ resource "kubectl_manifest" "readonly_clusterrolebinding" {
       name: ${kubectl_manifest.readonly_clusterrole.name}
       apiGroup: rbac.authorization.k8s.io
     YAML
+}
+
+module "eks_aws_auth" {
+  source  = "terraform-aws-modules/eks/aws//modules/aws-auth"
+  version = "20.0.0"
+
+  manage_aws_auth_configmap = true
+  aws_auth_roles = [
+    {
+      # Admin/superuser access to the cluster
+      rolearn  = aws_iam_role.eks_cluster_access.arn
+      username = "admin"
+      groups   = ["system:masters"]
+    },
+    {
+      # Read-only access to the cluster (for users)
+      rolearn  = aws_iam_role.readonly_clusterrole.arn,
+      username = "readonly-access",
+      # See the ClusterRole/ClusterRoleBinding at the bottom of
+      # this file for the permissions given to this group
+      groups = ["readonly-access"],
+    },
+    {
+      # Read-only access to the cluster (for github actions)
+      rolearn  = aws_iam_role.github_actions.arn,
+      username = "github-actions",
+      # See the ClusterRole/ClusterRoleBinding at the bottom of
+      # this file for the permissions given to this group
+      groups = ["readonly-access"],
+    },
+    # This is required for DNS resolution to work on Windows nodes.
+    # See info about aws-auth configmap here - https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support
+    {
+      rolearn  = aws_iam_role.managed_node_group.arn,
+      username = "system:node:{{EC2PrivateDNSName}}",
+      groups   = ["system:bootstrappers", "system:nodes", "eks:kube-proxy-windows"]
+    }
+  ]
 }
