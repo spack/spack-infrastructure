@@ -69,7 +69,7 @@ locals {
 
 module "gitlab_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "5.2.3"
+  version = "5.9.0"
 
   identifier = "gitlab-${var.deployment_name}"
 

@@ -10,7 +10,7 @@ locals {
 
 module "analytics_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "5.2.3"
+  version = "5.9.0"
 
   identifier = "analytics-${var.deployment_name}"
 
