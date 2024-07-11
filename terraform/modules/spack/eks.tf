@@ -5,7 +5,7 @@ locals {
 module "eks" {
   # https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.0.0"
+  version = "20.17.2"
 
   cluster_name    = local.cluster_name
   cluster_version = var.kubernetes_version
@@ -385,7 +385,7 @@ resource "kubectl_manifest" "readonly_clusterrolebinding" {
 
 module "eks_aws_auth" {
   source  = "terraform-aws-modules/eks/aws//modules/aws-auth"
-  version = "20.0.0"
+  version = "20.17.2"
 
   manage_aws_auth_configmap = true
   aws_auth_roles = [
