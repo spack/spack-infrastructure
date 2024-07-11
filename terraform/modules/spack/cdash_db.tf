@@ -33,7 +33,7 @@ module "cdash_db" {
 
 module "mysql_security_group" {
   source  = "terraform-aws-modules/security-group/aws"
-  version = "4.16.2"
+  version = "5.1.2"
 
   name        = "mysql_sg"
   description = "Security group for RDS MySQL database"
