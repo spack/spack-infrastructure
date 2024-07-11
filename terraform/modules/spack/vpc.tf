@@ -1,7 +1,7 @@
 module "vpc" {
   # https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest
   source  = "terraform-aws-modules/vpc/aws"
-  version = "3.18.1"
+  version = "4.0.2"
 
   name = "spack-${var.deployment_name}"
   cidr = var.vpc_cidr
@@ -10,10 +10,11 @@ module "vpc" {
   public_subnets  = var.public_subnets
   private_subnets = var.private_subnets
 
-  enable_nat_gateway     = true
-  single_nat_gateway     = false
-  enable_dns_hostnames   = true
-  one_nat_gateway_per_az = true
+  enable_nat_gateway      = true
+  single_nat_gateway      = false
+  enable_dns_hostnames    = true
+  one_nat_gateway_per_az  = true
+  map_public_ip_on_launch = true
 
   # Don't create a DB subnet group here, instead
   # we create it explicitly below so that we can
