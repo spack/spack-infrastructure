@@ -1,5 +1,5 @@
 locals {
-  karpenter_version = "v0.31.0"
+  karpenter_version = "v0.31.4"
 }
 
 module "karpenter" {
