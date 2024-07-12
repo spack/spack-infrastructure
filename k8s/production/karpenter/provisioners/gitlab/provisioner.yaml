@@ -1,32 +1,38 @@
 ---
 # Provisioner for gitlab pods
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
   name: gitlab
 spec:
-  providerRef:
-    name: default
+  template:
+    metadata:
+      # Only provision nodes for pods specifying the gitlab node pool
+      labels:
+        spack.io/node-pool: gitlab
+    spec:
+      requirements:
+        - key: "node.kubernetes.io/instance-type"
+          operator: In
+          values:
+          # Instance types are partly based on gitlab's recommendations
+          # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
+            - "t3.xlarge"
+            - "m5.xlarge"
+            - "m5.4xlarge"
+            - "c5.4xlarge"
+
+        # Always use on-demand
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
 
   # Terminate nodes after 5 minutes of idle time
-  ttlSecondsAfterEmpty: 300
-
-  requirements:
-    - key: "node.kubernetes.io/instance-type"
-      operator: In
-      values:
-      # Instance types are partly based on gitlab's recommendations
-      # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
-        - "t3.xlarge"
-        - "m5.xlarge"
-        - "m5.4xlarge"
-        - "c5.4xlarge"
-
-    # Always use on-demand
-    - key: "karpenter.sh/capacity-type"
-      operator: In
-      values: ["on-demand"]
-
-  # Only provision nodes for pods specifying the gitlab node pool
-  labels:
-    spack.io/node-pool: gitlab
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m

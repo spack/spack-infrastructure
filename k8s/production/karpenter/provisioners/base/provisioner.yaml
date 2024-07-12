@@ -1,33 +1,39 @@
 ---
 # Provisioner for base pods
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
   name: base
 spec:
-  providerRef:
-    name: default
+  template:
+    metadata:
+      # Only provision nodes for pods specifying the base node pool
+      labels:
+        spack.io/node-pool: base
+
+    spec:
+      requirements:
+      - key: "node.kubernetes.io/instance-type"
+        operator: In
+        values:
+          - "t3.small"
+          - "t3.medium"
+          - "m4.xlarge"
+
+      # Always use on-demand
+      - key: "karpenter.sh/capacity-type"
+        operator: In
+        values: ["on-demand"]
+
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
 
   # Terminate nodes after 5 minutes of idle time
-  ttlSecondsAfterEmpty: 300
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
 
   limits:
-    resources:
-      cpu: 128 # Limit to 64 t3.small nodes (2 vCPUs each)
-
-  requirements:
-    - key: "node.kubernetes.io/instance-type"
-      operator: In
-      values:
-        - "t3.small"
-        - "t3.medium"
-        - "m4.xlarge"
-
-    # Always use on-demand
-    - key: "karpenter.sh/capacity-type"
-      operator: In
-      values: ["on-demand"]
-
-  # Only provision nodes for pods specifying the base node pool
-  labels:
-    spack.io/node-pool: base
+    cpu: 128 # Limit to 64 t3.small nodes (2 vCPUs each)

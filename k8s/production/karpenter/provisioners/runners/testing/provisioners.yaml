@@ -1,56 +1,62 @@
 ---
 # Provisioner for testing gitlab runners
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
   name: testing
 spec:
-  providerRef:
-    name: default
+  template:
+    metadata:
+      # Only provision nodes from the glr-large-testing-pub node pool
+      labels:
+        spack.io/node-pool: glr-large-testing-pub
+        spack.io/pipeline: "true"
+
+    spec:
+      requirements:
+      # This provisioner provides both arm64 and amd64 nodes
+      - key: "kubernetes.io/arch"
+        operator: In
+        values: ["arm64", "amd64"]
+
+      # Availability Zones
+      - key: "topology.kubernetes.io/zone"
+        operator: In
+        values:
+          - "us-east-1a"
+          - "us-east-1b"
+          - "us-east-1c"
+          - "us-east-1d"
+
+      # Allowed instance types
+      - key: node.kubernetes.io/instance-type
+        operator: In
+        values:
+          - "m6g.4xlarge" # ARM64 instances
+          - "m5zn.3xlarge" # AMD64 instances
+
+      # Only use spot instances for runners
+      - key: "karpenter.sh/capacity-type"
+        operator: In
+        values: ["spot"]
+
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
+
+      # Taint these nodes so only pipeline pods will be scheduled on them.
+      taints:
+        - key: spack.io/runner-taint
+          value: "true"
+          effect: NoSchedule
 
   # Terminate nodes after 5 minutes of idle time
-  ttlSecondsAfterEmpty: 300
-
-  # Taint these nodes so only pipeline pods will be scheduled on them.
-  taints:
-    - key: spack.io/runner-taint
-      value: "true"
-      effect: NoSchedule
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
 
   # Resource limits for this provisioner only
   limits:
-    resources:
-      cpu: 80 # 16 vCPUs * 1 replica * 5 concurrent jobs
-      memory: 320Gi # 64 Gi * 1 replica * 5 concurrent jobs
-
-  requirements:
-    # This provisioner provides both arm64 and amd64 nodes
-    - key: "kubernetes.io/arch"
-      operator: In
-      values: ["arm64", "amd64"]
-
-    # Availability Zones
-    - key: "topology.kubernetes.io/zone"
-      operator: In
-      values:
-        - "us-east-1a"
-        - "us-east-1b"
-        - "us-east-1c"
-        - "us-east-1d"
-
-    # Allowed instance types
-    - key: node.kubernetes.io/instance-type
-      operator: In
-      values:
-        - "m6g.4xlarge" # ARM64 instances
-        - "m5zn.3xlarge" # AMD64 instances
-
-    # Only use spot instances for runners
-    - key: "karpenter.sh/capacity-type"
-      operator: In
-      values: ["spot"]
-
-  # Only provision nodes from the glr-large-testing-pub node pool
-  labels:
-    spack.io/node-pool: glr-large-testing-pub
-    spack.io/pipeline: "true"
+    cpu: 80 # 16 vCPUs * 1 replica * 5 concurrent jobs
+    memory: 320Gi # 64 Gi * 1 replica * 5 concurrent jobs

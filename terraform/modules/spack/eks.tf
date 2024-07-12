@@ -53,8 +53,9 @@ module "eks" {
       max_size     = 3
       desired_size = 2
 
+      # Use same role as Karpenter nodes
       create_iam_role = false
-      iam_role_arn    = aws_iam_role.managed_node_group.arn
+      iam_role_arn = module.karpenter.node_iam_role_arn
 
       taints = {
         spack-bootstrap = {
@@ -72,63 +73,7 @@ module "eks" {
     }
   }
 
-  authentication_mode = "CONFIG_MAP"
-}
-
-resource "aws_iam_role" "managed_node_group" {
-  name_prefix = "initial-eks-node-group-"
-  description = "EKS managed node group IAM role"
-  assume_role_policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Sid" : "EKSNodeAssumeRole",
-        "Effect" : "Allow",
-        "Principal" : {
-          "Service" : "ec2.amazonaws.com"
-        },
-        "Action" : "sts:AssumeRole"
-      }
-    ]
-  })
-
-  inline_policy {
-    name = "session-manager-temp"
-    policy = jsonencode({
-      "Version" : "2012-10-17",
-      "Statement" : [
-        {
-          "Effect" : "Allow",
-          "Action" : [
-            "ssm:UpdateInstanceInformation",
-            "ssmmessages:CreateControlChannel",
-            "ssmmessages:CreateDataChannel",
-            "ssmmessages:OpenControlChannel",
-            "ssmmessages:OpenDataChannel"
-          ],
-          "Resource" : "*"
-        },
-        {
-          "Effect" : "Allow",
-          "Action" : [
-            "s3:GetEncryptionConfiguration"
-          ],
-          "Resource" : "*"
-        }
-      ]
-    })
-  }
-}
-
-resource "aws_iam_role_policy_attachment" "managed_node_group" {
-  for_each = toset([
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-  ])
-
-  role       = aws_iam_role.managed_node_group.name
-  policy_arn = each.value
+  authentication_mode = "API_AND_CONFIG_MAP"
 }
 
 resource "aws_iam_role" "eks_cluster_access" {
@@ -414,7 +359,7 @@ module "eks_aws_auth" {
     # This is required for DNS resolution to work on Windows nodes.
     # See info about aws-auth configmap here - https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support
     {
-      rolearn  = aws_iam_role.managed_node_group.arn,
+      rolearn  = module.eks.eks_managed_node_groups["initial"].iam_role_arn,
       username = "system:node:{{EC2PrivateDNSName}}",
       groups   = ["system:bootstrappers", "system:nodes", "eks:kube-proxy-windows"]
     }

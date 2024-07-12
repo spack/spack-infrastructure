@@ -10,25 +10,25 @@ resources:
 - ../../production/karpenter/provisioners/base/provisioner.yaml
 patches:
   - target:
-      kind: Provisioner
+      kind: NodePool
       name: glr-x86-64-v2
     patch: |-
       - op: replace
-        path: /spec/requirements/2/values
+        path: /spec/template/spec/requirements/2/values
         value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
 
   - target:
-      kind: Provisioner
+      kind: NodePool
       name: glr-graviton2
     patch: |-
       - op: replace
-        path: /spec/requirements/2/values
+        path: /spec/template/spec/requirements/2/values
         value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
 
   - target:
-      kind: Provisioner
+      kind: NodePool
       name: x86-64-v2-win
     patch: |-
       - op: replace
-        path: /spec/requirements/5/values
+        path: /spec/template/spec/requirements/5/values
         value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
