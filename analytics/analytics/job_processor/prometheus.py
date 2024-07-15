@@ -386,19 +386,21 @@ class PrometheusClient:
         capacity_type = node_labels["label_karpenter_sh_capacity_type"]
         instance_type = node_labels["label_node_kubernetes_io_instance_type"]
 
-        # Retrieve the price of this node
+        # Retrieve the price of this node. Since this price can change in the middle of this job's
+        # lifetime, we return all values from this query and average them.
         zone = node_labels["label_topology_kubernetes_io_zone"]
-        spot_price = float(
-            self.query_range(
-                "karpenter_cloudprovider_instance_type_price_estimate{"
-                f"capacity_type='{capacity_type}',"
-                f"instance_type='{instance_type}',"
-                f"zone='{zone}'"
-                "}",
-                start=start,
-                end=end,
-                single_result=True,
-            )["values"][0][1]
+        spot_prices_result = self.query_range(
+            f"""
+            karpenter_cloudprovider_instance_type_price_estimate{{
+                capacity_type='{capacity_type}',
+                instance_type='{instance_type}',
+                zone='{zone}'
+            }}""",
+            start=start,
+            end=end,
+        )
+        spot_price = statistics.mean(
+            [float(val[1]) for result in spot_prices_result for val in result["values"]]
         )
 
         # Save and set as job node
