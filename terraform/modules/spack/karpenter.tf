@@ -1,10 +1,10 @@
 locals {
-  karpenter_version = "v0.29.0"
+  karpenter_version = "v0.31.4"
 }
 
 module "karpenter" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "18.31.0"
+  version = "19.21.0"
 
   cluster_name = module.eks.cluster_name
 
