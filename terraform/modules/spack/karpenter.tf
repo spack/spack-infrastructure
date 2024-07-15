@@ -48,7 +48,7 @@ resource "helm_release" "karpenter" {
           cpu: 1
           memory: 1Gi
     tolerations:
-      - key: SpackBootstrap
+      - key: CriticalAddonsOnly
     serviceMonitor:
       enabled: true
     EOT

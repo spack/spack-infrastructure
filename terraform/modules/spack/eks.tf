@@ -58,8 +58,8 @@ module "eks" {
       iam_role_arn = module.karpenter.node_iam_role_arn
 
       taints = {
-        spack-bootstrap = {
-          key    = "SpackBootstrap"
+        critical-addons-only = {
+          key    = "CriticalAddonsOnly"
           effect = "NO_SCHEDULE"
         }
       }
