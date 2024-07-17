@@ -11,6 +11,7 @@ from requests.exceptions import ReadTimeout
 
 from analytics import setup_gitlab_job_sentry_tags
 from analytics.core.models.facts import JobFact
+from analytics.job_processor.artifacts import JobArtifactFileNotFound
 from analytics.job_processor.build_timings import create_build_timing_facts
 from analytics.job_processor.dimensions import (
     create_date_time_dimensions,
@@ -132,7 +133,14 @@ def process_job(job_input_data_json: str):
     gl_job = gl_project.jobs.get(job_input_data["build_id"])
     job_trace: str = gl_job.trace().decode()  # type: ignore
 
-    # Use a transaction, to account for transient failures
     with transaction.atomic():
-        job = create_job_fact(gl, gl_job, job_input_data, job_trace)
-        create_build_timing_facts(job_fact=job, gljob=gl_job)
+        try:
+            job = create_job_fact(gl, gl_job, job_input_data, job_trace)
+            create_build_timing_facts(job_fact=job, gljob=gl_job)
+        except JobArtifactFileNotFound:
+            # If the job has a status of "failed", some artifacts might
+            # not be present, so don't error if that's the case
+            if job_input_data["build_status"] == "failed":
+                return
+
+            raise

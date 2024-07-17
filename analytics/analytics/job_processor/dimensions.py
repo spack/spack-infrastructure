@@ -60,9 +60,10 @@ def create_job_data_dimension(
         job_failure_reason=job_failure_reason,
     )
 
+    job_status = job_input_data["build_status"]
     error_taxonomy = (
         _assign_error_taxonomy(job_input_data, job_trace)[0]
-        if job_input_data["build_status"] == "failed"
+        if job_status == "failed"
         else None
     )
 
@@ -70,6 +71,7 @@ def create_job_data_dimension(
 
     rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
     runner_version = rvmatch.group(1) if rvmatch is not None else ""
+    unnecessary = UNNECESSARY_JOB_REGEX.search(job_trace) is not None
 
     job_data = JobDataDimension.objects.create(
         job_id=job_id,
@@ -85,9 +87,9 @@ def create_job_data_dimension(
         is_manual_retry=retry_info.is_manual_retry,
         attempt_number=retry_info.attempt_number,
         final_attempt=retry_info.final_attempt,
-        status=job_input_data["build_status"],
+        status=job_status,
         error_taxonomy=error_taxonomy,
-        unnecessary=UNNECESSARY_JOB_REGEX.search(job_trace) is not None,
+        unnecessary=unnecessary,
         pod_name=job_info.pod.name,
         gitlab_runner_version=runner_version,
         # TODO: Once this is also used to process failed jobs, change this
