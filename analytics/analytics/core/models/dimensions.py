@@ -166,6 +166,9 @@ class JobDataDimension(models.Model):
     pod_name = models.CharField(max_length=128, null=True, blank=True)
     gitlab_runner_version = models.CharField(max_length=16)
     is_build = models.BooleanField()
+    gitlab_section_timers = models.JSONField(
+        default=dict, db_comment="The GitLab CI section timers for this job."
+    )  # type: ignore
 
 
 class NodeCapacityType(models.TextChoices):

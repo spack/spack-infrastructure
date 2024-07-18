@@ -27,6 +27,18 @@ from analytics.job_processor.metadata import (
 UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
 
 
+def get_gitlab_section_timers(job_trace: str) -> dict[str, int]:
+    timers: dict[str, int] = {}
+
+    # See https://docs.gitlab.com/ee/ci/jobs/index.html#custom-collapsible-sections for the format
+    # of section names.
+    r = re.findall(r"section_(start|end):(\d+):([A-Za-z0-9_\-\.]+)", job_trace)
+    for start, end in zip(r[::2], r[1::2]):
+        timers[start[2]] = int(end[1]) - int(start[1])
+
+    return timers
+
+
 def create_job_data_dimension(
     job_input_data: dict,
     job_info: JobInfo,
@@ -54,6 +66,8 @@ def create_job_data_dimension(
         else None
     )
 
+    gitlab_section_timers = get_gitlab_section_timers(job_trace=job_trace)
+
     rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
     runner_version = rvmatch.group(1) if rvmatch is not None else ""
 
@@ -78,13 +92,14 @@ def create_job_data_dimension(
         gitlab_runner_version=runner_version,
         # TODO: Once this is also used to process failed jobs, change this
         is_build=True,
+        gitlab_section_timers=gitlab_section_timers,
     )
 
     return job_data
 
 
 def create_date_time_dimensions(
-    gljob: ProjectJob
+    gljob: ProjectJob,
 ) -> tuple[DateDimension, TimeDimension]:
     start_date = DateDimension.ensure_exists(gljob.started_at)
     start_time = TimeDimension.ensure_exists(gljob.started_at)
