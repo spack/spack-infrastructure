@@ -24,6 +24,7 @@ taxonomy:
         - "Error: errors occurred during concretization"
         - "Error: concretization failed for the following reasons"
         - "Spack concretizer internal error."
+        - "failed to concretize .+ for the following reasons"
 
     job_log_missing:
         grep_for:
