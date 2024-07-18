@@ -5,10 +5,12 @@ on:
     branches:
       - main
     paths:
+      - analytics/**
       - images/**
       - .github/workflows/custom_docker_builds.yml
   pull_request:
     paths:
+      - analytics/**
       - images/**
       - .github/workflows/custom_docker_builds.yml
 
