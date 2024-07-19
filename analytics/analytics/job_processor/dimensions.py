@@ -25,6 +25,7 @@ from analytics.job_processor.metadata import (
 )
 
 UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
+BUILD_STAGE_REGEX = r"^stage-\d+$"
 
 
 def get_gitlab_section_timers(job_trace: str) -> dict[str, int]:
@@ -72,6 +73,7 @@ def create_job_data_dimension(
     rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
     runner_version = rvmatch.group(1) if rvmatch is not None else ""
     unnecessary = UNNECESSARY_JOB_REGEX.search(job_trace) is not None
+    is_build = re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"])
 
     job_data = JobDataDimension.objects.create(
         job_id=job_id,
@@ -92,8 +94,7 @@ def create_job_data_dimension(
         unnecessary=unnecessary,
         pod_name=job_info.pod.name,
         gitlab_runner_version=runner_version,
-        # TODO: Once this is also used to process failed jobs, change this
-        is_build=True,
+        is_build=is_build,
         gitlab_section_timers=gitlab_section_timers,
     )
 
