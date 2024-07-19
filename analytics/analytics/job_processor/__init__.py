@@ -43,7 +43,6 @@ def create_job_fact(
     job_trace: str,
 ) -> JobFact:
     job_info = retrieve_job_info(gljob=gljob)
-    job_incluster = isinstance(job_info, ClusterJobInfo)
 
     start_date, start_time = create_date_time_dimensions(gljob=gljob)
     job_data = create_job_data_dimension(
@@ -54,7 +53,7 @@ def create_job_fact(
     )
 
     node = create_node_dimension(job_info.node)
-    runner = create_runner_dimension(gl=gl, gljob=gljob, incluster=job_incluster)
+    runner = create_runner_dimension(gl=gl, gljob=gljob)
     package = create_package_dimension(job_info.package)
     spec = create_package_spec_dimension(job_info.package)
 

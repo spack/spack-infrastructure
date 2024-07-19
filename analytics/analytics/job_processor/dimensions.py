@@ -126,9 +126,7 @@ def create_node_dimension(info: NodeInfo | MissingNodeInfo) -> NodeDimension:
     return node
 
 
-def create_runner_dimension(
-    gl: gitlab.Gitlab, gljob: ProjectJob, incluster: bool
-) -> RunnerDimension:
+def create_runner_dimension(gl: gitlab.Gitlab, gljob: ProjectJob) -> RunnerDimension:
     empty_runner = RunnerDimension.objects.get(name="")
 
     _runner: dict | None = getattr(gljob, "runner", None)
@@ -149,12 +147,17 @@ def create_runner_dimension(
 
         return empty_runner
 
-    # Create and return new runner
+    in_cluster = False
+    host = "unknown"
     runner_name: str = runner.description
-    host = "cluster" if incluster else "unknown"
+
     if runner_name.startswith("uo-"):
         host = "uo"
+    if runner_name.startswith("runner-"):
+        host = "cluster"
+        in_cluster = True
 
+    # Create and return new runner
     return RunnerDimension.objects.create(
         runner_id=runner_id,
         name=runner_name,
@@ -162,7 +165,7 @@ def create_runner_dimension(
         host=host,
         arch=runner.architecture,
         tags=runner.tag_list,
-        in_cluster=incluster,
+        in_cluster=in_cluster,
     )
 
 
