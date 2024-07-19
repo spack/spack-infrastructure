@@ -56,6 +56,10 @@ taxonomy:
       grep_for:
         - 'SpackError: No installed spec matches the hash'
 
+    failed_to_get_specs:
+      grep_for:
+        - 'Error: Unable to generate package index: Failed to get list of specs from'
+
     build_error:
       grep_for:
         - 'error found in build log:'
@@ -256,6 +260,7 @@ taxonomy:
     - 'db_match'
     - 'db_hash'
     - 'no_spec'
+    - 'failed_to_get_specs'
     - 'ref_not_found'
     - 'cmd_not_found'
     - 'module_not_found'
