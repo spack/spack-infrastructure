@@ -191,6 +191,10 @@ class NodeDimension(models.Model):
             ),
         ]
 
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(name="")
+
 
 class RunnerDimension(models.Model):
     runner_id = models.PositiveIntegerField(primary_key=True)
@@ -200,6 +204,10 @@ class RunnerDimension(models.Model):
     arch = models.CharField(max_length=32)
     tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
     in_cluster = models.BooleanField()
+
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(name="")
 
 
 # TODO: Split up variants into it's own dimension
@@ -226,6 +234,10 @@ class PackageSpecDimension(models.Model):
     compiler_version = models.CharField(max_length=32)
     arch = models.CharField(max_length=64)
     variants = models.TextField(default="", blank=True)
+
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(hash="")
 
     class Meta:
         constraints = [
@@ -260,6 +272,10 @@ class PackageDimension(models.Model):
     """A loose representation of a package."""
 
     name = models.CharField(max_length=128, primary_key=True)
+
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(name="")
 
 
 class TimerPhaseDimension(models.Model):

@@ -112,7 +112,7 @@ def create_date_time_dimensions(
 
 def create_node_dimension(info: NodeInfo | MissingNodeInfo) -> NodeDimension:
     if isinstance(info, MissingNodeInfo):
-        return NodeDimension.objects.get(name="")
+        return NodeDimension.get_empty_row()
 
     node, _ = NodeDimension.objects.get_or_create(
         system_uuid=info.system_uuid,
@@ -127,7 +127,7 @@ def create_node_dimension(info: NodeInfo | MissingNodeInfo) -> NodeDimension:
 
 
 def create_runner_dimension(gl: gitlab.Gitlab, gljob: ProjectJob) -> RunnerDimension:
-    empty_runner = RunnerDimension.objects.get(name="")
+    empty_runner = RunnerDimension.get_empty_row()
 
     _runner: dict | None = getattr(gljob, "runner", None)
     if _runner is None:
