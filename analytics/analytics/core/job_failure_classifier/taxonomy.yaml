@@ -26,6 +26,7 @@ taxonomy:
         - "Spack concretizer internal error."
         - "failed to concretize .+ for the following reasons"
         - "variant .+ not found in package"
+        - "trying to set variant .+ in package .+, but the package has no such variant"
 
     job_log_missing:
         grep_for:
