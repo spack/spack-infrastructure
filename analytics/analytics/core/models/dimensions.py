@@ -134,6 +134,16 @@ class TimeDimension(models.Model):
 
 
 class JobDataDimension(models.Model):
+    class JobType(models.TextChoices):
+        BUILD = "build", "Build"
+        GENERATE = "generate", "Generate"
+        NO_SPECS = "no-specs-to-rebuild", "No Specs to Rebuild"
+        REBUILD_INDEX = "rebuild-index", "Rebuild Index"
+        COPY = "copy", "Copy"
+        UNSUPPORTED_COPY = "unsupported-copy", "Unsupported Copy"
+        SIGN_PKGS = "sign-pkgs", "Sign Packages"
+        PROTECTED_PUBLISH = "protected-publish", "Protected Publish"
+
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -165,7 +175,9 @@ class JobDataDimension(models.Model):
 
     pod_name = models.CharField(max_length=128, null=True, blank=True)
     gitlab_runner_version = models.CharField(max_length=16)
-    is_build = models.BooleanField()
+    job_type = models.CharField(
+        max_length=max(len(c) for c, _ in JobType.choices), choices=JobType.choices
+    )
     gitlab_section_timers = models.JSONField(
         default=dict, db_comment="The GitLab CI section timers for this job."
     )  # type: ignore

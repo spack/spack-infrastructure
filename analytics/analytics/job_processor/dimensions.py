@@ -28,6 +28,12 @@ UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match"
 BUILD_STAGE_REGEX = r"^stage-\d+$"
 
 
+class UnrecognizedJobType(Exception):
+    def __init__(self, job_id: int, name: str) -> None:
+        message = f"Unrecognized job type for Job: ({job_id}) {name}"
+        super().__init__(message)
+
+
 def get_gitlab_section_timers(job_trace: str) -> dict[str, int]:
     timers: dict[str, int] = {}
 
@@ -38,6 +44,32 @@ def get_gitlab_section_timers(job_trace: str) -> dict[str, int]:
         timers[start[2]] = int(end[1]) - int(start[1])
 
     return timers
+
+
+def determine_job_type(job_input_data: dict):
+    name = job_input_data["build_name"]
+
+    if "-generate" in name:
+        return JobDataDimension.JobType.GENERATE
+
+    if name == "no-specs-to-rebuild":
+        return JobDataDimension.JobType.NO_SPECS
+    if name == "rebuild-index":
+        return JobDataDimension.JobType.REBUILD_INDEX
+    if name == "copy":
+        return JobDataDimension.JobType.COPY
+    if name == "unsupported-copy":
+        return JobDataDimension.JobType.UNSUPPORTED_COPY
+    if name == "sign-pkgs":
+        return JobDataDimension.JobType.SIGN_PKGS
+    if name == "protected-publish":
+        return JobDataDimension.JobType.PROTECTED_PUBLISH
+
+    if re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"]) is not None:
+        return JobDataDimension.JobType.BUILD
+
+    # Unrecognized type, raise error
+    raise UnrecognizedJobType(job_input_data["build_id"], name)
 
 
 def create_job_data_dimension(
@@ -73,7 +105,6 @@ def create_job_data_dimension(
     rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
     runner_version = rvmatch.group(1) if rvmatch is not None else ""
     unnecessary = UNNECESSARY_JOB_REGEX.search(job_trace) is not None
-    is_build = re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"])
 
     job_data = JobDataDimension.objects.create(
         job_id=job_id,
@@ -94,7 +125,7 @@ def create_job_data_dimension(
         unnecessary=unnecessary,
         pod_name=job_info.pod.name,
         gitlab_runner_version=runner_version,
-        is_build=is_build,
+        job_type=determine_job_type(job_input_data),
         gitlab_section_timers=gitlab_section_timers,
     )
 
