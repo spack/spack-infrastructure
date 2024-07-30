@@ -55,7 +55,7 @@ module "eks" {
 
       # Use same role as Karpenter nodes
       create_iam_role = false
-      iam_role_arn = module.karpenter.node_iam_role_arn
+      iam_role_arn    = module.karpenter.node_iam_role_arn
 
       taints = {
         critical-addons-only = {
