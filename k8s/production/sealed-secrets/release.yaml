@@ -27,6 +27,6 @@ spec:
     nodeSelector:
       spack.io/node-pool: base
     tolerations:
-      - key: SpackBootstrap
+      - key: CriticalAddonsOnly
         operator: Equal
         effect: NoSchedule

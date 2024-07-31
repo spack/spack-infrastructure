@@ -1,26 +1,33 @@
 ---
 # Provisioner for beefy pods
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
   name: beefy
 spec:
-  providerRef:
-    name: default
+  template:
+    metadata:
+      # Only provision nodes for pods specifying the beefy node pool
+      labels:
+        spack.io/node-pool: beefy
+
+    spec:
+      requirements:
+      - key: "node.kubernetes.io/instance-type"
+        operator: In
+        values: ["r5.2xlarge"]
+
+      # Always use on-demand
+      - key: "karpenter.sh/capacity-type"
+        operator: In
+        values: ["on-demand"]
+
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
 
   # Terminate nodes after 5 minutes of idle time
-  ttlSecondsAfterEmpty: 300
-
-  requirements:
-    - key: "node.kubernetes.io/instance-type"
-      operator: In
-      values: ["r5.2xlarge"]
-
-    # Always use on-demand
-    - key: "karpenter.sh/capacity-type"
-      operator: In
-      values: ["on-demand"]
-
-  # Only provision nodes for pods specifying the beefy node pool
-  labels:
-    spack.io/node-pool: beefy
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m

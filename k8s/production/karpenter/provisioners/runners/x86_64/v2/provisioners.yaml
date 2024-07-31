@@ -1,65 +1,71 @@
 ---
 # Provisioner for x86_64_v2 gitlab runners
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
   name: glr-x86-64-v2
 spec:
-  providerRef:
-    name: default
+  template:
+    metadata:
+      # Label all provisioned nodes as x86-64-v2
+      labels:
+        spack.io/pipeline: "true"
+        spack.io/x86_64: "v2" # highest supported x86_64 microarch version
+    spec:
+      requirements:
+      # Only spin up amd64 nodes
+      - key: "kubernetes.io/arch"
+        operator: In
+        values: ["amd64"]
+
+      # Instance Size
+      - key: "karpenter.k8s.aws/instance-size"
+        operator: In
+        values:
+          - "medium"
+          - "large"
+          - "xlarge"
+          - "2xlarge"
+          - "3xlarge"
+          - "4xlarge"
+          - "6xlarge"
+          - "8xlarge"
+          - "10xlarge"
+          - "12xlarge"
+          - "16xlarge"
+
+      # Availability Zones
+      - key: "topology.kubernetes.io/zone"
+        operator: In
+        values:
+          - "us-east-1a"
+          - "us-east-1b"
+          - "us-east-1c"
+          - "us-east-1d"
+
+      # Only use spot instances for runners
+      - key: "karpenter.sh/capacity-type"
+        operator: In
+        values: ["spot"]
+
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
+
+      # Taint these nodes so only pipeline pods will be scheduled on them.
+      taints:
+        - key: spack.io/runner-taint
+          value: "true"
+          effect: NoSchedule
+
 
   # Terminate nodes after 5 minutes of idle time
-  ttlSecondsAfterEmpty: 300
-
-  # Taint these nodes so only pipeline pods will be scheduled on them.
-  taints:
-    - key: spack.io/runner-taint
-      value: "true"
-      effect: NoSchedule
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
 
   # Resource limits for this provisioner only
   limits:
-    resources:
-      cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
-      memory: 15Ti # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
-
-  requirements:
-    # Only spin up amd64 nodes
-    - key: "kubernetes.io/arch"
-      operator: In
-      values: ["amd64"]
-
-    # Instance Size
-    - key: "karpenter.k8s.aws/instance-size"
-      operator: In
-      values:
-        - "medium"
-        - "large"
-        - "xlarge"
-        - "2xlarge"
-        - "3xlarge"
-        - "4xlarge"
-        - "6xlarge"
-        - "8xlarge"
-        - "10xlarge"
-        - "12xlarge"
-        - "16xlarge"
-
-    # Availability Zones
-    - key: "topology.kubernetes.io/zone"
-      operator: In
-      values:
-        - "us-east-1a"
-        - "us-east-1b"
-        - "us-east-1c"
-        - "us-east-1d"
-
-    # Only use spot instances for runners
-    - key: "karpenter.sh/capacity-type"
-      operator: In
-      values: ["spot"]
-
-  # Label all provisioned nodes as x86-64-v2
-  labels:
-    spack.io/pipeline: "true"
-    spack.io/x86_64: "v2" # highest supported x86_64 microarch version
+    cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+    memory: 15Ti # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)

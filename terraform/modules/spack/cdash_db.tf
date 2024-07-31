@@ -1,6 +1,6 @@
 module "cdash_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "5.2.3"
+  version = "6.0.0"
 
   identifier = "cdash-${var.deployment_name}"
 
@@ -10,8 +10,9 @@ module "cdash_db" {
   major_engine_version = "8.0"
   instance_class       = var.cdash_db_instance_class
 
-  username = "admin"
-  port     = "3306"
+  username                    = "admin"
+  port                        = "3306"
+  manage_master_user_password = false
 
   publicly_accessible  = false
   db_subnet_group_name = aws_db_subnet_group.spack.name
@@ -33,7 +34,7 @@ module "cdash_db" {
 
 module "mysql_security_group" {
   source  = "terraform-aws-modules/security-group/aws"
-  version = "4.16.2"
+  version = "5.1.2"
 
   name        = "mysql_sg"
   description = "Security group for RDS MySQL database"
