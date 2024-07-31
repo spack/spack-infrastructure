@@ -24,6 +24,9 @@ taxonomy:
         - "Error: errors occurred during concretization"
         - "Error: concretization failed for the following reasons"
         - "Spack concretizer internal error."
+        - "failed to concretize .+ for the following reasons"
+        - "variant .+ not found in package"
+        - "trying to set variant .+ in package .+, but the package has no such variant"
 
     job_log_missing:
         grep_for:
@@ -53,6 +56,10 @@ taxonomy:
     no_spec:
       grep_for:
         - 'SpackError: No installed spec matches the hash'
+
+    failed_to_get_specs:
+      grep_for:
+        - 'Error: Unable to generate package index: Failed to get list of specs from'
 
     build_error:
       grep_for:
@@ -155,6 +162,7 @@ taxonomy:
         - 'Error: No version for .+ satisfies'
         - 'Error: errors occurred during concretization of the environment'
         - 'cannot load package .+ from the .builtin. repository'
+        - 'must have a default provider in /builds/spack/spack/etc/spack/defaults/packages.yaml'
 
     invalid_pipeline_yaml:
       grep_for:
@@ -254,6 +262,7 @@ taxonomy:
     - 'db_match'
     - 'db_hash'
     - 'no_spec'
+    - 'failed_to_get_specs'
     - 'ref_not_found'
     - 'cmd_not_found'
     - 'module_not_found'
