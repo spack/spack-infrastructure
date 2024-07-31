@@ -391,7 +391,7 @@ class PrometheusClient:
         zone = node_labels["label_topology_kubernetes_io_zone"]
         spot_prices_result = self.query_range(
             f"""
-            karpenter_cloudprovider_instance_type_price_estimate{{
+            karpenter_cloudprovider_instance_type_offering_price_estimate{{
                 capacity_type='{capacity_type}',
                 instance_type='{instance_type}',
                 zone='{zone}'
