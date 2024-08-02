@@ -1,0 +1,40 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: aws-load-balancer-controller
+  namespace: kube-system
+spec:
+  interval: 10m
+  url: https://aws.github.io/eks-charts
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta2
+kind: HelmRelease
+metadata:
+  name: aws-load-balancer-controller
+  namespace: kube-system
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: aws-load-balancer-controller
+      version: 1.8.1  # aws-load-balancer-controller@v2.8.1
+      sourceRef:
+        kind: HelmRepository
+        name: aws-load-balancer-controller
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
+  valuesFrom:
+    # See terraform/modules/spack/eks.tf
+    - kind: ConfigMap
+      name: aws-lb-controller-config
+      valuesKey: values.yaml
+  values:
+    tolerations:
+      # The LB Controller should be scheduled on the initial managed nodegroup pods
+      # so that it is not dependent on Karpenter to be scheduled.
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
