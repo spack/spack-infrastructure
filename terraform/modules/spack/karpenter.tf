@@ -1,24 +1,20 @@
 locals {
-  karpenter_version = "v0.34.6"
+  karpenter_version = "v0.29.2"
 }
 
 module "karpenter" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "20.17.2"
+  version = "19.21.0"
 
   cluster_name = module.eks.cluster_name
 
-  enable_pod_identity             = true
-  create_pod_identity_association = true
-
-  enable_irsa                     = true
   irsa_oidc_provider_arn          = module.eks.oidc_provider_arn
   irsa_namespace_service_accounts = ["karpenter:karpenter"]
 
-  # # Used to attach additional IAM policies to the Karpenter node IAM role
-  node_iam_role_additional_policies = {
-    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  }
+  # Since Karpenter is running on an EKS Managed Node group,
+  # we can re-use the role that was created for the node group
+  create_iam_role = false
+  iam_role_arn    = aws_iam_role.managed_node_group.arn
 }
 
 resource "helm_release" "karpenter" {
@@ -30,29 +26,60 @@ resource "helm_release" "karpenter" {
   chart      = "karpenter"
   version    = local.karpenter_version
 
-  values = [
-    <<-EOT
-    settings:
-      clusterName: ${module.eks.cluster_name}
-      clusterEndpoint: ${module.eks.cluster_endpoint}
-      interruptionQueueName: ${module.karpenter.queue_name}
-    serviceAccount:
-      annotations:
-        eks.amazonaws.com/role-arn: ${module.karpenter.iam_role_arn}
-    controller:
-      resources:
-        requests:
-          cpu: 1
-          memory: 1Gi
-        limits:
-          cpu: 1
-          memory: 1Gi
-    tolerations:
-      - key: CriticalAddonsOnly
-    serviceMonitor:
-      enabled: true
-    EOT
-  ]
+  set {
+    name  = "settings.aws.clusterName"
+    value = module.eks.cluster_name
+  }
+
+  set {
+    name  = "settings.aws.clusterEndpoint"
+    value = module.eks.cluster_endpoint
+  }
+
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = module.karpenter.irsa_arn
+  }
+
+  set {
+    name  = "settings.aws.defaultInstanceProfile"
+    value = module.karpenter.instance_profile_name
+  }
+
+  set {
+    name  = "settings.aws.interruptionQueueName"
+    value = module.karpenter.queue_name
+  }
+
+  # Set resource requests. Use the ones from the helm chart values.yaml:
+  # https://github.com/aws/karpenter/blob/main/charts/karpenter/values.yaml
+  set {
+    name  = "controller.resources.requests.cpu"
+    value = "1"
+  }
+  set {
+    name  = "controller.resources.requests.memory"
+    value = "1Gi"
+  }
+  set {
+    name  = "controller.resources.limits.cpu"
+    value = "1"
+  }
+  set {
+    name  = "controller.resources.limits.memory"
+    value = "1Gi"
+  }
+
+  set {
+    name  = "tolerations[0].key"
+    value = "CriticalAddonsOnly"
+  }
+
+  # Enable service monitor for prometheus metrics
+  set {
+    name  = "serviceMonitor.enabled"
+    value = true
+  }
 
   depends_on = [
     helm_release.karpenter_crds

@@ -5,7 +5,7 @@ locals {
 module "eks" {
   # https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.17.2"
+  version = "19.5.1"
 
   cluster_name    = local.cluster_name
   cluster_version = var.kubernetes_version
@@ -20,6 +20,35 @@ module "eks" {
   cluster_encryption_config = {}
 
   cluster_endpoint_public_access = true
+
+  manage_aws_auth_configmap = true
+  aws_auth_roles = [
+    {
+      # Admin/superuser access to the cluster
+      rolearn  = aws_iam_role.eks_cluster_access.arn
+      username = "admin"
+      groups   = ["system:masters"]
+    },
+    {
+      # Read-only access to the cluster (for users)
+      rolearn  = aws_iam_role.readonly_clusterrole.arn,
+      username = "readonly-access",
+      # See the ClusterRole/ClusterRoleBinding at the bottom of
+      # this file for the permissions given to this group
+      groups = ["readonly-access"],
+    },
+    {
+      # Read-only access to the cluster (for github actions)
+      rolearn  = aws_iam_role.github_actions.arn,
+      username = "github-actions",
+      # See the ClusterRole/ClusterRoleBinding at the bottom of
+      # this file for the permissions given to this group
+      groups = ["readonly-access"],
+    },
+  ]
+  # This is required for DNS resolution to work on Windows nodes.
+  # See info about aws-auth configmap here - https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support
+  aws_auth_node_iam_role_arns_windows = [aws_iam_role.managed_node_group.arn]
 
   node_security_group_additional_rules = {
     ingress_self_all = {
@@ -53,17 +82,58 @@ module "eks" {
       max_size     = 3
       desired_size = 2
 
-      # Use same role as Karpenter nodes
       create_iam_role = false
-      iam_role_arn    = module.karpenter.node_iam_role_arn
+      iam_role_arn    = aws_iam_role.managed_node_group.arn
 
       taints = {
-        critical-addons-only = {
+        spack-bootstrap = {
           key    = "CriticalAddonsOnly"
           effect = "NO_SCHEDULE"
         }
       }
     }
+  #   windows = {
+  #     instance_types        = ["m5.2xlarge"]
+  #     create_security_group = false
+
+  #     # Node pool size
+  #     min_size     = 3
+  #     max_size     = 3
+  #     desired_size = 3
+
+  #     create_iam_role = false
+  #     iam_role_arn    = aws_iam_role.managed_node_group.arn
+
+  #     # Prevent anything without a windows taint toleration from being scheduled on this node
+  #     taints = {
+  #       windows = {
+  #         key    = "windows"
+  #         value  = "true"
+  #         effect = "NO_SCHEDULE"
+  #       }
+  #       runner = {
+  #         key    = "spack.io/runner-taint"
+  #         value  = "true"
+  #         effect = "NO_SCHEDULE"
+  #       }
+  #     }
+
+  #     # EC2 settings
+  #     capacity_type = "ON_DEMAND"
+  #     block_device_mappings = {
+  #       sda1 = {
+  #         device_name = "/dev/sda1"
+  #         ebs = {
+  #           volume_size           = 200
+  #           volume_type           = "gp3"
+  #           delete_on_termination = true
+  #         }
+  #       }
+  #     }
+
+  #     # Windows specific settings
+  #     ami_type = "WINDOWS_FULL_2022_x86_64"
+  #   }
   }
 
   cluster_addons = {
@@ -72,8 +142,62 @@ module "eks" {
       service_account_role_arn = aws_iam_role.ebs_efs_csi_driver.arn
     }
   }
+}
 
-  authentication_mode = "API_AND_CONFIG_MAP"
+resource "aws_iam_role" "managed_node_group" {
+  name_prefix = "initial-eks-node-group-"
+  description = "${var.deployment_name} EKS managed node group IAM role"
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "EKSNodeAssumeRole",
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : "ec2.amazonaws.com"
+        },
+        "Action" : "sts:AssumeRole"
+      }
+    ]
+  })
+
+  inline_policy {
+    name = "session-manager-temp"
+    policy = jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : [
+            "ssm:UpdateInstanceInformation",
+            "ssmmessages:CreateControlChannel",
+            "ssmmessages:CreateDataChannel",
+            "ssmmessages:OpenControlChannel",
+            "ssmmessages:OpenDataChannel"
+          ],
+          "Resource" : "*"
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : [
+            "s3:GetEncryptionConfiguration"
+          ],
+          "Resource" : "*"
+        }
+      ]
+    })
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "managed_node_group" {
+  for_each = toset([
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+  ])
+
+  role       = aws_iam_role.managed_node_group.name
+  policy_arn = each.value
 }
 
 resource "aws_iam_role" "eks_cluster_access" {
@@ -326,42 +450,4 @@ resource "kubectl_manifest" "readonly_clusterrolebinding" {
       name: ${kubectl_manifest.readonly_clusterrole.name}
       apiGroup: rbac.authorization.k8s.io
     YAML
-}
-
-module "eks_aws_auth" {
-  source  = "terraform-aws-modules/eks/aws//modules/aws-auth"
-  version = "20.17.2"
-
-  manage_aws_auth_configmap = true
-  aws_auth_roles = [
-    {
-      # Admin/superuser access to the cluster
-      rolearn  = aws_iam_role.eks_cluster_access.arn
-      username = "admin"
-      groups   = ["system:masters"]
-    },
-    {
-      # Read-only access to the cluster (for users)
-      rolearn  = aws_iam_role.readonly_clusterrole.arn,
-      username = "readonly-access",
-      # See the ClusterRole/ClusterRoleBinding at the bottom of
-      # this file for the permissions given to this group
-      groups = ["readonly-access"],
-    },
-    {
-      # Read-only access to the cluster (for github actions)
-      rolearn  = aws_iam_role.github_actions.arn,
-      username = "github-actions",
-      # See the ClusterRole/ClusterRoleBinding at the bottom of
-      # this file for the permissions given to this group
-      groups = ["readonly-access"],
-    },
-    # This is required for DNS resolution to work on Windows nodes.
-    # See info about aws-auth configmap here - https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html#enable-windows-support
-    {
-      rolearn  = module.eks.eks_managed_node_groups["initial"].iam_role_arn,
-      username = "system:node:{{EC2PrivateDNSName}}",
-      groups   = ["system:bootstrappers", "system:nodes", "eks:kube-proxy-windows"]
-    }
-  ]
 }
