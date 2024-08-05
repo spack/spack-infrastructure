@@ -131,3 +131,17 @@ resource "aws_iam_role_policy_attachment" "legacy_gitlab_runner_protected_binary
   role       = aws_iam_role.gitlab_runner["protected_binary_mirror"].name
   policy_arn = each.value
 }
+
+# Misc CI/CD variables
+resource "gitlab_project_variable" "retries" {
+  for_each = toset([
+    # Enable retries for artifact downloads, source fetching, and cache restoration in CI jobs
+    "ARTIFACT_DOWNLOAD_ATTEMPTS",
+    "GET_SOURCES_ATTEMPTS",
+    "RESTORE_CACHE_ATTEMPTS",
+  ])
+
+  project = data.gitlab_project.spack.id
+  key     = each.value
+  value   = "3"
+}
