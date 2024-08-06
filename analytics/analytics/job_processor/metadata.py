@@ -1,6 +1,6 @@
 import functools
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
 
 from dateutil.parser import isoparse
@@ -11,7 +11,7 @@ from analytics.job_processor.artifacts import get_job_artifacts_data
 from analytics.job_processor.prometheus import PrometheusClient
 
 
-@dataclass
+@dataclass(frozen=True)
 class PackageInfo:
     name: str
     hash: str
@@ -22,14 +22,14 @@ class PackageInfo:
     variants: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class JobMiscInfo:
     job_size: str
     stack: str
     build_jobs: int | None
 
 
-@dataclass
+@dataclass(frozen=True)
 class PodInfo:
     name: str
     node_occupancy: float
@@ -57,7 +57,7 @@ class MissingPodInfo:
     memory_limit = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class NodeInfo:
     name: str
     system_uuid: uuid.UUID
@@ -81,32 +81,16 @@ class MissingNodeInfo:
     spot_price = None
 
 
-@dataclass
-class ClusterJobInfo:
-    """Info about a job that ran in the cluster."""
-
-    package: PackageInfo
-    misc: JobMiscInfo
-    pod: PodInfo
-    node: NodeInfo
-
-
-@dataclass
-class NonClusterJobInfo:
-    """This is a subset of information from JobInfo, where pod and node data are not present."""
-
-    package: PackageInfo
-    misc: JobMiscInfo
-    pod: MissingPodInfo = field(default_factory=MissingPodInfo)
-    node: MissingNodeInfo = field(default_factory=MissingNodeInfo)
-
-
-# Type alias to define the union of these two types
-JobInfo = ClusterJobInfo | NonClusterJobInfo
+@dataclass(frozen=True)
+class JobInfo:
+    package: PackageInfo | None = None
+    misc: JobMiscInfo | None = None
+    pod: PodInfo | None = None
+    node: NodeInfo | None = None
 
 
 @functools.lru_cache(maxsize=128, typed=True)
-def retrieve_job_info(gljob: ProjectJob) -> JobInfo:
+def retrieve_job_info(gljob: ProjectJob, is_build: bool) -> JobInfo:
     """Retrieve job info for a job.
 
     This is cached as it may be invoked by different functions to retrieve the same underlying data.
@@ -114,8 +98,11 @@ def retrieve_job_info(gljob: ProjectJob) -> JobInfo:
     client = PrometheusClient(settings.PROMETHEUS_URL)
     pod_name = client.get_pod_name_from_gitlab_job(gljob=gljob)
     if pod_name is None:
+        if not is_build:
+            return JobInfo()
+
         artifacts = get_job_artifacts_data(gljob)
-        return NonClusterJobInfo(
+        return JobInfo(
             package=PackageInfo(
                 name=artifacts.package_name,
                 hash=artifacts.package_hash,
@@ -135,7 +122,7 @@ def retrieve_job_info(gljob: ProjectJob) -> JobInfo:
     # Retrieve the remaining info from prometheus
     start = isoparse(gljob.started_at)
     end = isoparse(gljob.started_at) + timedelta(seconds=gljob.duration)
-    pod_labels = client.get_pod_labels(pod=pod_name, start=start, end=end)
+
     requests_and_limits = client.get_pod_resource_requests_and_limits(
         pod=pod_name, start=start, end=end
     )
@@ -144,7 +131,35 @@ def retrieve_job_info(gljob: ProjectJob) -> JobInfo:
         pod=pod_name, node=node_data.name, start=start, end=end
     )
 
-    return ClusterJobInfo(
+    node_info = NodeInfo(
+        name=node_data.name,
+        system_uuid=node_data.system_uuid,
+        cpu=node_data.cpu,
+        memory=node_data.memory,
+        capacity_type=node_data.capacity_type,
+        instance_type=node_data.instance_type,
+        spot_price=node_data.spot_price,
+    )
+    pod_info = PodInfo(
+        name=pod_name,
+        node_occupancy=resource_usage.node_occupancy,
+        cpu_usage_seconds=resource_usage.cpu_usage_seconds,
+        max_memory=resource_usage.max_memory,
+        avg_memory=resource_usage.avg_memory,
+        cpu_request=requests_and_limits.cpu_request,
+        cpu_limit=requests_and_limits.cpu_limit,
+        memory_request=requests_and_limits.memory_request,
+        memory_limit=requests_and_limits.memory_limit,
+    )
+
+    # Return early if not build, since the pod labels will not be found
+    if not is_build:
+        return JobInfo(pod=pod_info, node=node_info)
+
+    pod_labels = client.get_pod_labels(pod=pod_name, start=start, end=end)
+    return JobInfo(
+        pod=pod_info,
+        node=node_info,
         package=PackageInfo(
             name=pod_labels.package_name,
             hash=pod_labels.package_hash,
@@ -158,25 +173,5 @@ def retrieve_job_info(gljob: ProjectJob) -> JobInfo:
             job_size=pod_labels.job_size,
             stack=pod_labels.stack,
             build_jobs=pod_labels.build_jobs,
-        ),
-        pod=PodInfo(
-            name=pod_name,
-            node_occupancy=resource_usage.node_occupancy,
-            cpu_usage_seconds=resource_usage.cpu_usage_seconds,
-            max_memory=resource_usage.max_memory,
-            avg_memory=resource_usage.avg_memory,
-            cpu_request=requests_and_limits.cpu_request,
-            cpu_limit=requests_and_limits.cpu_limit,
-            memory_request=requests_and_limits.memory_request,
-            memory_limit=requests_and_limits.memory_limit,
-        ),
-        node=NodeInfo(
-            name=node_data.name,
-            system_uuid=node_data.system_uuid,
-            cpu=node_data.cpu,
-            memory=node_data.memory,
-            capacity_type=node_data.capacity_type,
-            instance_type=node_data.instance_type,
-            spot_price=node_data.spot_price,
         ),
     )

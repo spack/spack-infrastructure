@@ -17,12 +17,7 @@ from analytics.core.models.dimensions import (
     RunnerDimension,
     TimeDimension,
 )
-from analytics.job_processor.metadata import (
-    JobInfo,
-    MissingNodeInfo,
-    NodeInfo,
-    PackageInfo,
-)
+from analytics.job_processor.metadata import JobMiscInfo, NodeInfo, PackageInfo, PodInfo
 
 UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
 BUILD_STAGE_REGEX = r"^stage-\d+$"
@@ -74,7 +69,8 @@ def determine_job_type(job_input_data: dict):
 
 def create_job_data_dimension(
     job_input_data: dict,
-    job_info: JobInfo,
+    misc_info: JobMiscInfo | None,
+    pod_info: PodInfo | None,
     gljob: ProjectJob,
     job_trace: str,
 ) -> JobDataDimension:
@@ -113,8 +109,8 @@ def create_job_data_dimension(
         name=job_name,
         ref=gljob.ref,
         tags=gljob.tag_list,
-        job_size=job_info.misc.job_size,
-        stack=job_info.misc.stack,
+        job_size=misc_info.job_size if misc_info else None,
+        stack=misc_info.stack if misc_info else None,
         # Retry info
         is_retry=retry_info.is_retry,
         is_manual_retry=retry_info.is_manual_retry,
@@ -123,7 +119,7 @@ def create_job_data_dimension(
         status=job_status,
         error_taxonomy=error_taxonomy,
         unnecessary=unnecessary,
-        pod_name=job_info.pod.name,
+        pod_name=pod_info.name if pod_info else None,
         gitlab_runner_version=runner_version,
         job_type=determine_job_type(job_input_data),
         gitlab_section_timers=gitlab_section_timers,
@@ -141,8 +137,8 @@ def create_date_time_dimensions(
     return (start_date, start_time)
 
 
-def create_node_dimension(info: NodeInfo | MissingNodeInfo) -> NodeDimension:
-    if isinstance(info, MissingNodeInfo):
+def create_node_dimension(info: NodeInfo | None) -> NodeDimension:
+    if info is None:
         return NodeDimension.get_empty_row()
 
     node, _ = NodeDimension.objects.get_or_create(
@@ -200,12 +196,18 @@ def create_runner_dimension(gl: gitlab.Gitlab, gljob: ProjectJob) -> RunnerDimen
     )
 
 
-def create_package_dimension(info: PackageInfo) -> PackageDimension:
+def create_package_dimension(info: PackageInfo | None) -> PackageDimension:
+    if info is None:
+        return PackageDimension.get_empty_row()
+
     package, _ = PackageDimension.objects.get_or_create(name=info.name)
     return package
 
 
-def create_package_spec_dimension(info: PackageInfo) -> PackageSpecDimension:
+def create_package_spec_dimension(info: PackageInfo | None) -> PackageSpecDimension:
+    if info is None:
+        return PackageSpecDimension.get_empty_row()
+
     package, _ = PackageSpecDimension.objects.get_or_create(
         hash=info.hash,
         name=info.name,
