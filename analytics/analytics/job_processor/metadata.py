@@ -7,7 +7,11 @@ from dateutil.parser import isoparse
 from django.conf import settings
 from gitlab.v4.objects import ProjectJob
 
-from analytics.job_processor.artifacts import get_job_artifacts_data
+from analytics.job_processor.artifacts import (
+    JobArtifactFileNotFound,
+    JobArtifactVariablesNotFound,
+    get_job_artifacts_data,
+)
 from analytics.job_processor.prometheus import PrometheusClient
 
 
@@ -101,7 +105,15 @@ def retrieve_job_info(gljob: ProjectJob, is_build: bool) -> JobInfo:
         if not is_build:
             return JobInfo()
 
-        artifacts = get_job_artifacts_data(gljob)
+        # If the build is failed, this is not unexpected. Otherwise, raise the error
+        try:
+            artifacts = get_job_artifacts_data(gljob)
+        except (JobArtifactFileNotFound, JobArtifactVariablesNotFound):
+            if gljob.status == "failed":
+                return JobInfo()
+
+            raise
+
         return JobInfo(
             package=PackageInfo(
                 name=artifacts.package_name,
