@@ -5,14 +5,13 @@ from datetime import timedelta
 import gitlab
 import gitlab.exceptions
 from celery import shared_task
-from django.conf import settings
 from django.db import transaction
 from gitlab.v4.objects import ProjectJob
 from requests.exceptions import ReadTimeout
 
 from analytics import setup_gitlab_job_sentry_tags
+from analytics.core.models.dimensions import JobDataDimension
 from analytics.core.models.facts import JobFact
-from analytics.job_processor.artifacts import JobArtifactFileNotFound
 from analytics.job_processor.build_timings import create_build_timing_facts
 from analytics.job_processor.dimensions import (
     BUILD_STAGE_REGEX,
@@ -28,6 +27,11 @@ from analytics.job_processor.metadata import (
     MissingNodeInfo,
     MissingPodInfo,
     retrieve_job_info,
+)
+from analytics.job_processor.utils import (
+    get_gitlab_handle,
+    get_gitlab_job,
+    get_gitlab_project,
 )
 
 
@@ -126,25 +130,12 @@ def process_job(job_input_data_json: str):
     setup_gitlab_job_sentry_tags(job_input_data)
 
     # Retrieve project and job from gitlab API
-    # TODO: Seems to be very slow and sometimes times out. Look into using shared session?
-    gl = gitlab.Gitlab(
-        settings.GITLAB_ENDPOINT,
-        settings.GITLAB_TOKEN,
-        retry_transient_errors=True,
-        timeout=15,
-    )
-    gl_project = gl.projects.get(job_input_data["project_id"])
-    gl_job = gl_project.jobs.get(job_input_data["build_id"])
+    gl = get_gitlab_handle()
+    gl_project = get_gitlab_project(job_input_data["project_id"])
+    gl_job = get_gitlab_job(gl_project, job_input_data["build_id"])
     job_trace: str = gl_job.trace().decode()  # type: ignore
 
     with transaction.atomic():
-        try:
-            job = create_job_fact(gl, gl_job, job_input_data, job_trace)
+        job = create_job_fact(gl, gl_job, job_input_data, job_trace)
+        if job.job.job_type == JobDataDimension.JobType.BUILD:
             create_build_timing_facts(job_fact=job, gljob=gl_job)
-        except JobArtifactFileNotFound:
-            # If the job has a status of "failed", some artifacts might
-            # not be present, so don't error if that's the case
-            if job_input_data["build_status"] == "failed":
-                return
-
-            raise
