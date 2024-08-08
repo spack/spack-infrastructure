@@ -36,6 +36,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
+        "cachetools",
         "celery[redis]",
         "dj-database-url",
         "dj-email-url",
@@ -60,6 +61,7 @@ setup(
     ],
     extras_require={
         "dev": [
+            "types-cachetools",
             "django-debug-toolbar",
             "ipython",
             "tox",

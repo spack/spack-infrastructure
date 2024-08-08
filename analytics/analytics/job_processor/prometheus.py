@@ -30,6 +30,12 @@ class UnexpectedPrometheusResult(Exception):
         self.query = query
 
 
+class PodLabelNotFound(Exception):
+    def __init__(self, pod: str, label: str) -> None:
+        message = f"Label {label} not found on pod {pod}"
+        super().__init__(message)
+
+
 @dataclass
 class PodCpuRequestsLimits:
     cpu_request: float | None
@@ -319,17 +325,25 @@ class PrometheusClient:
             f"kube_pod_labels{{pod='{pod}'}}", start=start, end=end, single_result=True
         )["metric"]
 
-        package_hash = annotations["annotation_metrics_spack_job_spec_hash"]
-        package_name = annotations["annotation_metrics_spack_job_spec_pkg_name"]
-        package_version = annotations["annotation_metrics_spack_job_spec_pkg_version"]
-        compiler_name = annotations["annotation_metrics_spack_job_spec_compiler_name"]
-        compiler_version = annotations[
-            "annotation_metrics_spack_job_spec_compiler_version"
-        ]
-        arch = annotations["annotation_metrics_spack_job_spec_arch"]
-        package_variants = annotations["annotation_metrics_spack_job_spec_variants"]
-        job_size = labels["label_gitlab_ci_job_size"]
-        stack = labels["label_metrics_spack_ci_stack_name"]
+        try:
+            package_hash = annotations["annotation_metrics_spack_job_spec_hash"]
+            package_name = annotations["annotation_metrics_spack_job_spec_pkg_name"]
+            package_version = annotations[
+                "annotation_metrics_spack_job_spec_pkg_version"
+            ]
+            compiler_name = annotations[
+                "annotation_metrics_spack_job_spec_compiler_name"
+            ]
+            compiler_version = annotations[
+                "annotation_metrics_spack_job_spec_compiler_version"
+            ]
+            arch = annotations["annotation_metrics_spack_job_spec_arch"]
+            package_variants = annotations["annotation_metrics_spack_job_spec_variants"]
+            job_size = labels["label_gitlab_ci_job_size"]
+            stack = labels["label_metrics_spack_ci_stack_name"]
+        except KeyError as e:
+            label = e.args[0]
+            raise PodLabelNotFound(pod=pod, label=label)
 
         # Build jobs isn't always specified
         build_jobs = annotations.get("annotation_metrics_spack_job_build_jobs")

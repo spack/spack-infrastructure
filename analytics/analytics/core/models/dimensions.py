@@ -134,6 +134,16 @@ class TimeDimension(models.Model):
 
 
 class JobDataDimension(models.Model):
+    class JobType(models.TextChoices):
+        BUILD = "build", "Build"
+        GENERATE = "generate", "Generate"
+        NO_SPECS = "no-specs-to-rebuild", "No Specs to Rebuild"
+        REBUILD_INDEX = "rebuild-index", "Rebuild Index"
+        COPY = "copy", "Copy"
+        UNSUPPORTED_COPY = "unsupported-copy", "Unsupported Copy"
+        SIGN_PKGS = "sign-pkgs", "Sign Packages"
+        PROTECTED_PUBLISH = "protected-publish", "Protected Publish"
+
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -165,7 +175,12 @@ class JobDataDimension(models.Model):
 
     pod_name = models.CharField(max_length=128, null=True, blank=True)
     gitlab_runner_version = models.CharField(max_length=16)
-    is_build = models.BooleanField()
+    job_type = models.CharField(
+        max_length=max(len(c) for c, _ in JobType.choices), choices=JobType.choices
+    )
+    gitlab_section_timers = models.JSONField(
+        default=dict, db_comment="The GitLab CI section timers for this job."
+    )  # type: ignore
 
 
 class NodeCapacityType(models.TextChoices):
@@ -188,6 +203,10 @@ class NodeDimension(models.Model):
             ),
         ]
 
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(name="")
+
 
 class RunnerDimension(models.Model):
     runner_id = models.PositiveIntegerField(primary_key=True)
@@ -197,6 +216,10 @@ class RunnerDimension(models.Model):
     arch = models.CharField(max_length=32)
     tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
     in_cluster = models.BooleanField()
+
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(name="")
 
 
 # TODO: Split up variants into it's own dimension
@@ -223,6 +246,10 @@ class PackageSpecDimension(models.Model):
     compiler_version = models.CharField(max_length=32)
     arch = models.CharField(max_length=64)
     variants = models.TextField(default="", blank=True)
+
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(hash="")
 
     class Meta:
         constraints = [
@@ -257,6 +284,10 @@ class PackageDimension(models.Model):
     """A loose representation of a package."""
 
     name = models.CharField(max_length=128, primary_key=True)
+
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(name="")
 
 
 class TimerPhaseDimension(models.Model):
