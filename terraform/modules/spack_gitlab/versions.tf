@@ -1,0 +1,35 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+    }
+    kubectl = {
+      source  = "alekc/kubectl"
+    }
+    gitlab = {
+      source  = "gitlabhq/gitlab"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.region
+}
+
+
+provider "kubectl" {
+  host                   = data.aws_eks_cluster.spack.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.spack.certificate_authority[0].data)
+
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    # This requires the awscli to be installed locally where Terraform is executed
+    args = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.spack.name]
+  }
+}
+
+provider "gitlab" {
+  base_url = local.gitlab_url
+  token    = var.gitlab_token
+}

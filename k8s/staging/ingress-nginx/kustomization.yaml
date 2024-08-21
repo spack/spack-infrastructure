@@ -13,6 +13,8 @@ patches:
         path: /spec/values/controller/autoscaling/maxReplicas
         value: 1
       - op: replace
+        path: /spec/values/controller/autoscaling/minReplicas
+        value: 1
+      - op: replace
         path: /spec/values/defaultBackend/replicaCount
         value: 1
-
