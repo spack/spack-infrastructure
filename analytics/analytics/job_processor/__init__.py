@@ -1,18 +1,20 @@
 import json
+import re
 from datetime import timedelta
 
 import gitlab
 import gitlab.exceptions
 from celery import shared_task
-from django.conf import settings
 from django.db import transaction
 from gitlab.v4.objects import ProjectJob
 from requests.exceptions import ReadTimeout
 
 from analytics import setup_gitlab_job_sentry_tags
+from analytics.core.models.dimensions import JobDataDimension
 from analytics.core.models.facts import JobFact
 from analytics.job_processor.build_timings import create_build_timing_facts
 from analytics.job_processor.dimensions import (
+    BUILD_STAGE_REGEX,
     create_date_time_dimensions,
     create_job_data_dimension,
     create_node_dimension,
@@ -21,15 +23,20 @@ from analytics.job_processor.dimensions import (
     create_runner_dimension,
 )
 from analytics.job_processor.metadata import (
-    ClusterJobInfo,
     JobInfo,
-    NonClusterJobInfo,
+    MissingNodeInfo,
+    MissingPodInfo,
     retrieve_job_info,
+)
+from analytics.job_processor.utils import (
+    get_gitlab_handle,
+    get_gitlab_job,
+    get_gitlab_project,
 )
 
 
 def calculate_job_cost(info: JobInfo, duration: float) -> float | None:
-    if isinstance(info, NonClusterJobInfo):
+    if info.node is None or info.pod is None:
         return None
 
     return duration * info.pod.node_occupancy * (float(info.node.spot_price) / 3600)
@@ -41,28 +48,27 @@ def create_job_fact(
     job_input_data: dict,
     job_trace: str,
 ) -> JobFact:
-    job_info = retrieve_job_info(gljob=gljob)
-    job_incluster = isinstance(job_info, ClusterJobInfo)
+    is_build = re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"]) is not None
+    job_info = retrieve_job_info(gljob=gljob, is_build=is_build)
 
     start_date, start_time = create_date_time_dimensions(gljob=gljob)
     job_data = create_job_data_dimension(
         job_input_data=job_input_data,
-        job_info=job_info,
+        pod_info=job_info.pod,
+        misc_info=job_info.misc,
         gljob=gljob,
         job_trace=job_trace,
     )
 
     node = create_node_dimension(job_info.node)
-    runner = create_runner_dimension(gl=gl, gljob=gljob, incluster=job_incluster)
+    runner = create_runner_dimension(gl=gl, gljob=gljob)
     package = create_package_dimension(job_info.package)
     spec = create_package_spec_dimension(job_info.package)
 
     # Now that we have all the dimensions, we need to calculate any derived fields
     job_cost = calculate_job_cost(info=job_info, duration=gljob.duration)
     node_price_per_second = (
-        job_info.node.spot_price / 3600
-        if isinstance(job_info, ClusterJobInfo)
-        else None
+        job_info.node.spot_price / 3600 if job_info.node is not None else None
     )
 
     # Check that this fact hasn't already been created. If it has, return that value
@@ -79,6 +85,9 @@ def create_job_fact(
     if existing_job_fact is not None:
         return existing_job_fact
 
+    pod_info = job_info.pod or MissingPodInfo()
+    node_info = job_info.node or MissingNodeInfo()
+
     # Hasn't been created yet, create and return it
     return JobFact.objects.create(
         # Foreign Keys
@@ -94,19 +103,19 @@ def create_job_fact(
         duration_seconds=gljob.duration,
         # Will be null on non-cluster jobs
         cost=job_cost,
-        pod_node_occupancy=job_info.pod.node_occupancy,
-        pod_cpu_usage_seconds=job_info.pod.cpu_usage_seconds,
-        pod_max_mem=job_info.pod.max_memory,
-        pod_avg_mem=job_info.pod.avg_memory,
+        pod_node_occupancy=pod_info.node_occupancy,
+        pod_cpu_usage_seconds=pod_info.cpu_usage_seconds,
+        pod_max_mem=pod_info.max_memory,
+        pod_avg_mem=pod_info.avg_memory,
         node_price_per_second=node_price_per_second,
-        node_cpu=job_info.node.cpu,
-        node_memory=job_info.node.memory,
+        node_cpu=node_info.cpu,
+        node_memory=node_info.memory,
         # Can be null on any job
-        build_jobs=job_info.misc.build_jobs,
-        pod_cpu_request=job_info.pod.cpu_request,
-        pod_cpu_limit=job_info.pod.cpu_limit,
-        pod_memory_request=job_info.pod.memory_request,
-        pod_memory_limit=job_info.pod.memory_limit,
+        build_jobs=job_info.misc.build_jobs if job_info.misc else None,
+        pod_cpu_request=pod_info.cpu_request,
+        pod_cpu_limit=pod_info.cpu_limit,
+        pod_memory_request=pod_info.memory_request,
+        pod_memory_limit=pod_info.memory_limit,
     )
 
 
@@ -121,18 +130,12 @@ def process_job(job_input_data_json: str):
     setup_gitlab_job_sentry_tags(job_input_data)
 
     # Retrieve project and job from gitlab API
-    # TODO: Seems to be very slow and sometimes times out. Look into using shared session?
-    gl = gitlab.Gitlab(
-        settings.GITLAB_ENDPOINT,
-        settings.GITLAB_TOKEN,
-        retry_transient_errors=True,
-        timeout=15,
-    )
-    gl_project = gl.projects.get(job_input_data["project_id"])
-    gl_job = gl_project.jobs.get(job_input_data["build_id"])
+    gl = get_gitlab_handle()
+    gl_project = get_gitlab_project(job_input_data["project_id"])
+    gl_job = get_gitlab_job(gl_project, job_input_data["build_id"])
     job_trace: str = gl_job.trace().decode()  # type: ignore
 
-    # Use a transaction, to account for transient failures
     with transaction.atomic():
         job = create_job_fact(gl, gl_job, job_input_data, job_trace)
-        create_build_timing_facts(job_fact=job, gljob=gl_job)
+        if job.job.job_type == JobDataDimension.JobType.BUILD:
+            create_build_timing_facts(job_fact=job, gljob=gl_job)

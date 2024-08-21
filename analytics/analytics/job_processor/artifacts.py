@@ -13,6 +13,18 @@ class JobArtifactFileNotFound(Exception):
         super().__init__(message)
 
 
+class JobArtifactVariablesNotFound(Exception):
+    def __init__(self, job: ProjectJob) -> None:
+        message = f"Entry for job {job.id} not found in artifacts file: {job.name}"
+        super().__init__(message)
+
+
+class JobArtifactsMissingVariable(Exception):
+    def __init__(self, job: ProjectJob, variable: str) -> None:
+        message = f"The following variable was missing in the artifacts for job {job.id}: {variable}"
+        super().__init__(message)
+
+
 @contextmanager
 def get_job_artifacts_file(job: ProjectJob, filename: str):
     """Yields a file IO, raises KeyError if the filename is not present"""
@@ -54,17 +66,20 @@ def get_job_artifacts_data(gljob: ProjectJob) -> JobArtifactsData:
     pipeline_vars = raw_pipeline.get("variables", {})
     job_vars = raw_pipeline.get(gljob.name, {}).get("variables", {})
     if not job_vars:
-        raise Exception(f"Empty job variables for job {gljob.id}")
+        raise JobArtifactVariablesNotFound(job=gljob)
 
-    return JobArtifactsData(
-        package_hash=job_vars["SPACK_JOB_SPEC_DAG_HASH"],
-        package_name=job_vars["SPACK_JOB_SPEC_PKG_NAME"],
-        package_version=job_vars["SPACK_JOB_SPEC_PKG_VERSION"],
-        compiler_name=job_vars["SPACK_JOB_SPEC_COMPILER_NAME"],
-        compiler_version=job_vars["SPACK_JOB_SPEC_COMPILER_VERSION"],
-        arch=job_vars["SPACK_JOB_SPEC_ARCH"],
-        package_variants=job_vars["SPACK_JOB_SPEC_VARIANTS"],
-        job_size=job_vars["CI_JOB_SIZE"],
-        stack=pipeline_vars["SPACK_CI_STACK_NAME"],
-        build_jobs=job_vars.get("SPACK_BUILD_JOBS"),
-    )
+    try:
+        return JobArtifactsData(
+            package_hash=job_vars["SPACK_JOB_SPEC_DAG_HASH"],
+            package_name=job_vars["SPACK_JOB_SPEC_PKG_NAME"],
+            package_version=job_vars["SPACK_JOB_SPEC_PKG_VERSION"],
+            compiler_name=job_vars["SPACK_JOB_SPEC_COMPILER_NAME"],
+            compiler_version=job_vars["SPACK_JOB_SPEC_COMPILER_VERSION"],
+            arch=job_vars["SPACK_JOB_SPEC_ARCH"],
+            package_variants=job_vars["SPACK_JOB_SPEC_VARIANTS"],
+            job_size=job_vars["CI_JOB_SIZE"],
+            stack=pipeline_vars["SPACK_CI_STACK_NAME"],
+            build_jobs=job_vars.get("SPACK_BUILD_JOBS"),
+        )
+    except KeyError as e:
+        raise JobArtifactsMissingVariable(job=gljob, variable=e.args[0])
