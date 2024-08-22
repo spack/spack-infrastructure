@@ -4,10 +4,7 @@ from datetime import datetime, timezone
 from github import Github, InputGitAuthor
 import json
 import os
-import re
 import sentry_sdk
-import subprocess
-import tempfile
 import urllib.request
 
 sentry_sdk.init(
@@ -38,25 +35,22 @@ if __name__ == "__main__":
     sha = pipelines[0]["sha"]
 
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    tag_name = f"develop-{date_str}"
-    tag_msg = f"Snapshot release {date_str}"
+    ref_name = f"develop-{date_str}"
 
     # Use the GitHub API to create a tag for this commit of develop.
     github_token = os.environ.get('GITHUB_TOKEN')
     py_github = Github(github_token)
     py_gh_repo = py_github.get_repo("spack/spack", lazy=True)
-    spackbot_author = InputGitAuthor("spackbot", "noreply@spack.io")
-    print(f"Pushing tag {tag_name} for commit {sha}")
+    print(f"Pushing ref {ref_name} for commit {sha}")
 
-    tag = py_gh_repo.create_git_tag(
-        tag=tag_name,
-        message=tag_msg,
-        object=sha,
-        type="commit",
-        tagger=spackbot_author)
-
+    # Create a ref for this sha using the date stamp
     py_gh_repo.create_git_ref(
-        ref=f"refs/tags/{tag_name}",
-        sha=tag.sha)
+        ref=f"refs/snapshots/{ref_name}",
+        sha=sha)
+
+    # Create a ref for this sha using the `develop-latest` tag for the GH-GL sync script
+    py_gh_repo.create_git_ref(
+        ref="refs/snapshots/develop-latest",
+        sha=sha)
 
     print("Push done!")

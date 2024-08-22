@@ -327,6 +327,21 @@ class SpackCIBridge(object):
             print("    {0}".format(tag))
         return tags
 
+    def list_github_hidden_refs(self, hidden_refs):
+        if not hidden_refs:
+            return []
+
+        ref_list = []
+        for ref in hidden_refs:
+            ref_list.extend(self.py_gh_repo.get_matching_refs(ref))
+            print("Rate limit after get_matching_refs({}): {}".format(ref, self.py_github.rate_limiting[0]))
+
+        refs = sorted(set([ref.ref for ref in ref_list]))
+        print("Refs:")
+        for ref in refs:
+            print("    {0}".format(ref))
+        return refs
+
     def setup_git_repo(self):
         """Initialize a bare git repository with two remotes:
         one for GitHub and one for GitLab.
@@ -382,6 +397,12 @@ class SpackCIBridge(object):
         for tag in tags:
             fetch_refspecs.append("+refs/tags/{0}:refs/tags/{0}".format(tag))
             open_refspecs.append("refs/tags/{0}:refs/tags/{0}".format(tag))
+        return open_refspecs, fetch_refspecs
+
+    def update_refspecs_for_hidden_refs(self, hidden_refs, open_refspecs, fetch_refspecs):
+        for ref in hidden_refs:
+            fetch_refspecs.append("+{0}:{0}".format(ref))
+            open_refspecs.append("{0}:{0}".format(ref))
         return open_refspecs, fetch_refspecs
 
     def fetch_github_branches(self, fetch_refspecs):
@@ -622,7 +643,7 @@ class SpackCIBridge(object):
             print(e_inst)
         print("  {0} -> {1}".format(branch, sha))
 
-    def sync(self):
+    def sync(self, hidden_refs=None):
         """Synchronize pull requests from GitHub as branches on GitLab."""
 
         print("Initial rate limit: {}".format(self.py_github.rate_limiting[0]))
@@ -666,11 +687,15 @@ class SpackCIBridge(object):
             # Get tags on GitHub.
             tags = self.list_github_tags()
 
+            # Get hidden refs on GitHub
+            refs = self.list_github_hidden_refs(hidden_refs)
+
             # Get refspecs for open PRs and protected branches.
             open_refspecs = self.get_open_refspecs(open_prs)
             fetch_refspecs = []
             self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
             self.update_refspecs_for_tags(tags, open_refspecs, fetch_refspecs)
+            self.update_refspecs_for_hidden_refs(refs, open_refspecs, fetch_refspecs)
 
             # Sync open GitHub PRs and protected branches to GitLab.
             self.fetch_github_branches(fetch_refspecs)
@@ -706,6 +731,8 @@ to not interrupt this pipeline. We also defer pushing any PR branches that are b
 on a commit of the main branch that is newer than the latest commit tested by GitLab.""")
     parser.add_argument("--prereq-check", nargs="+", default=False,
                         help="Only push branches that have already passed this GitHub check")
+    parser.add_argument("-r", "--hidden-ref", action="append",
+                        help="List of hidden refs to sync.")
 
     args = parser.parse_args()
 
@@ -725,4 +752,4 @@ on a commit of the main branch that is newer than the latest commit tested by Gi
                            main_branch=args.main_branch,
                            prereq_checks=args.prereq_check)
     bridge.setup_ssh(ssh_key_base64)
-    bridge.sync()
+    bridge.sync(hidden_refs=args.hidde_ref)
