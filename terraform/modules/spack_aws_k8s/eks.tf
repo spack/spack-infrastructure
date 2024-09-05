@@ -54,7 +54,7 @@ module "eks" {
     }
     aws-ebs-csi-driver = {
       addon_version            = "v1.33.0-eksbuild.1"
-      service_account_role_arn = aws_iam_role.ebs_efs_csi_driver.arn
+      service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
     }
     aws-efs-csi-driver = {
       addon_version            = "v2.0.7-eksbuild.1"
@@ -143,8 +143,8 @@ module "eks" {
   }
 }
 
-resource "aws_iam_role" "ebs_efs_csi_driver" {
-  name = "EbsEfsDriverRole-${var.deployment_name}"
+resource "aws_iam_role" "ebs_csi_driver" {
+  name = "AmazonEKS_EBS_CSI_DriverRole-${var.deployment_name}"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -165,9 +165,9 @@ resource "aws_iam_role" "ebs_efs_csi_driver" {
   })
 }
 
-resource "aws_iam_role_policy" "ebs_efs_csi_driver" {
-  name = "EbsEfsDriverPolicy-${var.deployment_name}"
-  role = aws_iam_role.ebs_efs_csi_driver.id
+resource "aws_iam_role_policy" "ebs_csi_driver" {
+  name = "AmazonEKS_EBS_CSI_DriverPolicy-${var.deployment_name}"
+  role = aws_iam_role.ebs_csi_driver.id
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
