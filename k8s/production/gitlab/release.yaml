@@ -68,6 +68,8 @@ spec:
         apiVersion: networking.k8s.io/v1
         configureCertmanager: false
         class: nginx
+        tls:
+          external: true
 
       gitlab:
         license: {}
