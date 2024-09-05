@@ -56,6 +56,10 @@ module "eks" {
       addon_version            = "v1.33.0-eksbuild.1"
       service_account_role_arn = aws_iam_role.ebs_efs_csi_driver.arn
     }
+    aws-efs-csi-driver = {
+      addon_version            = "v2.0.7-eksbuild.1"
+      service_account_role_arn = aws_iam_role.efs_csi_driver.arn
+    }
   }
 
   vpc_id     = module.vpc.vpc_id
