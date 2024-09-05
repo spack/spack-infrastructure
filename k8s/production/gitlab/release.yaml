@@ -16,6 +16,8 @@ metadata:
   namespace: gitlab
 spec:
   interval: 10m
+  # GitLab can take a while to start up for the first time, so give it up to 15 mins before deciding it failed.
+  timeout: 15m
   chart:
     spec:
       chart: gitlab
