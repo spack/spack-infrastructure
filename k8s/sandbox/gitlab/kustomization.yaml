@@ -1,0 +1,35 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../production/gitlab/certificates.yaml
+  - ../../production/gitlab/namespace.yaml
+  - ../../production/gitlab/release.yaml
+  - ../../production/gitlab/pod-cleanup.yaml
+patches:
+  - target:
+      kind: Certificate
+      name: gitlab-webservice
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: gitlab.sandbox.spack.io
+    # - op: replace
+    #   path: /spec/issuerRef/name
+    #   value: letsencrypt-staging
+
+  - target:
+      kind: HelmRelease
+      name: gitlab
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/global/hosts/domain
+        value: staging.spack.io
+      - op: replace
+        path: /spec/values/global/hosts/gitlab/name
+        value: gitlab.sandbox.spack.io
+      - op: replace
+        path: /spec/values/global/hosts/ssh
+        value: ssh.gitlab.sandbox.spack.io
