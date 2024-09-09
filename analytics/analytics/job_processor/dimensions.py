@@ -185,7 +185,7 @@ def create_runner_dimension(gl: gitlab.Gitlab, gljob: ProjectJob) -> RunnerDimen
         in_cluster = True
 
     # Create and return new runner
-    return RunnerDimension.objects.create(
+    runner, _ = RunnerDimension.objects.get_or_create(
         runner_id=runner_id,
         name=runner_name,
         platform=runner.platform,
@@ -194,6 +194,8 @@ def create_runner_dimension(gl: gitlab.Gitlab, gljob: ProjectJob) -> RunnerDimen
         tags=runner.tag_list,
         in_cluster=in_cluster,
     )
+
+    return runner
 
 
 def create_package_dimension(info: PackageInfo | None) -> PackageDimension:
