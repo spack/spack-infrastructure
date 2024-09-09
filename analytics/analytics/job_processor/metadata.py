@@ -12,7 +12,11 @@ from analytics.job_processor.artifacts import (
     JobArtifactVariablesNotFound,
     get_job_artifacts_data,
 )
-from analytics.job_processor.prometheus import PrometheusClient
+from analytics.job_processor.prometheus import (
+    JobPrometheusDataNotFound,
+    PrometheusClient,
+    UnexpectedPrometheusResult,
+)
 
 
 @dataclass(frozen=True)
@@ -93,43 +97,11 @@ class JobInfo:
     node: NodeInfo | None = None
 
 
-@functools.lru_cache(maxsize=128, typed=True)
-def retrieve_job_info(gljob: ProjectJob, is_build: bool) -> JobInfo:
-    """Retrieve job info for a job.
-
-    This is cached as it may be invoked by different functions to retrieve the same underlying data.
-    """
+def retrieve_job_prometheus_info(gljob: ProjectJob, is_build: bool):
     client = PrometheusClient(settings.PROMETHEUS_URL)
     pod_name = client.get_pod_name_from_gitlab_job(gljob=gljob)
     if pod_name is None:
-        if not is_build:
-            return JobInfo()
-
-        # If the build is failed, this is not unexpected. Otherwise, raise the error
-        try:
-            artifacts = get_job_artifacts_data(gljob)
-        except (JobArtifactFileNotFound, JobArtifactVariablesNotFound):
-            if gljob.status == "failed":
-                return JobInfo()
-
-            raise
-
-        return JobInfo(
-            package=PackageInfo(
-                name=artifacts.package_name,
-                hash=artifacts.package_hash,
-                version=artifacts.package_version,
-                compiler_name=artifacts.compiler_name,
-                compiler_version=artifacts.compiler_version,
-                arch=artifacts.arch,
-                variants=artifacts.package_variants,
-            ),
-            misc=JobMiscInfo(
-                job_size=artifacts.job_size,
-                stack=artifacts.stack,
-                build_jobs=artifacts.build_jobs,
-            ),
-        )
+        raise JobPrometheusDataNotFound(gljob.id)
 
     # Retrieve the remaining info from prometheus
     start = isoparse(gljob.started_at)
@@ -185,5 +157,48 @@ def retrieve_job_info(gljob: ProjectJob, is_build: bool) -> JobInfo:
             job_size=pod_labels.job_size,
             stack=pod_labels.stack,
             build_jobs=pod_labels.build_jobs,
+        ),
+    )
+
+
+@functools.lru_cache(maxsize=128, typed=True)
+def retrieve_job_info(gljob: ProjectJob, is_build: bool) -> JobInfo:
+    """Retrieve job info for a job.
+
+    This is cached as it may be invoked by different functions to retrieve the same underlying data.
+    """
+
+    try:
+        return retrieve_job_prometheus_info(gljob=gljob, is_build=is_build)
+    except (JobPrometheusDataNotFound, UnexpectedPrometheusResult):
+        pass
+
+    # Handle non-cluster jobs or jobs with failed prometheus info
+    if not is_build:
+        return JobInfo()
+
+    # If the build is failed, this is not unexpected. Otherwise, raise the error
+    try:
+        artifacts = get_job_artifacts_data(gljob)
+    except (JobArtifactFileNotFound, JobArtifactVariablesNotFound):
+        if gljob.status == "failed":
+            return JobInfo()
+
+        raise
+
+    return JobInfo(
+        package=PackageInfo(
+            name=artifacts.package_name,
+            hash=artifacts.package_hash,
+            version=artifacts.package_version,
+            compiler_name=artifacts.compiler_name,
+            compiler_version=artifacts.compiler_version,
+            arch=artifacts.arch,
+            variants=artifacts.package_variants,
+        ),
+        misc=JobMiscInfo(
+            job_size=artifacts.job_size,
+            stack=artifacts.stack,
+            build_jobs=artifacts.build_jobs,
         ),
     )
