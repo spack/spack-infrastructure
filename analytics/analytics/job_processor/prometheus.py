@@ -271,13 +271,18 @@ class PrometheusClient:
         node_occupancy = calculate_node_occupancy(results, step)
 
         # Finally, determine the node memory usage
-        memory_usage = self.query_range(
+        memory_usage: list = self.query_range(
             f"container_memory_working_set_bytes{{container='build', pod='{pod}'}}",
             start=start,
             end=end,
             step=step,
             single_result=True,
         )["values"]
+        if not memory_usage:
+            raise UnexpectedPrometheusResult(
+                message=f"Pod {pod} not found in memory usage query",
+                query=cpu_seconds_query,
+            )
 
         # Results consist of arrays: [timestamp, "value"]
         byte_values = [int(x) for _, x in memory_usage]
@@ -403,16 +408,20 @@ class PrometheusClient:
         # Retrieve the price of this node. Since this price can change in the middle of this job's
         # lifetime, we return all values from this query and average them.
         zone = node_labels["label_topology_kubernetes_io_zone"]
-        spot_prices_result = self.query_range(
-            f"""
+        price_query = f"""
             karpenter_cloudprovider_instance_type_price_estimate{{
                 capacity_type='{capacity_type}',
                 instance_type='{instance_type}',
                 zone='{zone}'
-            }}""",
-            start=start,
-            end=end,
-        )
+            }}"""
+
+        spot_prices_result = self.query_range(query=price_query, start=start, end=end)
+        if not spot_prices_result:
+            raise UnexpectedPrometheusResult(
+                message=f"Node with parameters: ({capacity_type}, {instance_type}, {zone}) not found in spot price query",
+                query=price_query,
+            )
+
         spot_price = statistics.mean(
             [float(val[1]) for result in spot_prices_result for val in result["values"]]
         )
