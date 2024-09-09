@@ -9,7 +9,10 @@ from analytics.core.models.dimensions import (
     TimerPhaseDimension,
 )
 from analytics.core.models.facts import JobFact, TimerFact, TimerPhaseFact
-from analytics.job_processor.artifacts import get_job_artifacts_file
+from analytics.job_processor.artifacts import (
+    JobArtifactFileNotFound,
+    get_job_artifacts_file,
+)
 
 
 def get_timings_json(job: ProjectJob) -> list[dict]:
@@ -94,7 +97,13 @@ def get_package_mapping(timings: list[dict]) -> dict[str, PackageDimension]:
 
 
 def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob):
-    timings = [t for t in get_timings_json(gljob) if t.get("name") and t.get("hash")]
+    # Sometimes the timings file isn't present, even on successful jobs.
+    # If that's the case, we just skip this step.
+    try:
+        data = get_timings_json(gljob)
+        timings = [t for t in data if t.get("name") and t.get("hash")]
+    except JobArtifactFileNotFound:
+        return
 
     # First, ensure that all packages and specs are entered into the db. Then, fetch all timing packages
     create_packages_and_specs(gljob)
