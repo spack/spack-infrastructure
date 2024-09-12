@@ -137,5 +137,8 @@ def process_job(job_input_data_json: str):
 
     with transaction.atomic():
         job = create_job_fact(gl, gl_job, job_input_data, job_trace)
+
+    # Create build timing facts in a separate transaction, in case this fails
+    with transaction.atomic():
         if job.job.job_type == JobDataDimension.JobType.BUILD:
             create_build_timing_facts(job_fact=job, gljob=gl_job)

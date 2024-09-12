@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 import yaml
+from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import ProjectJob
 
 
@@ -30,9 +31,15 @@ def get_job_artifacts_file(job: ProjectJob, filename: str):
     """Yields a file IO, raises KeyError if the filename is not present"""
     with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
         artifacts_file = temp.name
-        with open(artifacts_file, "wb") as f:
-            job.artifacts(streamed=True, action=f.write)
 
+        # Download artifacts zip
+        try:
+            with open(artifacts_file, "wb") as f:
+                job.artifacts(streamed=True, action=f.write)
+        except GitlabGetError:
+            raise JobArtifactFileNotFound(job, filename)
+
+        # Open specific file within artifacts zip
         with zipfile.ZipFile(artifacts_file) as zfile:
             try:
                 with zfile.open(filename) as timing_file:
