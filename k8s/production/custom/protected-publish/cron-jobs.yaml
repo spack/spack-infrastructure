@@ -9,6 +9,7 @@ spec:
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
+      activeDeadlineSeconds: 14400 # terminate any running job after 4 hours
       backoffLimit: 0
       template:
         spec:
