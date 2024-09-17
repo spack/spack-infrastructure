@@ -23,6 +23,11 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: gitlab
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+    - name: ingress-nginx
+      namespace: ingress-nginx
 
   valuesFrom:
     - kind: Secret
