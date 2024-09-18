@@ -107,6 +107,12 @@ spec:
           - "us-east-1c"
           - "us-east-1d"
 
+      # Only provision nodes for Linux pods
+      # Needed due to https://github.com/kubernetes-sigs/karpenter/issues/1009
+      - key: "kubernetes.io/os"
+        operator: In
+        values: ["linux"]
+
       # Only use spot instances for runners
       - key: "karpenter.sh/capacity-type"
         operator: In
