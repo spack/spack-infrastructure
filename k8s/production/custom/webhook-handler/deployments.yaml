@@ -43,7 +43,7 @@ spec:
             - name: GITLAB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: webhook-handler
+                  name: webhook-secrets
                   key: gitlab-token
             - name: SECRET_KEY
               valueFrom:
@@ -60,14 +60,14 @@ spec:
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:
-                  name: webhook-handler
+                  name: webhook-handler-db
                   key: analytics-postgresql-host
             - name: DB_USER
               value: postgres
             - name: DB_PASS
               valueFrom:
                 secretKeyRef:
-                  name: webhook-handler
+                  name: webhook-handler-db
                   key: analytics-postgresql-password
             - name: GITLAB_DB_USER
               valueFrom:
@@ -167,7 +167,7 @@ spec:
             - name: GITLAB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: webhook-handler
+                  name: webhook-secrets
                   key: gitlab-token
             - name: SECRET_KEY
               valueFrom:
@@ -184,14 +184,14 @@ spec:
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:
-                  name: webhook-handler
+                  name: webhook-handler-db
                   key: analytics-postgresql-host
             - name: DB_USER
               value: postgres
             - name: DB_PASS
               valueFrom:
                 secretKeyRef:
-                  name: webhook-handler
+                  name: webhook-handler-db
                   key: analytics-postgresql-password
             - name: GITLAB_DB_USER
               valueFrom:

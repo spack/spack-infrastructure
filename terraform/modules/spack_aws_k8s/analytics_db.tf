@@ -46,3 +46,16 @@ module "analytics_db" {
 
   create_db_parameter_group = true
 }
+
+resource "kubectl_manifest" "webhook_analytics_db_secrets" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: webhook-handler-db
+      namespace: custom
+    stringData:
+      analytics-postgresql-host: "${module.analytics_db.db_instance_address}"
+      analytics-postgresql-password: "${random_password.analytics_db_password.result}"
+  YAML
+}
