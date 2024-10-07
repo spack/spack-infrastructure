@@ -48,6 +48,12 @@ spec:
         operator: In
         values: ["spot"]
 
+      # Only provision nodes for Linux pods
+      # Needed due to https://github.com/kubernetes-sigs/karpenter/issues/1009
+      - key: "kubernetes.io/os"
+        operator: In
+        values: ["linux"]
+
       nodeClassRef:
         apiVersion: karpenter.k8s.aws/v1beta1
         kind: EC2NodeClass
