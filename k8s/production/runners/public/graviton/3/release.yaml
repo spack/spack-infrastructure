@@ -23,6 +23,9 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: runner-graviton3-pub
+  dependsOn:
+    - name: gitlab
+      namespace: gitlab
 
   valuesFrom:
     # See terraform/modules/sentry/sentry.tf

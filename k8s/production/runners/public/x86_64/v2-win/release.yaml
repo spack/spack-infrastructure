@@ -24,6 +24,9 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v2-pub-windows
+  dependsOn:
+    - name: gitlab
+      namespace: gitlab
 
   valuesFrom:
     # See terraform/modules/sentry/sentry.tf
