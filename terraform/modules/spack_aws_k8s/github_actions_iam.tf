@@ -7,7 +7,7 @@ data "tls_certificate" "github_actions" {
 }
 
 resource "aws_iam_openid_connect_provider" "github_actions" {
-  count           = var.deployment_name == "prod" ? 1 : 0
+  count = var.deployment_name == "prod" ? 1 : 0
 
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
@@ -15,7 +15,7 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
 }
 
 resource "aws_iam_role" "github_actions" {
-  count           = var.deployment_name == "prod" ? 1 : 0
+  count = var.deployment_name == "prod" ? 1 : 0
 
   name        = local.iam_role_name
   description = "Managed by Terraform. IAM Role that a GitHub Actions runner can assume to authenticate with AWS."
@@ -69,7 +69,7 @@ resource "aws_iam_role" "github_actions" {
 # This policy grants the GitHub Actions role read-only access to most resources in the AWS account.
 # There are some exceptions, such as secretsmanager (see inline_policy above)
 resource "aws_iam_role_policy_attachment" "github_actions" {
-  count           = var.deployment_name == "prod" ? 1 : 0
+  count = var.deployment_name == "prod" ? 1 : 0
 
   role       = aws_iam_role.github_actions[0].name
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"

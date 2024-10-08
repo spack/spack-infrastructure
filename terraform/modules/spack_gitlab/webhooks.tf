@@ -14,8 +14,8 @@ locals {
 }
 
 resource "gitlab_personal_access_token" "webhook_handler" {
-  user_id = data.gitlab_user.spackbot.id
-  name    = "Webhook handler token"
+  user_id    = data.gitlab_user.spackbot.id
+  name       = "Webhook handler token"
   expires_at = local.webhook_handler_token_expires_at
 
   scopes = ["read_api", "read_repository"]

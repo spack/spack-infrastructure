@@ -138,7 +138,7 @@ module "eks" {
       from_port   = 0
       to_port     = 0
       type        = "ingress"
-      self        = true  # Only apply this rule to other nodes in this security group
+      self        = true # Only apply this rule to other nodes in this security group
     }
   }
 }

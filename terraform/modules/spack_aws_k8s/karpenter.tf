@@ -127,8 +127,8 @@ module "karpenter_windows" {
   create_pod_identity_association = false
   enable_spot_termination         = false
   create_instance_profile         = false
-  create_iam_role = false
+  create_iam_role                 = false
   # iam_role_arn = module.karpenter.iam_role_arn
-#
+  #
   enable_v1_permissions = true
 }
