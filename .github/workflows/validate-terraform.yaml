@@ -21,7 +21,7 @@ jobs:
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~1.5.2"
+          terraform_version: "~1.9.7"
 
       - name: Lint Terraform code
         run: terraform fmt -check -diff -recursive
@@ -45,7 +45,7 @@ jobs:
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~1.5.2"
+          terraform_version: "~1.9.7"
 
       - name: Initialize Terraform (offline only)
         run: terraform init -backend=false
