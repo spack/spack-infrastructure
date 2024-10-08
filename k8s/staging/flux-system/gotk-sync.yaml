@@ -8,10 +8,10 @@ metadata:
 spec:
   interval: 1m0s
   ref:
-    branch: main
+    branch: alt-tf-module
   secretRef:
     name: flux-system
-  url: https://github.com/spack/spack-infrastructure
+  url: https://github.com/mvandenburgh/spack-infrastructure
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
