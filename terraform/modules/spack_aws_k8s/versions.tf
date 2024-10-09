@@ -59,12 +59,11 @@ provider "flux" {
     }
   }
   git = {
-    url = "https://github.com/mvandenburgh/spack-infrastructure" # TODO: update this
+    url = "https://github.com/spack/spack-infrastructure"
     http = {
-      username = "mvandenburgh" # TODO: update this
+      username = "spackbot"
       password = jsondecode(data.aws_secretsmanager_secret_version.flux_github_token.secret_string).flux_github_token
     }
-    branch = "alt-tf-module" # TODO: update this
   }
 }
 
