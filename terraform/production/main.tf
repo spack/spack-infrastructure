@@ -4,7 +4,8 @@ module "spack_aws_k8s" {
   deployment_name  = "prod"
   deployment_stage = "blue"
 
-  region = "us-east-1"
+  region           = "us-east-1"
+  eks_cluster_role = var.eks_cluster_role
 
   flux_path = "k8s/production/"
 

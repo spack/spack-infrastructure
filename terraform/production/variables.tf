@@ -3,3 +3,9 @@ variable "gitlab_token" {
   type        = string
   sensitive   = true
 }
+
+variable "eks_cluster_role" {
+  description = "The IAM role to assume when interacting with EKS resources."
+  type        = string
+  default     = null
+}
