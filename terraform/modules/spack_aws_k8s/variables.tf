@@ -39,3 +39,9 @@ variable "opensearch_volume_size" {
   description = "The size of the EBS volume for the OpenSearch domain."
   type        = number
 }
+
+variable "eks_cluster_role" {
+  description = "The IAM role to assume when interacting with EKS resources."
+  type        = string
+  default     = null
+}
