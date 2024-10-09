@@ -10,34 +10,52 @@ module "eks" {
   enable_cluster_creator_admin_permissions = true
   cluster_endpoint_public_access           = true
 
-  access_entries = {
-    admin = {
-      kubernetes_groups = []
-      principal_arn     = aws_iam_role.eks_cluster_access.arn
+  access_entries = merge(
+    {
+      admin = {
+        kubernetes_groups = []
+        principal_arn     = aws_iam_role.eks_cluster_access.arn
 
-      policy_associations = {
-        cluster = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
+        policy_associations = {
+          cluster = {
+            policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+            access_scope = {
+              type = "cluster"
+            }
           }
         }
       }
-    }
-    readonly = {
-      kubernetes_groups = []
-      principal_arn     = aws_iam_role.readonly_clusterrole.arn
+      readonly = {
+        kubernetes_groups = []
+        principal_arn     = aws_iam_role.readonly_clusterrole.arn
 
-      policy_associations = {
-        cluster = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminViewPolicy"
-          access_scope = {
-            type = "cluster"
+        policy_associations = {
+          cluster = {
+            policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminViewPolicy"
+            access_scope = {
+              type = "cluster"
+            }
           }
         }
       }
-    }
-  }
+    },
+    # Only create github_actions access entry on production cluster, since that's
+    # the only one we run the TF drift detection job on.
+    var.deployment_name == "prod" ? {
+      github_actions_drift_detection = {
+        kubernetes_groups = []
+        principal_arn     = aws_iam_role.github_actions[0].arn
+
+        policy_associations = {
+          cluster = {
+            policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminViewPolicy"
+            access_scope = {
+              type = "cluster"
+            }
+          }
+        }
+      }
+  } : {})
 
   cluster_addons = {
     coredns = {
