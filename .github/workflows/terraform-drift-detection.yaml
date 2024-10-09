@@ -25,7 +25,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4.0.2
         with:
-          role-to-assume: arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole-prod
+          role-to-assume: arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole
           aws-region: us-east-1
 
       - name: Install Terraform
@@ -44,7 +44,7 @@ jobs:
       - name: Run Terraform Plan
         run: terraform plan -lock=false -detailed-exitcode -no-color -input=false -out=tfplan > tfplan_output.txt 2>&1
         env:
-          TF_VAR_eks_cluster_role: "arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole-prod"
+          TF_VAR_eks_cluster_role: "arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole"
 
       - name: Send Slack alert on drift
         if: failure()
