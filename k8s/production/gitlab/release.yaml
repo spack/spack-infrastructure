@@ -95,7 +95,7 @@ spec:
           key: postgres-password
         port: 5432
         database: gitlabhq_production
-        username: gitlab
+        username: postgres
 
       minio:
         enabled: false
