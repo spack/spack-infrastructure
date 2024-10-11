@@ -409,7 +409,7 @@ class PrometheusClient:
         # lifetime, we return all values from this query and average them.
         zone = node_labels["label_topology_kubernetes_io_zone"]
         price_query = f"""
-            karpenter_cloudprovider_instance_type_price_estimate{{
+            karpenter_cloudprovider_instance_type_offering_price_estimate{{
                 capacity_type='{capacity_type}',
                 instance_type='{instance_type}',
                 zone='{zone}'
