@@ -64,7 +64,7 @@ spec:
 
           if [ -z "${PY3:-}" ]; then
             echo "Unable to find python3 executable"
-            exit 1
+            exit ${CI_OIDC_REQUIRED:-1}
           fi
 
           $PY3 -c "import urllib.request;urllib.request.urlretrieve('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', 'pre_build.py')"
