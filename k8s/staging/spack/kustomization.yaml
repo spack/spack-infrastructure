@@ -3,3 +3,15 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../production/spack/namespace.yaml
+  - ../../production/spack/gantry-spack-io/services.yaml
+  - ../../production/spack/gantry-spack-io/stateful-sets.yaml
+
+patches:
+  - target:
+      kind: StatefulSet
+      name: spack-gantry
+      namespace: spack
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: https://gitlab.staging.spack.io/api/v4/projects/8
