@@ -39,7 +39,7 @@ resource "aws_s3_bucket_policy" "bootstrap" {
           "s3:CopyObject*",
           "s3:DeleteObject*",
           "s3:GetObject*",
-          "s3:ListBucket*"
+          "s3:ListBucket*",
           "s3:ListObjects*",
           "s3:PutObject*"
         ],
