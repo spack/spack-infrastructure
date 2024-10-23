@@ -29,6 +29,9 @@ taxonomy:
         - "trying to set variant .+ in package .+, but the package has no such variant"
         - "No such variant .+ for spec"
         - "UnknownVariantError"
+        - "Spec version is not concrete"
+        - "UnsatisfiableSpecError"
+        - "cannot have a dependency on"
 
     job_log_missing:
         grep_for:
@@ -165,6 +168,7 @@ taxonomy:
         - 'Error: errors occurred during concretization of the environment'
         - 'cannot load package .+ from the .builtin. repository'
         - 'must have a default provider in /builds/spack/spack/etc/spack/defaults/packages.yaml'
+        - 'RuntimeError: .+ object has no attribute'
 
     invalid_pipeline_yaml:
       grep_for:
