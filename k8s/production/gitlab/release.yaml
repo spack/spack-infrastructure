@@ -148,14 +148,17 @@ spec:
         minReplicas: 4
         maxReplicas: 16
         resources:
-          # Based on webservice resources here
-          # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
+          # Requested values are based on the following Prometheus queries:
+          # cpu:
+          #   sum(rate(container_cpu_usage_seconds_total{namespace="gitlab", pod=~"gitlab-webservice-.*"}[5m])) by (pod)
+          # memory:
+          #   sum by (pod) (container_memory_max_usage_bytes{namespace="gitlab", pod=~"gitlab-webservice-.*"})
           limits:
             cpu: 12
             memory: 20G
           requests:
-            cpu: 4
-            memory: 14G
+            cpu: 1250m
+            memory: 10G
         nodeSelector:
           spack.io/node-pool: gitlab
       gitlab-exporter:
@@ -165,20 +168,26 @@ spec:
       gitlab-shell:
         service:
           type: LoadBalancer
+        resources:
+          requests:
+            cpu: 100m
+            memory: 300M
         nodeSelector:
           spack.io/node-pool: gitlab
 
       sidekiq:
         resources:
-          # Based on sidekiq resources here
-          # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
           requests:
-            cpu: 4
-            memory: 15G
+            cpu: 2
+            memory: 6G
         nodeSelector:
           spack.io/node-pool: gitlab
 
       toolbox:
+        resources:
+          requests:
+            cpu: 250m
+            memory: 350M
         nodeSelector:
           spack.io/node-pool: gitlab
 
@@ -191,7 +200,7 @@ spec:
         resources:
           requests:
             cpu: 15000m
-            memory: 54Gi
+            memory: 20Gi
         nodeSelector:
           spack.io/node-pool: gitlab
           node.kubernetes.io/instance-type: m5.4xlarge

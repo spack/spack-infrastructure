@@ -42,8 +42,8 @@ spec:
           value: pipeline
       resources:
         requests:
-          cpu: 100m
-          memory: 1G
+          cpu: 20m
+          memory: 300M
         limits:
           cpu: 1000m
           memory: 2G
