@@ -42,7 +42,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -51,7 +51,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -60,7 +60,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -69,7 +69,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -78,7 +78,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -87,7 +87,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -96,7 +96,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -105,7 +105,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -114,7 +114,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -123,7 +123,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -132,7 +132,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -141,7 +141,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
 
   - target:
       kind: HelmRelease
@@ -150,4 +150,4 @@ patches:
     patch: |-
       - op: replace
         path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
+        value: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/
