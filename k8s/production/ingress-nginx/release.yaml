@@ -43,7 +43,12 @@ spec:
       #   configMapNamespace: ""
 
       nodeSelector:
-        spack.io/node-pool: beefy
+        spack.io/node-pool: nginx
+
+      tolerations:
+        - key: "nginx"
+          operator: "Exists"
+          effect: "NoSchedule"
 
       resources:
         requests:
@@ -54,8 +59,8 @@ spec:
       minAvailable: 1
 
       autoscaling:
-        enabled: true
-        minReplicas: 2
+        enabled: false
+        minReplicas: 1
         maxReplicas: 40
         targetCPUUtilizationPercentage: 50
         targetMemoryUtilizationPercentage: 50
@@ -73,6 +78,19 @@ spec:
           # Force the load balancer to only route traffic to Linux nodes.
           # kube-proxy doesn't seem to work right on Windows nodes.
           "service.beta.kubernetes.io/aws-load-balancer-target-node-labels": "kubernetes.io/os=linux"
+
+
+          service.beta.kubernetes.io/aws-load-balancer-name: spack-eks-load-balancer
+          service.beta.kubernetes.io/aws-load-balancer-type: nlb
+          # Disable client IP preservation - see https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-troubleshooting.html#intermittent-connection-failure
+          service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: "preserve_client_ip.enabled=false"
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+          service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+
+          # service.beta.kubernetes.io/aws-load-balancer-target-node-labels: enable-nginx-ingress=true
+          # service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: http
+          # service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz
+          # service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: 10254
 
         labels: {}
 
@@ -103,7 +121,7 @@ spec:
 
     ## Default 404 backend
     defaultBackend:
-      enabled: true
+      enabled: false
       replicaCount: 3
       minAvailable: 1
       nodeSelector:
