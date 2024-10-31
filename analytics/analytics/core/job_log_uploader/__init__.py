@@ -13,7 +13,7 @@ from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
 from analytics import setup_gitlab_job_sentry_tags
-from analytics.job_processor.dimensions import _job_retry_data
+from analytics.job_processor.utils import get_job_retry_data
 
 
 class JobLog(Document):
@@ -57,7 +57,7 @@ def store_job_data(job_input_data_json: str) -> None:
     job = project.jobs.get(job_input_data["build_id"])
     job_trace: str = job.trace().decode()
 
-    retry_info = _job_retry_data(
+    retry_info = get_job_retry_data(
         job_id=job_input_data["build_id"],
         job_name=job_input_data["build_name"],
         job_commit_id=job_input_data["commit"]["id"],
