@@ -85,7 +85,13 @@ def _job_retry_data(
             retry_config = json.loads(job[0])
 
         retry_max = retry_config["max"]
-        retry_reasons = retry_config["when"]
+        # A non-retryable job can either have an explicit max of zero, or no max at all.
+        # If the job is not retryable, the 'when' key will not exist
+        if retry_max in (0, None):
+            retry_reasons = []
+        # If the job is retryable, the 'when' key will be a list of reasons to retry
+        else:
+            retry_reasons = retry_config["when"]
         # final_attempt is defined as an attempt that won't be retried for the retry_reasons
         # or because it's gone beyond the max number of retries.
         retryable_by_reason = (
