@@ -1,13 +1,16 @@
+from dataclasses import dataclass
+import json
+from pathlib import Path
 import re
+from typing import Any
 
+from django.db import connections
 import gitlab
 import gitlab.exceptions
 from gitlab.v4.objects import ProjectJob
+import sentry_sdk
+import yaml
 
-from analytics.core.job_failure_classifier import (
-    _assign_error_taxonomy,
-    _job_retry_data,
-)
 from analytics.core.models.dimensions import (
     DateDimension,
     JobDataDimension,
@@ -27,6 +30,121 @@ class UnrecognizedJobType(Exception):
     def __init__(self, job_id: int, name: str) -> None:
         message = f"Unrecognized job type for Job: ({job_id}) {name}"
         super().__init__(message)
+
+
+@dataclass(frozen=True)
+class RetryInfo:
+    is_retry: bool
+    is_manual_retry: bool
+    attempt_number: int
+    final_attempt: bool
+
+
+def _job_retry_data(
+    job_id: int, job_name: str, job_commit_id: int, job_failure_reason: str
+) -> RetryInfo:
+    with connections["gitlab"].cursor() as cursor:
+        # the prior attempts for a given job are all jobs with a lower id, the same commit_id, and
+        # the same name. the commit_id is the foreign key for the pipeline.
+        # it's important to filter for a lower job id in the event that the webhook is delayed or
+        # received out of order.
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM ci_builds
+            WHERE id < %(job_id)s
+            AND commit_id = %(commit_id)s
+            AND name = %(job_name)s
+            """,
+            {"job_id": job_id, "job_name": job_name, "commit_id": job_commit_id},
+        )
+        attempt_number = cursor.fetchone()[0] + 1
+
+        cursor.execute(
+            """
+            SELECT bm.config_options->>'retry'
+            FROM ci_builds_metadata bm
+            WHERE bm.build_id = %(job_id)s
+            """,
+            {"job_id": job_id},
+        )
+        job = cursor.fetchone()
+        if not job[0]:
+            # config_options->>retry should always be defined for non-trigger (aka Ci::Bridge)
+            # jobs in spack. this is an edge case where a job in gitlab isn't explicitly
+            # configured for retries at all.
+            sentry_sdk.capture_message(f"Job {job_id} missing retry configuration.")
+            # this is the default retry configuration for gitlab
+            # see https://docs.gitlab.com/ee/ci/yaml/#retry
+            retry_config = {
+                "max": 0,
+                "when": ["always"],
+            }
+        else:
+            retry_config = json.loads(job[0])
+
+        retry_max = retry_config["max"]
+        # A non-retryable job can either have an explicit max of zero, or no max at all.
+        # If the job is not retryable, the 'when' key will not exist
+        if retry_max in (0, None):
+            retry_reasons = []
+        # If the job is retryable, the 'when' key will be a list of reasons to retry
+        else:
+            retry_reasons = retry_config["when"]
+        # final_attempt is defined as an attempt that won't be retried for the retry_reasons
+        # or because it's gone beyond the max number of retries.
+        retryable_by_reason = "always" in retry_reasons or job_failure_reason in retry_reasons
+        retryable_by_number = attempt_number <= retry_max
+        final_attempt = not (retryable_by_reason and retryable_by_number)
+
+        return RetryInfo(
+            is_retry=attempt_number > 1,
+            # manual retries are all retries that are not part of the original job
+            is_manual_retry=attempt_number > retry_max + 1,
+            attempt_number=attempt_number,
+            final_attempt=final_attempt,
+        )
+
+
+def _assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
+    if job_input_data["build_status"] != "failed":
+        raise ValueError("This function should only be called for failed jobs")
+
+    # Read taxonomy file
+    with open(Path(__file__).parent / "error_taxonomy.yaml") as f:
+        taxonomy = yaml.safe_load(f)["taxonomy"]
+
+    error_taxonomy_version = taxonomy["version"]
+
+    # Compile matching patterns from job trace
+    matching_patterns = set()
+    for error_class, lookups in taxonomy["error_classes"].items():
+        if lookups:
+            for grep_expr in lookups.get("grep_for", []):
+                if re.compile(grep_expr).search(job_trace):
+                    matching_patterns.add(error_class)
+
+    # If the job logs matched any regexes, assign it the taxonomy
+    # with the highest priority in the "deconflict order".
+    # Otherwise, assign it a taxonomy of "other".
+    job_error_class = None
+    if len(matching_patterns):
+        for error_class in taxonomy["deconflict_order"]:
+            if error_class in matching_patterns:
+                job_error_class = error_class
+                break
+    else:
+        job_error_class = "other"
+
+        # If this job timed out or failed to be scheduled by GitLab,
+        # label it as such.
+        if job_input_data["build_failure_reason"] in (
+            "stuck_or_timeout_failure",
+            "scheduler_failure",
+        ):
+            job_error_class = job_input_data["build_failure_reason"]
+
+    return job_error_class, error_taxonomy_version
 
 
 def get_gitlab_section_timers(job_trace: str) -> dict[str, int]:
