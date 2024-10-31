@@ -7,7 +7,7 @@ import gitlab.exceptions
 from celery import shared_task
 from django.db import transaction
 from gitlab.v4.objects import ProjectJob
-from requests.exceptions import ReadTimeout
+from requests.exceptions import ConnectionError, ReadTimeout
 
 from analytics import setup_gitlab_job_sentry_tags
 from analytics.core.models.dimensions import JobDataDimension
@@ -121,7 +121,10 @@ def create_job_fact(
 
 @shared_task(
     name="process_job",
-    autoretry_for=(ReadTimeout,),
+    autoretry_for=(
+        ConnectionError,
+        ReadTimeout,
+    ),
     max_retries=3,
 )
 def process_job(job_input_data_json: str):
