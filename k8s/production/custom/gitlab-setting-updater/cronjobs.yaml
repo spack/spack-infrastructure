@@ -37,7 +37,7 @@ spec:
                   "--",
                   "/srv/gitlab/bin/rails",
                   "runner",
-                  "ApplicationSetting.update(max_yaml_size_bytes: 20.megabytes)",
+                  "ApplicationSetting.update(max_yaml_size_bytes: 50.megabytes)",
                 ]
           nodeSelector:
             spack.io/node-pool: base
