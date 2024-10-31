@@ -6,7 +6,6 @@ from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from analytics.core.job_failure_classifier import upload_job_failure_classification
 from analytics.core.job_log_uploader import store_job_data
 from analytics.job_processor import process_job
 
@@ -25,8 +24,6 @@ def webhook_handler(request: HttpRequest) -> HttpResponse:
 
     # Store gitlab job log and failure data in opensearch
     store_job_data.delay(request.body)
-    if job_input_data["build_status"] == "failed":
-        upload_job_failure_classification.delay(request.body)
 
     # Store job data in postgres DB
     process_job.delay(request.body)

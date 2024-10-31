@@ -1,13 +1,12 @@
+from pathlib import Path
 import re
+from typing import Any
 
 import gitlab
 import gitlab.exceptions
 from gitlab.v4.objects import ProjectJob
+import yaml
 
-from analytics.core.job_failure_classifier import (
-    _assign_error_taxonomy,
-    _job_retry_data,
-)
 from analytics.core.models.dimensions import (
     DateDimension,
     JobDataDimension,
@@ -18,6 +17,7 @@ from analytics.core.models.dimensions import (
     TimeDimension,
 )
 from analytics.job_processor.metadata import JobMiscInfo, NodeInfo, PackageInfo, PodInfo
+from analytics.job_processor.utils import get_job_retry_data
 
 UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
 BUILD_STAGE_REGEX = r"^stage-\d+$"
@@ -27,6 +27,47 @@ class UnrecognizedJobType(Exception):
     def __init__(self, job_id: int, name: str) -> None:
         message = f"Unrecognized job type for Job: ({job_id}) {name}"
         super().__init__(message)
+
+
+def _assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
+    if job_input_data["build_status"] != "failed":
+        raise ValueError("This function should only be called for failed jobs")
+
+    # Read taxonomy file
+    with open(Path(__file__).parent / "error_taxonomy.yaml") as f:
+        taxonomy = yaml.safe_load(f)["taxonomy"]
+
+    error_taxonomy_version = taxonomy["version"]
+
+    # Compile matching patterns from job trace
+    matching_patterns = set()
+    for error_class, lookups in taxonomy["error_classes"].items():
+        if lookups:
+            for grep_expr in lookups.get("grep_for", []):
+                if re.compile(grep_expr).search(job_trace):
+                    matching_patterns.add(error_class)
+
+    # If the job logs matched any regexes, assign it the taxonomy
+    # with the highest priority in the "deconflict order".
+    # Otherwise, assign it a taxonomy of "other".
+    job_error_class = None
+    if len(matching_patterns):
+        for error_class in taxonomy["deconflict_order"]:
+            if error_class in matching_patterns:
+                job_error_class = error_class
+                break
+    else:
+        job_error_class = "other"
+
+        # If this job timed out or failed to be scheduled by GitLab,
+        # label it as such.
+        if job_input_data["build_failure_reason"] in (
+            "stuck_or_timeout_failure",
+            "scheduler_failure",
+        ):
+            job_error_class = job_input_data["build_failure_reason"]
+
+    return job_error_class, error_taxonomy_version
 
 
 def get_gitlab_section_timers(job_trace: str) -> dict[str, int]:
@@ -82,7 +123,7 @@ def create_job_data_dimension(
     job_name = job_input_data["build_name"]
     job_commit_id = job_input_data["commit"]["id"]
     job_failure_reason = job_input_data["build_failure_reason"]
-    retry_info = _job_retry_data(
+    retry_info = get_job_retry_data(
         job_id=job_id,
         job_name=job_name,
         job_commit_id=job_commit_id,
