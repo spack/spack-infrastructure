@@ -43,8 +43,17 @@ def create_packages_and_specs(job: ProjectJob):
     specs = []
     for node in spack.traverse.traverse_nodes([root_spec], depth=False):  # type: ignore
         node: spack.spec.Spec
-
         package_names.add(node.name)
+
+        compiler_name = node.format("{compiler.name}")
+        compiler_version = node.format("{compiler.version}")
+
+        # Any jobs built on this PR will not have these attributes
+        # on the node, but are instead nodes themselves.
+        # https://github.com/spack/spack/pull/45189
+        if not compiler_name or not compiler_version:
+            continue
+
         specs.append(
             PackageSpecDimension(
                 name=node.name,

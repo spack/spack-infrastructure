@@ -336,12 +336,17 @@ class PrometheusClient:
             package_version = annotations[
                 "annotation_metrics_spack_job_spec_pkg_version"
             ]
-            compiler_name = annotations[
-                "annotation_metrics_spack_job_spec_compiler_name"
-            ]
-            compiler_version = annotations[
-                "annotation_metrics_spack_job_spec_compiler_version"
-            ]
+
+            # Any jobs built on this PR will not have these attributes
+            # on the node, but are instead nodes themselves.
+            # https://github.com/spack/spack/pull/45189
+            compiler_name = annotations.get(
+                "annotation_metrics_spack_job_spec_compiler_name", ""
+            )
+            compiler_version = annotations.get(
+                "annotation_metrics_spack_job_spec_compiler_version", ""
+            )
+
             arch = annotations["annotation_metrics_spack_job_spec_arch"]
             package_variants = annotations["annotation_metrics_spack_job_spec_variants"]
             job_size = labels["label_gitlab_ci_job_size"]
