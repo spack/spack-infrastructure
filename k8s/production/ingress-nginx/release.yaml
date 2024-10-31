@@ -70,6 +70,10 @@ spec:
           # NOTE(opadron): Set the idle timeout for the ingress LB
           "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout": "3600"
 
+          # Force the load balancer to only route traffic to Linux nodes.
+          # kube-proxy doesn't seem to work right on Windows nodes.
+          "service.beta.kubernetes.io/aws-load-balancer-target-node-labels": "kubernetes.io/os=linux"
+
         labels: {}
 
         enableHttp: true
