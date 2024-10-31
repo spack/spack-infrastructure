@@ -38,11 +38,20 @@ resource "aws_s3_bucket_policy" "bootstrap" {
         "Action" : [
           "s3:DeleteObject*",
           "s3:GetObject*",
-          "s3:ListBucket*",
           "s3:PutObject*"
         ],
         "Resource" : "arn:aws:s3:::${aws_s3_bucket.bootstrap.bucket}/pcluster/*"
+      },
+      {
+        "Sid" : "StephenSachsEnableSync",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : "arn:aws:iam::679174810898:root"
+        },
+        "Action" : "s3:ListBucket*",
+        "Resource" : "arn:aws:s3:::${aws_s3_bucket.bootstrap.bucket}"
       }
+
     ]
   })
 
