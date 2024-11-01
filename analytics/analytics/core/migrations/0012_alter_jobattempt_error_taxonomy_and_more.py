@@ -19,12 +19,14 @@ class Migration(migrations.Migration):
             name="error_taxonomy",
             field=models.CharField(max_length=64, null=True),
         ),
-        migrations.RunPython(set_error_taxonomy_to_null),
+        # migrations.RunPython(set_error_taxonomy_to_null),
         migrations.AddConstraint(
             model_name="jobattempt",
             constraint=models.CheckConstraint(
                 check=models.Q(
-                    ("status", "failed"), ("error_taxonomy__isnull", True), _connector="OR"
+                    ("status", "failed"),
+                    ("error_taxonomy__isnull", True),
+                    _connector="OR",
                 ),
                 name="error-taxonomy-only-on-failed",
             ),

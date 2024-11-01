@@ -20,9 +20,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(
-            remove_all_other_projects, reverse_code=migrations.RunPython.noop
-        ),
+        # migrations.RunPython(
+        #     remove_all_other_projects, reverse_code=migrations.RunPython.noop
+        # ),
         migrations.CreateModel(
             name="DateDimension",
             fields=[
