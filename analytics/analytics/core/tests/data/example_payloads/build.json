@@ -1,0 +1,99 @@
+{
+    "object_kind": "build",
+    "ref": "develop",
+    "tag": false,
+    "before_sha": "fb315c37ba048f43b9f32cdfe2ff792080c3bc27",
+    "sha": "b52e4fc65086e2a78295d93e619fd97f54ea7153",
+    "retries_count": 0,
+    "build_id": 12129728,
+    "build_name": "py-dasbus@1.7 /vnrnzvn %oneapi@2024.2.0 arch=linux-ubuntu22.04-x86_64_v3 E4S OneAPI",
+    "build_stage": "stage-24",
+    "build_status": "success",
+    "build_created_at": "2024-08-07 16:30:20 UTC",
+    "build_started_at": "2024-08-07 18:15:38 UTC",
+    "build_finished_at": "2024-08-07 18:23:07 UTC",
+    "build_duration": 449.038723,
+    "build_queued_duration": 0.601796,
+    "build_allow_failure": false,
+    "build_failure_reason": "unknown_failure",
+    "pipeline_id": 783813,
+    "runner": {
+        "id": 16518,
+        "description": "uo-picard-protected-small-medium-0",
+        "runner_type": "instance_type",
+        "active": true,
+        "is_shared": true,
+        "tags": [
+            "cpu",
+            "spack",
+            "uo",
+            "docker",
+            "x86_64",
+            "x86_64_v2",
+            "x86_64_v3",
+            "x86_64_v4",
+            "avx",
+            "avx2",
+            "avx512",
+            "picard",
+            "protected",
+            "small",
+            "medium"
+        ]
+    },
+    "project_id": 2,
+    "project_name": "spack / spack",
+    "user": {
+        "id": 3,
+        "name": "Spack Bot",
+        "username": "spackbot",
+        "avatar_url": "https://gitlab.spack.io/uploads/-/system/user/avatar/3/57643519.png",
+        "email": "[REDACTED]"
+    },
+    "commit": {
+        "id": 783813,
+        "name": null,
+        "sha": "b52e4fc65086e2a78295d93e619fd97f54ea7153",
+        "message": "libxcvt: new package (#44640)\n\n* Adding libxcvt package\r\n\r\nSigned-off-by: Teague Sterling <teaguesterling@gmail.com>\r\n\r\n* [@spackbot] updating style on behalf of teaguesterling\r\n\r\n* Update package.py\r\n\r\n* Update package.py\r\n\r\n* updating checksum after swithc to x.org mirror\r\n\r\nSigned-off-by: Teague Sterling <teaguesterling@gmail.com>\r\n\r\n---------\r\n\r\nSigned-off-by: Teague Sterling <teaguesterling@gmail.com>",
+        "author_name": "Teague Sterling",
+        "author_email": "[REDACTED]",
+        "author_url": "mailto:teaguesterling@users.noreply.github.com",
+        "status": "running",
+        "duration": null,
+        "started_at": "2024-08-07 16:30:38 UTC",
+        "finished_at": null
+    },
+    "repository": {
+        "name": "spack",
+        "url": "git@ssh.gitlab.spack.io:spack/spack.git",
+        "description": "",
+        "homepage": "https://gitlab.spack.io/spack/spack",
+        "git_http_url": "https://gitlab.spack.io/spack/spack.git",
+        "git_ssh_url": "git@ssh.gitlab.spack.io:spack/spack.git",
+        "visibility_level": 20
+    },
+    "project": {
+        "id": 2,
+        "name": "spack",
+        "description": "",
+        "web_url": "https://gitlab.spack.io/spack/spack",
+        "avatar_url": null,
+        "git_ssh_url": "git@ssh.gitlab.spack.io:spack/spack.git",
+        "git_http_url": "https://gitlab.spack.io/spack/spack.git",
+        "namespace": "spack",
+        "visibility_level": 20,
+        "path_with_namespace": "spack/spack",
+        "default_branch": "develop",
+        "ci_config_path": "share/spack/gitlab/cloud_pipelines/.gitlab-ci.yml"
+    },
+    "environment": null,
+    "source_pipeline": {
+        "project": {
+            "id": 2,
+            "web_url": "https://gitlab.spack.io/spack/spack",
+            "path_with_namespace": "spack/spack"
+        },
+        "job_id": 12129053,
+        "pipeline_id": 783755
+    }
+}
