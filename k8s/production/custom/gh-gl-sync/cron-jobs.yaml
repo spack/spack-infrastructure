@@ -47,6 +47,6 @@ spec:
               - "--main-branch"
               - "develop"
               - "--prereq-check"
-              - "prechecks / style"
+              - "all-prechecks"
           nodeSelector:
             spack.io/node-pool: base
