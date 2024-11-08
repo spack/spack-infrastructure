@@ -60,12 +60,26 @@ spec:
         targetCPUUtilizationPercentage: 50
         targetMemoryUtilizationPercentage: 50
 
+      extraArgs:
+        enable-ssl-passthrough: true
+
+      config:
+        use-proxy-protocol: "true"
+
       service:
         enabled: true
 
+        externalTrafficPolicy: Local
+
         annotations:
+          # Use a network load balancer instead of a classic load balancer
+          "service.beta.kubernetes.io/aws-load-balancer-type": "nlb"
+
           "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true"
           "nginx.ingress.kubernetes.io/proxy-body-size": "10m"
+
+          # Preserve the client IP address so that it is available to nginx
+          "service.beta.kubernetes.io/aws-load-balancer-target-group-attributes": preserve_client_ip.enabled=true
 
           # NOTE(opadron): Set the idle timeout for the ingress LB
           "service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout": "3600"
@@ -86,6 +100,8 @@ spec:
         targetPorts:
           http: http
           https: https
+
+        # externalTrafficPolicy: Local
 
         type: LoadBalancer
 
