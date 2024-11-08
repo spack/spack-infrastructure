@@ -123,6 +123,8 @@ resource "kubectl_manifest" "spack_gantry_config" {
               - type: s3
                 bucket: ${aws_s3_bucket.spack_gantry.id}
                 path: db
+                snapshot-interval: 12h
+                retention: 120h
   YAML
   depends_on = [
     aws_iam_role_policy_attachment.spack_gantry,
