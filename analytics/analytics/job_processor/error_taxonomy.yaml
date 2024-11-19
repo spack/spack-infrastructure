@@ -170,6 +170,7 @@ taxonomy:
         - 'must have a default provider in /builds/spack/spack/etc/spack/defaults/packages.yaml'
         - 'Error: .+ object has no attribute'
         - 'spack.error.InstallError'
+        - 'Traceback \(most recent call last\):[\S\n\t\v ]+AssertionError'
 
     invalid_pipeline_yaml:
       grep_for:
