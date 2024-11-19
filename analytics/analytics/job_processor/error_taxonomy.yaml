@@ -169,6 +169,7 @@ taxonomy:
         - 'cannot load package .+ from the .builtin. repository'
         - 'must have a default provider in /builds/spack/spack/etc/spack/defaults/packages.yaml'
         - 'Error: .+ object has no attribute'
+        - 'spack.error.InstallError'
 
     invalid_pipeline_yaml:
       grep_for:
