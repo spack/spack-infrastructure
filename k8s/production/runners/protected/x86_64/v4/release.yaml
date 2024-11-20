@@ -83,6 +83,7 @@ spec:
 
             cpu_request = "750m"
             cpu_request_overwrite_max_allowed = "16"
+            cpu_limit_overwrite_max_allowed = "32"
 
             memory_request = "2G"
             memory_request_overwrite_max_allowed = "64G"
