@@ -16,12 +16,57 @@ spec:
           restartPolicy: Never
           containers:
           - name: snapshot-release-tags
-            image: ghcr.io/spack/snapshot-release-tags:0.0.4
+            image: ghcr.io/spack/snapshot-release-tags:0.0.5
             imagePullPolicy: IfNotPresent
             resources:
               requests:
                 cpu: 500m
                 memory: 500M
+            command:
+              - "./snapshot_release_tags.py"
+            env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: github-public-repo-token
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
+          nodeSelector:
+            spack.io/node-pool: base
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: prune-snapshots
+  namespace: custom
+spec:
+  schedule: "0 22 * * 6" # 10pm on Saturday
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
+      backoffLimit: 0
+      template:
+        spec:
+          serviceAccountName: prune-snapshots
+          restartPolicy: Never
+          containers:
+          - name: snapshot-release-tags
+            image: ghcr.io/spack/snapshot-release-tags:0.0.5
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 500M
+            command:
+              - "./prune_snapshots.py"
+            args:
+              - "--keep-last-n"
+              - "8"
+              - "--mirror-root"
+              - "s3://spack-binaries"
             env:
             - name: GITHUB_TOKEN
               valueFrom:
