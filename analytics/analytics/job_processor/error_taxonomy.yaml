@@ -256,10 +256,6 @@ taxonomy:
     scheduler_failure: null
 
   deconflict_order:
-    # Network errors
-    - 'oidc_certificate_expired'
-    - 'network_timeout'
-    - 'network_error'
     # API Scrape erorrs
     - 'job_log_missing'
     # Spack Errors
@@ -285,6 +281,10 @@ taxonomy:
     - 'deprecated_stack_bug'
     - 'aborted_terminated'
     - 'bootstrap_patchelf_failure'
+    # Network errors
+    - 'oidc_certificate_expired'
+    - 'network_timeout'
+    - 'network_error'
     # System Errors
     - 'oom'
     - 'gitlab_down'
