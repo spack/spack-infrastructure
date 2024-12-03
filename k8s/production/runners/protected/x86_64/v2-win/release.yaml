@@ -20,7 +20,7 @@ spec:
     spec:
       chart: gitlab-runner
       # Note: ensure this stays in sync with the `helper_image` field below
-      version: 0.70.3 # gitlab-runner@17.5.3
+      version: 0.71.0 # gitlab-runner@17.6.0
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v2-prot-windows
