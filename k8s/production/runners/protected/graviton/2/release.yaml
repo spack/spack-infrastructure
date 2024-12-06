@@ -36,6 +36,7 @@ spec:
   values:
     imagePullPolicy: IfNotPresent
     replicas: 3
+    probeTimeoutSeconds: 70
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true

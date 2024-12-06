@@ -37,6 +37,7 @@ spec:
   values:
     imagePullPolicy: IfNotPresent
     replicas: 6
+    probeTimeoutSeconds: 70
 
     # TODO: change to production when ready
     gitlabUrl: "https://gitlab.spack.io/"
