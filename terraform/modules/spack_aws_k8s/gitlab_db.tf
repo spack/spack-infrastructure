@@ -1,3 +1,7 @@
+locals {
+  gitlab_db_username = "postgres"
+}
+
 resource "aws_db_subnet_group" "gitlab_db" {
   name       = "spack-gitlab${local.suffix}"
   subnet_ids = module.vpc.private_subnets
@@ -19,7 +23,7 @@ module "gitlab_db" {
   instance_class       = var.gitlab_db_instance_class
 
   db_name                     = "gitlabhq_production"
-  username                    = "postgres"
+  username                    = local.gitlab_db_username
   port                        = "5432"
   manage_master_user_password = false
   password                    = random_password.gitlab_db_password.result
@@ -62,6 +66,80 @@ module "postgres_security_group" {
   ]
 }
 
+# RDS Proxy (connection pooling)
+data "aws_kms_alias" "secretsmanager" {
+  name = "alias/aws/secretsmanager"
+}
+
+resource "aws_secretsmanager_secret" "gitlab_db" {
+  name        = "spack-gitlab${local.suffix}-db-proxy-credentials"
+  description = "GitLab database superuser, ${local.gitlab_db_username}, database connection values"
+  kms_key_id  = data.aws_kms_alias.secretsmanager.id
+}
+
+resource "aws_secretsmanager_secret_version" "gitlab_db" {
+  secret_id = aws_secretsmanager_secret.gitlab_db.id
+  secret_string = jsonencode({
+    username = local.gitlab_db_username
+    password = random_password.gitlab_db_password.result
+  })
+}
+
+
+module "gitlab_db_proxy" {
+  source  = "terraform-aws-modules/rds-proxy/aws"
+  version = "3.1.0"
+
+  name                   = "spack-gitlab${local.suffix}"
+  iam_role_name          = "spack-gitlab${local.suffix}-db-proxy-role"
+  vpc_subnet_ids         = module.vpc.private_subnets
+  vpc_security_group_ids = [module.gitlab_db_proxy_sg.security_group_id]
+
+  auth = {
+    (aws_secretsmanager_secret.gitlab_db.name) = {
+      auth_scheme               = "SECRETS"
+      client_password_auth_type = "POSTGRES_SCRAM_SHA_256"
+      description               = aws_secretsmanager_secret.gitlab_db.description
+      iam_auth                  = "DISABLED"
+      secret_arn                = aws_secretsmanager_secret.gitlab_db.arn
+    }
+  }
+
+  engine_family = "POSTGRESQL"
+  debug_logging = true
+
+  target_db_instance     = true
+  db_instance_identifier = module.gitlab_db.db_instance_identifier
+}
+
+
+module "gitlab_db_proxy_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "5.1.2"
+
+  name        = "spack-gitlab${local.suffix}-rds-proxy-sg"
+  description = "GitLab ${var.deployment_name} PostgreSQL RDS Proxy security group"
+  vpc_id      = module.vpc.vpc_id
+
+  revoke_rules_on_delete = true
+
+  ingress_with_cidr_blocks = [
+    {
+      description = "Private subnet PostgreSQL access"
+      rule        = "postgresql-tcp"
+      cidr_blocks = join(",", module.vpc.private_subnets_cidr_blocks)
+    }
+  ]
+
+  egress_with_cidr_blocks = [
+    {
+      description = "Database subnet PostgreSQL access"
+      rule        = "postgresql-tcp"
+      cidr_blocks = join(",", module.vpc.private_subnets_cidr_blocks)
+    },
+  ]
+}
+
 # AWS secrets for Postgres
 resource "kubectl_manifest" "gitlab_secrets" {
   # https://docs.gitlab.com/charts/charts/globals.html#connection
@@ -76,7 +154,7 @@ resource "kubectl_manifest" "gitlab_secrets" {
       values.yaml: |
         global:
           psql:
-            host: "${module.gitlab_db.db_instance_address}"
+            host: "${module.gitlab_db_proxy.proxy_endpoint}"
   YAML
 }
 
