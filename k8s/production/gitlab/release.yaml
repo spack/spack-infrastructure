@@ -116,6 +116,10 @@ spec:
           enabled: false
         packages:
           enabled: false
+        # The graphQL API can be slow to respond when querying for
+        # pipelines with many jobs, so we increase the timeout
+        # to 90 from its default of 30.
+        graphQlTimeout: 90
 
       antiAffinity: hard
     ### END OF GLOBAL SECTION
