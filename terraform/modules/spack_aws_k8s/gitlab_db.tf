@@ -13,7 +13,7 @@ resource "random_password" "gitlab_db_password" {
 
 module "gitlab_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "6.9.0"
+  version = "6.10.0"
 
   identifier = "spack-gitlab${local.suffix}"
 
@@ -49,7 +49,7 @@ module "gitlab_db" {
 
 module "postgres_security_group" {
   source  = "terraform-aws-modules/security-group/aws"
-  version = "5.1.2"
+  version = "5.2.0"
 
   name        = "spack-postgres${local.suffix}-sg"
   description = "Security group for RDS PostgreSQL database"
@@ -115,7 +115,7 @@ module "gitlab_db_proxy" {
 
 module "gitlab_db_proxy_sg" {
   source  = "terraform-aws-modules/security-group/aws"
-  version = "5.1.2"
+  version = "5.2.0"
 
   name        = "spack-gitlab${local.suffix}-rds-proxy-sg"
   description = "GitLab ${var.deployment_name} PostgreSQL RDS Proxy security group"

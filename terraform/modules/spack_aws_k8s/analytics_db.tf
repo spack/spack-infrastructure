@@ -10,7 +10,7 @@ resource "random_password" "analytics_db_password" {
 
 module "analytics_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "6.9.0"
+  version = "6.10.0"
 
   identifier = "spack-analytics${local.suffix}"
 
