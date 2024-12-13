@@ -10,7 +10,7 @@ resource "random_password" "cdash_db_password" {
 
 module "cdash_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "6.9.0"
+  version = "6.10.0"
 
   identifier = "spack-cdash${local.suffix}"
 
@@ -44,7 +44,7 @@ module "cdash_db" {
 
 module "mysql_security_group" {
   source  = "terraform-aws-modules/security-group/aws"
-  version = "5.1.2"
+  version = "5.2.0"
 
   name        = "mysql_sg"
   description = "Security group for RDS MySQL database"
