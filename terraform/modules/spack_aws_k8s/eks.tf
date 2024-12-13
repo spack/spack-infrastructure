@@ -105,43 +105,6 @@ module "eks" {
         }
       }
     }
-    windows_mng = {
-      platform = "windows"
-      ami_type = "WINDOWS_FULL_2022_x86_64"
-
-      instance_types = ["m5.2xlarge"]
-
-      scaling_config = {
-        min_size     = 2
-        max_size     = 2
-        desired_size = 2
-      }
-
-      taints = {
-        windows = {
-          key    = "windows"
-          value  = "true"
-          effect = "NO_SCHEDULE"
-        }
-        runner = {
-          key    = "spack.io/runner-taint"
-          value  = "true"
-          effect = "NO_SCHEDULE"
-        }
-      }
-
-      capacity_type = "ON_DEMAND"
-      block_device_mappings = {
-        sda1 = {
-          device_name = "/dev/sda1"
-          ebs = {
-            volume_size           = 200
-            volume_type           = "gp3"
-            delete_on_termination = true
-          }
-        }
-      }
-    }
   }
 
   node_security_group_name            = "${local.eks_cluster_name}-node-sg"
