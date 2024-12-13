@@ -204,5 +204,11 @@ spec:
     nodeSelector:
       spack.io/node-pool: base # pool for the runner
 
+    resources:
+      requests:
+        # Based on this prometheus query:
+        # sum by (pod) (container_memory_max_usage_bytes{namespace="gitlab", pod=~"runner-spack-package-signing.*"})
+        memory: 500M
+
     podAnnotations:
       karpenter.sh/do-not-disrupt: true
