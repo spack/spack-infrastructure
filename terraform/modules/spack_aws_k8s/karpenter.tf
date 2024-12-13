@@ -13,6 +13,12 @@ module "karpenter" {
   node_iam_role_name              = "KarpenterControllerNodeRole-${var.deployment_name}-${var.deployment_stage}"
   create_pod_identity_association = true
 
+  iam_role_policies = {
+    # Attach role that allows Karpenter to create instance profiles for Windows nodes.
+    # See comment above the aws_iam_policy resource below for more details.
+    "karpenter-windows-pass-role" = aws_iam_policy.karpenter_windows_pass_role.arn
+  }
+
   enable_v1_permissions = true
 }
 
@@ -126,11 +132,38 @@ module "karpenter_windows" {
   create_access_entry           = true
   access_entry_type             = "EC2_WINDOWS"
 
-  create_pod_identity_association = false
+  create_pod_identity_association = true
   enable_spot_termination         = false
   create_instance_profile         = false
-  create_iam_role                 = false
-  # iam_role_arn = module.karpenter.iam_role_arn
-  #
+  create_iam_role                 = false # we'll use the role created by the `karpenter` module above
+
   enable_v1_permissions = true
+}
+
+resource "aws_iam_policy" "karpenter_windows_pass_role" {
+  # This policy allows the Karpenter controller role to dynamically create instance profiles for
+  # Windows nodes. This is necessary because we have two instances of the Karpenter TF module -
+  # one for Linux nodes and one for Windows nodes. The Linux nodes module creates the controller
+  # role, so we reuse that role for the Windows module. The Windows module does *not* attach this
+  # policy to the controller role for us, so we need to do it here.
+  #
+  # The only place I could find documentation on this is the brief reference to the iam:PassRole
+  # action in the Karpenter CloudFormation deploy docs - https://karpenter.sh/v1.0/reference/cloudformation/#karpenternoderole
+  name        = "KarpenterInstanceProfilePolicyWindows-${var.deployment_name}-${var.deployment_stage}"
+  description = "Policy for Karpenter controller node role"
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Action" : "iam:PassRole",
+        "Condition" : {
+          "StringEquals" : {
+            "iam:PassedToService" : "ec2.amazonaws.com"
+          }
+        },
+        "Effect" : "Allow",
+        "Resource" : module.karpenter_windows.node_iam_role_arn
+      }
+    ]
+  })
 }
