@@ -8,6 +8,12 @@ from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import ProjectJob
 
 
+class JobArtifactDownloadFailed(Exception):
+    def __init__(self, job: ProjectJob) -> None:
+        message = f"Job {job.id} artifact download failed"
+        super().__init__(message)
+
+
 class JobArtifactFileNotFound(Exception):
     def __init__(self, job: ProjectJob, filename: str):
         message = f"File {filename} not found in job artifacts of job {job.id}"
@@ -37,7 +43,7 @@ def get_job_artifacts_file(job: ProjectJob, filename: str):
             with open(artifacts_file, "wb") as f:
                 job.artifacts(streamed=True, action=f.write)
         except GitlabGetError:
-            raise JobArtifactFileNotFound(job, filename)
+            raise JobArtifactDownloadFailed(job)
 
         # Open specific file within artifacts zip
         with zipfile.ZipFile(artifacts_file) as zfile:
