@@ -8,6 +8,7 @@ from django.conf import settings
 from gitlab.v4.objects import ProjectJob
 
 from analytics.job_processor.artifacts import (
+    JobArtifactDownloadFailed,
     JobArtifactFileNotFound,
     JobArtifactVariablesNotFound,
     get_job_artifacts_data,
@@ -180,7 +181,7 @@ def retrieve_job_info(gljob: ProjectJob, is_build: bool) -> JobInfo:
     # If the build is failed, this is not unexpected. Otherwise, raise the error
     try:
         artifacts = get_job_artifacts_data(gljob)
-    except (JobArtifactFileNotFound, JobArtifactVariablesNotFound):
+    except (JobArtifactDownloadFailed, JobArtifactFileNotFound, JobArtifactVariablesNotFound):
         if gljob.status == "failed":
             return JobInfo()
 
