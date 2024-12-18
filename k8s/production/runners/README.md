@@ -16,8 +16,7 @@ The `public` and `protected` runners provide multiple architectures and base OSs
   * `x86_64_v2`
   * `x86_64_v3`
   * `x86_64_v4`
-  * `graviton2`
-  * `graviton3`
+  * `neoverse_v1`
 
 ### Special Variables
 

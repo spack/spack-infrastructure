@@ -4,13 +4,11 @@ resources:
 - ../../production/runners/sealed-secrets.yaml
 - ../../production/runners/service-accounts.yaml
 - ../../production/runners/namespace.yaml
-- ../../production/runners/public/graviton/2/release.yaml
 - ../../production/runners/public/graviton/3/release.yaml
 - ../../production/runners/public/x86_64/v2/release.yaml
 - ../../production/runners/public/x86_64/v3/release.yaml
 - ../../production/runners/public/x86_64/v4/release.yaml
 - ../../production/runners/public/x86_64/v2-win/release.yaml
-- ../../production/runners/protected/graviton/2/release.yaml
 - ../../production/runners/protected/graviton/3/release.yaml
 - ../../production/runners/protected/x86_64/v2/release.yaml
 - ../../production/runners/protected/x86_64/v3/release.yaml
@@ -34,15 +32,6 @@ patches:
         value: AgCKxELkUvJn6kiM3qYso1hthNrxu0QglCpQUEzSpAQZxXRM9TAzVuKPvH7Ek4a4ce1ce2Qt2a6EWw3MuMilBsiAok0kwHidGBi1a4JgzIuv5f1mtBJFWUSH3dt9jvZbx8siRa0K8B62xJhSoGQiBTVvYXRg6apemAcfDbmvHm5v7DPiBxHf60r2Zbk/GBCdksLuQOrO9Rfzb/Kz8A3tRl0BazUBU5kF725pWi5ligTTiM+NKOmLBphpQuLgFRnyKs6LcuHnHFg1Ep3FChRFlq1kpHu/NfLAmV//1qZ9JtJZBCzXD9C4MUSFeiJn9mQM+akq+tOPhzsePebQP7Hfbbuxq01WQg7t9O4O/y/1J42pICrjIZEdZLZjaeleyEJ/KC9JpHeENMuqOjLoWe50gDDAbGq4PNRPdLwHb9r6VacgIjMIDya/B/0qPQ0c4JHth6VnFSd5yhBJ4QwOsyoEqVVrZ/2Qq3hrASKQwqw9ggLvXOzIkbrzj7ghOGFWDx0xk89bJ49ZWUxB+jMkUFcZfkwqoCdcxE0ani9uTJtSK40rGX6DIn+C6zpB2MWjDniAsNhnazKUwKVMv40f4ke2kEAq6AWtRqBD9ecw/c+nYWbtCFYDGHNWsSiGYYXBaqsqYd2q9QCM5mf/Wse7RlWsesUSWwM4d4Zi+G1Q15MJCSa+heO4fP4qg3ZxXK6qIxbePwy6Uyg5nCJ2edOYIf/cGorylYWVpw==
       - op: remove
         path: /spec/encryptedData/runner-token
-
-  - target:
-      kind: HelmRelease
-      name: runner-graviton2-pub
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
 
   - target:
       kind: HelmRelease
@@ -83,15 +72,6 @@ patches:
   - target:
       kind: HelmRelease
       name: runner-x86-v2-pub-windows
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
-
-  - target:
-      kind: HelmRelease
-      name: runner-graviton2-prot
       namespace: gitlab
     patch: |-
       - op: replace
