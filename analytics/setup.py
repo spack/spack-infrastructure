@@ -54,7 +54,7 @@ setup(
         "sentry-sdk[django,pure_eval]",
         "rich",
         "psycopg2-binary",
-        "python-gitlab",
+        "python-gitlab>=5.2.0",
         "pyyaml",
         "requests",
         "whitenoise[brotli]",
