@@ -94,7 +94,7 @@ class Migration(migrations.Migration):
             ],
         ),
         # Remove any instances of a `null` aws field before making it non-nullable
-        migrations.RunPython(remove_null_aws),
+        # migrations.RunPython(remove_null_aws),
         migrations.AlterField(
             model_name="job",
             name="aws",
@@ -110,7 +110,7 @@ class Migration(migrations.Migration):
             field=models.DurationField(default=timedelta),
             preserve_default=False,
         ),
-        migrations.RunPython(transfer_duration),
+        # migrations.RunPython(transfer_duration),
         migrations.RemoveField(
             model_name="job",
             name="duration",
