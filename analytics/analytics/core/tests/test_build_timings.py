@@ -1,11 +1,18 @@
 import json
+import pickle
+from pathlib import Path
 
 import pytest
 
 from analytics.core.job_log_uploader import store_job_data
-from analytics.core.models.dimensions import JobDataDimension
+from analytics.core.models.dimensions import (
+    JobDataDimension,
+    PackageDimension,
+    PackageSpecDimension,
+)
 from analytics.core.models.facts import JobFact
 from analytics.job_processor import process_job
+from analytics.job_processor.build_timings import create_packages_and_specs
 
 
 @pytest.fixture()
@@ -57,3 +64,30 @@ def test_process_job_unnecessary_jobs(request, job_json_string, unnecessary):
 @pytest.mark.django_db
 def test_upload_job_logs(build_json_string):
     store_job_data(build_json_string)
+
+
+@pytest.mark.django_db
+def test_create_packages_and_specs(mocker):
+    spec_json_path = Path(__file__).parent / "data" / "spec.json"
+    with open(spec_json_path) as f:
+        spec_json = json.load(f)
+
+    picked_job_path = Path(__file__).parent / "data" / "job.pkl"
+    with open(picked_job_path, "rb") as f:
+        gl_job = pickle.load(f)
+
+    mock = mocker.patch("analytics.job_processor.build_timings.get_spec_json")
+    mock.return_value = spec_json
+
+    # Ensure only empty package and package specs exist
+    assert not PackageDimension.objects.exclude(name="").exists()
+    assert not PackageSpecDimension.objects.exclude(hash="").exists()
+
+    create_packages_and_specs(gl_job)
+
+    assert PackageDimension.objects.exclude(name="").count() == len(
+        spec_json["spec"]["nodes"]
+    )
+    assert PackageSpecDimension.objects.exclude(hash="").count() == len(
+        spec_json["spec"]["nodes"]
+    )

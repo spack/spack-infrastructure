@@ -1,0 +1,3663 @@
+{
+    "spec": {
+        "_meta": {
+            "version": 4
+        },
+        "nodes": [
+            {
+                "name": "nccl",
+                "version": "2.23.4-1",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "makefile",
+                    "cuda": true,
+                    "cuda_arch": [
+                        "80"
+                    ],
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "scvi5gbfmutddp4t6dh7mluiixpt7myztx4fvnsylhambdjrnlga====",
+                "dependencies": [
+                    {
+                        "name": "cuda",
+                        "hash": "25oqowvydx5xagyhsawoc6vhtqrrcylf",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "rdma-core",
+                        "hash": "w27tldf2r54mx2o3jno7csnnfyuz4buz",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "qex2pp7sjljustgxpu3bkfwxlpi4fngs"
+            },
+            {
+                "name": "cuda",
+                "version": "12.6.3",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "allow-unsupported-compilers": false,
+                    "build_system": "generic",
+                    "dev": false,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "tpszykzq5d7f4cbxswknicahnq6yjhdvxdxeczx2vuihkz3uno7a====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "libxml2",
+                        "hash": "ta6vmwl2irwzcjwg2ydbl7mdhhfywqub",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "25oqowvydx5xagyhsawoc6vhtqrrcylf"
+            },
+            {
+                "name": "gcc-runtime",
+                "version": "13.2.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "4h323feaud46fenykfttobmhylljxnneuct3aewqlr57imcar4ka====",
+                "dependencies": [
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii"
+            },
+            {
+                "name": "glibc",
+                "version": "2.39",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "external": {
+                    "path": "/usr",
+                    "module": null,
+                    "extra_attributes": {}
+                },
+                "package_hash": "25tj5wl7gil5nxhhfysfoef4x2hzf52n5eg4krohjeyw4o55r4vq====",
+                "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp"
+            },
+            {
+                "name": "libxml2",
+                "version": "2.13.4",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "pic": true,
+                    "python": false,
+                    "shared": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "6jx45feizoruipwccklg7pizfosybiwplmw7hbe5yoouans5tjgq====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "libiconv",
+                        "hash": "fs6as7zu3juuur54ctcpgchsdjmqgjiw",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "iconv"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "pkgconf",
+                        "hash": "yyi56fjqqdzfevxjcwxilnznhmwofqfp",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": [
+                                "pkgconfig"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "xz",
+                        "hash": "xb66jgzxu3xgxrgihs4eza53dlpn7hdn",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "zlib-ng",
+                        "hash": "n7ykdkjf3iy2nv5cghngbc3g5gxr64ey",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "zlib-api"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "ta6vmwl2irwzcjwg2ydbl7mdhhfywqub"
+            },
+            {
+                "name": "gmake",
+                "version": "4.4.1",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "guile": false,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "rpzjfobv7qh3wevti34nlbd2emtw5mnyszqmkyiq5jiq33xm7qzq====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t"
+            },
+            {
+                "name": "libiconv",
+                "version": "1.17",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "libs": [
+                        "shared",
+                        "static"
+                    ],
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "ujsqmcknrabka5mhwwpbaf5rwxgopwoyxkskuwyqlcbynowgdvfa====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "fs6as7zu3juuur54ctcpgchsdjmqgjiw"
+            },
+            {
+                "name": "pkgconf",
+                "version": "2.2.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "gl6tpyarjlclzsal6wa4dtc7cdzprq36nbibalai4a6wgzblrseq====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "yyi56fjqqdzfevxjcwxilnznhmwofqfp"
+            },
+            {
+                "name": "xz",
+                "version": "5.4.6",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "libs": [
+                        "shared",
+                        "static"
+                    ],
+                    "pic": false,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "zt5vu2vph2v2qjwgdbe7btgcz7axpyalorcsqiuxhrg5grwgrrvq====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "xb66jgzxu3xgxrgihs4eza53dlpn7hdn"
+            },
+            {
+                "name": "zlib-ng",
+                "version": "2.2.1",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "compat": true,
+                    "new_strategies": true,
+                    "opt": true,
+                    "pic": true,
+                    "shared": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "quz4bvg6rlq2dfiuiolv46jb4y5figqhm2e3ky26ogmduaabs23a====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "n7ykdkjf3iy2nv5cghngbc3g5gxr64ey"
+            },
+            {
+                "name": "rdma-core",
+                "version": "52.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "cmake",
+                    "build_type": "Release",
+                    "generator": "make",
+                    "ipo": false,
+                    "man_pages": true,
+                    "patches": [
+                        "4dec4ad0e01f3bad73163c4ca691189264f2cd437a0673230407b4a31a2a9c46"
+                    ],
+                    "pyverbs": true,
+                    "static": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "patches": [
+                    "4dec4ad0e01f3bad73163c4ca691189264f2cd437a0673230407b4a31a2a9c46"
+                ],
+                "package_hash": "ntgamuuuukmewyj4cw7oigbeow3hrrzjivlzpvrqlcxwyyl2saoq====",
+                "dependencies": [
+                    {
+                        "name": "cmake",
+                        "hash": "q2fcr3d5cj5f5h7abp6glckr36o4crb2",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "libnl",
+                        "hash": "wtmf3fpyqcyjezysc5nq75djj36lnaea",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "pkgconf",
+                        "hash": "yyi56fjqqdzfevxjcwxilnznhmwofqfp",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": [
+                                "pkgconfig"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "py-docutils",
+                        "hash": "6uj55vy4e7e7guz6tb3iia5wv4uaaqz7",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "w27tldf2r54mx2o3jno7csnnfyuz4buz"
+            },
+            {
+                "name": "cmake",
+                "version": "3.31.2",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "build_type": "Release",
+                    "doc": false,
+                    "ncurses": true,
+                    "ownlibs": true,
+                    "qtgui": false,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "jbrd7fuvjusq7rk6ineyb4rqf6hcvor7er2sapcr6whfrsd5zcja====",
+                "dependencies": [
+                    {
+                        "name": "curl",
+                        "hash": "kagnjx74qbmjln5shwip7wwfcjnyemk7",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "ncurses",
+                        "hash": "gj2mvbjea2sqyyxndwqe6xjkwwqtuws2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "zlib-ng",
+                        "hash": "n7ykdkjf3iy2nv5cghngbc3g5gxr64ey",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "zlib-api"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "q2fcr3d5cj5f5h7abp6glckr36o4crb2"
+            },
+            {
+                "name": "curl",
+                "version": "8.10.1",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "gssapi": false,
+                    "ldap": false,
+                    "libidn2": false,
+                    "librtmp": false,
+                    "libs": [
+                        "shared",
+                        "static"
+                    ],
+                    "libssh": false,
+                    "libssh2": false,
+                    "nghttp2": true,
+                    "tls": [
+                        "openssl"
+                    ],
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "ccka5yawqcn2rjbqn3bkhkdjoajlngm5uab7jbyrsl5yqn42ofza====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "nghttp2",
+                        "hash": "5oof67mzpcf3lvvm7saobilhfstwds64",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "openssl",
+                        "hash": "mhpnbyeemrieckmc4em3gzxuwecsu2sd",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "pkgconf",
+                        "hash": "yyi56fjqqdzfevxjcwxilnznhmwofqfp",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": [
+                                "pkgconfig"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "zlib-ng",
+                        "hash": "n7ykdkjf3iy2nv5cghngbc3g5gxr64ey",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "zlib-api"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "kagnjx74qbmjln5shwip7wwfcjnyemk7"
+            },
+            {
+                "name": "nghttp2",
+                "version": "1.64.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "nkykfkj4rxzmysrmoh5mhxrl5ysaemlqh652m3he7pkbgvjhjgba====",
+                "dependencies": [
+                    {
+                        "name": "diffutils",
+                        "hash": "i63y4dzrhpqurjjnxiu3jq2ewmlfuwbq",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "pkgconf",
+                        "hash": "yyi56fjqqdzfevxjcwxilnznhmwofqfp",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": [
+                                "pkgconfig"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "5oof67mzpcf3lvvm7saobilhfstwds64"
+            },
+            {
+                "name": "diffutils",
+                "version": "3.10",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "kbmzdy7mgklc24qx55cvx7kq7hceby2yav4fnf64gfdo7epdghwa====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "libiconv",
+                        "hash": "fs6as7zu3juuur54ctcpgchsdjmqgjiw",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "iconv"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "i63y4dzrhpqurjjnxiu3jq2ewmlfuwbq"
+            },
+            {
+                "name": "openssl",
+                "version": "3.4.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "certs": "mozilla",
+                    "docs": false,
+                    "shared": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "4wvg5excvcdz7cmz3bfr2l7tc6bs6ccmnk6qpx6nx762srqssjhq====",
+                "dependencies": [
+                    {
+                        "name": "ca-certificates-mozilla",
+                        "hash": "upssdnvdygegh6veptzee6covu3vcuj4",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "perl",
+                        "hash": "q5j47g2fkhusjsszgpxgr7rrrpktapzn",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "zlib-ng",
+                        "hash": "n7ykdkjf3iy2nv5cghngbc3g5gxr64ey",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "zlib-api"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "mhpnbyeemrieckmc4em3gzxuwecsu2sd"
+            },
+            {
+                "name": "ca-certificates-mozilla",
+                "version": "2023-05-30",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "63npvwqwo2x7i6emvnklh4mhcn45gx2qzveorybh5h2inwr55sea====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "upssdnvdygegh6veptzee6covu3vcuj4"
+            },
+            {
+                "name": "perl",
+                "version": "5.40.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "cpanm": true,
+                    "opcode": true,
+                    "open": true,
+                    "shared": true,
+                    "threads": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "4eab4agrxfcjxfuqvyyvi774safxxcxprmajfiytehiwjduagaxa====",
+                "dependencies": [
+                    {
+                        "name": "berkeley-db",
+                        "hash": "fq3tg6f3rioz7jhovbrfsfkzursomise",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "bzip2",
+                        "hash": "poiu7f4dbtb2l3tmsudeenncmo74z7wy",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gdbm",
+                        "hash": "yin34ka74g44g4qlawhdzexkp7xmqjxh",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "zlib-ng",
+                        "hash": "n7ykdkjf3iy2nv5cghngbc3g5gxr64ey",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "zlib-api"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "q5j47g2fkhusjsszgpxgr7rrrpktapzn"
+            },
+            {
+                "name": "berkeley-db",
+                "version": "18.1.40",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cxx": true,
+                    "docs": false,
+                    "patches": [
+                        "26090f418891757af46ac3b89a9f43d6eb5989f7a3dce3d1cfc99fba547203b3",
+                        "b231fcc4d5cff05e5c3a4814f6a5af0e9a966428dc2176540d2c05aff41de522"
+                    ],
+                    "stl": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "patches": [
+                    "b231fcc4d5cff05e5c3a4814f6a5af0e9a966428dc2176540d2c05aff41de522",
+                    "26090f418891757af46ac3b89a9f43d6eb5989f7a3dce3d1cfc99fba547203b3"
+                ],
+                "package_hash": "h57ydfn33zevvzctzzioiiwjwe362izbbwncb6a26dfeno4y7tda====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "fq3tg6f3rioz7jhovbrfsfkzursomise"
+            },
+            {
+                "name": "bzip2",
+                "version": "1.0.8",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "debug": false,
+                    "pic": false,
+                    "shared": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "jb7yvhkifmvfl3ykmdulsjxkkulker6gqb5tadollyjt2ijg3zsa====",
+                "dependencies": [
+                    {
+                        "name": "diffutils",
+                        "hash": "i63y4dzrhpqurjjnxiu3jq2ewmlfuwbq",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "poiu7f4dbtb2l3tmsudeenncmo74z7wy"
+            },
+            {
+                "name": "gdbm",
+                "version": "1.23",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "liepxl6phlcxbgfmibxafhewtihlgaa4x3hko37ckqlafhxkrgdq====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "readline",
+                        "hash": "4s6kqosqq6ralkvo3ho37iuxmv4r47ut",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "yin34ka74g44g4qlawhdzexkp7xmqjxh"
+            },
+            {
+                "name": "readline",
+                "version": "8.2",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "patches": [
+                        "bbf97f1ec40a929edab5aa81998c1e2ef435436c597754916e6a5868f273aff7"
+                    ],
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "patches": [
+                    "bbf97f1ec40a929edab5aa81998c1e2ef435436c597754916e6a5868f273aff7"
+                ],
+                "package_hash": "oww6dmr7xqgg6j7iiluonxbcl4irqnnrip4vfkjdwujncwnuhwuq====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "ncurses",
+                        "hash": "gj2mvbjea2sqyyxndwqe6xjkwwqtuws2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "4s6kqosqq6ralkvo3ho37iuxmv4r47ut"
+            },
+            {
+                "name": "ncurses",
+                "version": "6.5",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "abi": "none",
+                    "build_system": "autotools",
+                    "patches": [
+                        "7a351bc4953a4ab70dabdbea31c8db0c03d40ce505335f3b6687180dde24c535"
+                    ],
+                    "symlinks": false,
+                    "termlib": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "patches": [
+                    "7a351bc4953a4ab70dabdbea31c8db0c03d40ce505335f3b6687180dde24c535"
+                ],
+                "package_hash": "rlqzqxoau3wwzu62x6qxlf4flon6b4n3p4zesnc6t2oyybrvnkwq====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "pkgconf",
+                        "hash": "yyi56fjqqdzfevxjcwxilnznhmwofqfp",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": [
+                                "pkgconfig"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "gj2mvbjea2sqyyxndwqe6xjkwwqtuws2"
+            },
+            {
+                "name": "libnl",
+                "version": "3.3.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "e2jvahqnici3rge7p77mul4hu347far2sftgpqoejakis5qtu53a====",
+                "dependencies": [
+                    {
+                        "name": "bison",
+                        "hash": "5ezm2uxr7qf3oxlhcbhwzio42ia5w3jh",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "flex",
+                        "hash": "pocs5vfruv33hy5cn3dms4sqt2goatzi",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "m4",
+                        "hash": "a4apafre6pepauljdo472sm3t4nd7kwx",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "wtmf3fpyqcyjezysc5nq75djj36lnaea"
+            },
+            {
+                "name": "bison",
+                "version": "3.8.2",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "color": false,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "d4j62fwvuxqbiez32ltjnhu47ac425wjebsy6fhoptv6saxazcxq====",
+                "dependencies": [
+                    {
+                        "name": "diffutils",
+                        "hash": "i63y4dzrhpqurjjnxiu3jq2ewmlfuwbq",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "m4",
+                        "hash": "a4apafre6pepauljdo472sm3t4nd7kwx",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "5ezm2uxr7qf3oxlhcbhwzio42ia5w3jh"
+            },
+            {
+                "name": "m4",
+                "version": "1.4.19",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "patches": [
+                        "9dc5fbd0d5cb1037ab1e6d0ecc74a30df218d0a94bdd5a02759a97f62daca573",
+                        "bfdffa7c2eb01021d5849b36972c069693654ad826c1a20b53534009a4ec7a89"
+                    ],
+                    "sigsegv": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "patches": [
+                    "bfdffa7c2eb01021d5849b36972c069693654ad826c1a20b53534009a4ec7a89",
+                    "9dc5fbd0d5cb1037ab1e6d0ecc74a30df218d0a94bdd5a02759a97f62daca573"
+                ],
+                "package_hash": "npb7a53yz7wqx4nvnasxwgzxaoiks6sdjz2eugrgkjxs4ml24xea====",
+                "dependencies": [
+                    {
+                        "name": "diffutils",
+                        "hash": "i63y4dzrhpqurjjnxiu3jq2ewmlfuwbq",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "libsigsegv",
+                        "hash": "nvvx5o2swn3ii5btwucjd3cnsj3w466e",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "a4apafre6pepauljdo472sm3t4nd7kwx"
+            },
+            {
+                "name": "libsigsegv",
+                "version": "2.14",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "3s645t5rbjrziao47mhgob5xgymot6tf4kalagflbal2jdamdo2a====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "nvvx5o2swn3ii5btwucjd3cnsj3w466e"
+            },
+            {
+                "name": "flex",
+                "version": "2.6.3",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "lex": true,
+                    "nls": false,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "26sld6ui4fnynukhkuxko7mzit7iewyzpx3joi6fbbt5s6xqzocq====",
+                "dependencies": [
+                    {
+                        "name": "bison",
+                        "hash": "5ezm2uxr7qf3oxlhcbhwzio42ia5w3jh",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "diffutils",
+                        "hash": "i63y4dzrhpqurjjnxiu3jq2ewmlfuwbq",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "findutils",
+                        "hash": "m47zbx4o67bm7rrolkgvvzuwe6aa7m33",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "m4",
+                        "hash": "a4apafre6pepauljdo472sm3t4nd7kwx",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "pocs5vfruv33hy5cn3dms4sqt2goatzi"
+            },
+            {
+                "name": "findutils",
+                "version": "4.10.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "patches": [
+                        "440b9543365b4692a2e6e0b5674809659846658d34d1dfc542c4397c8d668b92"
+                    ],
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "patches": [
+                    "440b9543365b4692a2e6e0b5674809659846658d34d1dfc542c4397c8d668b92"
+                ],
+                "package_hash": "ahokestwicme3ufmt4i44jmhebaaqki356gxv6c32vddbss76f6q====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gettext",
+                        "hash": "klbkzxbagmlo2ltgdrwznxqdwbg6ig3a",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "m47zbx4o67bm7rrolkgvvzuwe6aa7m33"
+            },
+            {
+                "name": "gettext",
+                "version": "0.22.5",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "bzip2": true,
+                    "curses": true,
+                    "git": true,
+                    "libunistring": false,
+                    "libxml2": true,
+                    "pic": true,
+                    "shared": true,
+                    "tar": true,
+                    "xz": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "d4zxhmw6rownaaokzcolsszrq2cmx44m7qmzopucymoyrhbdfgvq====",
+                "dependencies": [
+                    {
+                        "name": "bzip2",
+                        "hash": "poiu7f4dbtb2l3tmsudeenncmo74z7wy",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "libiconv",
+                        "hash": "fs6as7zu3juuur54ctcpgchsdjmqgjiw",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "iconv"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "libxml2",
+                        "hash": "ta6vmwl2irwzcjwg2ydbl7mdhhfywqub",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "ncurses",
+                        "hash": "gj2mvbjea2sqyyxndwqe6xjkwwqtuws2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "tar",
+                        "hash": "wpq7lcm5li5x7kfyzqgz4j3osjtpqbkx",
+                        "parameters": {
+                            "deptypes": [
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "xz",
+                        "hash": "xb66jgzxu3xgxrgihs4eza53dlpn7hdn",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "klbkzxbagmlo2ltgdrwznxqdwbg6ig3a"
+            },
+            {
+                "name": "tar",
+                "version": "1.35",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "zip": "pigz",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "v6a6jvks2setklucxyk622uauxzqlgmsdkrvdijbi3m5jwftmzla====",
+                "dependencies": [
+                    {
+                        "name": "bzip2",
+                        "hash": "poiu7f4dbtb2l3tmsudeenncmo74z7wy",
+                        "parameters": {
+                            "deptypes": [
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "libiconv",
+                        "hash": "fs6as7zu3juuur54ctcpgchsdjmqgjiw",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "iconv"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "pigz",
+                        "hash": "ckvxhb223iy22dbo5jas4obnwa35iqmv",
+                        "parameters": {
+                            "deptypes": [
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "xz",
+                        "hash": "xb66jgzxu3xgxrgihs4eza53dlpn7hdn",
+                        "parameters": {
+                            "deptypes": [
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "zstd",
+                        "hash": "xzzx6qz4tzjwqpcanf6er6zgpjtkgj6q",
+                        "parameters": {
+                            "deptypes": [
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "wpq7lcm5li5x7kfyzqgz4j3osjtpqbkx"
+            },
+            {
+                "name": "pigz",
+                "version": "2.8",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "makefile",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "4w67lflje4giekjg4ie2vpyuiunjcumo6geofykvon3hodllp42q====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "zlib-ng",
+                        "hash": "n7ykdkjf3iy2nv5cghngbc3g5gxr64ey",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "zlib-api"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "ckvxhb223iy22dbo5jas4obnwa35iqmv"
+            },
+            {
+                "name": "zstd",
+                "version": "1.5.6",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "makefile",
+                    "compression": [
+                        "none"
+                    ],
+                    "libs": [
+                        "shared",
+                        "static"
+                    ],
+                    "programs": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "uvmrov4c6unft6o4yd3jk3uqvweua3uhwdli4sw7h5wvklaf5t3q====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "xzzx6qz4tzjwqpcanf6er6zgpjtkgj6q"
+            },
+            {
+                "name": "py-docutils",
+                "version": "0.20.1",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "python_pip",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "qwsjhtjethgpasaih6ylpptn2t5k2d2qqxy3knafi3admje3ry3q====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "py-pip",
+                        "hash": "42o4f5a3ddwni6dgzb6vkcm7r5gqqdom",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "py-setuptools",
+                        "hash": "vobw3dc7hlv4vyikh3aal4gieowgnlzo",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "py-wheel",
+                        "hash": "mrsr7hkctqocm6vo4pn6unurusdch5oo",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "python",
+                        "hash": "5echrvpj3s5r26k6tsojdrin6rsit2j2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "python-venv",
+                        "hash": "2qitmnrt2fk57lqu3eigcou3qzvbd3en",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "6uj55vy4e7e7guz6tb3iia5wv4uaaqz7"
+            },
+            {
+                "name": "py-pip",
+                "version": "24.3.1",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "xvpudvkaui26psfdsdswmamhf5jadt2fmqavrcpn3bjb4jt6fnwa====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "python",
+                        "hash": "5echrvpj3s5r26k6tsojdrin6rsit2j2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "python-venv",
+                        "hash": "2qitmnrt2fk57lqu3eigcou3qzvbd3en",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "42o4f5a3ddwni6dgzb6vkcm7r5gqqdom"
+            },
+            {
+                "name": "python",
+                "version": "3.13.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "bz2": true,
+                    "ctypes": true,
+                    "dbm": true,
+                    "debug": false,
+                    "libxml2": true,
+                    "lzma": true,
+                    "optimizations": false,
+                    "pic": true,
+                    "pyexpat": true,
+                    "pythoncmd": true,
+                    "readline": true,
+                    "shared": true,
+                    "sqlite3": true,
+                    "ssl": true,
+                    "tkinter": false,
+                    "uuid": true,
+                    "zlib": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "agw6ctodvtrcn547bai35id72viwbirio6ya5ysdgs2xxelbcydq====",
+                "dependencies": [
+                    {
+                        "name": "bzip2",
+                        "hash": "poiu7f4dbtb2l3tmsudeenncmo74z7wy",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "expat",
+                        "hash": "qiqjpoajlmk3dljqac7ikkzyvxnib2hm",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gdbm",
+                        "hash": "yin34ka74g44g4qlawhdzexkp7xmqjxh",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "gettext",
+                        "hash": "klbkzxbagmlo2ltgdrwznxqdwbg6ig3a",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "libffi",
+                        "hash": "wglern5v7r222oxpvzu7553xfnzj2n2o",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "ncurses",
+                        "hash": "gj2mvbjea2sqyyxndwqe6xjkwwqtuws2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "openssl",
+                        "hash": "mhpnbyeemrieckmc4em3gzxuwecsu2sd",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "pkgconf",
+                        "hash": "yyi56fjqqdzfevxjcwxilnznhmwofqfp",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": [
+                                "pkgconfig"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "readline",
+                        "hash": "4s6kqosqq6ralkvo3ho37iuxmv4r47ut",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "sqlite",
+                        "hash": "kc4vp6flhutzzvgawg3uzegitv2dckis",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "util-linux-uuid",
+                        "hash": "2c6kdfwtcbrf4u6kk4fovwwq5edegbzb",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "uuid"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "xz",
+                        "hash": "xb66jgzxu3xgxrgihs4eza53dlpn7hdn",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "zlib-ng",
+                        "hash": "n7ykdkjf3iy2nv5cghngbc3g5gxr64ey",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "zlib-api"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "5echrvpj3s5r26k6tsojdrin6rsit2j2"
+            },
+            {
+                "name": "expat",
+                "version": "2.6.4",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "libbsd": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "ei6qyjakl7sgtodwxxbg5brgkp23robfximtpbedkrnpyyyvr3ya====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "libbsd",
+                        "hash": "nihyhwwawxkybrvltjzdtfwcfecete3l",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "qiqjpoajlmk3dljqac7ikkzyvxnib2hm"
+            },
+            {
+                "name": "libbsd",
+                "version": "0.12.2",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "debyg3en7sgggswkdhcyd6lbp7arawzmyujthyyuaiad5jqd5msa====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "libmd",
+                        "hash": "3vl7iw4e4u46fp3bdvu6weqlvatgqsh2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "nihyhwwawxkybrvltjzdtfwcfecete3l"
+            },
+            {
+                "name": "libmd",
+                "version": "1.0.4",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "zs2e7fqr4dzthpj5fascqvfn7xcahf7dtc5bzdwfv6vqkzi7oncq====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "3vl7iw4e4u46fp3bdvu6weqlvatgqsh2"
+            },
+            {
+                "name": "libffi",
+                "version": "3.4.6",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "umhsnvoj5ooa3glffnkk2hp3txmrsjvqbpfq2hbk4mhcvhza7gaa====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "wglern5v7r222oxpvzu7553xfnzj2n2o"
+            },
+            {
+                "name": "sqlite",
+                "version": "3.46.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "column_metadata": true,
+                    "dynamic_extensions": true,
+                    "fts": true,
+                    "functions": false,
+                    "rtree": true,
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "wm3irnrjil5n275nw2m4x3mpvyg35h7isbmsnuae6vtxbamsrv4q====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "readline",
+                        "hash": "4s6kqosqq6ralkvo3ho37iuxmv4r47ut",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "zlib-ng",
+                        "hash": "n7ykdkjf3iy2nv5cghngbc3g5gxr64ey",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "link"
+                            ],
+                            "virtuals": [
+                                "zlib-api"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "kc4vp6flhutzzvgawg3uzegitv2dckis"
+            },
+            {
+                "name": "util-linux-uuid",
+                "version": "2.40.2",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "autotools",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "eo6au7zhsz344imzoomhuskbl3cmrqq6ja6mcmrc3li3fnppqs6q====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "gmake",
+                        "hash": "uytc2mw6fm6ydrdld4x2cprzdlep6r2t",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "pkgconf",
+                        "hash": "yyi56fjqqdzfevxjcwxilnznhmwofqfp",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": [
+                                "pkgconfig"
+                            ]
+                        }
+                    }
+                ],
+                "hash": "2c6kdfwtcbrf4u6kk4fovwwq5edegbzb"
+            },
+            {
+                "name": "python-venv",
+                "version": "1.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "j3dgyzp5nei24fbpw22l3gedsk37asrdrjafbnaiwiux3lxasi3a====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "python",
+                        "hash": "5echrvpj3s5r26k6tsojdrin6rsit2j2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "2qitmnrt2fk57lqu3eigcou3qzvbd3en"
+            },
+            {
+                "name": "py-setuptools",
+                "version": "69.2.0",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "ll5tejomtcuqstqmm7assipcezt6t56brk3x26cdp5qk3s2nkkfa====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "py-pip",
+                        "hash": "42o4f5a3ddwni6dgzb6vkcm7r5gqqdom",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "python",
+                        "hash": "5echrvpj3s5r26k6tsojdrin6rsit2j2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "python-venv",
+                        "hash": "2qitmnrt2fk57lqu3eigcou3qzvbd3en",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "vobw3dc7hlv4vyikh3aal4gieowgnlzo"
+            },
+            {
+                "name": "py-wheel",
+                "version": "0.41.2",
+                "arch": {
+                    "platform": "linux",
+                    "platform_os": "ubuntu24.04",
+                    "target": "x86_64_v3"
+                },
+                "compiler": {
+                    "name": "gcc",
+                    "version": "13.2.0"
+                },
+                "namespace": "builtin",
+                "parameters": {
+                    "build_system": "generic",
+                    "cflags": [],
+                    "cppflags": [],
+                    "cxxflags": [],
+                    "fflags": [],
+                    "ldflags": [],
+                    "ldlibs": []
+                },
+                "package_hash": "aer5xkqhwcpanldjnp2djwbsgpgfiwl5may2zcz234arnfaba46q====",
+                "dependencies": [
+                    {
+                        "name": "gcc-runtime",
+                        "hash": "5eriby3ojcbz5a5f52qqx3thilau5tii",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "glibc",
+                        "hash": "p6ms6su2thgsdnlv5wqzpdfi6jjiiuyp",
+                        "parameters": {
+                            "deptypes": [
+                                "link"
+                            ],
+                            "virtuals": [
+                                "libc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "py-pip",
+                        "hash": "42o4f5a3ddwni6dgzb6vkcm7r5gqqdom",
+                        "parameters": {
+                            "deptypes": [
+                                "build"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "python",
+                        "hash": "5echrvpj3s5r26k6tsojdrin6rsit2j2",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    },
+                    {
+                        "name": "python-venv",
+                        "hash": "2qitmnrt2fk57lqu3eigcou3qzvbd3en",
+                        "parameters": {
+                            "deptypes": [
+                                "build",
+                                "run"
+                            ],
+                            "virtuals": []
+                        }
+                    }
+                ],
+                "hash": "mrsr7hkctqocm6vo4pn6unurusdch5oo"
+            }
+        ]
+    }
+}
