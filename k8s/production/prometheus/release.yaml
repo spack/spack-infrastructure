@@ -20,7 +20,7 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: 67.2.0 # prometheus-operator@v0.79.0, grafana@8.8.*
+      version: 67.5.0 # prometheus-operator@v0.79.2, grafana@8.8.*
       sourceRef:
         kind: HelmRepository
         name: kube-prometheus-stack
