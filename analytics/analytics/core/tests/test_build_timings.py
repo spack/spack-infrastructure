@@ -41,6 +41,7 @@ def build_json_string():
     )
 
 
+# @pytest.mark.skip
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "job_json_string,unnecessary",
@@ -61,6 +62,7 @@ def test_process_job_unnecessary_jobs(request, job_json_string, unnecessary):
     assert job.unnecessary == unnecessary
 
 
+# @pytest.mark.skip
 @pytest.mark.django_db
 def test_upload_job_logs(build_json_string):
     store_job_data(build_json_string)
