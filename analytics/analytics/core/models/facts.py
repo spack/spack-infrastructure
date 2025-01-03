@@ -82,7 +82,7 @@ class JobFact(models.Model):
             # Ensure that these nullable fields are consistent
             models.CheckConstraint(
                 name="nullable-field-consistency",
-                check=(
+                condition=(
                     models.Q(
                         pod_node_occupancy__isnull=True,
                         pod_cpu_usage_seconds__isnull=True,

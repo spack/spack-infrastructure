@@ -27,7 +27,7 @@ class DateDimension(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                name="date-key-value", check=models.Q(date_key__lt=2044_01_01)
+                name="date-key-value", condition=models.Q(date_key__lt=2044_01_01)
             ),
         ]
 
@@ -91,12 +91,12 @@ class TimeDimension(models.Model):
         constraints = [
             models.CheckConstraint(
                 name="am-or-pm-value",
-                check=(models.Q(am_or_pm="AM") | models.Q(am_or_pm="PM")),
+                condition=(models.Q(am_or_pm="AM") | models.Q(am_or_pm="PM")),
             ),
             models.CheckConstraint(
                 # Max value is the last minute and second of the day,
                 name="time-key-value",
-                check=models.Q(time_key__range=(0, 23_59_59)),
+                condition=models.Q(time_key__range=(0, 23_59_59)),
             ),
         ]
 
@@ -148,7 +148,7 @@ class JobDataDimension(models.Model):
         constraints = [
             models.CheckConstraint(
                 name="error-taxonomy-only-on-failed-status",
-                check=models.Q(status="failed") | models.Q(error_taxonomy__isnull=True),
+                condition=models.Q(status="failed") | models.Q(error_taxonomy__isnull=True),
             ),
         ]
 
@@ -256,7 +256,7 @@ class PackageSpecDimension(models.Model):
             models.CheckConstraint(
                 # These fields must either have data, or all table rows must be empty (for the 'empty' row)
                 name="no-missing-fields",
-                check=(
+                condition=(
                     models.Q(
                         name__length__gt=0,
                         hash__length=32,
@@ -295,7 +295,7 @@ class TimerPhaseDimension(models.Model):
         constraints = [
             models.CheckConstraint(
                 name="consistent-subphase-path",
-                check=(
+                condition=(
                     models.Q(is_subphase=True, path__contains="/")
                     | (models.Q(is_subphase=False) & ~models.Q(path__contains="/"))
                 ),
