@@ -378,7 +378,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="timerphasedimension",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(("is_subphase", True), ("path__contains", "/")),
                     models.Q(
                         ("is_subphase", False),
@@ -440,20 +440,20 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="timedimension",
             constraint=models.CheckConstraint(
-                check=models.Q(("am_or_pm", "AM"), ("am_or_pm", "PM"), _connector="OR"),
+                condition=models.Q(("am_or_pm", "AM"), ("am_or_pm", "PM"), _connector="OR"),
                 name="am-or-pm-value",
             ),
         ),
         migrations.AddConstraint(
             model_name="timedimension",
             constraint=models.CheckConstraint(
-                check=models.Q(("time_key__range", (0, 235959))), name="time-key-value"
+                condition=models.Q(("time_key__range", (0, 235959))), name="time-key-value"
             ),
         ),
         migrations.AddConstraint(
             model_name="packagespecdimension",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(
                         ("arch__length__gt", 0),
                         ("hash__length", 32),
@@ -533,7 +533,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="jobdatadimension",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     ("status", "failed"),
                     ("error_taxonomy__isnull", True),
                     _connector="OR",
@@ -544,7 +544,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="datedimension",
             constraint=models.CheckConstraint(
-                check=models.Q(("date_key__lt", 20440101)), name="date-key-value"
+                condition=models.Q(("date_key__lt", 20440101)), name="date-key-value"
             ),
         ),
         migrations.AddConstraint(
@@ -587,7 +587,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="jobfact",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(
                         ("node_cpu__isnull", True),
                         ("node_memory__isnull", True),

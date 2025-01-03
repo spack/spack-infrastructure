@@ -47,7 +47,7 @@ setup(
         "django-girder-utils",
         "django-ninja",
         "django-s3-file-field[minio]",
-        "django~=4.2",
+        "django~=5.1",
         "gunicorn",
         "opensearch-dsl",
         "kubernetes",
