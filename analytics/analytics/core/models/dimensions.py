@@ -177,32 +177,23 @@ class JobDataDimension(models.Model):
     infrastructure_error = models.GeneratedField(
         output_field=models.BooleanField(),
         db_persist=True,
-        expression=Case(
-            When(
-                Q(
-                    Q(status="failed")
-                    & Q(
-                        ~Q(
-                            error_taxonomy__in=[
-                                "spack_error",
-                                "build_error",
-                                "concretization_error",
-                                "module_not_found",
-                            ]
-                        )
-                        & ~Q(
-                            # This is a special case for the rebuild-index job type.
-                            # If a reindex job fails to get specs, it's not an infrastructure error,
-                            # but only if both those conditions are met.
-                            job_type=JobType.REBUILD_INDEX,
-                            error_taxonomy="failed_to_get_specs",
-                        ),
-                    ),
-                ),
-                then=Value(True),
+        expression=Q(
+            Q(status="failed")
+            & ~Q(
+                error_taxonomy__in=[
+                    "spack_error",
+                    "build_error",
+                    "concretization_error",
+                    "module_not_found",
+                ]
+            )
+            & ~Q(
+                # This is a special case for the rebuild-index job type.
+                # If a reindex job fails to get specs, it's not an infrastructure error,
+                # but only if both those conditions are met.
+                job_type=JobType.REBUILD_INDEX,
+                error_taxonomy="failed_to_get_specs",
             ),
-            default=Value(False),
-            output_field=models.BooleanField(),
         ),
         help_text='Whether or not this job is an "infrastructure error", or a legitimate CI failure.',
     )
