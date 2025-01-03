@@ -4,6 +4,7 @@ from dateutil.parser import isoparse
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.db.models import Case, Q, Value, When
 from django.db.models.functions import Length
 
 
@@ -172,6 +173,39 @@ class JobDataDimension(models.Model):
         default=False,
         db_comment="Whether this job has 'No need to rebuild' in its trace.",
     )  # type: ignore
+
+    infrastructure_error = models.GeneratedField(
+        output_field=models.BooleanField(),
+        db_persist=True,
+        expression=Case(
+            When(
+                Q(
+                    Q(status="failed")
+                    & Q(
+                        ~Q(
+                            error_taxonomy__in=[
+                                "spack_error",
+                                "build_error",
+                                "concretization_error",
+                                "module_not_found",
+                            ]
+                        )
+                        & ~Q(
+                            # This is a special case for the rebuild-index job type.
+                            # If a reindex job fails to get specs, it's not an infrastructure error,
+                            # but only if both those conditions are met.
+                            job_type=JobType.REBUILD_INDEX,
+                            error_taxonomy="failed_to_get_specs",
+                        ),
+                    ),
+                ),
+                then=Value(True),
+            ),
+            default=Value(False),
+            output_field=models.BooleanField(),
+        ),
+        help_text='Whether or not this job is an "infrastructure error", or a legitimate CI failure.',
+    )
 
     pod_name = models.CharField(max_length=128, null=True, blank=True)
     gitlab_runner_version = models.CharField(max_length=16)
