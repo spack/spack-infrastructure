@@ -28,7 +28,7 @@ RUN pip install --editable /opt/django-project[dev]
 
 # Install spack
 RUN git clone -c feature.manyFiles=true https://github.com/spack/spack.git /opt/spack
-RUN cd /opt/spack && git checkout v0.22.0
+RUN cd /opt/spack && git checkout v0.23.0
 
 # Include spack import paths for python packages. Order is important
 ENV PYTHONPATH "/opt/spack/lib/spack:$PYTHONPATH"
