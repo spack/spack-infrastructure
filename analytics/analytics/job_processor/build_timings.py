@@ -9,7 +9,10 @@ from analytics.core.models.dimensions import (
     TimerPhaseDimension,
 )
 from analytics.core.models.facts import JobFact, TimerFact, TimerPhaseFact
-from analytics.job_processor.artifacts import JobArtifactFileNotFound, get_job_artifacts_file
+from analytics.job_processor.artifacts import (
+    JobArtifactFileNotFound,
+    get_job_artifacts_file,
+)
 
 
 def get_timings_json(job: ProjectJob) -> list[dict]:
@@ -107,10 +110,15 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob):
     # since `install_times.json` is created using `spack` itself, there's no guarantee
     # that the file will be present.
     try:
-        data = get_timings_json(gljob)
-        timings = [t for t in data if t.get("name") and t.get("hash")]
+        timing_data = get_timings_json(gljob)
     except JobArtifactFileNotFound:
         return
+
+    # For boostrapped packages, install times with cache=False can be present, which don't have a
+    # corresonding entry in the spec json. To filter these out, avoid all install times that are
+    # cache=False, except the package being built.
+    job_package_hash = job_fact.spec.hash
+    timings = [t for t in timing_data if t["cache"] or t["hash"] == job_package_hash]
 
     # First, ensure that all packages and specs are entered into the db. Then, fetch all timing packages
     create_packages_and_specs(gljob)
