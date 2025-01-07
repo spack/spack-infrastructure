@@ -112,7 +112,7 @@ def get_gitlab_handle():
         settings.GITLAB_ENDPOINT,
         settings.GITLAB_TOKEN,
         retry_transient_errors=True,
-        timeout=15,
+        timeout=30,
     )
 
 
