@@ -114,7 +114,7 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob):
     except JobArtifactFileNotFound:
         return
 
-    # For boostrapped packages, install times with cache=False can be present, which don't have a
+    # For bootstrapped packages, install times with cache=False can be present, which don't have a
     # corresonding entry in the spec json. To filter these out, avoid all install times that are
     # cache=False, except the package being built.
     job_package_hash = job_fact.spec.hash
