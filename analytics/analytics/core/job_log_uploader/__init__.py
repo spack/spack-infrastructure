@@ -67,9 +67,7 @@ def store_job_data(job_input_data_json: str) -> None:
 
     # Remove ANSI escape sequences from colorized output
     # TODO: this still leaves trailing ;m in the output
-    job_trace = re.sub(
-        r"\x1b\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|G|K]?", "", job_trace
-    )
+    job_trace = re.sub(r"\x1b\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|G|K]?", "", job_trace)
 
     connections.create_connection(
         hosts=[settings.OPENSEARCH_ENDPOINT],

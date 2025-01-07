@@ -132,9 +132,7 @@ def create_job_data_dimension(
 
     job_status = job_input_data["build_status"]
     error_taxonomy = (
-        _assign_error_taxonomy(job_input_data, job_trace)[0]
-        if job_status == "failed"
-        else None
+        _assign_error_taxonomy(job_input_data, job_trace)[0] if job_status == "failed" else None
     )
 
     gitlab_section_timers = get_gitlab_section_timers(job_trace=job_trace)

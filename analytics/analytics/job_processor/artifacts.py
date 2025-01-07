@@ -1,11 +1,11 @@
-import tempfile
-import zipfile
 from contextlib import contextmanager
 from dataclasses import dataclass
+import tempfile
+import zipfile
 
-import yaml
 from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import ProjectJob
+import yaml
 
 
 class JobArtifactDownloadFailed(Exception):
@@ -28,7 +28,9 @@ class JobArtifactVariablesNotFound(Exception):
 
 class JobArtifactsMissingVariable(Exception):
     def __init__(self, job: ProjectJob, variable: str) -> None:
-        message = f"The following variable was missing in the artifacts for job {job.id}: {variable}"
+        message = (
+            f"The following variable was missing in the artifacts for job {job.id}: {variable}"
+        )
         super().__init__(message)
 
 

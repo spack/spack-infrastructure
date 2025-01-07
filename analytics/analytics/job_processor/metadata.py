@@ -1,7 +1,7 @@
-import functools
-import uuid
 from dataclasses import dataclass
 from datetime import timedelta
+import functools
+import uuid
 
 from dateutil.parser import isoparse
 from django.conf import settings
