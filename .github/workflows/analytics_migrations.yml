@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install requirements
-        run: pip install -r ./analytics/requirements.txt
+        run: pip install ./analytics
 
       - name: Provide default env vars for django
         run: cat ./analytics/dev/.env.docker-compose >> $GITHUB_ENV
