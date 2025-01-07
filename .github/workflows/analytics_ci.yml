@@ -1,4 +1,4 @@
-name: Check Analytics Migrations
+name: Analytics Django App CI
 
 on:
   pull_request:
@@ -6,6 +6,21 @@ on:
       - "analytics/**"
 
 jobs:
+  formatting:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: analytics/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install requirements
+        run: pip install .[dev]
+
+      - name: Format code
+        run: tox -e format
+
   check-migrations:
     services:
       postgres:
@@ -30,16 +45,19 @@ jobs:
           - 6379:6379
 
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: analytics/
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install requirements
-        run: pip install ./analytics
+        run: pip install .[dev]
 
       - name: Provide default env vars for django
-        run: cat ./analytics/dev/.env.docker-compose >> $GITHUB_ENV
+        run: cat ./dev/.env.docker-compose >> $GITHUB_ENV
 
       # This runs on pull requests and blocks until any necessary migrations have been created
       - name: Check for Migrations
-        run: ./analytics/manage.py makemigrations --check --noinput
+        run: ./manage.py makemigrations --check --noinput
