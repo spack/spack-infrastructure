@@ -23,8 +23,8 @@ jobs:
       - name: Install requirements
         run: pip install .[dev]
 
-      - name: Format code
-        run: tox -e format
+      - name: Lint code
+        run: tox -e lint
 
   check-migrations:
     services:
