@@ -1,10 +1,10 @@
 import json
 from typing import Any
 
-import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+import sentry_sdk
 
 from analytics.core.job_log_uploader import store_job_data
 from analytics.job_processor import process_job

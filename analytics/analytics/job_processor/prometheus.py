@@ -1,14 +1,14 @@
-import math
-import statistics
-import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import math
+import statistics
 from urllib.parse import urlencode
+import uuid
 
-import requests
 from dateutil.parser import isoparse
 from gitlab.v4.objects import ProjectJob
 from kubernetes.utils.quantity import parse_quantity
+import requests
 
 PROM_MAX_RESOLUTION = 10_000
 
@@ -200,11 +200,7 @@ class PrometheusClient:
         )
         memory_request = extract_first_value(
             next(
-                (
-                    rr
-                    for rr in resource_requests
-                    if rr["metric"]["resource"] == "memory"
-                ),
+                (rr for rr in resource_requests if rr["metric"]["resource"] == "memory"),
                 None,
             )
         )
@@ -244,9 +240,7 @@ class PrometheusClient:
         step = math.ceil(duration.total_seconds() / 100)
 
         # Get cpu seconds usage
-        cpu_seconds_query = (
-            f"container_cpu_usage_seconds_total{{container='build', node='{node}'}}"
-        )
+        cpu_seconds_query = f"container_cpu_usage_seconds_total{{container='build', node='{node}'}}"
         results = self.query_range(
             cpu_seconds_query,
             start=start,
@@ -256,9 +250,7 @@ class PrometheusClient:
 
         # First, get the cpu utlization by the pod we care about
         # To do this, just get the last value from the response, since that'll be the total of the counter
-        pod_results = next(
-            (res for res in results if res["metric"]["pod"] == pod), None
-        )
+        pod_results = next((res for res in results if res["metric"]["pod"] == pod), None)
         if pod_results is None:
             raise UnexpectedPrometheusResult(
                 message=f"Pod {pod} not found in cpu usage query",
@@ -333,16 +325,12 @@ class PrometheusClient:
         try:
             package_hash = annotations["annotation_metrics_spack_job_spec_hash"]
             package_name = annotations["annotation_metrics_spack_job_spec_pkg_name"]
-            package_version = annotations[
-                "annotation_metrics_spack_job_spec_pkg_version"
-            ]
+            package_version = annotations["annotation_metrics_spack_job_spec_pkg_version"]
 
             # Any jobs built on this PR will not have these attributes
             # on the node, but are instead nodes themselves.
             # https://github.com/spack/spack/pull/45189
-            compiler_name = annotations.get(
-                "annotation_metrics_spack_job_spec_compiler_name", ""
-            )
+            compiler_name = annotations.get("annotation_metrics_spack_job_spec_compiler_name", "")
             compiler_version = annotations.get(
                 "annotation_metrics_spack_job_spec_compiler_version", ""
             )
@@ -404,9 +392,7 @@ class PrometheusClient:
         cpu = int(node_labels["label_karpenter_k8s_aws_instance_cpu"])
 
         # It seems these values are in Megabytes (base 1000)
-        memory = int(
-            parse_quantity(f"{node_labels['label_karpenter_k8s_aws_instance_memory']}M")
-        )
+        memory = int(parse_quantity(f"{node_labels['label_karpenter_k8s_aws_instance_memory']}M"))
         capacity_type = node_labels["label_karpenter_sh_capacity_type"]
         instance_type = node_labels["label_node_kubernetes_io_instance_type"]
 

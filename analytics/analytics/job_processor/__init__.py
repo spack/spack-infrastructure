@@ -1,11 +1,11 @@
+from datetime import timedelta
 import json
 import re
-from datetime import timedelta
 
-import gitlab
-import gitlab.exceptions
 from celery import shared_task
 from django.db import transaction
+import gitlab
+import gitlab.exceptions
 from gitlab.v4.objects import ProjectJob
 from requests.exceptions import RequestException
 
@@ -28,11 +28,7 @@ from analytics.job_processor.metadata import (
     MissingPodInfo,
     retrieve_job_info,
 )
-from analytics.job_processor.utils import (
-    get_gitlab_handle,
-    get_gitlab_job,
-    get_gitlab_project,
-)
+from analytics.job_processor.utils import get_gitlab_handle, get_gitlab_job, get_gitlab_project
 
 
 def calculate_job_cost(info: JobInfo, duration: float) -> float | None:
@@ -67,9 +63,7 @@ def create_job_fact(
 
     # Now that we have all the dimensions, we need to calculate any derived fields
     job_cost = calculate_job_cost(info=job_info, duration=gljob.duration)
-    node_price_per_second = (
-        job_info.node.spot_price / 3600 if job_info.node is not None else None
-    )
+    node_price_per_second = job_info.node.spot_price / 3600 if job_info.node is not None else None
 
     # Check that this fact hasn't already been created. If it has, return that value
     # A fact table is unique to it's foreign keys
@@ -141,5 +135,5 @@ def process_job(job_input_data_json: str):
     # Create build timing facts in a separate transaction, in case this fails
     with transaction.atomic():
         job_data = job.job
-        if job_data.job_type == JobDataDimension.JobType.BUILD and job_data.status == 'success':
+        if job_data.job_type == JobDataDimension.JobType.BUILD and job_data.status == "success":
             create_build_timing_facts(job_fact=job, gljob=gl_job)

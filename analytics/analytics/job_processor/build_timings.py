@@ -9,10 +9,7 @@ from analytics.core.models.dimensions import (
     TimerPhaseDimension,
 )
 from analytics.core.models.facts import JobFact, TimerFact, TimerPhaseFact
-from analytics.job_processor.artifacts import (
-    JobArtifactFileNotFound,
-    get_job_artifacts_file,
-)
+from analytics.job_processor.artifacts import JobArtifactFileNotFound, get_job_artifacts_file
 
 
 def get_timings_json(job: ProjectJob) -> list[dict]:

@@ -1,7 +1,7 @@
 # Note: this is the Dockerfile for the production image. The development image is located
 # inside the dev/ subdirectory.
 
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Install spack dependencies
 RUN apt-get update && \

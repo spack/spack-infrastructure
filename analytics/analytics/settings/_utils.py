@@ -14,4 +14,4 @@ def string_to_bool(value: str) -> bool:
     if normalized_value in false_values:
         return False
 
-    raise ValueError("Cannot interpret " "boolean value {0!r}".format(value))
+    raise ValueError("Cannot interpret " "boolean value {!r}".format(value))
