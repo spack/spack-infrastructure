@@ -74,10 +74,12 @@ def create_packages_and_specs(job: ProjectJob):
 
 
 def get_phase_mapping(timings: list[dict]) -> dict[str, TimerPhaseDimension]:
+    # Create a set of tuples that contain the phase path, and if it's a subphase or not
     phases: set[tuple[str, bool]] = set()
     for entry in timings:
         phases |= {(phase["path"], ("/" in phase["path"])) for phase in entry["phases"]}
 
+    # Ensure that all phases in these timings exist in the database
     TimerPhaseDimension.objects.bulk_create(
         [
             TimerPhaseDimension(path=path, is_subphase=is_subphase)
@@ -117,11 +119,13 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob):
     job_package_hash = job_fact.spec.hash
     timings = [t for t in timing_data if t["cache"] or t["hash"] == job_package_hash]
 
+
     # First, ensure that all packages and specs are entered into the db. Then, fetch all timing packages
     create_packages_and_specs(gljob)
+
+    # Create mappings of values to database rows, to make TimerFact and TimerPhaseFact creation efficient
     package_mapping = get_package_mapping(timings=timings)
     package_spec_mapping = get_package_spec_mapping(timings=timings)
-
     timer_data_mapping = {obj.cache: obj for obj in TimerDataDimension.objects.all()}
     phase_mapping = get_phase_mapping(timings=timings)
 
@@ -129,9 +133,13 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob):
     timer_facts = []
     phase_facts = []
     for entry in timings:
+        # Don't process timings that aren't part of the built spec
+        package = package_mapping.get(entry["name"])
+        spec = package_spec_mapping.get(entry["hash"])
+        if package is None or spec is None:
+            continue
+
         timer_data = timer_data_mapping[entry["cache"]]
-        package = package_mapping[entry["name"]]
-        spec = package_spec_mapping[entry["hash"]]
         total_time = entry["total"]
         timer_facts.append(
             TimerFact(
