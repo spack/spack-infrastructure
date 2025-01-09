@@ -1,0 +1,72 @@
+{
+    "pipeline_id": "877,283",
+    "build_failure_reason": null,
+    "build_duration": "433.91",
+    "project_name": "spack",
+    "project": {
+        "id": 2,
+        "name": "spack",
+        "description": "",
+        "web_url": "https://gitlab.spack.io/spack/spack",
+        "avatar_url": null,
+        "git_ssh_url": "git@ssh.gitlab.spack.io:spack/spack.git",
+        "git_http_url": "https://gitlab.spack.io/spack/spack.git",
+        "namespace": "spack",
+        "visibility_level": 20,
+        "path_with_namespace": "spack/spack",
+        "default_branch": "develop",
+        "ci_config_path": "share/spack/gitlab/cloud_pipelines/.gitlab-ci.yml"
+    },
+    "user": {
+        "id": 3,
+        "name": "Spack Bot",
+        "username": "spackbot",
+        "avatar_url": "57643519.png",
+        "email": "[REDACTED]"
+    },
+    "build_allow_failure": "false",
+    "build_queued_duration": "1,660.88",
+    "source_pipeline": {},
+    "build_id": "13,271,537",
+    "repository": {
+        "name": "spack",
+        "url": "git@ssh.gitlab.spack.io:spack/spack.git",
+        "description": "",
+        "homepage": "https://gitlab.spack.io/spack/spack",
+        "git_http_url": "https://gitlab.spack.io/spack/spack.git",
+        "git_ssh_url": "git@ssh.gitlab.spack.io:spack/spack.git",
+        "visibility_level": 20
+    },
+    "build_stage": "stage-12",
+    "build_started_at": "November 1, 2024, 1:17 PM",
+    "tag": "false",
+    "commit": {
+        "id": 877283,
+        "name": null,
+        "sha": "7a06ba132fc4bef23d9afc49103b0703d6e3f414",
+        "message": "",
+        "author_name": "Spack Bot",
+        "author_email": "[REDACTED]",
+        "author_url": "mailto:michael.vandenburgh+spackbot@kitware.com",
+        "status": "failed",
+        "duration": 7271,
+        "started_at": "2024-11-01T12:50:34.156782",
+        "finished_at": "2024-11-01T15:04:03.348856"
+    },
+    "runner": {
+        "id": null,
+        "description": null,
+        "runner_type": null,
+        "active": null,
+        "is_shared": true,
+        "tags": null
+    },
+    "environment": "",
+    "build_created_at": "November 1, 2024, 12:50 PM",
+    "build_finished_at": "November 1, 2024, 1:25 PM",
+    "project_id": "2",
+    "ref": "pr45189_features/compiler-as-nodes",
+    "build_status": "success",
+    "build_name": "py-joblib@1.2.0 /mqczyqp  arch=linux-ubuntu24.04-aarch64 Machine Learning",
+    "object_kind": "build"
+}

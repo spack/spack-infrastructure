@@ -44,7 +44,6 @@ class JobLog(Document):
 def store_job_data(job_input_data_json: str) -> None:
     job_input_data: dict[str, Any] = json.loads(job_input_data_json)
     setup_gitlab_job_sentry_tags(job_input_data)
-
     gl = gitlab.Gitlab(
         settings.GITLAB_ENDPOINT,
         settings.GITLAB_TOKEN,
