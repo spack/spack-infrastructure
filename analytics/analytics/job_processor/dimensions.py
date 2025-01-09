@@ -182,11 +182,13 @@ def create_node_dimension(info: NodeInfo | None) -> NodeDimension:
 
     node, _ = NodeDimension.objects.get_or_create(
         system_uuid=info.system_uuid,
-        name=info.name,
-        cpu=info.cpu,
-        memory=info.memory,
-        capacity_type=info.capacity_type,
-        instance_type=info.instance_type,
+        defaults={
+            "name": info.name,
+            "cpu": info.cpu,
+            "memory": info.memory,
+            "capacity_type": info.capacity_type,
+            "instance_type": info.instance_type,
+        },
     )
 
     return node
@@ -226,12 +228,14 @@ def create_runner_dimension(gl: gitlab.Gitlab, gljob: ProjectJob) -> RunnerDimen
     # Create and return new runner
     runner, _ = RunnerDimension.objects.get_or_create(
         runner_id=runner_id,
-        name=runner_name,
-        platform=runner.platform,
-        host=host,
-        arch=runner.architecture,
-        tags=runner.tag_list,
-        in_cluster=in_cluster,
+        defaults={
+            "name": runner_name,
+            "platform": runner.platform,
+            "host": host,
+            "arch": runner.architecture,
+            "tags": runner.tag_list,
+            "in_cluster": in_cluster,
+        },
     )
 
     return runner
@@ -249,14 +253,16 @@ def create_package_spec_dimension(info: PackageInfo | None) -> PackageSpecDimens
     if info is None:
         return PackageSpecDimension.get_empty_row()
 
-    package, _ = PackageSpecDimension.objects.get_or_create(
+    spec, _ = PackageSpecDimension.objects.get_or_create(
         hash=info.hash,
-        name=info.name,
-        version=info.version,
-        compiler_name=info.compiler_name,
-        compiler_version=info.compiler_version,
-        arch=info.arch,
-        variants=info.variants,
+        defaults={
+            "name": info.name,
+            "version": info.version,
+            "compiler_name": info.compiler_name,
+            "compiler_version": info.compiler_version,
+            "arch": info.arch,
+            "variants": info.variants,
+        },
     )
 
-    return package
+    return spec
