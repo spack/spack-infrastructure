@@ -34,6 +34,8 @@ MULTIPART_THRESHOLD = 100 * MB
 MULTIPART_CHUNKSIZE=20 * MB
 MAX_CONCURRENCY=10
 USE_THREADS=True
+SPACK_PUBLIC_KEY_LOCATION = "https://spack.github.io/keys"
+SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
 
 
 ################################################################################
@@ -174,7 +176,7 @@ def publish(
         return
 
     gnu_pg_home = os.path.join(workdir, ".gnupg")
-    download_and_import_key(gnu_pg_home, workdir, force)
+    local_key_path = download_and_import_key(gnu_pg_home, workdir, force)
 
     # Build a list of tasks for threads
     task_list = [
@@ -204,12 +206,16 @@ def publish(
                 else:
                     print(result[1])
 
+    mirror_url = f"s3://{bucket}/{ref}"
+
+    if local_key_path:
+        publish_key(local_key_path, f"{mirror_url}/build_cache/_pgp/{SPACK_PUBLIC_KEY_NAME}")
+
     # When all the tasks are finished, rebuild the top-level index
     clone_spack(ref)
-    mirror_url = f"s3://{bucket}/{ref}"
     print(f"Publishing complete, rebuilding index at {mirror_url}")
     subprocess.run(
-        ["/spack/bin/spack", "buildcache", "update-index", mirror_url],
+        ["/spack/bin/spack", "buildcache", "update-index", "--keys", mirror_url],
         check=True,
     )
 
@@ -254,21 +260,28 @@ def list_prefix_contents(url: str, output_file: str):
 
 ################################################################################
 #
-def download_and_import_key(gpg_home: str, tmpdir: str, force: bool):
+def publish_key(local_key_path: str, remote_key_url: str):
+    cp_cmd = ["aws", "s3", "cp", local_key_path, remote_key_url]
+    subprocess.run(cp_cmd, check=True)
+
+
+################################################################################
+#
+def download_and_import_key(gpg_home: str, tmpdir: str, force: bool) -> str | None:
     if os.path.isdir(gpg_home):
         if force is True:
             shutil.rmtree(gpg_home)
         else:
-            return
+            return None
 
     mode_owner_rwe = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
     os.makedirs(gpg_home, mode=mode_owner_rwe)
 
-    public_key_url = "https://spack.github.io/keys/spack-public-binary-key.pub"
+    public_key_url = f"{SPACK_PUBLIC_KEY_LOCATION}/{SPACK_PUBLIC_KEY_NAME}"
     public_key_id = "2C8DD3224EF3573A42BD221FA8E0CA3C1C2ADA2F"
 
     # Fetch the public key and write it to a file to be imported
-    tmp_key_path = os.path.join(tmpdir, "key.pub")
+    tmp_key_path = os.path.join(tmpdir, SPACK_PUBLIC_KEY_NAME)
     response = requests.get(public_key_url)
     with open(tmp_key_path, "w") as f:
         f.write(response.text)
@@ -289,6 +302,8 @@ def download_and_import_key(gpg_home: str, tmpdir: str, force: bool):
         env=env,
         check=True,
     )
+
+    return tmp_key_path
 
 
 ################################################################################
