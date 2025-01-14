@@ -1,0 +1,32 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: retry-trigger-jobs
+  namespace: custom
+spec:
+  schedule: "*/15 * * * *" # Every 15 minutes
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 3600 # terminate any running job after 1 hour
+      backoffLimit: 0
+      template:
+        spec:
+          serviceAccountName: retry-trigger-jobs
+          restartPolicy: Never
+          containers:
+          - name: retry-trigger-jobs
+            image: ghcr.io/spack/retry-trigger-jobs:0.0.1
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 50M
+            args:
+              - "2"
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
+          nodeSelector:
+            spack.io/node-pool: base
