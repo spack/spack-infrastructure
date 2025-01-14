@@ -21,7 +21,7 @@ spec:
   chart:
     spec:
       chart: gitlab
-      version: 8.7.2 # gitlab@17.7.0
+      version: 8.7.3 # gitlab@17.7.1
       sourceRef:
         kind: HelmRepository
         name: gitlab
