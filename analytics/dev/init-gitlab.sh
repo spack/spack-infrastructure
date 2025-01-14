@@ -34,7 +34,7 @@ RUNNER_TOKEN=$(docker compose exec gitlab curl \
     --url "http://localhost/api/v4/user/runners" \
     --data "runner_type=instance_type" \
     --data "description=test" \
-    --data "tag_list=test" \
+    --data "tag_list=spack,service,small,protected,public,medium,x86_64_v3" \
     --header "PRIVATE-TOKEN: $PERSONAL_ACCESS_TOKEN" | jq -r '.token')
 
 # Register the containerized gitlab runner using the previously acquired token
