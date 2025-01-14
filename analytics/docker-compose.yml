@@ -47,6 +47,20 @@ services:
       POSTGRES_USER: gitlab
       POSTGRES_PASSWORD: gitlab
 
+  minio:
+    image: minio/minio:latest
+    # When run with a TTY, minio prints credentials on startup
+    tty: true
+    command: ["server", "/data", "--console-address", ":${DOCKER_MINIO_CONSOLE_PORT-9001}"]
+    environment:
+      MINIO_ROOT_USER: minioAccessKey
+      MINIO_ROOT_PASSWORD: minioSecretKey
+    ports:
+      - ${DOCKER_MINIO_PORT-9000}:9000
+      - ${DOCKER_MINIO_CONSOLE_PORT-9001}:9001
+    volumes:
+      - minio:/data
+
   gitlab:
     image: zengxs/gitlab:ee
     ports:
@@ -89,5 +103,6 @@ services:
 
 volumes:
   postgres:
+  minio:
   gitlab:
   gitlab-db:
