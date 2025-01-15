@@ -13,7 +13,6 @@ spec:
       backoffLimit: 0
       template:
         spec:
-          serviceAccountName: retry-trigger-jobs
           restartPolicy: Never
           containers:
           - name: retry-trigger-jobs
@@ -25,6 +24,12 @@ spec:
                 memory: 50M
             args:
               - "2"
+            env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: delete-stale-branches-credentials
+                  key: gitlab-token
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config
