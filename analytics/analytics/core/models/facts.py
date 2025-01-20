@@ -2,11 +2,14 @@ from django.db import models
 
 from analytics.core.models.dimensions import (
     DateDimension,
-    JobDataDimension,
+    GitlabJobDataDimension,
+    JobResultDimension,
+    JobRetryDimension,
     NodeDimension,
     PackageDimension,
     PackageSpecDimension,
     RunnerDimension,
+    SpackJobDataDimension,
     TimeDimension,
     TimerDataDimension,
     TimerPhaseDimension,
@@ -14,6 +17,8 @@ from analytics.core.models.dimensions import (
 
 
 class JobFact(models.Model):
+    job_id = models.PositiveBigIntegerField(primary_key=True)
+
     # Foreign Keys
     start_date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     start_time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
@@ -22,12 +27,23 @@ class JobFact(models.Model):
     runner = models.ForeignKey(RunnerDimension, on_delete=models.PROTECT)
     package = models.ForeignKey(PackageDimension, on_delete=models.PROTECT)
     spec = models.ForeignKey(PackageSpecDimension, on_delete=models.PROTECT)
-    job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
+    spack_job_data = models.ForeignKey(SpackJobDataDimension, on_delete=models.PROTECT)
+    gitlab_job_data = models.ForeignKey(
+        GitlabJobDataDimension, on_delete=models.PROTECT
+    )
+    job_result = models.ForeignKey(JobResultDimension, on_delete=models.PROTECT)
+    job_retry = models.ForeignKey(JobRetryDimension, on_delete=models.PROTECT)
+
+    # ######################
+    # Small Descriptive Data
+    # ######################
+    job_url = models.URLField()
+    name = models.CharField(max_length=128)
+    pod_name = models.CharField(max_length=128)
 
     # ############
     # Numeric Data
     # ############
-
     duration = models.DurationField()
     duration_seconds = models.FloatField(
         db_comment="The duration of this job represented as seconds"
@@ -55,6 +71,18 @@ class JobFact(models.Model):
     pod_memory_request = models.PositiveBigIntegerField(null=True, default=None)
     pod_memory_limit = models.PositiveBigIntegerField(null=True, default=None)
 
+    # Gitlab section timer data
+    gitlab_after_script = models.PositiveIntegerField(default=0)
+    gitlab_cleanup_file_variables = models.PositiveIntegerField(default=0)
+    gitlab_download_artifacts = models.PositiveIntegerField(default=0)
+    gitlab_get_sources = models.PositiveIntegerField(default=0)
+    gitlab_prepare_executor = models.PositiveIntegerField(default=0)
+    gitlab_prepare_script = models.PositiveIntegerField(default=0)
+    gitlab_resolve_secrets = models.PositiveIntegerField(default=0)
+    gitlab_step_script = models.PositiveIntegerField(default=0)
+    gitlab_upload_artifacts_on_failure = models.PositiveIntegerField(default=0)
+    gitlab_upload_artifacts_on_success = models.PositiveIntegerField(default=0)
+
     # Derived Fields
     cost = models.DecimalField(
         max_digits=13,
@@ -65,20 +93,7 @@ class JobFact(models.Model):
     )  # type: ignore
 
     class Meta:
-        # All FKs should make up the composite primary key
         constraints = [
-            models.UniqueConstraint(
-                name="job-fact-composite-key",
-                fields=[
-                    "start_date",
-                    "start_time",
-                    "node",
-                    "runner",
-                    "package",
-                    "spec",
-                    "job",
-                ],
-            ),
             # Ensure that these nullable fields are consistent
             models.CheckConstraint(
                 name="nullable-field-consistency",
@@ -107,7 +122,7 @@ class JobFact(models.Model):
 
 
 class TimerFact(models.Model):
-    job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
+    job_id = models.PositiveBigIntegerField()
     date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
@@ -122,7 +137,7 @@ class TimerFact(models.Model):
             models.UniqueConstraint(
                 name="timer-fact-composite-key",
                 fields=[
-                    "job",
+                    "job_id",
                     "date",
                     "time",
                     "timer_data",
@@ -134,7 +149,7 @@ class TimerFact(models.Model):
 
 
 class TimerPhaseFact(models.Model):
-    job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
+    job_id = models.PositiveBigIntegerField()
     date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
@@ -154,7 +169,7 @@ class TimerPhaseFact(models.Model):
             models.UniqueConstraint(
                 name="timerphase-fact-composite-key",
                 fields=[
-                    "job",
+                    "job_id",
                     "date",
                     "time",
                     "timer_data",
