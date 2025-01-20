@@ -2,11 +2,15 @@ from django.db import models
 
 from analytics.core.models.dimensions import (
     DateDimension,
-    JobDataDimension,
+    GitlabJobDataDimension,
+    GitlabSectionTimerDimension,
+    JobResultDimension,
+    JobRetryDimension,
     NodeDimension,
     PackageDimension,
     PackageSpecDimension,
     RunnerDimension,
+    SpackJobDataDimension,
     TimeDimension,
     TimerDataDimension,
     TimerPhaseDimension,
@@ -14,6 +18,8 @@ from analytics.core.models.dimensions import (
 
 
 class JobFact(models.Model):
+    job_id = models.PositiveBigIntegerField(primary_key=True)
+
     # Foreign Keys
     start_date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     start_time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
@@ -22,12 +28,26 @@ class JobFact(models.Model):
     runner = models.ForeignKey(RunnerDimension, on_delete=models.PROTECT)
     package = models.ForeignKey(PackageDimension, on_delete=models.PROTECT)
     spec = models.ForeignKey(PackageSpecDimension, on_delete=models.PROTECT)
-    job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
+    spack_job_data = models.ForeignKey(SpackJobDataDimension, on_delete=models.PROTECT)
+    gitlab_job_data = models.ForeignKey(
+        GitlabJobDataDimension, on_delete=models.PROTECT
+    )
+    job_result = models.ForeignKey(JobResultDimension, on_delete=models.PROTECT)
+    job_retry = models.ForeignKey(JobRetryDimension, on_delete=models.PROTECT)
+    gitlab_section_timers = models.ForeignKey(
+        GitlabSectionTimerDimension, on_delete=models.PROTECT
+    )
+
+    # ######################
+    # Small Descriptive Data
+    # ######################
+    job_url = models.URLField()
+    name = models.CharField(max_length=128)
+    pod_name = models.CharField(max_length=128, null=True, blank=True)
 
     # ############
     # Numeric Data
     # ############
-
     duration = models.DurationField()
     duration_seconds = models.FloatField(
         db_comment="The duration of this job represented as seconds"
@@ -65,20 +85,7 @@ class JobFact(models.Model):
     )  # type: ignore
 
     class Meta:
-        # All FKs should make up the composite primary key
         constraints = [
-            models.UniqueConstraint(
-                name="job-fact-composite-key",
-                fields=[
-                    "start_date",
-                    "start_time",
-                    "node",
-                    "runner",
-                    "package",
-                    "spec",
-                    "job",
-                ],
-            ),
             # Ensure that these nullable fields are consistent
             models.CheckConstraint(
                 name="nullable-field-consistency",
@@ -107,7 +114,7 @@ class JobFact(models.Model):
 
 
 class TimerFact(models.Model):
-    job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
+    job_id = models.PositiveBigIntegerField()
     date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
@@ -122,7 +129,7 @@ class TimerFact(models.Model):
             models.UniqueConstraint(
                 name="timer-fact-composite-key",
                 fields=[
-                    "job",
+                    "job_id",
                     "date",
                     "time",
                     "timer_data",
@@ -134,7 +141,7 @@ class TimerFact(models.Model):
 
 
 class TimerPhaseFact(models.Model):
-    job = models.ForeignKey(JobDataDimension, on_delete=models.PROTECT)
+    job_id = models.PositiveBigIntegerField()
     date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
@@ -154,7 +161,7 @@ class TimerPhaseFact(models.Model):
             models.UniqueConstraint(
                 name="timerphase-fact-composite-key",
                 fields=[
-                    "job",
+                    "job_id",
                     "date",
                     "time",
                     "timer_data",
