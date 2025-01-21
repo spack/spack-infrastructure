@@ -146,8 +146,8 @@ class JobType(models.TextChoices):
 
 
 class SpackJobDataDimension(models.Model):
-    job_size = models.CharField(max_length=128, null=True)
-    stack = models.CharField(max_length=128, null=True)
+    job_size = models.CharField(max_length=128)
+    stack = models.CharField(max_length=128)
 
     @classmethod
     def get_empty_row(cls):
@@ -208,6 +208,9 @@ class JobResultDimension(models.Model):
         default=False,
         db_comment="Whether this job has 'No need to rebuild' in its trace.",
     )  # type: ignore
+    job_type = models.CharField(
+        max_length=max(len(c) for c, _ in JobType.choices), choices=JobType.choices
+    )
     infrastructure_error = models.GeneratedField(
         output_field=models.BooleanField(),
         db_persist=True,

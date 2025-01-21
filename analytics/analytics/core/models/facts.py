@@ -18,7 +18,7 @@ from analytics.core.models.dimensions import (
 
 
 class JobFact(models.Model):
-    job_id = models.PositiveBigIntegerField(primary_key=True)
+    job = models.PositiveBigIntegerField(primary_key=True)
 
     # Foreign Keys
     start_date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
@@ -43,7 +43,7 @@ class JobFact(models.Model):
     # ######################
     job_url = models.URLField()
     name = models.CharField(max_length=128)
-    pod_name = models.CharField(max_length=128, null=True, blank=True)
+    pod_name = models.CharField(max_length=128)
 
     # ############
     # Numeric Data
@@ -114,7 +114,7 @@ class JobFact(models.Model):
 
 
 class TimerFact(models.Model):
-    job_id = models.PositiveBigIntegerField()
+    job = models.PositiveBigIntegerField()
     date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
@@ -129,7 +129,7 @@ class TimerFact(models.Model):
             models.UniqueConstraint(
                 name="timer-fact-composite-key",
                 fields=[
-                    "job_id",
+                    "job",
                     "date",
                     "time",
                     "timer_data",
@@ -141,7 +141,7 @@ class TimerFact(models.Model):
 
 
 class TimerPhaseFact(models.Model):
-    job_id = models.PositiveBigIntegerField()
+    job = models.PositiveBigIntegerField()
     date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
@@ -161,7 +161,7 @@ class TimerPhaseFact(models.Model):
             models.UniqueConstraint(
                 name="timerphase-fact-composite-key",
                 fields=[
-                    "job_id",
+                    "job",
                     "date",
                     "time",
                     "timer_data",
