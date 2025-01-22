@@ -1,5 +1,5 @@
 locals {
-  karpenter_chart_version = "1.0.0"
+  karpenter_chart_version = "1.0.5"
 }
 
 module "karpenter" {
