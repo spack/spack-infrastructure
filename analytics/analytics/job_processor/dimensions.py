@@ -122,7 +122,7 @@ def create_job_data_dimension(
 
     job_name = job_input_data["build_name"]
     job_commit_id = job_input_data["commit"]["id"]
-    job_failure_reason = job_input_data["build_failure_reason"]
+    job_failure_reason: str = job_input_data["build_failure_reason"]
     retry_info = get_job_retry_data(
         job_id=job_id,
         job_name=job_name,
@@ -140,6 +140,12 @@ def create_job_data_dimension(
     rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
     runner_version = rvmatch.group(1) if rvmatch is not None else ""
     unnecessary = UNNECESSARY_JOB_REGEX.search(job_trace) is not None
+
+    # The last line is an ANSI escape sequence, so we need to get the second to last line
+    # to get the actual last line of the job trace
+    job_trace_last_line = job_trace.splitlines()[-2]
+    exit_code_match = re.search(r"exit code (\d+)", job_trace_last_line)
+    job_exit_code = int(exit_code_match.group(1)) if exit_code_match is not None else None
 
     job_data = JobDataDimension.objects.create(
         job_id=job_id,
@@ -162,6 +168,8 @@ def create_job_data_dimension(
         gitlab_runner_version=runner_version,
         job_type=determine_job_type(job_input_data),
         gitlab_section_timers=gitlab_section_timers,
+        gitlab_failure_reason=job_failure_reason,
+        job_exit_code=job_exit_code,
     )
 
     return job_data
