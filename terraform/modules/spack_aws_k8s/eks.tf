@@ -59,23 +59,23 @@ module "eks" {
 
   cluster_addons = {
     coredns = {
-      addon_version = "v1.11.1-eksbuild.11"
+      addon_version = "v1.11.4-eksbuild.2"
     }
     eks-pod-identity-agent = {
-      addon_version = "v1.3.0-eksbuild.1"
+      addon_version = "v1.3.4-eksbuild.1"
     }
     kube-proxy = {
-      addon_version = "v1.30.3-eksbuild.2"
+      addon_version = "v1.31.3-eksbuild.2"
     }
     vpc-cni = {
-      addon_version = "v1.18.3-eksbuild.2"
+      addon_version = "v1.19.0-eksbuild.1"
     }
     aws-ebs-csi-driver = {
-      addon_version            = "v1.33.0-eksbuild.1"
+      addon_version            = "v1.38.1-eksbuild.2"
       service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
     }
     aws-efs-csi-driver = {
-      addon_version            = "v2.0.7-eksbuild.1"
+      addon_version            = "v2.1.4-eksbuild.1"
       service_account_role_arn = aws_iam_role.efs_csi_driver.arn
     }
   }
