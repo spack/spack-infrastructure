@@ -62,12 +62,14 @@ resource "helm_release" "karpenter" {
 
 resource "kubectl_manifest" "karpenter_node_class" {
   yaml_body = <<-YAML
-    apiVersion: karpenter.k8s.aws/v1beta1
+    apiVersion: karpenter.k8s.aws/v1
     kind: EC2NodeClass
     metadata:
       name: default
     spec:
       amiFamily: AL2023
+      amiSelectorTerms:
+        - alias: al2023@latest
       userData: |
         apiVersion: node.eks.aws/v1alpha1
         kind: NodeConfig
@@ -104,12 +106,14 @@ resource "kubectl_manifest" "karpenter_node_class" {
 
 resource "kubectl_manifest" "karpenter_windows_node_class" {
   yaml_body = <<-YAML
-    apiVersion: karpenter.k8s.aws/v1beta1
+    apiVersion: karpenter.k8s.aws/v1
     kind: EC2NodeClass
     metadata:
       name: windows
     spec:
       amiFamily: Windows2022
+      amiSelectorTerms:
+        - alias: windows2022@latest
       role: ${module.karpenter_windows.node_iam_role_name}
       subnetSelectorTerms:
         - tags:
