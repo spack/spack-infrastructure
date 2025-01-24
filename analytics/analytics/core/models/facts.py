@@ -18,7 +18,7 @@ from analytics.core.models.dimensions import (
 
 
 class JobFact(models.Model):
-    job = models.PositiveBigIntegerField(primary_key=True)
+    job_id = models.PositiveBigIntegerField(primary_key=True)
 
     # Foreign Keys
     start_date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
@@ -114,7 +114,7 @@ class JobFact(models.Model):
 
 
 class TimerFact(models.Model):
-    job = models.PositiveBigIntegerField()
+    job_id = models.PositiveBigIntegerField()
     date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
@@ -129,7 +129,7 @@ class TimerFact(models.Model):
             models.UniqueConstraint(
                 name="timer-fact-composite-key",
                 fields=[
-                    "job",
+                    "job_id",
                     "date",
                     "time",
                     "timer_data",
@@ -141,7 +141,7 @@ class TimerFact(models.Model):
 
 
 class TimerPhaseFact(models.Model):
-    job = models.PositiveBigIntegerField()
+    job_id = models.PositiveBigIntegerField()
     date = models.ForeignKey(DateDimension, on_delete=models.PROTECT)
     time = models.ForeignKey(TimeDimension, on_delete=models.PROTECT)
     timer_data = models.ForeignKey(TimerDataDimension, on_delete=models.PROTECT)
@@ -161,7 +161,7 @@ class TimerPhaseFact(models.Model):
             models.UniqueConstraint(
                 name="timerphase-fact-composite-key",
                 fields=[
-                    "job",
+                    "job_id",
                     "date",
                     "time",
                     "timer_data",
