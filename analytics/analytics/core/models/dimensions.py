@@ -206,6 +206,19 @@ class JobDataDimension(models.Model):
     gitlab_section_timers = models.JSONField(
         default=dict, db_comment="The GitLab CI section timers for this job."
     )  # type: ignore
+    gitlab_failure_reason = models.CharField(
+        max_length=256,
+        help_text="The failure reason reported by GitLab",
+        # TODO: This should be made non-nullable when old data is backfilled
+        null=True,
+    )
+    job_exit_code = models.IntegerField(
+        help_text="The exit code of the job reported by GitLab",
+        null=True,
+        # TODO: we should add a constraint here to ensure this is non-null when gitlab_failure_reason
+        # is 'script-error'. We'll leave it nullable for now until we can confirm that that
+        # constraint is valid.
+    )
 
 
 class NodeCapacityType(models.TextChoices):

@@ -88,6 +88,21 @@ def get_job_retry_data(
         )
 
 
+def get_job_exit_code(job_id: int) -> int | None:
+    with connections["gitlab"].cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT exit_code
+            FROM ci_builds_metadata
+            WHERE build_id = %(job_id)s
+            """,
+            {"job_id": job_id},
+        )
+        result = cursor.fetchone()
+
+    return result[0] if result else None
+
+
 # This is useful because we currently experience timeouts when accessing gitlab through
 # its external IP address. If that is changed or if the underlying issue is resolved,
 # this will not be necessary
