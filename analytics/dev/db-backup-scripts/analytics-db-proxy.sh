@@ -1,4 +1,6 @@
 #!/bin/bash
+[ -z "$KUBECONFIG" ] && echo "KUBECONFIG env var must be set" && exit 1;
+
 set -euo pipefail
 
 UNIQUE_ID=$(whoami | sed 's/\.//g')
