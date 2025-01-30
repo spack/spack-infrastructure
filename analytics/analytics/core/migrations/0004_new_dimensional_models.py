@@ -119,6 +119,20 @@ class Migration(migrations.Migration):
                         output_field=models.BooleanField(),
                     ),
                 ),
+                (
+                    "gitlab_failure_reason",
+                    models.CharField(
+                        help_text="The failure reason reported by GitLab",
+                        max_length=256,
+                    ),
+                ),
+                (
+                    "job_exit_code",
+                    models.IntegerField(
+                        help_text="The exit code of the job reported by GitLab",
+                        null=True,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(

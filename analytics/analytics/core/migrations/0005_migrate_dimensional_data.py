@@ -23,6 +23,8 @@ def create_empty_dimension_rows(apps, schema_editor):
         error_taxonomy=None,
         unnecessary=False,
         job_type="",
+        gitlab_failure_reason="",
+        job_exit_code=None,
     )
     JobRetryDimension.objects.create(
         is_retry=False,
@@ -82,6 +84,8 @@ def reassign_job_fact_dimensions(apps, schema_editor):
             error_taxonomy=job.error_taxonomy,
             unnecessary=job.unnecessary,
             job_type=job.job_type,
+            gitlab_failure_reason=job.gitlab_failure_reason,
+            job_exit_code=job.job_exit_code,
         )
         job_retry_data, _ = JobRetryDimension.objects.get_or_create(
             is_retry=job.is_retry,

@@ -146,14 +146,16 @@ def create_job_result_dimension(job_input_data: dict, job_trace: str):
         if status == "failed"
         else None
     )
-    # job_exit_code = get_job_exit_code(job_id=job_id)
-    # job_failure_reason: str = job_input_data["build_failure_reason"]
+    job_exit_code = get_job_exit_code(job_id=job_input_data["build_id"])
+    job_failure_reason: str = job_input_data["build_failure_reason"]
     unnecessary = UNNECESSARY_JOB_REGEX.search(job_trace) is not None
     res, _ = JobResultDimension.objects.get_or_create(
         status=status,
         error_taxonomy=error_taxonomy,
         unnecessary=unnecessary,
         job_type=determine_job_type(job_input_data=job_input_data),
+        job_exit_code=job_exit_code,
+        gitlab_failure_reason=job_failure_reason,
     )
 
     return res

@@ -190,9 +190,6 @@ class GitlabJobDataDimension(models.Model):
 
 
 class JobResultDimension(models.Model):
-    # TODO: failure_reason
-    # TODO: exit_code
-
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -236,6 +233,17 @@ class JobResultDimension(models.Model):
             ),
         ),
         help_text='Whether or not this job is an "infrastructure error", or a legitimate CI failure.',
+    )
+    gitlab_failure_reason = models.CharField(
+        max_length=256,
+        help_text="The failure reason reported by GitLab",
+    )
+    job_exit_code = models.IntegerField(
+        help_text="The exit code of the job reported by GitLab",
+        null=True,
+        # TODO: we should add a constraint here to ensure this is non-null when gitlab_failure_reason
+        # is 'script-error'. We'll leave it nullable for now until we can confirm that that
+        # constraint is valid.
     )
 
 
