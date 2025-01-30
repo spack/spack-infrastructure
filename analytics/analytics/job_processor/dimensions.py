@@ -17,7 +17,7 @@ from analytics.core.models.dimensions import (
     TimeDimension,
 )
 from analytics.job_processor.metadata import JobMiscInfo, NodeInfo, PackageInfo, PodInfo
-from analytics.job_processor.utils import get_job_retry_data
+from analytics.job_processor.utils import get_job_exit_code, get_job_retry_data
 
 UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
 BUILD_STAGE_REGEX = r"^stage-\d+$"
@@ -122,7 +122,7 @@ def create_job_data_dimension(
 
     job_name = job_input_data["build_name"]
     job_commit_id = job_input_data["commit"]["id"]
-    job_failure_reason = job_input_data["build_failure_reason"]
+    job_failure_reason: str = job_input_data["build_failure_reason"]
     retry_info = get_job_retry_data(
         job_id=job_id,
         job_name=job_name,
@@ -140,6 +140,8 @@ def create_job_data_dimension(
     rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
     runner_version = rvmatch.group(1) if rvmatch is not None else ""
     unnecessary = UNNECESSARY_JOB_REGEX.search(job_trace) is not None
+
+    job_exit_code = get_job_exit_code(job_id=job_id)
 
     job_data = JobDataDimension.objects.create(
         job_id=job_id,
@@ -162,6 +164,8 @@ def create_job_data_dimension(
         gitlab_runner_version=runner_version,
         job_type=determine_job_type(job_input_data),
         gitlab_section_timers=gitlab_section_timers,
+        gitlab_failure_reason=job_failure_reason,
+        job_exit_code=job_exit_code,
     )
 
     return job_data
