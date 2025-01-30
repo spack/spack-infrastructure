@@ -65,6 +65,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          logout: false
 
       - name: Build ${{ (github.ref == 'refs/heads/main' && 'and push ') || '' }}${{ matrix.docker-image }}
         id: docker-build-push
