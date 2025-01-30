@@ -209,8 +209,6 @@ class JobDataDimension(models.Model):
     gitlab_failure_reason = models.CharField(
         max_length=256,
         help_text="The failure reason reported by GitLab",
-        # TODO: This should be made non-nullable when old data is backfilled
-        null=True,
     )
     job_exit_code = models.IntegerField(
         help_text="The exit code of the job reported by GitLab",
