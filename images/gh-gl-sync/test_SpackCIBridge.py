@@ -61,7 +61,8 @@ def test_list_github_prs(capfd):
             "base": {
                 "ref": "main",
                 "sha": "shabar"
-            }
+            },
+            "labels": {}
         }),
         AttrDict({
             "number": 2,
@@ -74,7 +75,8 @@ def test_list_github_prs(capfd):
             "base": {
                 "ref": "main",
                 "sha": "shafaz"
-            }
+            },
+            "labels": {}
         }),
         AttrDict({
             "number": 3,
@@ -87,7 +89,8 @@ def test_list_github_prs(capfd):
             "base": {
                 "ref": "main",
                 "sha": "shaggg"
-            }
+            },
+            "labels": {}
         }),
     ]
     gh_repo = Mock()
@@ -469,7 +472,8 @@ def test_pipeline_status_backlogged_by_checks(capfd):
                 },
                 "base": {
                     "sha": "shabar"
-                }
+                },
+                "labels": {}
             }),
         ]
 
