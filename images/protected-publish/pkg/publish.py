@@ -1,11 +1,10 @@
 import argparse
-import contextlib
 import os
 import re
 import shutil
 import stat
 import subprocess
-import tempfile
+
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Callable, Dict, List, Optional
@@ -17,9 +16,15 @@ import requests
 import sentry_sdk
 from boto3.s3.transfer import TransferConfig
 
+from .common import (
+    clone_spack,
+    get_workdir_context,
+    list_prefix_contents,
+    BuiltSpec,
+)
+
 sentry_sdk.init(traces_sample_rate=1.0)
 
-SPACK_REPO = "https://github.com/spack/spack"
 GITLAB_URL = "https://gitlab.spack.io"
 GITLAB_PROJECT = "spack/spack"
 PREFIX_REGEX = re.compile(r"/build_cache/(.+)$")
@@ -38,20 +43,7 @@ SPACK_PUBLIC_KEY_LOCATION = "https://spack.github.io/keys"
 SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
 
 
-################################################################################
-# Encapsulate information about a built spec in a mirror
-class BuiltSpec:
-    def __init__(
-        self,
-        hash: Optional[str] = None,
-        stack: Optional[str] = None,
-        meta: Optional[str] = None,
-        archive: Optional[str] = None,
-    ):
-        self.hash = hash
-        self.stack = stack
-        self.meta = meta
-        self.archive = archive
+
 
 
 ################################################################################
@@ -218,44 +210,6 @@ def publish(
         ["/spack/bin/spack", "buildcache", "update-index", "--keys", mirror_url],
         check=True,
     )
-
-
-################################################################################
-# Each mirror we might publish was built with a particular version of spack, and
-# in order to be able update the index for one of those mirrors, we need to
-# clone the matching version of spack.
-def clone_spack(ref: str):
-    if os.path.isdir("/spack"):
-        shutil.rmtree("/spack")
-
-    owd = os.getcwd()
-
-    try:
-        os.chdir("/")
-        subprocess.run(
-            [
-                "git",
-                "clone",
-                "--depth",
-                "1",
-                "--single-branch",
-                "--branch",
-                f"{ref}",
-                SPACK_REPO,
-            ],
-            check=True,
-        )
-    finally:
-        os.chdir(owd)
-
-
-################################################################################
-#
-def list_prefix_contents(url: str, output_file: str):
-    list_cmd = ["aws", "s3", "ls", "--recursive", url]
-
-    with open(output_file, "w") as f:
-        subprocess.run(list_cmd, stdout=f, check=True)
 
 
 ################################################################################
@@ -457,6 +411,9 @@ def generate_spec_catalogs(
     return stack_specs, top_level_specs
 
 
+
+
+
 ################################################################################
 # Filter through pipelines updated over the last_n_days to find all protected
 # branches that had a pipeline run.
@@ -474,16 +431,6 @@ def get_recently_run_protected_refs(last_n_days):
         if is_ref_protected(pipeline.ref):
             recent_protected_refs.add(pipeline.ref)
     return list(recent_protected_refs)
-
-
-################################################################################
-# If the cli didn't provide a working directory, we will create (and clean up)
-# a temporary directory.
-def get_workdir_context(workdir: Optional[str] = None):
-    if not workdir:
-        return tempfile.TemporaryDirectory()
-
-    return contextlib.nullcontext(workdir)
 
 
 ################################################################################
@@ -553,6 +500,8 @@ def main():
     exceptions = []
 
     for ref in refs:
+        # If the cli didn't provide a working directory, we will create (and clean up)
+        # a temporary directory using this workdir context
         with get_workdir_context(args.workdir) as workdir:
             print(f"Publishing missing specs for {args.bucket} / {ref}")
             try:

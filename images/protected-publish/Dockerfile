@@ -11,8 +11,8 @@ COPY requirements.txt /srcs/requirements.txt
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r /srcs/requirements.txt
 
-COPY publish.py /srcs/publish.py
-COPY validate_index.py /srcs/validate_index.py
+COPY pkg /srcs/pkg
+COPY --chmod=755 migrate.sh /srcs/migrate.sh
 
 WORKDIR /srcs
-ENTRYPOINT ["python", "publish.py"]
+ENTRYPOINT ["python", "-m", "pkg.publish", "--days", "blue"]
