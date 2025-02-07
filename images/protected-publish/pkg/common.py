@@ -1,21 +1,41 @@
 import contextlib
-import subprocess
+import json
 import os
 import re
 import shutil
+import subprocess
 import tempfile
 from collections import defaultdict
-from typing import  Dict, Optional
+from typing import  Dict, Optional, NamedTuple
+
+import boto3.session
+from boto3.s3.transfer import TransferConfig
 
 
 SPACK_REPO = "https://github.com/spack/spack"
 
 TIMESTAMP_AND_SIZE = r"^[\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2}\s+\d+\s+"
 
-# 2023-05-14 01:23:32      50105 develop-2023-05-14/aws-ahug-aarch64/build_cache/linux-amzn2-aarch64-gcc-7.3.1-adios2-2.9.0-hxjtlz7dy3ayuory4vtfsaxhwnt44pt4.spec.json.sig
+#; regular expressions designed to match "aws s3 ls" output
 REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spec.json.sig)$")
-# 2023-05-14 01:23:32    5068680 develop-2023-05-14/aws-ahug-aarch64/build_cache/linux-amzn2-aarch64/gcc-7.3.1/adios2-2.9.0/linux-amzn2-aarch64-gcc-7.3.1-adios2-2.9.0-hxjtlz7dy3ayuory4vtfsaxhwnt44pt4.spack
 REGEX_V2_ARCHIVE_RELATIVE = re.compile(rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spack)$")
+
+#: Values used to config multi-part s3 copies
+MB = 1024 ** 2
+MULTIPART_THRESHOLD = 100 * MB
+MULTIPART_CHUNKSIZE=20 * MB
+MAX_CONCURRENCY=10
+USE_THREADS=True
+
+# #: Regular expression to pull spec contents out of clearsigned signature
+# #: file.
+# CLEARSIGN_FILE_REGEX = re.compile(
+#     (
+#         r"^-----BEGIN PGP SIGNED MESSAGE-----"
+#         r"\s+Hash:\s+[^\s]+\s+(.+)-----BEGIN PGP SIGNATURE-----"
+#     ),
+#     re.MULTILINE | re.DOTALL,
+# )
 
 
 ################################################################################
@@ -36,27 +56,21 @@ class BuiltSpec:
         self.archive = archive
 
 
+class TaskResult(NamedTuple):
+    #: True unless task failed for any reason
+    success: bool
+    #: Any message about the cause of error or success conditions
+    message: str
+
+
 ################################################################################
 # Return a complete catalog of all the built specs for every prefix in the
 # listing.  The returned dictionary of catalogs is keyed by unique prefix.
 def spec_catalogs_from_listing(listing_path: str) -> Dict[str, Dict[str, BuiltSpec]]:
     all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(lambda: defaultdict(BuiltSpec))
 
-    # line_count = 0
-    # max_lines = 10
-
     with open(listing_path) as f:
         for line in f:
-
-            # line_count += 1
-            # if line_count > max_lines:
-            #     break
-
-            # print(line)
-
-            # import pdb
-            # pdb.set_trace()
-
             m = REGEX_V2_SIGNED_SPECFILE_RELATIVE.search(line)
             if m:
                 # print("matched a specfile")
@@ -113,7 +127,7 @@ def list_prefix_contents(url: str, output_file: str):
 # clone the matching version of spack.
 #
 # Clones the version of spack specified by ref to the root of the file system
-def clone_spack(ref: str):
+def clone_spack(ref: str = "develop", repo: str = SPACK_REPO):
     if os.path.isdir("/spack"):
         shutil.rmtree("/spack")
 
@@ -130,9 +144,51 @@ def clone_spack(ref: str):
                 "--single-branch",
                 "--branch",
                 f"{ref}",
-                SPACK_REPO,
+                f"{repo}",
             ],
             check=True,
         )
     finally:
         os.chdir(owd)
+
+
+################################################################################
+# Download a file from s3
+def s3_download_file(bucket: str, prefix: str, save_path: str, force: bool = False):
+    session = boto3.session.Session()
+    s3_resource = session.resource('s3')
+    s3_client = s3_resource.meta.client
+
+    if not os.path.isfile(save_path) or force is True:
+        # First we have to download the file locally
+        with open(save_path, "wb") as f:
+            s3_client.download_fileobj(bucket, prefix, f)
+
+
+
+################################################################################
+# Copy objects between s3 buckets/prefixes
+def s3_copy_file(copy_source: Dict[str, str], bucket: str, dest_prefix: str):
+    session = boto3.session.Session()
+    s3_resource = session.resource('s3')
+    s3_client = s3_resource.meta.client
+
+    config = TransferConfig(
+        multipart_threshold=MULTIPART_THRESHOLD,
+        multipart_chunksize=MULTIPART_CHUNKSIZE,
+        max_concurrency=MAX_CONCURRENCY,
+        use_threads=USE_THREADS,
+    )
+
+    s3_client.copy(copy_source, bucket, dest_prefix, Config=config)
+
+
+# ################################################################################
+# # Return json enclosed within signature text
+# def extract_json_from_signature(data):
+#
+#     m = CLEARSIGN_FILE_REGEX.search(data)
+#     if m:
+#         return json.loads(m.group(1))
+#
+#     return {}

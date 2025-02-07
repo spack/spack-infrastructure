@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import Callable, Dict, List, Optional
 
 import botocore.exceptions
-import boto3.session
+
 import gitlab
 import requests
 import sentry_sdk
@@ -20,6 +20,8 @@ from .common import (
     clone_spack,
     get_workdir_context,
     list_prefix_contents,
+    s3_copy_file,
+    s3_download_file,
     BuiltSpec,
 )
 
@@ -34,15 +36,9 @@ PROTECTED_REF_REGEXES = [
     re.compile(r"^releases/v[\d]+\.[\d]+$"),
     re.compile(r"^develop-[\d]{4}-[\d]{2}-[\d]{2}$"),
 ]
-MB = 1024 ** 2
-MULTIPART_THRESHOLD = 100 * MB
-MULTIPART_CHUNKSIZE=20 * MB
-MAX_CONCURRENCY=10
-USE_THREADS=True
+
 SPACK_PUBLIC_KEY_LOCATION = "https://spack.github.io/keys"
 SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
-
-
 
 
 
@@ -65,19 +61,12 @@ def publish_missing_spec(built_spec, bucket, ref, force, gpg_home, tmpdir):
 
     specfile_path = os.path.join(tmpdir, f"{hash}.spec.json.sig")
 
-    session = boto3.session.Session()
-    s3_resource = session.resource('s3')
-    s3_client = s3_resource.meta.client
-
-    if not os.path.isfile(specfile_path) or force is True:
-        # First we have to download the file locally
-        try:
-            with open(specfile_path, "wb") as f:
-                s3_client.download_fileobj(bucket, meta_suffix, f)
-        except botocore.exceptions.ClientError as error:
-            error_msg = getattr(error, "message", error)
-            error_msg = f"Failed to download {meta_suffix} due to {error_msg}"
-            return False, error_msg
+    try:
+        s3_download_file(bucket, meta_suffix, specfile_path, force=force)
+    except Exception as error:
+        error_msg = getattr(error, "message", error)
+        error_msg = f"Failed to download {meta_suffix} due to {error_msg}"
+        return False, error_msg
 
     # Verify the signature of the locally downloaded metadata file
     try:
@@ -87,13 +76,6 @@ def publish_missing_spec(built_spec, bucket, ref, force, gpg_home, tmpdir):
         error_msg = getattr(cpe, "message", cpe)
         print(f"Failed to verify signature of {meta_suffix} due to {error_msg}")
         return False, error_msg
-
-    config = TransferConfig(
-        multipart_threshold=MULTIPART_THRESHOLD,
-        multipart_chunksize=MULTIPART_CHUNKSIZE,
-        max_concurrency=MAX_CONCURRENCY,
-        use_threads=USE_THREADS,
-    )
 
     # Finally, copy the files directly from source to dest, starting with the tarball
     for suffix in [archive_suffix, meta_suffix]:
@@ -105,8 +87,8 @@ def publish_missing_spec(built_spec, bucket, ref, force, gpg_home, tmpdir):
                     'Bucket': bucket,
                     'Key': suffix,
                 }
-                s3_client.copy(copy_source, bucket, dest_prefix, Config=config)
-            except botocore.exceptions.ClientError as error:
+                s3_copy_file(copy_source, bucket, dest_prefix)
+            except Exception as error:
                 error_msg = getattr(error, "message", error)
                 error_msg = f"Failed to copy_object({suffix}) due to {error_msg}"
                 return False, error_msg
