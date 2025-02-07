@@ -8,6 +8,7 @@ import tempfile
 from collections import defaultdict
 from typing import  Dict, Optional, NamedTuple
 
+import boto3
 import boto3.session
 from boto3.s3.transfer import TransferConfig
 
@@ -16,9 +17,12 @@ SPACK_REPO = "https://github.com/spack/spack"
 
 TIMESTAMP_AND_SIZE = r"^[\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2}\s+\d+\s+"
 
-#; regular expressions designed to match "aws s3 ls" output
+#: regular expressions designed to match "aws s3 ls" output
 REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spec.json.sig)$")
 REGEX_V2_ARCHIVE_RELATIVE = re.compile(rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spack)$")
+
+#: regex to capture bucket name from an s3 url
+REGEX_S3_BUCKET = e.compile(r"s3://([^/]+)/")
 
 #: Values used to config multi-part s3 copies
 MB = 1024 ** 2
@@ -26,16 +30,6 @@ MULTIPART_THRESHOLD = 100 * MB
 MULTIPART_CHUNKSIZE=20 * MB
 MAX_CONCURRENCY=10
 USE_THREADS=True
-
-# #: Regular expression to pull spec contents out of clearsigned signature
-# #: file.
-# CLEARSIGN_FILE_REGEX = re.compile(
-#     (
-#         r"^-----BEGIN PGP SIGNED MESSAGE-----"
-#         r"\s+Hash:\s+[^\s]+\s+(.+)-----BEGIN PGP SIGNATURE-----"
-#     ),
-#     re.MULTILINE | re.DOTALL,
-# )
 
 
 ################################################################################
@@ -64,9 +58,19 @@ class TaskResult(NamedTuple):
 
 
 ################################################################################
+#
+def bucket_name_from_s3_url(url):
+    bucket_regex = REGEX_S3_BUCKET
+    m = bucket_regex.search(url)
+    if m:
+        return m.group(1)
+    return ""
+
+
+################################################################################
 # Return a complete catalog of all the built specs for every prefix in the
 # listing.  The returned dictionary of catalogs is keyed by unique prefix.
-def spec_catalogs_from_listing(listing_path: str) -> Dict[str, Dict[str, BuiltSpec]]:
+def spec_catalogs_from_listing_v2(listing_path: str) -> Dict[str, Dict[str, BuiltSpec]]:
     all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(lambda: defaultdict(BuiltSpec))
 
     with open(listing_path) as f:
@@ -127,14 +131,16 @@ def list_prefix_contents(url: str, output_file: str):
 # clone the matching version of spack.
 #
 # Clones the version of spack specified by ref to the root of the file system
-def clone_spack(ref: str = "develop", repo: str = SPACK_REPO):
-    if os.path.isdir("/spack"):
-        shutil.rmtree("/spack")
+def clone_spack(ref: str = "develop", repo: str = SPACK_REPO, clone_dir: str = "/"):
+    spack_path = f"{clone_dir}/spack"
+
+    if os.path.isdir(spack_path):
+        shutil.rmtree(spack_path)
 
     owd = os.getcwd()
 
     try:
-        os.chdir("/")
+        os.chdir(clone_dir)
         subprocess.run(
             [
                 "git",
@@ -183,12 +189,12 @@ def s3_copy_file(copy_source: Dict[str, str], bucket: str, dest_prefix: str):
     s3_client.copy(copy_source, bucket, dest_prefix, Config=config)
 
 
-# ################################################################################
-# # Return json enclosed within signature text
-# def extract_json_from_signature(data):
+################################################################################
 #
-#     m = CLEARSIGN_FILE_REGEX.search(data)
-#     if m:
-#         return json.loads(m.group(1))
-#
-#     return {}
+def s3_upload_file(file_path: str, bucket: str, prefix: str):
+    session = boto3.session.Session()
+    s3_resource = session.resource('s3')
+    s3_client = s3_resource.meta.client
+
+    with open(file_path, 'rb') as fd:
+        s3_client.upload_fileobj(fd, bucket, prefix)

@@ -12,30 +12,20 @@ import sentry_sdk
 from .common import (
     BuiltSpec,
     TaskResult,
+    bucket_name_from_s3_url,
     clone_spack,
     get_workdir_context,
     list_prefix_contents,
+    s3_copy_file,
     s3_download_file,
-    spec_catalogs_from_listing,
-    # extract_json_from_signature,
+    s3_upload_file,
+    spec_catalogs_from_listing_v2,
 )
 
 sentry_sdk.init(traces_sample_rate=1.0)
 
-
 CONTENT_ADDRESSABLE_TARBALLS_REPO = "https://github.com/scottwittenburg/spack.git"
 CONTENT_ADDRESSABLE_TARBALLS_REF = "content-addressable-tarballs-2"
-
-
-################################################################################
-#
-def _bucket_naem_from_s3_url(url):
-    bucket_regex = re.compile(r"s3://([^/]+)/")
-    m = bucket_regex.search(url)
-    if m:
-        return m.group(1)
-    return ""
-
 
 
 ################################################################################
@@ -44,26 +34,26 @@ def _bucket_naem_from_s3_url(url):
 def _migrate_spec(
     built_spec: BuiltSpec,
     listing_path: str,
-    mirror_url: str,
+    bucket: str,
     target_prefix: str,
     working_dir: str,
     force: bool,
 ) -> TaskResult:
-    bucket = _bucket_naem_from_s3_url(mirror_url)
-    prefix = built_spec.meta
-
-    if not prefix:
+    if not built_spec.meta:
         return TaskResult(False, f"Found no metadata url for {built_spec.hash}")
 
-    if not prefix.endswith(".sig"):
+    if not built_spec.archive:
+        return TaskResult(False, f"Found no archive url for {built_spec.hash}")
+
+    if not built_spec.meta.endswith(".sig"):
         return TaskResult(False, "We will only migrate signed signed binaries")
 
-    signed_specfile_path = os.path.join(working_dir, f"{built_spec.hash}.json.sig")
-    verified_specfile_path = os.path.join(working_dir, f"{built_spec.hash}.json")
+    signed_specfile_path = os.path.join(working_dir, f"{built_spec.hash}.spec.json.sig")
+    verified_specfile_path = os.path.join(working_dir, f"{built_spec.hash}.spec.json")
 
     # Download the spec metadata file
     try:
-        s3_download_file(bucket, prefix, signed_specfile_path, force)
+        s3_download_file(bucket, built_spec.meta, signed_specfile_path, force)
     except Exception as e:
         error_msg = getattr(e, "message", e)
         error_msg = f"Failed to download {built_spec.hash} metadata due to {error_msg}"
@@ -82,32 +72,32 @@ def _migrate_spec(
         # spec_dict = extract_json_from_signature(fd.read())
         spec_dict = json.load(fd)
 
-    # With the spec_dict:
-    #     - get out:
-    #         - spec_dict["binary_cache_checksum"]["hash_algorithm"]
-    #         - spec_dict["binary_cache_checksum"]["hash"]
-    #         - spec_dict["archive_size"]
+    # Retrieve the algorithm and checksum from the json data
+    hash_alg = spec_dict["binary_cache_checksum"]["hash_algorithm"]
+    checksum = spec_dict["binary_cache_checksum"]["hash"]
 
-    # Assemble the expected url of the tarball, and check the listing_path to see
-    # if it was possibly already migrated.  It it is present there, we could also
-    # check its size against the one we captured above, otherwise we are done
-    # successfully.
+    # Assemble the expected prefix of the tarball under the new layout
+    new_layout_tarball_prefix = f"{target_prefix}/blobs/{hash_alg}/{checksum[:2]}/{checksum}"
 
-    # If tarball was not already migrated, neither was the metadata, so update it:
-    #
-    #     spec_dict["buildcache_layout_version"] = 3
-    #
+    # Check the listing to see if we already migrated this one, in which case,
+    # we're done and we consider this spec migration successful
+    grep_cmd = ["grep", new_layout_tarball_prefix, listing_path]
+    grep_result = subprocess.run(grep_cmd)
+    if grep_result.returncode == 0:
+        mirror_url = f"s3://{bucket}/{target_prefix}"
+        print(f"{mirror_url} / {built_spec.hash} is already migrated, exiting.")
+        return TaskResult(True, f"{mirror_url} / {hash} previously migrated")
 
-    # Write the updated spec data back to disk
+    # If tarball was not already migrated, neither was the metadata, so update
+    # it and write it to disk
+    spec_dict["buildcache_layout_version"] = 3
     with open(verified_specfile_path, 'w') as fd:
         json.dump(spec_dict, fd)
 
     # Re-sign the updated spec dict, and first remove the previous signed file to
     # avoid gpg asking us if we're sure we want to overwrite it.
-
     os.remove(signed_specfile_path)
-    sign_cmd = ["gpg", "--no-tty", "--output", f"{verified_specfile_path}.sig", "--clearsign", verified_specfile_path]
-    # sign_cmd = ["gpg", "--output", signed_specfile_path, "--clearsign", verified_specfile_path]
+    sign_cmd = ["gpg", "--no-tty", "--output", f"{signed_specfile_path}", "--clearsign", verified_specfile_path]
 
     try:
         subprocess.run(sign_cmd, check=True)
@@ -116,12 +106,45 @@ def _migrate_spec(
         print(f"Failed to resign {verified_specfile_path} due to {error_msg}")
         return TaskResult(False, error_msg)
 
-    # s3_copy_file the tarball from the original prefix into the prefix under the new layout
+    # copy the archive from the original prefix into the prefix under the new layout
+    copy_source = {
+        'Bucket': bucket,
+        'Key': built_spec.archive,
+    }
+
+    print(f"Copying s3://{bucket}/{built_spec.archive} to s3://{bucket}/{new_layout_tarball_prefix}")
+
+    try:
+        s3_copy_file(copy_source, bucket, new_layout_tarball_prefix)
+    except Exception as error:
+        error_msg = getattr(error, "message", error)
+        error_msg = f"Failed to migrate {built_spec.archive} due to {error_msg}"
+        return TaskResult(False, error_msg)
 
     # upload the locally updated and re-signed meta to the correct prefix under the new layout
+    spec_name = spec_dict["spec"]["nodes"][0]["name"]
+    spec_version = spec_dict["spec"]["nodes"][0]["version"]
+    spec_hash = spec_dict["spec"]["nodes"][0]["hash"]
+
+    # This mismatch isn't likely, but check just in case
+    if spec_hash != built_spec.hash:
+        return TaskResult(False, f"Old layout filname/hash mismatch ({built_spec.hash}/{spec_hash})")
+
+    new_layout_meta_prefix = f"{target_prefix}/v3/specs/{spec_name}-{spec_version}-{spec_hash}.spec.json.sig"
+
+    print(f"Uploading {signed_specfile_path} to s3://{bucket}/{new_layout_meta_prefix}")
+
+    try:
+        s3_upload_file(signed_specfile_path, bucket, new_layout_meta_prefix)
+    except Exception as e:
+        error_msg = getattr(e, "message", e)
+        error_msg = (
+            f"Migrattion failed: unable to upload re-signed metadata for "
+            f"{built_spec.hash} due to {error_msg}"
+        )
+        return TaskResult(False, error_msg)
 
     return TaskResult(True, f"{built_spec.hash} successfully migrated")
-
 
 
 ################################################################################
@@ -140,7 +163,7 @@ def migrate(mirror_url: str, workdir: str, force: bool = False, parallel: int = 
     if not os.path.isfile(listing_file) or force:
         list_prefix_contents(f"{mirror_url}/", listing_file)
 
-    all_catalogs = spec_catalogs_from_listing(listing_file)
+    all_catalogs = spec_catalogs_from_listing_v2(listing_file)
     target_prefix = None
 
     print(f"Looking for {mirror_url} in the catalogs...")
@@ -154,19 +177,21 @@ def migrate(mirror_url: str, workdir: str, force: bool = False, parallel: int = 
 
     target_catalog = all_catalogs[target_prefix]
     total_count = len(target_catalog)
-    print(f"Found your mirror: {target_prefix} has {total_count} specs to migrate")
+    print(f"Found mirror: {target_prefix} has {total_count} specs to migrate")
 
     for spec_hash, built_spec in target_catalog.items():
         print(f"  {spec_hash}:")
         print(f"    meta: {built_spec.meta}")
         print(f"    archive: {built_spec.archive}")
 
+    bucket = bucket_name_from_s3_url(mirror_url)
+
     # Build a list of tasks for threads
     task_list = [
         (
             built_spec,
             listing_file,
-            mirror_url,
+            bucket,
             target_prefix,
             tmp_storage_dir,
             force,
@@ -193,12 +218,22 @@ def migrate(mirror_url: str, workdir: str, force: bool = False, parallel: int = 
 
     print(f"All migration threads finished, {completed_successfully}/{total_tasks} completed successfully")
 
+    # Migrate any signing keys
+    old_keys_prefix = f"{mirror_url}/build_cache/_pgp"
+    new_keys_prefix = f"{mirror_url}/v3/keys/_pgp"
+    key_sync_cmd = ["aws", "s3", "sync", old_keys_prefix, new_keys_prefix]
+
+    try:
+        subprocess.run(key_sync_cmd, check=True)
+    except Exception as e:
+        print(f"Failed to migrate gpg verification keys due to {e}")
+
     if completed_successfully > 0:
         # When all the tasks are finished, rebuild the top-level index
-        clone_spack(ref=CONTENT_ADDRESSABLE_TARBALLS_REF, repo=CONTENT_ADDRESSABLE_TARBALLS_REPO)
+        clone_spack(ref=CONTENT_ADDRESSABLE_TARBALLS_REF, repo=CONTENT_ADDRESSABLE_TARBALLS_REPO, clone_dir=workdir)
         print(f"Publishing complete, rebuilding index at {mirror_url}")
         subprocess.run(
-            ["/spack/bin/spack", "buildcache", "update-index", "--keys", mirror_url],
+            [f"{workdir}/spack/bin/spack", "-d", "buildcache", "update-index", "--keys", mirror_url],
             check=True,
         )
 
