@@ -19,10 +19,23 @@ TIMESTAMP_AND_SIZE = r"^[\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2}\s+\d+\s
 
 #: regular expressions designed to match "aws s3 ls" output
 REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(
-    rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spec.json.sig)$"
+    rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(\.spec\.json\.sig)$"
 )
 REGEX_V2_ARCHIVE_RELATIVE = re.compile(
-    rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spack)$"
+    rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(\.spack)$"
+)
+REGEX_V3_SIGNED_SPECFILE_RELATIVE = re.compile(
+    rf"{TIMESTAMP_AND_SIZE}(.+)(/v3/specs/.+-)([^-\.]+)(\.spec\.json\.sig)$"
+)
+
+#: Regular expression to pull spec contents out of clearsigned signature
+#: file.
+CLEARSIGN_FILE_REGEX = re.compile(
+    (
+        r"^-----BEGIN PGP SIGNED MESSAGE-----"
+        r"\s+Hash:\s+[^\s]+\s+(.+)-----BEGIN PGP SIGNATURE-----"
+    ),
+    re.MULTILINE | re.DOTALL,
 )
 
 #: regex to capture bucket name from an s3 url
@@ -65,9 +78,13 @@ def bucket_name_from_s3_url(url):
 
 
 ################################################################################
-# Return a complete catalog of all the built specs for every prefix in the
-# listing.  The returned dictionary of catalogs is keyed by unique prefix.
+#
 def spec_catalogs_from_listing_v2(listing_path: str) -> Dict[str, Dict[str, BuiltSpec]]:
+    """Return a complete catalog of all the built specs in the listing
+
+    Return a complete catalog of all the built specs for every prefix in the
+    listing.  The returned dictionary of catalogs is keyed by unique prefix.
+    """
     all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
         lambda: defaultdict(BuiltSpec)
     )
@@ -104,6 +121,29 @@ def spec_catalogs_from_listing_v2(listing_path: str) -> Dict[str, Dict[str, Buil
 
 
 ################################################################################
+#
+def spec_catalogs_from_listing_v3(listing_path: str) -> Dict[str, Dict[str, BuiltSpec]]:
+    all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
+        lambda: defaultdict(BuiltSpec)
+    )
+
+    with open(listing_path) as f:
+        for line in f:
+            m = REGEX_V3_SIGNED_SPECFILE_RELATIVE.search(line)
+            if m:
+                prefix = m.group(1)
+                middle_bit = m.group(2)
+                hash = m.group(3)
+                end_bit = m.group(4)
+                spec = all_catalogs[prefix][hash]
+                spec.hash = hash
+                spec.meta = f"{prefix}{middle_bit}{hash}{end_bit}"
+                continue
+
+    return all_catalogs
+
+
+################################################################################
 # If the cli didn't provide a working directory, we will create (and clean up)
 # a temporary directory.
 def get_workdir_context(workdir: Optional[str] = None):
@@ -122,6 +162,19 @@ def list_prefix_contents(url: str, output_file: str):
 
     with open(output_file, "w") as f:
         subprocess.run(list_cmd, stdout=f, check=True)
+
+
+################################################################################
+#
+def extract_json_from_clearsig(file_path):
+    with open(file_path) as fd:
+        data = fd.read()
+
+    m = CLEARSIGN_FILE_REGEX.search(data)
+    if not m:
+        return {}
+
+    return json.loads(m.group(1))
 
 
 ################################################################################

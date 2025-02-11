@@ -19,11 +19,13 @@ from boto3.s3.transfer import TransferConfig
 
 from .common import (
     clone_spack,
+    extract_json_from_clearsig,
     get_workdir_context,
     list_prefix_contents,
     s3_copy_file,
     s3_download_file,
     spec_catalogs_from_listing_v2,
+    spec_catalogs_from_listing_v3,
     BuiltSpec,
 )
 
@@ -106,7 +108,55 @@ def publish_missing_spec_v2(built_spec, bucket, ref, force, gpg_home, tmpdir):
 #
 def publish_missing_spec_v3(built_spec, bucket, ref, force, gpg_home, tmpdir):
     """Publish a single spec from a stack to the root"""
-    return False, f"Not implemented"
+    hash = built_spec.hash
+    meta_suffix = built_spec.meta
+
+    specfile_path = os.path.join(tmpdir, f"{hash}.spec.json.sig")
+
+    try:
+        s3_download_file(bucket, meta_suffix, specfile_path, force=force)
+    except Exception as error:
+        error_msg = getattr(error, "message", error)
+        error_msg = f"Failed to download {meta_suffix} due to {error_msg}"
+        return False, error_msg
+
+    # Verify the signature of the locally downloaded metadata file
+    try:
+        env = {"GNUPGHOME": gpg_home}
+        subprocess.run(["gpg", "--verify", specfile_path], env=env, check=True)
+    except subprocess.CalledProcessError as cpe:
+        error_msg = getattr(cpe, "message", cpe)
+        print(f"Failed to verify signature of {meta_suffix} due to {error_msg}")
+        return False, error_msg
+
+    # Extract the spec dict from the signature
+    spec_dict = extract_json_from_clearsig(specfile_path)
+    if not spec_dict:
+        return False, "Unable to extract spec_dict from clear-signed file"
+
+    hash_alg = spec_dict["binary_cache_checksum"]["hash_algorithm"]
+    checksum = spec_dict["binary_cache_checksum"]["hash"]
+    new_layout_tarball_prefix = (
+        f"blobs/{hash_alg}/{checksum[:2]}/{checksum}"
+    )
+
+    # Finally, copy the files directly from source to dest, starting with the tarball
+    for suffix in [archive_suffix, meta_suffix]:
+        m = PREFIX_REGEX.search(suffix)
+        if m:
+            dest_prefix = f"{ref}/build_cache/{m.group(1)}"
+            try:
+                copy_source = {
+                    "Bucket": bucket,
+                    "Key": suffix,
+                }
+                s3_copy_file(copy_source, bucket, dest_prefix)
+            except Exception as error:
+                error_msg = getattr(error, "message", error)
+                error_msg = f"Failed to copy_object({suffix}) due to {error_msg}"
+                return False, error_msg
+
+    return True, f"Published {meta_suffix} and {archive_suffix} to s3://{bucket}/{ref}/"
 
 
 ################################################################################
@@ -172,6 +222,8 @@ def publish(
     if not missing_at_top:
         print(f"No specs missing from s3://{bucket}/{ref}, nothing to do.")
         return
+
+    return
 
     gnu_pg_home = os.path.join(workdir, ".gnupg")
     local_key_path = download_and_import_key(gnu_pg_home, workdir, force)
@@ -394,6 +446,7 @@ def generate_spec_catalogs_v3(
     ref: str, listing_path: str, exclude: List[str]
 ) -> tuple[Dict[str, Dict[str, BuiltSpec]], Dict[str, BuiltSpec]]:
     """Return information about specs in stacks and at the root"""
+    all_catalogs = spec_catalogs_from_listing_v3(listing_path)
     return ({}, {})
 
 
