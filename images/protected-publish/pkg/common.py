@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 from collections import defaultdict
-from typing import  Dict, Optional, NamedTuple
+from typing import Dict, Optional
 
 import boto3
 import boto3.session
@@ -18,18 +18,22 @@ SPACK_REPO = "https://github.com/spack/spack"
 TIMESTAMP_AND_SIZE = r"^[\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2}\s+\d+\s+"
 
 #: regular expressions designed to match "aws s3 ls" output
-REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spec.json.sig)$")
-REGEX_V2_ARCHIVE_RELATIVE = re.compile(rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spack)$")
+REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(
+    rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spec.json.sig)$"
+)
+REGEX_V2_ARCHIVE_RELATIVE = re.compile(
+    rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(.spack)$"
+)
 
 #: regex to capture bucket name from an s3 url
-REGEX_S3_BUCKET = e.compile(r"s3://([^/]+)/")
+REGEX_S3_BUCKET = re.compile(r"s3://([^/]+)/")
 
 #: Values used to config multi-part s3 copies
-MB = 1024 ** 2
+MB = 1024**2
 MULTIPART_THRESHOLD = 100 * MB
-MULTIPART_CHUNKSIZE=20 * MB
-MAX_CONCURRENCY=10
-USE_THREADS=True
+MULTIPART_CHUNKSIZE = 20 * MB
+MAX_CONCURRENCY = 10
+USE_THREADS = True
 
 
 ################################################################################
@@ -50,13 +54,6 @@ class BuiltSpec:
         self.archive = archive
 
 
-class TaskResult(NamedTuple):
-    #: True unless task failed for any reason
-    success: bool
-    #: Any message about the cause of error or success conditions
-    message: str
-
-
 ################################################################################
 #
 def bucket_name_from_s3_url(url):
@@ -71,7 +68,9 @@ def bucket_name_from_s3_url(url):
 # Return a complete catalog of all the built specs for every prefix in the
 # listing.  The returned dictionary of catalogs is keyed by unique prefix.
 def spec_catalogs_from_listing_v2(listing_path: str) -> Dict[str, Dict[str, BuiltSpec]]:
-    all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(lambda: defaultdict(BuiltSpec))
+    all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
+        lambda: defaultdict(BuiltSpec)
+    )
 
     with open(listing_path) as f:
         for line in f:
@@ -162,7 +161,7 @@ def clone_spack(ref: str = "develop", repo: str = SPACK_REPO, clone_dir: str = "
 # Download a file from s3
 def s3_download_file(bucket: str, prefix: str, save_path: str, force: bool = False):
     session = boto3.session.Session()
-    s3_resource = session.resource('s3')
+    s3_resource = session.resource("s3")
     s3_client = s3_resource.meta.client
 
     if not os.path.isfile(save_path) or force is True:
@@ -171,12 +170,11 @@ def s3_download_file(bucket: str, prefix: str, save_path: str, force: bool = Fal
             s3_client.download_fileobj(bucket, prefix, f)
 
 
-
 ################################################################################
 # Copy objects between s3 buckets/prefixes
 def s3_copy_file(copy_source: Dict[str, str], bucket: str, dest_prefix: str):
     session = boto3.session.Session()
-    s3_resource = session.resource('s3')
+    s3_resource = session.resource("s3")
     s3_client = s3_resource.meta.client
 
     config = TransferConfig(
@@ -193,8 +191,8 @@ def s3_copy_file(copy_source: Dict[str, str], bucket: str, dest_prefix: str):
 #
 def s3_upload_file(file_path: str, bucket: str, prefix: str):
     session = boto3.session.Session()
-    s3_resource = session.resource('s3')
+    s3_resource = session.resource("s3")
     s3_client = s3_resource.meta.client
 
-    with open(file_path, 'rb') as fd:
+    with open(file_path, "rb") as fd:
         s3_client.upload_fileobj(fd, bucket, prefix)

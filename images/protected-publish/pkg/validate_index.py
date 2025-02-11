@@ -61,9 +61,9 @@ def validate_s3_index(url):
         s3_client.download_fileobj(bucket, prefix, buf)
         index_data = json.loads(buf.getvalue().decode("utf-8"))
     except botocore.exceptions.ClientError as error:
-            error_msg = getattr(error, "message", error)
-            error_msg = f"Failed to download {bucket} {prefix} due to {error_msg}"
-            sys.exit(1)
+        error_msg = getattr(error, "message", error)
+        error_msg = f"Failed to download {bucket} {prefix} due to {error_msg}"
+        sys.exit(1)
 
     validate_mirror_index(index_data)
 
@@ -75,9 +75,9 @@ def validate_file_index(file_path):
         with open(file_path) as f:
             index_data = json.load(f)
     except Exception as error:
-            error_msg = getattr(error, "message", error)
-            error_msg = f"Failed to read {file_path} due to {error_msg}"
-            sys.exit(1)
+        error_msg = getattr(error, "message", error)
+        error_msg = f"Failed to read {file_path} due to {error_msg}"
+        sys.exit(1)
 
     validate_mirror_index(index_data)
 
@@ -94,9 +94,7 @@ def main():
     )
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument(
-        "-u", "--url", default=None, help="URL of S3 mirror to validate"
-    )
+    group.add_argument("-u", "--url", default=None, help="URL of S3 mirror to validate")
     group.add_argument(
         "-f", "--file", default=None, help="Absolute path to local index file"
     )

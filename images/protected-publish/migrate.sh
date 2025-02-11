@@ -4,7 +4,7 @@ set -Eeuo pipefail
 # Performs in-place migration of mirror to new buildcache layout. The
 # migrate.py script expects to operate within a context where the
 # GNUPGHOME environment variable is set to a location that already
-# has the expect public/secret parts of the target key imported. Each
+# has the expected public/secret parts of the target key imported. Each
 # migrated spec must have it's signature verified before operating on
 # and it will be signed with the same key before pushing it to the new
 # location.
