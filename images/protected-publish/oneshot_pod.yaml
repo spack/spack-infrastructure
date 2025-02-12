@@ -18,7 +18,7 @@ spec:
       serviceAccountName: naccess
       containers:
       - name: access
-        image: ghcr.io/scottwittenburg/protected-publish:0.0.3
+        image: ghcr.io/spack/protected-publish:0.0.3
         command: ["sleep", "360000"]
         imagePullPolicy: IfNotPresent
         volumeMounts:
