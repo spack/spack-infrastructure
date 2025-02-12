@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: access-node
-  namespace: custom
+  namespace: pipeline
   labels:
     app: key-access
 spec:

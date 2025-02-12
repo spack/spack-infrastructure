@@ -231,8 +231,6 @@ def publish(
         print(f"No specs missing from s3://{bucket}/{ref}, nothing to do.")
         return
 
-    return
-
     gnu_pg_home = os.path.join(workdir, ".gnupg")
     local_key_path = download_and_import_key(gnu_pg_home, workdir, force)
 
@@ -267,8 +265,9 @@ def publish(
     mirror_url = f"s3://{bucket}/{ref}"
 
     if local_key_path:
+        key_dir = "build_cache" if layout_version == 2 else f"v{layout_version}/keys"
         publish_key(
-            local_key_path, f"{mirror_url}/build_cache/_pgp/{SPACK_PUBLIC_KEY_NAME}"
+            local_key_path, f"{mirror_url}/{key_dir}/_pgp/{SPACK_PUBLIC_KEY_NAME}"
         )
 
     # When all the tasks are finished, rebuild the top-level index
