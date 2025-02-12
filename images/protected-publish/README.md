@@ -125,10 +125,9 @@ To see the options available to either entrypoint, use the `--help` option:
 docker run --rm \
     -ti protected-publish:latest \
     --help
-Publish script started at 2024-05-09 22:27:27.646863
-usage: publish.py [-h] [-b BUCKET] [-r REF] [-d DAYS] [-f] [-p PARALLEL] [-w WORKDIR] [-x EXCLUDE [EXCLUDE ...]]
+usage: publish.py [-h] [-b BUCKET] [-r REF] [-d DAYS] [-f] [-p PARALLEL] [-w WORKDIR] [-v VERSION] [-x EXCLUDE [EXCLUDE ...]]
 
-Publish specs from stack-specific mirrors to the top level
+Publish specs from stack-specific mirrors to the root
 
 options:
   -h, --help            show this help message and exit
@@ -141,6 +140,8 @@ options:
                         Thread parallelism level
   -w WORKDIR, --workdir WORKDIR
                         A scratch directory, defaults to a tmp dir
+  -v VERSION, --version VERSION
+                        Target layout version to publish (either 2 or 3, defaults to 2)
   -x EXCLUDE [EXCLUDE ...], --exclude EXCLUDE [EXCLUDE ...]
                         Optional list of stacks to exclude
 ```

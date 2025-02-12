@@ -1,0 +1,92 @@
+There is some curated testing data located in:
+
+    s3://spack-binaries-prs/scott/test-backup
+
+The data consists of two small mirrors of binaries signed with the reputational
+signing key (originally copied from s3://spack-binaries/develop/build_systems).
+One mirror contains a v2 layout, the other contains a v3 layout.  The v3 layout
+mirror was created by "migrating" the v2 layout mirror, but the migration can
+tested or run again, see below.
+
+Procedures to test various functionalities of the container follow.
+
+################################################################################
+                        Test protected publish v2
+
+aws s3 rm --recursive s3://spack-binaries-prs/develop
+
+aws s3 sync \
+    s3://spack-binaries-prs/scott/test-backup/develop/build_systems/build_cache \
+    s3://spack-binaries-prs/develop/customstack/build_cache
+
+docker run --rm \
+    -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+    -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+    -ti ghcr.io/scottwittenburg/protected-publish:0.0.3 \
+    --bucket spack-binaries-prs \
+    --ref develop
+
+
+################################################################################
+                          Test migrate
+
+aws s3 rm --recursive s3://spack-binaries-prs/develop
+
+aws s3 sync \
+    s3://spack-binaries-prs/scott/test-backup/develop/build_systems/build_cache \
+    s3://spack-binaries-prs/develop/build_cache
+
+kubectl apply -f oneshot_service_account.yaml
+kubectl apply -f oneshot_pod.yaml
+kubectl get pods -n pipeline
+kubectl exec -n pipeline --ti <oneshot-pod-name> -- /bin/bash
+./migrate.sh s3://spack-binaries-prs/develop
+exit
+kubectl delete deployment -n pipeline access-node
+kubectl delete serviceaccount -n pipeline naccess
+
+After this you should be able to:
+
+    - checkout my branch of spack: content-addressable-tarballs-2
+    - spack uninstall --all
+    - spack mirror add migratedbinary s3://spack-binaries-prs/develop
+    - spack -d install pkgconf
+
+... and verify the packages are all installed from the migrated binary cache
+
+
+################################################################################
+                        Test protected publish v3
+
+!!! This mostly works, but it requires spack/spack@develop to have the content
+!!! addressable stuff merged to be able to rebuild the top-level index at the
+!!! end
+
+aws s3 rm --recursive s3://spack-binaries-prs/develop
+
+aws s3 sync \
+    s3://spack-binaries-prs/scott/test-backup/v3_develop \
+    s3://spack-binaries-prs/develop/build_systems
+
+docker run --rm \
+    -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+    -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+    -ti ghcr.io/scottwittenburg/protected-publish:0.0.3 \
+    --bucket spack-binaries-prs \
+    --ref develop \
+    --version 3
+
+In this case, the files should have been migrated, but rebuilding the index
+fails because we cloned upstream develop (based on the provided --ref), and
+it doesn't know about content addressable build cache
+
+If you build the index yourself using the right branch, you should be able to:
+
+    - checkout my branch of spack: content-addressable-tarballs-2
+    - spack uninstall --all
+    - spack mirror add publishedbinary s3://spack-binaries-prs/develop
+    - spack -d install pkgconf
+
+... and verify the packages are all installed from the migrated binary cache,
+and furthermore that it's fetching things from s3://spack-binaries-prs/develop/blobs/
+and s3://spack-binaries-prs/develop/v3/
