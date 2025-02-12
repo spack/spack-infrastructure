@@ -204,32 +204,30 @@ First create the service account and pod which will allow you to get access to t
 
 ```
 kubectl apply -f oneshot_service_account.yaml
-kubectl apply -f oneshot_sealed_secrets.yaml
 kubectl apply -f oneshot_pod.yaml
 ```
 
 Find the pod you just created:
 
 ```
-$ kubectl get -n custom pods
-NAME                                     READY   STATUS              RESTARTS   AGE
-access-node-68d4d944fd-sp9dz             0/1     ContainerCreating   0          9s
+$ kubectl get pods -n pipeline
+NAME                                              READY   STATUS    RESTARTS   AGE
+access-node-68d4d944fd-r4h5n                      1/1     Running   0          19s
+...
 ```
 
 Wait until the `STATUS` is `Running`, and then exec on to the running pod and run the migration, providing the url of the mirror you wish to migrate:
 
 ```
-kubectl exec -n custom -ti access-node-68d4d944fd-sp9dz -- /bin/bash
-cd /srcs
-./migrate.sh <mirror-url>
+kubectl exec -n pipeline -ti access-node-68d4d944fd-r4h5n -- /bin/bash
+root@access-node-68d4d944fd-r4h5n:/srcs# ./migrate.sh <mirror-url>
 ```
 
 To clean up afterwards, first exit the pod, then delete the kube resources:
 
 ```
-kubectl delete deployment -n custom access-node
-kubectl delete sealedsecret -n custom spack-signing-key-encrypted
-kubectl delete serviceaccount -n custom naccess
+kubectl delete deployment -n pipeline access-node
+kubectl delete serviceaccount -n pipeline naccess
 ```
 
 ### Validate a buildcache index
