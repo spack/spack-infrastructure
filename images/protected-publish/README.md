@@ -34,7 +34,7 @@ aws s3 ls s3://spack-binaries/
     PRE v0.21.2/
 ```
 
-Each of those prefixes correspond to a particular protected ref.  Included are prefixes for all protected *tags* (release tags as well as develop snapshots) and branches (`develop` and `releases/v*.*`).  Looking inside the `develop` prefix, we can see the top level mirror, `build_cache/`, along with all the stack-specific mirrors:
+Each of those prefixes correspond to a particular protected ref.  Included are prefixes for all protected *tags* (release tags as well as develop snapshots) and branches (`develop` and `releases/v*.*`).  Looking inside the `develop` prefix, we can see the top level mirror (`build_cache/` in the case of a v2 mirror, or `v3` and `blobs` in the case of a v3 mirror), along with all the stack-specific mirrors:
 
 
 ```
@@ -101,10 +101,11 @@ This directory contains an implementation of the program as a docker image.
 
 ## Running the container
 
-The container has two entrypoints:
+The container has three entrypoints:
 
-1. `python publish.py` (the default) Publish stack-specific mirrors to the top level
-2. `python validate_index.py` Read a mirror index and report on any missing specs (non-external specs marked as `in_buildcache: False`).
+1. `python -m pkg.publish` (the default) Publish stack-specific mirrors to the top level
+2. `python -m pkg.validate_index` Read a mirror index and report on any missing specs (non-external specs marked as `in_buildcache: False`)
+3. `python -m pkg.migrate` Migrate a v2 mirror to v3 in place
 
 The container application assumes the structure of the mirror is as described earlier in this document.  To publish the stacks for a single ref, you must provide a bucket and a ref (e.g. `develop`).  Other options allow:
 
@@ -181,6 +182,56 @@ docker run --rm \
     --days 7
 ```
 
+### In-place buildcache migration
+
+A v2 buildcache differs from a v3 buildcache mostly in the layout of files within the mirror or prefix.  Thus, it is possible to copy files in such a way as to make a v2 mirror look like a v3 mirror, and this image provides a script to do that (only for s3 mirrors). The migration entrypoint takes a single positional argument, the url of the mirror to migrate in-place.
+
+```
+docker run --rm \
+    -v /path/to/pgp/keys/dir:/.gnupg \
+    -e GNUPGHOME=/.gnupg \
+    --entrypoint python \
+    -ti protected-publish:latest \
+    -m pkg.migrate \
+    s3://spack-binaries/develop/e4s
+```
+
+The migration functionality provided here only migrates signed specs. To that end, the signing key originally used to sign the binary packages (both the public and secret parts) must be available in your keychain in order to first verify, then update and re-sign the spec metadata files, during the migration process.
+
+Migrating buildcaches where the Spack reputational signing key was used to sign the binaries is a little more involved, and requires cluster access:
+
+First create the service account and pod which will allow you to get access to the key secrets (the signing key is still encrypted):
+
+```
+kubectl apply -f oneshot_service_account.yaml
+kubectl apply -f oneshot_sealed_secrets.yaml
+kubectl apply -f oneshot_pod.yaml
+```
+
+Find the pod you just created:
+
+```
+$ kubectl get -n custom pods
+NAME                                     READY   STATUS              RESTARTS   AGE
+access-node-68d4d944fd-sp9dz             0/1     ContainerCreating   0          9s
+```
+
+Wait until the `STATUS` is `Running`, and then exec on to the running pod and run the migration, providing the url of the mirror you wish to migrate:
+
+```
+kubectl exec -n custom -ti access-node-68d4d944fd-sp9dz -- /bin/bash
+cd /srcs
+./migrate.sh <mirror-url>
+```
+
+To clean up afterwards, first exit the pod, then delete the kube resources:
+
+```
+kubectl delete deployment -n custom access-node
+kubectl delete sealedsecret -n custom spack-signing-key-encrypted
+kubectl delete serviceaccount -n custom naccess
+```
+
 ### Validate a buildcache index
 
 To examine a local or remote (S3 only) index for any missing specs:
@@ -189,10 +240,13 @@ To examine a local or remote (S3 only) index for any missing specs:
 docker run --rm \
     --entrypoint python \
     -ti protected-publish:latest \
-    validate_index.py --url s3://spack-binaries/develop-2024-01-07
+    -m pkg.validate_index \
+    --url s3://spack-binaries/develop-2024-01-07 --version 2
 ```
 
-Optionally you can specify a local file instead with `--file` and an absolute path.
+The version is used to select whether v2 or v3 index is sought.
+
+Optionally, instead of specifying `--url` and `--version`, you can specify a local file with `--file` followed by an absolute path.
 
 ### Options useful during development
 

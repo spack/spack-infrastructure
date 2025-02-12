@@ -15,4 +15,4 @@ COPY pkg /srcs/pkg
 COPY --chmod=755 migrate.sh /srcs/migrate.sh
 
 WORKDIR /srcs
-ENTRYPOINT ["python", "-m", "pkg.publish", "--days", "blue"]
+ENTRYPOINT ["python", "-m", "pkg.publish"]

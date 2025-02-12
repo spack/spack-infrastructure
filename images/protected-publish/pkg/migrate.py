@@ -12,6 +12,8 @@ import sentry_sdk
 
 from .common import (
     BuiltSpec,
+    TIMESTAMP_AND_SIZE,
+    TIMESTAMP_PATTERN,
     bucket_name_from_s3_url,
     clone_spack,
     get_workdir_context,
@@ -104,13 +106,19 @@ def _migrate_spec(
         error_msg = f"Failed to download {built_spec.hash} metadata due to {error_msg}"
         return MigrationResult(False, error_msg)
 
-    # Verify the signature of the locally downloaded metadata file
-    try:
-        subprocess.run(["gpg", "--quiet", signed_specfile_path], check=True)
-    except subprocess.CalledProcessError as cpe:
-        error_msg = getattr(cpe, "message", str(cpe))
-        print(f"Failed to verify signature of {built_spec.meta} due to {error_msg}")
-        return MigrationResult(False, error_msg)
+    if os.path.exists(verified_specfile_path) and force:
+        os.remove(verified_specfile_path)
+
+    if not os.path.exists(verified_specfile_path):
+        # Verify the signature of the locally downloaded metadata file
+        try:
+            subprocess.run(["gpg", "--quiet", signed_specfile_path], check=True)
+        except subprocess.CalledProcessError as cpe:
+            error_msg = getattr(cpe, "message", str(cpe))
+            print(f"Failed to verify signature of {built_spec.meta} due to {error_msg}")
+            return MigrationResult(False, error_msg)
+    else:
+        print(f"Verification of {built_spec.hash} skipped as it was already done.")
 
     # Extract the spec dictionary from within the signature
     with open(verified_specfile_path) as fd:
@@ -124,8 +132,28 @@ def _migrate_spec(
         f"{target_prefix}/blobs/{hash_alg}/{checksum[:2]}/{checksum}"
     )
 
-    # Update the buildcache_layout_version in the dict and write it to disk
+    # Update the buildcache_layout_version and add the new attributes
     spec_dict["buildcache_layout_version"] = 3
+    spec_dict["archive_compression"] = "gzip"
+    spec_dict["archive_size"] = 0
+    spec_dict["archive_timestamp"] = datetime.now().astimezone().isoformat()
+
+    # To populate the new layout fields recording the size and timestamp
+    # of the buildcache entry, we can read them out of the listing file
+    result = subprocess.run(
+        ["grep", "-E", built_spec.archive, listing_path], capture_output=True
+    )
+    if result.returncode == 0:
+        matching_line = result.stdout.decode("utf-8")
+        regex = re.compile(rf"({TIMESTAMP_AND_SIZE})")
+        m = regex.search(matching_line)
+        if m:
+            parts = re.split(r"\s+", m.group(1))
+            timestamp = datetime.strptime(f"{parts[0]} {parts[1]}", TIMESTAMP_PATTERN)
+            spec_dict["archive_size"] = int(parts[2])
+            spec_dict["archive_timestamp"] = timestamp.astimezone().isoformat()
+
+    # Write the updated spec dict back to disk
     with open(verified_specfile_path, "w") as fd:
         json.dump(spec_dict, fd)
 

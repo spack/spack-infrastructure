@@ -43,15 +43,26 @@ def validate_mirror_index(index_data):
 
 ################################################################################
 #
-def validate_s3_index(url):
+def validate_s3_index(url, layout_version=2):
     url_regex = re.compile(r"^s3://([^/]+)/(.+)$")
-    m = url_regex.match(url)
+    m = url_regex.search(url)
     if not m:
         print(f"url {url} could not be understood (s3 urls only)")
         sys.exit(1)
 
+    print("matched")
+
     bucket = m.group(1)
-    prefix = f"{m.group(2)}/build_cache/index.json"
+
+    if layout_version == 2:
+        prefix = f"{m.group(2)}/build_cache/index.json"
+    elif layout_version == 3:
+        prefix = f"{m.group(2)}/v3/specs/index.json"
+    else:
+        print(f"Unrecognized layout_version given ({layout_version}): must be 2 or 3")
+        sys.exit(1)
+
+    print(f"working with prefix: {prefix}")
 
     session = boto3.session.Session()
     s3_client = session.client("s3")
@@ -64,6 +75,8 @@ def validate_s3_index(url):
         error_msg = getattr(error, "message", error)
         error_msg = f"Failed to download {bucket} {prefix} due to {error_msg}"
         sys.exit(1)
+
+    print("Got the data, validating the contents")
 
     validate_mirror_index(index_data)
 
@@ -99,6 +112,14 @@ def main():
         "-f", "--file", default=None, help="Absolute path to local index file"
     )
 
+    parser.add_argument(
+        "-v",
+        "--version",
+        type=int,
+        default=2,
+        help="Layout version (2 or 3, defaults to 2), only used with '-u'",
+    )
+
     args = parser.parse_args()
 
     if not args.url and not args.file:
@@ -108,7 +129,8 @@ def main():
     if args.file:
         validate_file_index(args.file)
     else:
-        validate_s3_index(args.url)
+        print(f"Validating {args.url} at version {args.version}")
+        validate_s3_index(args.url, layout_version=args.version)
 
     end_time = datetime.now()
     elapsed = end_time - start_time

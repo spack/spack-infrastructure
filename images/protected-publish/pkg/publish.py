@@ -33,7 +33,8 @@ sentry_sdk.init(traces_sample_rate=1.0)
 
 GITLAB_URL = "https://gitlab.spack.io"
 GITLAB_PROJECT = "spack/spack"
-PREFIX_REGEX = re.compile(r"/build_cache/(.+)$")
+PREFIX_REGEX_V2 = re.compile(r"/build_cache/(.+)$")
+METADATA_PREFIX_REGEX_V3 = re.compile(r"/v3/specs/(.+)$")
 PROTECTED_REF_REGEXES = [
     re.compile(r"^develop$"),
     re.compile(r"^v[\d]+\.[\d]+\.[\d]+$"),
@@ -87,7 +88,7 @@ def publish_missing_spec_v2(built_spec, bucket, ref, force, gpg_home, tmpdir):
 
     # Finally, copy the files directly from source to dest, starting with the tarball
     for suffix in [archive_suffix, meta_suffix]:
-        m = PREFIX_REGEX.search(suffix)
+        m = PREFIX_REGEX_V2.search(suffix)
         if m:
             dest_prefix = f"{ref}/build_cache/{m.group(1)}"
             try:
@@ -108,25 +109,21 @@ def publish_missing_spec_v2(built_spec, bucket, ref, force, gpg_home, tmpdir):
 #
 def publish_missing_spec_v3(built_spec, bucket, ref, force, gpg_home, tmpdir):
     """Publish a single spec from a stack to the root"""
-    hash = built_spec.hash
-    meta_suffix = built_spec.meta
+    spec_hash = built_spec.hash
+    stack = built_spec.stack
+    stack_meta_prefix = built_spec.meta
+    stack_archive_prefix = built_spec.archive
 
-    specfile_path = os.path.join(tmpdir, f"{hash}.spec.json.sig")
+    # In v3 land, we already had to download this file to
+    specfile_path = os.path.join(tmpdir, f"{spec_hash}_{stack}.spec.json.sig")
 
-    try:
-        s3_download_file(bucket, meta_suffix, specfile_path, force=force)
-    except Exception as error:
-        error_msg = getattr(error, "message", error)
-        error_msg = f"Failed to download {meta_suffix} due to {error_msg}"
-        return False, error_msg
-
-    # Verify the signature of the locally downloaded metadata file
+    # Verify the signature of the previously downloaded metadata file
     try:
         env = {"GNUPGHOME": gpg_home}
         subprocess.run(["gpg", "--verify", specfile_path], env=env, check=True)
     except subprocess.CalledProcessError as cpe:
         error_msg = getattr(cpe, "message", cpe)
-        print(f"Failed to verify signature of {meta_suffix} due to {error_msg}")
+        print(f"Failed to verify signature of {stack_meta_prefix} due to {error_msg}")
         return False, error_msg
 
     # Extract the spec dict from the signature
@@ -136,27 +133,35 @@ def publish_missing_spec_v3(built_spec, bucket, ref, force, gpg_home, tmpdir):
 
     hash_alg = spec_dict["binary_cache_checksum"]["hash_algorithm"]
     checksum = spec_dict["binary_cache_checksum"]["hash"]
-    new_layout_tarball_prefix = (
-        f"blobs/{hash_alg}/{checksum[:2]}/{checksum}"
-    )
+    blobs_path = f"blobs/{hash_alg}/{checksum[:2]}/{checksum}"
+    stack_archive_prefix = f"{ref}/{stack}/{blobs_path}"
+    top_level_archive_prefix = f"{ref}/{blobs_path}"
+
+    m = METADATA_PREFIX_REGEX_V3.search(stack_meta_prefix)
+    if not m:
+        return False, f"Unable to parse {stack_meta_prefix} as a v3 metadata prefix"
+
+    top_level_meta_prefix = f"{ref}/v3/specs/{m.group(1)}"
+
+    things_to_copy = [
+        (stack_archive_prefix, top_level_archive_prefix),
+        (stack_meta_prefix, top_level_meta_prefix),
+    ]
 
     # Finally, copy the files directly from source to dest, starting with the tarball
-    for suffix in [archive_suffix, meta_suffix]:
-        m = PREFIX_REGEX.search(suffix)
-        if m:
-            dest_prefix = f"{ref}/build_cache/{m.group(1)}"
-            try:
-                copy_source = {
-                    "Bucket": bucket,
-                    "Key": suffix,
-                }
-                s3_copy_file(copy_source, bucket, dest_prefix)
-            except Exception as error:
-                error_msg = getattr(error, "message", error)
-                error_msg = f"Failed to copy_object({suffix}) due to {error_msg}"
-                return False, error_msg
+    for src_prefix, dest_prefix in things_to_copy:
+        try:
+            copy_source = {"Bucket": bucket, "Key": src_prefix}
+            s3_copy_file(copy_source, bucket, dest_prefix)
+        except Exception as error:
+            error_msg = getattr(error, "message", error)
+            error_msg = f"Failed to copy_object({src_prefix}) due to {error_msg}"
+            return False, error_msg
 
-    return True, f"Published {meta_suffix} and {archive_suffix} to s3://{bucket}/{ref}/"
+    return (
+        True,
+        f"Published {stack_meta_prefix} and {stack_archive_prefix} to s3://{bucket}/{ref}/",
+    )
 
 
 ################################################################################
@@ -201,18 +206,21 @@ def publish(
     if not os.path.isfile(listing_file) or force:
         list_prefix_contents(list_url, listing_file)
 
+    # Build dictionaries of specs existing at the root and within stacks
+
     if layout_version == 2:
-        catalog_fn = generate_spec_catalogs_v2
+        all_stack_specs, top_level_specs = generate_spec_catalogs_v2(
+            ref, listing_file, exclude
+        )
         publish_fn = publish_missing_spec_v2
     elif layout_version == 3:
-        catalog_fn = generate_spec_catalogs_v3
+        all_stack_specs, top_level_specs = generate_spec_catalogs_v3(
+            bucket, ref, listing_file, exclude, tmp_storage_dir, parallel
+        )
         publish_fn = publish_missing_spec_v3
     else:
         print(f"Unrecognized layout version: {layout_version}")
         return
-
-    # Build dictionaries of specs existing at the root and within stacks
-    all_stack_specs, top_level_specs = catalog_fn(ref, listing_file, exclude)
 
     # Build dictionary of specs in stacks but missing from the root
     missing_at_top = find_top_level_missing(all_stack_specs, top_level_specs)
@@ -443,11 +451,59 @@ def generate_spec_catalogs_v2(
 ################################################################################
 #
 def generate_spec_catalogs_v3(
-    ref: str, listing_path: str, exclude: List[str]
+    bucket: str,
+    ref: str,
+    listing_path: str,
+    exclude: List[str],
+    specfiles_dir: str,
+    parallel: int = 8,
 ) -> tuple[Dict[str, Dict[str, BuiltSpec]], Dict[str, BuiltSpec]]:
     """Return information about specs in stacks and at the root"""
+    stack_prefix_regex = re.compile(rf"{ref}/(.+)")
+    stack_specs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
+        lambda: defaultdict(BuiltSpec)
+    )
     all_catalogs = spec_catalogs_from_listing_v3(listing_path)
-    return ({}, {})
+    top_level_specs = all_catalogs[ref]
+
+    task_list = []
+
+    for prefix in all_catalogs:
+        m = stack_prefix_regex.search(prefix)
+        if not m:
+            continue
+
+        stack = m.group(1)
+        if stack in exclude:
+            continue
+
+        for spec_hash, built_spec in all_catalogs[prefix].items():
+            stack_specs[spec_hash][stack] = built_spec
+            task_list.append((built_spec.hash, stack, built_spec.meta))
+
+    def _download_fn(spec_hash, stack, s3_prefix):
+        download_path = os.path.join(
+            specfiles_dir, f"{spec_hash}_{stack}.spec.json.sig"
+        )
+        s3_download_file(bucket, s3_prefix, download_path)
+        return (spec_hash, stack, download_path)
+
+    with ThreadPoolExecutor(max_workers=parallel) as executor:
+        futures = [executor.submit(_download_fn, *task) for task in task_list]
+        for future in as_completed(futures):
+            try:
+                spec_hash, stack, download_path = future.result()
+                spec_dict = extract_json_from_clearsig(download_path)
+                hash_alg = spec_dict["binary_cache_checksum"]["hash_algorithm"]
+                checksum = spec_dict["binary_cache_checksum"]["hash"]
+                stack_specs[spec_hash][stack].stack = stack
+                stack_specs[spec_hash][
+                    stack
+                ].archive = f"{ref}/{stack}/blobs/{hash_alg}/{checksum[:2]}/{checksum}"
+            except Exception as exc:
+                print(f"Exception: {exc}")
+
+    return stack_specs, top_level_specs
 
 
 ################################################################################

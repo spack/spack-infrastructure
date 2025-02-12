@@ -16,6 +16,7 @@ from boto3.s3.transfer import TransferConfig
 SPACK_REPO = "https://github.com/spack/spack"
 
 TIMESTAMP_AND_SIZE = r"^[\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2}\s+\d+\s+"
+TIMESTAMP_PATTERN = "%Y-%m-%d %H:%M:%S"
 
 #: regular expressions designed to match "aws s3 ls" output
 REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(
@@ -70,8 +71,7 @@ class BuiltSpec:
 ################################################################################
 #
 def bucket_name_from_s3_url(url):
-    bucket_regex = REGEX_S3_BUCKET
-    m = bucket_regex.search(url)
+    m = REGEX_S3_BUCKET.search(url)
     if m:
         return m.group(1)
     return ""
@@ -218,9 +218,10 @@ def s3_download_file(bucket: str, prefix: str, save_path: str, force: bool = Fal
     s3_client = s3_resource.meta.client
 
     if not os.path.isfile(save_path) or force is True:
-        # First we have to download the file locally
         with open(save_path, "wb") as f:
             s3_client.download_fileobj(bucket, prefix, f)
+
+    return save_path
 
 
 ################################################################################
