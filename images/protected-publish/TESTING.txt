@@ -39,7 +39,7 @@ aws s3 sync \
 kubectl apply -f oneshot_service_account.yaml
 kubectl apply -f oneshot_pod.yaml
 kubectl get pods -n pipeline
-kubectl exec -n pipeline --ti <oneshot-pod-name> -- /bin/bash
+kubectl exec -n pipeline -ti <oneshot-pod-name> -- /bin/bash
 ./migrate.sh s3://spack-binaries-prs/develop
 exit
 kubectl delete deployment -n pipeline access-node

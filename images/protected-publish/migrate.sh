@@ -48,6 +48,6 @@ gpg --import-ownertrust <(echo -e "${SIGNING_KEY_ID}:6:")
 gpg --no-tty --import <(aws-encryption-cli --decrypt -S -w "key=${KMS_KEY_ARN}" -i ${SIGNING_KEY} -o -)
 
 cd /srcs
-python -m pkg.migrate $MIRROR_URL
+python -m pkg.migrate --parallel 16 $MIRROR_URL
 
 echo "python -m pkg.migrate ${MIRROR_URL} exited ${?}..."

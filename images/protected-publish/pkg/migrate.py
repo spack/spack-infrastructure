@@ -153,9 +153,10 @@ def _migrate_spec(
             spec_dict["archive_size"] = int(parts[2])
             spec_dict["archive_timestamp"] = timestamp.astimezone().isoformat()
 
-    # Write the updated spec dict back to disk
-    with open(verified_specfile_path, "w") as fd:
-        json.dump(spec_dict, fd)
+    # Write the updated spec dict back to disk, the extra args to json.dump()
+    # are to prevent a single long line, which gpg will silently truncate.
+    with open(verified_specfile_path, "w", encoding="utf-8") as fd:
+        json.dump(spec_dict, fd, indent=0, separators=(",", ":"))
 
     # Re-sign the updated spec dict, and first remove the previous signed file to
     # avoid gpg asking us if we're sure we want to overwrite it.

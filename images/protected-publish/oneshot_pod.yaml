@@ -18,19 +18,34 @@ spec:
       serviceAccountName: naccess
       containers:
       - name: access
-        image: ghcr.io/spack/protected-publish:0.0.3
+        image: ghcr.io/scottwittenburg/protected-publish:0.0.3
         command: ["sleep", "360000"]
         imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 1500m
+            memory: 12G
+            ephemeral-storage: "50G"
         volumeMounts:
         - name: keys
           mountPath: "/mnt/keys/signing"
           readOnly: true
+        - name: ephemeral
+          mountPath: "/tmp"
+        env:
+          # Tell tempfile.mkdtemp to use the ephemeral storage
+          #     https://docs.python.org/3/library/tempfile.html#tempfile.mkdtemp
+          - name: TMPDIR
+            value: "/tmp"
 
       volumes:
       - name: keys
         secret:
           secretName: spack-signing-key-encrypted
           optional: false
+      - name: ephemeral
+        emptyDir:
+          sizeLimit: 50G
 
       nodeSelector:
         spack.io/node-pool: base  # pool for the runner
