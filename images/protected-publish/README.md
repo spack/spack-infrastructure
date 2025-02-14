@@ -199,9 +199,8 @@ docker run --rm \
 
 The migration functionality provided here only migrates signed specs. To that end, the signing key originally used to sign the binary packages (both the public and secret parts) must be available in your keychain in order to first verify, then update and re-sign the spec metadata files, during the migration process.
 
-Migrating buildcaches where the Spack reputational signing key was used to sign the binaries is a little more involved, and requires cluster access:
+Migrating buildcaches where the Spack reputational signing key was used to sign the binaries is a little more involved, and requires cluster access.  To support this use case, you can use the `oneshot_pod.yaml` in this directory.  Simply update the command args with the list of mirror urls you wish to migrate, then apply the kubernetes yaml files as follows:
 
-First create the service account and pod which will allow you to get access to the key secrets (the signing key is still encrypted):
 
 ```
 kubectl apply -f oneshot_service_account.yaml
@@ -217,14 +216,7 @@ access-node-68d4d944fd-r4h5n                      1/1     Running   0          1
 ...
 ```
 
-Wait until the `STATUS` is `Running`, and then exec on to the running pod and run the migration, providing the url of the mirror you wish to migrate:
-
-```
-kubectl exec -n pipeline -ti access-node-68d4d944fd-r4h5n -- /bin/bash
-root@access-node-68d4d944fd-r4h5n:/srcs# ./migrate.sh <mirror-url>
-```
-
-To clean up afterwards, first exit the pod, then delete the kube resources:
+Now you can tail the logs on the pod, or exec into the pod to monitor progress, as it works through the task list. To clean up afterwards, delete the kube resources as follows:
 
 ```
 kubectl delete deployment -n pipeline access-node
