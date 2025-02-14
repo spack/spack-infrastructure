@@ -110,7 +110,10 @@ def _migrate_spec(
         os.remove(verified_specfile_path)
 
     if not os.path.exists(verified_specfile_path):
-        # Verify the signature of the locally downloaded metadata file
+        # Verify the signature of the locally downloaded metadata file, it seems
+        # when you let gpg deduce what to do from the arguments, it not only
+        # verifies, but also strips the signature material and writes the file
+        # back to disck with the .sig extension removed.
         try:
             subprocess.run(["gpg", "--quiet", signed_specfile_path], check=True)
         except subprocess.CalledProcessError as cpe:
@@ -120,7 +123,7 @@ def _migrate_spec(
     else:
         print(f"Verification of {built_spec.hash} skipped as it was already done.")
 
-    # Extract the spec dictionary from within the signature
+    # Read the verified spec file
     with open(verified_specfile_path) as fd:
         spec_dict = json.load(fd)
 
@@ -361,8 +364,8 @@ def main():
     print(f"Migrate script started at {start_time}")
 
     parser = argparse.ArgumentParser(
-        prog="publish.py",
-        description="Publish specs from stack-specific mirrors to the root",
+        prog="migrate.py",
+        description="Migrate specs in a mirror to content addressable layout",
     )
 
     parser.add_argument(

@@ -19,8 +19,9 @@ spec:
       containers:
       - name: access
         image: ghcr.io/scottwittenburg/protected-publish:0.0.4
-        command: ["sleep", "360000"]
-        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        args: ["cat /srcs/test_stacks.txt | /srcs/migrate.sh"]
+        imagePullPolicy: Always
         resources:
           requests:
             cpu: 1500m
