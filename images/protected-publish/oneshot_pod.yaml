@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: access-node
+  namespace: pipeline
+  labels:
+    app: key-access
+spec:
+  selector:
+    matchLabels:
+      app: key-access
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: key-access
+    spec:
+      serviceAccountName: naccess
+      containers:
+      - name: access
+        image: ghcr.io/scottwittenburg/protected-publish:0.0.4
+        command: ["/bin/bash", "-c"]
+        args: ["cat /srcs/test_stacks.txt | /srcs/migrate.sh"]
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 1500m
+            memory: 12G
+            ephemeral-storage: "50G"
+        volumeMounts:
+        - name: keys
+          mountPath: "/mnt/keys/signing"
+          readOnly: true
+        - name: ephemeral
+          mountPath: "/tmp"
+        env:
+          # Tell tempfile.mkdtemp to use the ephemeral storage
+          #     https://docs.python.org/3/library/tempfile.html#tempfile.mkdtemp
+          - name: TMPDIR
+            value: "/tmp"
+
+      volumes:
+      - name: keys
+        secret:
+          secretName: spack-signing-key-encrypted
+          optional: false
+      - name: ephemeral
+        emptyDir:
+          sizeLimit: 50G
+
+      nodeSelector:
+        spack.io/node-pool: base  # pool for the runner
