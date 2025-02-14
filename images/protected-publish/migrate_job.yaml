@@ -1,24 +1,21 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: access-node
+  name: migrate-mirrors
   namespace: pipeline
   labels:
-    app: key-access
+    app: migrate-job
 spec:
-  selector:
-    matchLabels:
-      app: key-access
-  replicas: 1
   template:
     metadata:
       labels:
-        app: key-access
+        app: migrate-job
     spec:
-      serviceAccountName: naccess
+      serviceAccountName: migration-notary
       containers:
-      - name: access
+      - name: migrate
         image: ghcr.io/spack/protected-publish:0.0.3
+        # image: ghcr.io/scottwittenburg/protected-publish:0.0.4
         command: ["/srcs/migrate.sh"]
         args:
           - s3://spack-binaries/develop-2024-12-15/build_systems
@@ -40,7 +37,7 @@ spec:
           #     https://docs.python.org/3/library/tempfile.html#tempfile.mkdtemp
           - name: TMPDIR
             value: "/tmp"
-
+      restartPolicy: Never
       volumes:
       - name: keys
         secret:

@@ -199,28 +199,28 @@ docker run --rm \
 
 The migration functionality provided here only migrates signed specs. To that end, the signing key originally used to sign the binary packages (both the public and secret parts) must be available in your keychain in order to first verify, then update and re-sign the spec metadata files, during the migration process.
 
-Migrating buildcaches where the Spack reputational signing key was used to sign the binaries is a little more involved, and requires cluster access.  To support this use case, you can use the `oneshot_pod.yaml` in this directory.  Simply update the command args with the list of mirror urls you wish to migrate, then apply the kubernetes yaml files as follows:
+Migrating buildcaches where the Spack reputational signing key was used to sign the binaries is a little more involved, and requires cluster access.  To support this use case, you can use the `migrate_job.yaml` in this directory.  Simply update the command args with the list of mirror urls you wish to migrate, then apply the kubernetes yaml files as follows:
 
 
 ```
-kubectl apply -f oneshot_service_account.yaml
-kubectl apply -f oneshot_pod.yaml
+kubectl apply -f migrate_service_account.yaml
+kubectl apply -f migrate_job.yaml
 ```
 
 Find the pod you just created:
 
 ```
 $ kubectl get pods -n pipeline
-NAME                                              READY   STATUS    RESTARTS   AGE
-access-node-68d4d944fd-r4h5n                      1/1     Running   0          19s
+NAME                                       READY   STATUS    RESTARTS   AGE
+migrate-mirrors-mqbln                      1/1     Running   0          19s
 ...
 ```
 
-Now you can tail the logs on the pod, or exec into the pod to monitor progress, as it works through the task list. To clean up afterwards, delete the kube resources as follows:
+If the job is still running, you can tail the logs or exec into the pod to monitor progress, until it finishes. To clean up afterwards, delete the job and then the service account as follows:
 
 ```
-kubectl delete deployment -n pipeline access-node
-kubectl delete serviceaccount -n pipeline naccess
+kubectl delete job -n pipeline migrate-mirrors
+kubectl delete serviceaccount -n pipeline migration-notary
 ```
 
 ### Validate a buildcache index
