@@ -13,8 +13,6 @@ RUN pip install --upgrade pip && \
 
 COPY pkg /srcs/pkg
 COPY --chmod=755 migrate.sh /srcs/migrate.sh
-COPY test_stacks.txt /srcs/test_stacks.txt
-COPY develop_stacks.txt /srcs/develop_stacks.txt
 
 WORKDIR /srcs
 ENTRYPOINT ["python", "-m", "pkg.publish"]

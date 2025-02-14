@@ -19,13 +19,15 @@ spec:
       containers:
       - name: access
         image: ghcr.io/scottwittenburg/protected-publish:0.0.4
-        command: ["/bin/bash", "-c"]
-        args: ["cat /srcs/test_stacks.txt | /srcs/migrate.sh"]
+        command: ["/srcs/migrate.sh"]
+        args:
+          - s3://spack-binaries/develop-2024-12-15/build_systems
+          - s3://spack-binaries/develop-2024-12-08/build_systems
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: 1500m
-            memory: 12G
+            cpu: 3500m
+            memory: 14G
             ephemeral-storage: "50G"
         volumeMounts:
         - name: keys
