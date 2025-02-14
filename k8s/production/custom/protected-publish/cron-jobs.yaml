@@ -17,7 +17,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: protected-publish
-            image: ghcr.io/spack/protected-publish:0.0.2
+            image: ghcr.io/spack/protected-publish:0.0.3
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -34,6 +34,8 @@ spec:
               - "recent"
               - "--parallel"
               - "16"
+              - "--version"
+              - "2"
             volumeMounts:
               - name: ephemeral
                 mountPath: "/tmp"
