@@ -43,6 +43,7 @@ module "gitlab_db" {
 
   allocated_storage     = 500
   max_allocated_storage = 1000
+  storage_type          = "gp3"
 
   vpc_security_group_ids = [module.postgres_security_group.security_group_id]
 }
