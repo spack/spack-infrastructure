@@ -26,9 +26,20 @@ SUBREF_IGNORE_REGEXES = [
     re.compile(r"^e4s-mac$"),
 ]
 
+ROOT_PATTERN = r"build_cache"
+INDEX_PATH = r"index.json"
+
+### To switch to content-addressable: uncomment the lines below, and comment or
+### remove the similar lines above.
+# ROOT_MATCHER = r"v[\d]+"
+# INDEX_PATH = r"specs/index.json"
+
+ROOT_MATCHER = re.compile(rf"^{ROOT_PATTERN}$")
+INDEX_MATCHER = re.compile(rf"/{ROOT_PATTERN}/{INDEX_PATH}$")
+
 
 def get_label(subref):
-    if subref == "build_cache":
+    if ROOT_MATCHER.match(subref):
         return "root" # or top-level?
     for regex in SUBREF_IGNORE_REGEXES:
         if regex.match(subref):
@@ -69,7 +80,7 @@ def query_bucket(bucket_name):
     results = []
     for page in pages:
         for obj in page["Contents"]:
-            if obj["Key"].endswith("/build_cache/index.json"):
+            if INDEX_MATCHER.search(obj["Key"]):
                 results.append(obj["Key"])
 
     return results
