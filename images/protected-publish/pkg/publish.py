@@ -1,62 +1,58 @@
 import argparse
-import contextlib
 import os
 import re
 import shutil
 import stat
 import subprocess
-import tempfile
+
+from collections import defaultdict
 from concurrent.futures import as_completed, ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Callable, Dict, List, Optional
 
 import botocore.exceptions
-import boto3.session
+
 import gitlab
 import requests
 import sentry_sdk
 from boto3.s3.transfer import TransferConfig
 
+from .common import (
+    clone_spack,
+    extract_json_from_clearsig,
+    get_workdir_context,
+    list_prefix_contents,
+    s3_copy_file,
+    s3_download_file,
+    spec_catalogs_from_listing_v2,
+    spec_catalogs_from_listing_v3,
+    BuiltSpec,
+)
+
 sentry_sdk.init(traces_sample_rate=1.0)
 
-SPACK_REPO = "https://github.com/spack/spack"
 GITLAB_URL = "https://gitlab.spack.io"
 GITLAB_PROJECT = "spack/spack"
-PREFIX_REGEX = re.compile(r"/build_cache/(.+)$")
+PREFIX_REGEX_V2 = re.compile(r"/build_cache/(.+)$")
+METADATA_PREFIX_REGEX_V3 = re.compile(r"/v3/specs/(.+)$")
 PROTECTED_REF_REGEXES = [
     re.compile(r"^develop$"),
     re.compile(r"^v[\d]+\.[\d]+\.[\d]+$"),
     re.compile(r"^releases/v[\d]+\.[\d]+$"),
     re.compile(r"^develop-[\d]{4}-[\d]{2}-[\d]{2}$"),
 ]
-MB = 1024 ** 2
-MULTIPART_THRESHOLD = 100 * MB
-MULTIPART_CHUNKSIZE=20 * MB
-MAX_CONCURRENCY=10
-USE_THREADS=True
+
 SPACK_PUBLIC_KEY_LOCATION = "https://spack.github.io/keys"
 SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
 
 
 ################################################################################
-# Encapsulate information about a built spec in a mirror
-class BuiltSpec:
-    def __init__(
-        self,
-        hash: Optional[str] = None,
-        stack: Optional[str] = None,
-        meta: Optional[str] = None,
-        archive: Optional[str] = None,
-    ):
-        self.hash = hash
-        self.stack = stack
-        self.meta = meta
-        self.archive = archive
-
-
-################################################################################
-# Check if the given ref matches one of the expected protected refs above.
+#
 def is_ref_protected(ref):
+    """Check if given ref matches expected protected ref pattern
+
+    Returns: True if ref matches a protected ref pattern, False otherwise
+    """
     for regex in PROTECTED_REF_REGEXES:
         m = regex.match(ref)
         if m:
@@ -65,27 +61,21 @@ def is_ref_protected(ref):
 
 
 ################################################################################
-# Thread worker function
-def publish_missing_spec(built_spec, bucket, ref, force, gpg_home, tmpdir):
+#
+def publish_missing_spec_v2(built_spec, bucket, ref, force, gpg_home, tmpdir):
+    """Publish a single spec from a stack to the root"""
     hash = built_spec.hash
     meta_suffix = built_spec.meta
     archive_suffix = built_spec.archive
 
     specfile_path = os.path.join(tmpdir, f"{hash}.spec.json.sig")
 
-    session = boto3.session.Session()
-    s3_resource = session.resource('s3')
-    s3_client = s3_resource.meta.client
-
-    if not os.path.isfile(specfile_path) or force is True:
-        # First we have to download the file locally
-        try:
-            with open(specfile_path, "wb") as f:
-                s3_client.download_fileobj(bucket, meta_suffix, f)
-        except botocore.exceptions.ClientError as error:
-            error_msg = getattr(error, "message", error)
-            error_msg = f"Failed to download {meta_suffix} due to {error_msg}"
-            return False, error_msg
+    try:
+        s3_download_file(bucket, meta_suffix, specfile_path, force=force)
+    except Exception as error:
+        error_msg = getattr(error, "message", error)
+        error_msg = f"Failed to download {meta_suffix} due to {error_msg}"
+        return False, error_msg
 
     # Verify the signature of the locally downloaded metadata file
     try:
@@ -96,25 +86,18 @@ def publish_missing_spec(built_spec, bucket, ref, force, gpg_home, tmpdir):
         print(f"Failed to verify signature of {meta_suffix} due to {error_msg}")
         return False, error_msg
 
-    config = TransferConfig(
-        multipart_threshold=MULTIPART_THRESHOLD,
-        multipart_chunksize=MULTIPART_CHUNKSIZE,
-        max_concurrency=MAX_CONCURRENCY,
-        use_threads=USE_THREADS,
-    )
-
     # Finally, copy the files directly from source to dest, starting with the tarball
     for suffix in [archive_suffix, meta_suffix]:
-        m = PREFIX_REGEX.search(suffix)
+        m = PREFIX_REGEX_V2.search(suffix)
         if m:
             dest_prefix = f"{ref}/build_cache/{m.group(1)}"
             try:
                 copy_source = {
-                    'Bucket': bucket,
-                    'Key': suffix,
+                    "Bucket": bucket,
+                    "Key": suffix,
                 }
-                s3_client.copy(copy_source, bucket, dest_prefix, Config=config)
-            except botocore.exceptions.ClientError as error:
+                s3_copy_file(copy_source, bucket, dest_prefix)
+            except Exception as error:
                 error_msg = getattr(error, "message", error)
                 error_msg = f"Failed to copy_object({suffix}) due to {error_msg}"
                 return False, error_msg
@@ -123,25 +106,66 @@ def publish_missing_spec(built_spec, bucket, ref, force, gpg_home, tmpdir):
 
 
 ################################################################################
-# Main steps of the publish algorithm:
 #
-#     1) Get a listing of the bucket contents.  This will include entries for
-#        metadata and archive files for all specs at the root as well as in all
-#        stacks
-#     2) Use regular expressions to build dictionaries of all hashes in the
-#        stack mirrors, as well as all hashes at the root.  Stored information
-#        for each includes url (path) to metadata and archive file.
-#     3) Determine which specs are missing from the root (should contain union
-#        of all specs in stacks)
-#     4) If no specs are missing from the top level, quit
-#     5) Download and trust the public part of the reputational signing key
-#     6) In parallel, publish any missing specs:
-#         6a) Download meta file from stack mirror
-#         6b) Verify signature of metadata file
-#         6c) If not valid signature, QUIT
-#         6d) Try to copy archive file from src to dst, and quit if you can't
-#         6e) Try to copy metadata file from src to dst
-#     7) Once all threads complete, rebuild the remote mirror index
+def publish_missing_spec_v3(built_spec, bucket, ref, force, gpg_home, tmpdir):
+    """Publish a single spec from a stack to the root"""
+    spec_hash = built_spec.hash
+    stack = built_spec.stack
+    stack_meta_prefix = built_spec.meta
+    stack_archive_prefix = built_spec.archive
+
+    # In v3 land, we already had to download this file in order to access
+    # the content-address of the tarball and other metadata.
+    specfile_path = os.path.join(tmpdir, f"{spec_hash}_{stack}.spec.json.sig")
+
+    # Verify the signature of the previously downloaded metadata file
+    try:
+        env = {"GNUPGHOME": gpg_home}
+        subprocess.run(["gpg", "--verify", specfile_path], env=env, check=True)
+    except subprocess.CalledProcessError as cpe:
+        error_msg = getattr(cpe, "message", cpe)
+        print(f"Failed to verify signature of {stack_meta_prefix} due to {error_msg}")
+        return False, error_msg
+
+    # Extract the spec dict from the signature
+    spec_dict = extract_json_from_clearsig(specfile_path)
+    if not spec_dict:
+        return False, "Unable to extract spec_dict from clear-signed file"
+
+    hash_alg = spec_dict["binary_cache_checksum"]["hash_algorithm"]
+    checksum = spec_dict["binary_cache_checksum"]["hash"]
+    blobs_path = f"blobs/{hash_alg}/{checksum[:2]}/{checksum}"
+    stack_archive_prefix = f"{ref}/{stack}/{blobs_path}"
+    top_level_archive_prefix = f"{ref}/{blobs_path}"
+
+    m = METADATA_PREFIX_REGEX_V3.search(stack_meta_prefix)
+    if not m:
+        return False, f"Unable to parse {stack_meta_prefix} as a v3 metadata prefix"
+
+    top_level_meta_prefix = f"{ref}/v3/specs/{m.group(1)}"
+
+    things_to_copy = [
+        (stack_archive_prefix, top_level_archive_prefix),
+        (stack_meta_prefix, top_level_meta_prefix),
+    ]
+
+    # Finally, copy the files directly from source to dest, starting with the tarball
+    for src_prefix, dest_prefix in things_to_copy:
+        try:
+            copy_source = {"Bucket": bucket, "Key": src_prefix}
+            s3_copy_file(copy_source, bucket, dest_prefix)
+        except Exception as error:
+            error_msg = getattr(error, "message", error)
+            error_msg = f"Failed to copy_object({src_prefix}) due to {error_msg}"
+            return False, error_msg
+
+    return (
+        True,
+        f"Published {stack_meta_prefix} and {stack_archive_prefix} to s3://{bucket}/{ref}/",
+    )
+
+
+################################################################################
 #
 def publish(
     bucket: str,
@@ -150,7 +174,29 @@ def publish(
     force: bool = False,
     parallel: int = 8,
     workdir: str = "/work",
+    layout_version: int = 2,
 ):
+    """Publish all specs present in stacks but missing at the root
+
+    Main steps of the publish algorithm:
+        1) Get a listing of the bucket contents.  This will include entries for
+           metadata and archive files for all specs at the root as well as in all
+           stacks
+        2) Use regular expressions to build dictionaries of all hashes in the
+           stack mirrors, as well as all hashes at the root.  Stored information
+           for each includes url (path) to metadata and archive file.
+        3) Determine which specs are missing from the root (should contain union
+           of all specs in stacks)
+        4) If no specs are missing from the top level, quit
+        5) Download and trust the public part of the reputational signing key
+        6) In parallel, publish any missing specs:
+            6a) Download meta file from stack mirror
+            6b) Verify signature of metadata file
+            6c) If not valid signature, QUIT
+            6d) Try to copy archive file from src to dst, and quit if you can't
+            6e) Try to copy metadata file from src to dst
+        7) Once all threads complete, rebuild the remote mirror index
+    """
     list_url = f"s3://{bucket}/{ref}/"
     listing_file = os.path.join(workdir, "full_listing.txt")
     tmp_storage_dir = os.path.join(workdir, "specfiles")
@@ -162,9 +208,20 @@ def publish(
         list_prefix_contents(list_url, listing_file)
 
     # Build dictionaries of specs existing at the root and within stacks
-    all_stack_specs, top_level_specs = generate_spec_catalogs(
-        ref, listing_file, exclude
-    )
+
+    if layout_version == 2:
+        all_stack_specs, top_level_specs = generate_spec_catalogs_v2(
+            ref, listing_file, exclude
+        )
+        publish_fn = publish_missing_spec_v2
+    elif layout_version == 3:
+        all_stack_specs, top_level_specs = generate_spec_catalogs_v3(
+            bucket, ref, listing_file, exclude, tmp_storage_dir, parallel
+        )
+        publish_fn = publish_missing_spec_v3
+    else:
+        print(f"Unrecognized layout version: {layout_version}")
+        return
 
     # Build dictionary of specs in stacks but missing from the root
     missing_at_top = find_top_level_missing(all_stack_specs, top_level_specs)
@@ -194,7 +251,7 @@ def publish(
 
     # Dispatch work tasks
     with ThreadPoolExecutor(max_workers=parallel) as executor:
-        futures = [executor.submit(publish_missing_spec, *task) for task in task_list]
+        futures = [executor.submit(publish_fn, *task) for task in task_list]
         for future in as_completed(futures):
             try:
                 result = future.result()
@@ -209,7 +266,10 @@ def publish(
     mirror_url = f"s3://{bucket}/{ref}"
 
     if local_key_path:
-        publish_key(local_key_path, f"{mirror_url}/build_cache/_pgp/{SPACK_PUBLIC_KEY_NAME}")
+        key_dir = "build_cache" if layout_version == 2 else f"v{layout_version}/keys"
+        publish_key(
+            local_key_path, f"{mirror_url}/{key_dir}/_pgp/{SPACK_PUBLIC_KEY_NAME}"
+        )
 
     # When all the tasks are finished, rebuild the top-level index
     clone_spack(ref)
@@ -221,46 +281,9 @@ def publish(
 
 
 ################################################################################
-# Each mirror we might publish was built with a particular version of spack, and
-# in order to be able update the index for one of those mirrors, we need to
-# clone the matching version of spack.
-def clone_spack(ref: str):
-    if os.path.isdir("/spack"):
-        shutil.rmtree("/spack")
-
-    owd = os.getcwd()
-
-    try:
-        os.chdir("/")
-        subprocess.run(
-            [
-                "git",
-                "clone",
-                "--depth",
-                "1",
-                "--single-branch",
-                "--branch",
-                f"{ref}",
-                SPACK_REPO,
-            ],
-            check=True,
-        )
-    finally:
-        os.chdir(owd)
-
-
-################################################################################
-#
-def list_prefix_contents(url: str, output_file: str):
-    list_cmd = ["aws", "s3", "ls", "--recursive", url]
-
-    with open(output_file, "w") as f:
-        subprocess.run(list_cmd, stdout=f, check=True)
-
-
-################################################################################
 #
 def publish_key(local_key_path: str, remote_key_url: str):
+    """Copy the key at the local path to the remote url"""
     cp_cmd = ["aws", "s3", "cp", local_key_path, remote_key_url]
     subprocess.run(cp_cmd, check=True)
 
@@ -268,6 +291,7 @@ def publish_key(local_key_path: str, remote_key_url: str):
 ################################################################################
 #
 def download_and_import_key(gpg_home: str, tmpdir: str, force: bool) -> str | None:
+    """Download spack public signing key and import it"""
     if os.path.isdir(gpg_home):
         if force is True:
             shutil.rmtree(gpg_home)
@@ -307,22 +331,29 @@ def download_and_import_key(gpg_home: str, tmpdir: str, force: bool) -> str | No
 
 
 ################################################################################
-# Return a dictionary keyed by hashes missing from the top-level mirror, along
-# with all the stacks that contain each missing hash:
-#
-#     missing_at_top = {
-#         <hash>: {
-#             <stack>: <BuiltSpec>,
-#             ...
-#         },
-#         ...
-#     },
 #
 def find_top_level_missing(
     all_stack_specs: Dict[str, Dict[str, BuiltSpec]],
     top_level_specs: Dict[str, BuiltSpec],
 ) -> Dict[str, Dict[str, BuiltSpec]]:
-    missing_at_top = {}
+    """Return a dictionary of all specs missing at the top level
+
+    Return a dictionary keyed by hashes missing from the top-level mirror, along
+    with all the stacks that contain each missing hash.  Only complete entries
+    (i.e. those with both metadata and compressed archive) within the stacks
+    are considered missing at the top level.
+
+        missing_at_top = {
+            <hash>: {
+                <stack>: <BuiltSpec>,
+                ...
+            },
+            ...
+        }
+    """
+    missing_at_top: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
+        lambda: defaultdict(BuiltSpec)
+    )
 
     for hash, stack_specs in all_stack_specs.items():
         if hash not in top_level_specs:
@@ -331,8 +362,7 @@ def find_top_level_missing(
                 # meta and archive are present) version of the spec
                 # do we really consider it missing from the root.
                 if built_spec.meta and built_spec.archive:
-                    viables = find_or_add(hash, missing_at_top, dict)
-                    viables[stack] = built_spec
+                    missing_at_top[hash][stack] = built_spec
 
     return missing_at_top
 
@@ -368,99 +398,122 @@ def print_summary(missing_at_top: Dict[str, Dict[str, BuiltSpec]]):
 
 
 ################################################################################
-# If d doesn't have a value associated with key, use the ctor to create a new
-# value and store it under key.  Then return the value associated with key.
-def find_or_add(key: str, d: dict, ctor: Callable):
-    if key not in d:
-        d[key] = ctor()
-    return d[key]
-
-
-################################################################################
-# Read the listing file, populate and return a tuple of dicts indicating which
-# specs exist in stacks, and which exist in the top-level buildcache.
 #
-#     (
-#         # First element of tuple is the stack specs
-#         {
-#             <hash>: {
-#                 <stack>: <BuiltSpec>,
-#                 ...
-#             },
-#             ...
-#         },
-#         # Followed by specs at the top level
-#         {
-#             <hash>: <BuiltSpec>,
-#             ...
-#         }
-#     )
-#
-def generate_spec_catalogs(
+def generate_spec_catalogs_v2(
     ref: str, listing_path: str, exclude: List[str]
 ) -> tuple[Dict[str, Dict[str, BuiltSpec]], Dict[str, BuiltSpec]]:
-    stack_specs = {}
-    top_level_specs = {}
+    """Return information about specs in stacks and at the root
 
-    top_level_meta_regex = re.compile(rf"{ref}/build_cache/.+-([^\.]+).spec.json.sig$")
-    top_level_archive_regex = re.compile(rf"{ref}/build_cache/.+-([^\.]+).spack$")
-    stack_meta_regex = re.compile(
-        rf"{ref}/([^/]+)/build_cache/.+-([^\.]+).spec.json.sig$"
+    Read the listing file, populate and return a tuple of dicts indicating which
+    specs exist in stacks, and which exist in the top-level buildcache. Stacks
+    appearing in the ``exclude`` list are ignoreed.
+
+    Returns a tuple like the following:
+
+        (
+            # First element of tuple is the stack specs
+            {
+                <hash>: {
+                    <stack>: <BuiltSpec>,
+                    ...
+                },
+                ...
+            },
+            # Followed by specs at the top level
+            {
+                <hash>: <BuiltSpec>,
+                ...
+            }
+        )
+    """
+    stack_prefix_regex = re.compile(rf"{ref}/(.+)")
+    stack_specs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
+        lambda: defaultdict(BuiltSpec)
     )
-    stack_archive_regex = re.compile(rf"{ref}/([^/]+)/build_cache/.+-([^\.]+).spack$")
+    all_catalogs = spec_catalogs_from_listing_v2(listing_path)
+    top_level_specs = all_catalogs[ref]
 
-    with open(listing_path) as f:
-        for line in f:
-            m = top_level_meta_regex.search(line)
+    for prefix in all_catalogs:
+        m = stack_prefix_regex.search(prefix)
+        if not m:
+            continue
 
-            if m:
-                hash = m.group(1)
-                spec = find_or_add(hash, top_level_specs, BuiltSpec)
-                spec.hash = hash
-                spec.meta = m.group(0)
-                continue
+        stack = m.group(1)
+        if stack in exclude:
+            continue
 
-            m = top_level_archive_regex.search(line)
-            if m:
-                hash = m.group(1)
-                spec = find_or_add(hash, top_level_specs, BuiltSpec)
-                spec.hash = hash
-                spec.archive = m.group(0)
-                continue
-
-            m = stack_meta_regex.search(line)
-            if m:
-                stack = m.group(1)
-                if stack not in exclude:
-                    hash = m.group(2)
-                    hash_dict = find_or_add(hash, stack_specs, dict)
-                    spec = find_or_add(stack, hash_dict, BuiltSpec)
-                    spec.hash = hash
-                    spec.stack = stack
-                    spec.meta = m.group(0)
-                continue
-
-            m = stack_archive_regex.search(line)
-            if m:
-                stack = m.group(1)
-                if stack not in exclude:
-                    hash = m.group(2)
-                    hash_dict = find_or_add(hash, stack_specs, dict)
-                    spec = find_or_add(stack, hash_dict, BuiltSpec)
-                    spec.hash = hash
-                    spec.stack = stack
-                    spec.archive = m.group(0)
-                continue
-
-            # else it must be a public key, an index, or a hash of an index
+        for spec_hash, built_spec in all_catalogs[prefix].items():
+            stack_specs[spec_hash][stack] = built_spec
 
     return stack_specs, top_level_specs
 
 
 ################################################################################
-# Filter through pipelines updated over the last_n_days to find all protected
-# branches that had a pipeline run.
+#
+def generate_spec_catalogs_v3(
+    bucket: str,
+    ref: str,
+    listing_path: str,
+    exclude: List[str],
+    specfiles_dir: str,
+    parallel: int = 8,
+) -> tuple[Dict[str, Dict[str, BuiltSpec]], Dict[str, BuiltSpec]]:
+    """Return information about specs in stacks and at the root"""
+    stack_prefix_regex = re.compile(rf"{ref}/(.+)")
+    stack_specs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
+        lambda: defaultdict(BuiltSpec)
+    )
+    all_catalogs = spec_catalogs_from_listing_v3(listing_path)
+    top_level_specs = all_catalogs[ref]
+
+    task_list = []
+
+    for prefix in all_catalogs:
+        m = stack_prefix_regex.search(prefix)
+        if not m:
+            continue
+
+        stack = m.group(1)
+        if stack in exclude:
+            continue
+
+        for spec_hash, built_spec in all_catalogs[prefix].items():
+            stack_specs[spec_hash][stack] = built_spec
+            task_list.append((built_spec.hash, stack, built_spec.meta))
+
+    def _download_fn(spec_hash, stack, s3_prefix):
+        download_path = os.path.join(
+            specfiles_dir, f"{spec_hash}_{stack}.spec.json.sig"
+        )
+        s3_download_file(bucket, s3_prefix, download_path)
+        return (spec_hash, stack, download_path)
+
+    with ThreadPoolExecutor(max_workers=parallel) as executor:
+        futures = [executor.submit(_download_fn, *task) for task in task_list]
+        for future in as_completed(futures):
+            try:
+                spec_hash, stack, download_path = future.result()
+                spec_dict = extract_json_from_clearsig(download_path)
+                hash_alg = spec_dict["binary_cache_checksum"]["hash_algorithm"]
+                checksum = spec_dict["binary_cache_checksum"]["hash"]
+                stack_specs[spec_hash][stack].stack = stack
+                stack_specs[spec_hash][
+                    stack
+                ].archive = f"{ref}/{stack}/blobs/{hash_alg}/{checksum[:2]}/{checksum}"
+            except Exception as exc:
+                print(f"Exception: {exc}")
+
+    return stack_specs, top_level_specs
+
+
+################################################################################
+#
 def get_recently_run_protected_refs(last_n_days):
+    """Query gitlab pipelines to get recently run refs
+
+    Filter through pipelines updated over the last_n_days to find all protected
+    branches that had a pipeline run.
+    """
     gl = gitlab.Gitlab(GITLAB_URL)
     project = gl.projects.get(GITLAB_PROJECT)
     now = datetime.now()
@@ -477,17 +530,7 @@ def get_recently_run_protected_refs(last_n_days):
 
 
 ################################################################################
-# If the cli didn't provide a working directory, we will create (and clean up)
-# a temporary directory.
-def get_workdir_context(workdir: Optional[str] = None):
-    if not workdir:
-        return tempfile.TemporaryDirectory()
-
-    return contextlib.nullcontext(workdir)
-
-
-################################################################################
-# Entry point
+#
 def main():
     start_time = datetime.now()
     print(f"Publish script started at {start_time}")
@@ -536,6 +579,13 @@ def main():
         help="A scratch directory, defaults to a tmp dir",
     )
     parser.add_argument(
+        "-v",
+        "--version",
+        type=int,
+        default=2,
+        help=("Target layout version to publish (either 2 or 3, defaults to 2)"),
+    )
+    parser.add_argument(
         "-x",
         "--exclude",
         nargs="+",
@@ -553,11 +603,19 @@ def main():
     exceptions = []
 
     for ref in refs:
+        # If the cli didn't provide a working directory, we will create (and clean up)
+        # a temporary directory using this workdir context
         with get_workdir_context(args.workdir) as workdir:
             print(f"Publishing missing specs for {args.bucket} / {ref}")
             try:
                 publish(
-                    args.bucket, ref, args.exclude, args.force, args.parallel, workdir
+                    args.bucket,
+                    ref,
+                    args.exclude,
+                    args.force,
+                    args.parallel,
+                    workdir,
+                    args.version,
                 )
             except Exception as e:
                 # Swallow exceptions here so we can proceed with remaining refs,
