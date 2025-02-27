@@ -114,7 +114,8 @@ def publish_missing_spec_v3(built_spec, bucket, ref, force, gpg_home, tmpdir):
     stack_meta_prefix = built_spec.meta
     stack_archive_prefix = built_spec.archive
 
-    # In v3 land, we already had to download this file to
+    # In v3 land, we already had to download this file in order to access
+    # the content-address of the tarball and other metadata.
     specfile_path = os.path.join(tmpdir, f"{spec_hash}_{stack}.spec.json.sig")
 
     # Verify the signature of the previously downloaded metadata file

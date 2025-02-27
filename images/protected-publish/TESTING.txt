@@ -30,18 +30,24 @@ docker run --rm \
 ################################################################################
                           Test migrate
 
+First update the container command args in `migrate_job.yaml` to contain only the
+following item:
+
+    - s3://spack-binaries-prs/develop/build_cache
+
+Then:
+
 aws s3 rm --recursive s3://spack-binaries-prs/develop
 
 aws s3 sync \
     s3://spack-binaries-prs/scott/test-backup/develop/build_systems/build_cache \
     s3://spack-binaries-prs/develop/build_cache
 
-kubectl apply -f oneshot_service_account.yaml
-kubectl apply -f oneshot_pod.yaml
-kubectl get pods -n pipeline
-kubectl exec -n pipeline -ti <oneshot-pod-name> -- /bin/bash
-./migrate.sh s3://spack-binaries-prs/develop
-exit
+kubectl apply -f migrate_service_account.yaml
+kubectl apply -f migrate_job.yaml
+
+Once the job is finished, you can check the logs, then clean up:
+
 kubectl delete deployment -n pipeline access-node
 kubectl delete serviceaccount -n pipeline naccess
 

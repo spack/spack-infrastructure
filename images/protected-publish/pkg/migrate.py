@@ -113,7 +113,7 @@ def _migrate_spec(
         # Verify the signature of the locally downloaded metadata file, it seems
         # when you let gpg deduce what to do from the arguments, it not only
         # verifies, but also strips the signature material and writes the file
-        # back to disck with the .sig extension removed.
+        # back to disk with the .sig extension removed.
         try:
             subprocess.run(["gpg", "--quiet", signed_specfile_path], check=True)
         except subprocess.CalledProcessError as cpe:
@@ -220,7 +220,7 @@ def _migrate_spec(
     except Exception as e:
         error_msg = getattr(e, "message", e)
         error_msg = (
-            f"Migrattion failed: unable to upload re-signed metadata for "
+            f"Migration failed: unable to upload re-signed metadata for "
             f"{built_spec.hash} due to {error_msg}"
         )
         return MigrationResult(False, error_msg)

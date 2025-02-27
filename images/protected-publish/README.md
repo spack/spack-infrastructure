@@ -237,7 +237,7 @@ docker run --rm \
 
 The version is used to select whether v2 or v3 index is sought.
 
-Optionally, instead of specifying `--url` and `--version`, you can specify a local file with `--file` followed by an absolute path.
+Optionally, instead of specifying `--url` and `--version`, you can specify a local buildcache index with `--file` followed by an absolute path.
 
 ### Options useful during development
 
