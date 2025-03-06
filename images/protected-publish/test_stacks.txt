@@ -1,0 +1,2 @@
+s3://spack-binaries/develop-2024-12-22/build_systems
+s3://spack-binaries/develop-2024-12-22/windows-vis

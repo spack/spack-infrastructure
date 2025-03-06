@@ -202,7 +202,8 @@ class SpackCIBridge(object):
                         print("Skip pushing {0} because of {1}".format(pr_string, backlogged))
 
                 if not backlogged:
-                    if self.main_branch and pull.base.ref == self.main_branch:
+                    check_for_deferral = not any(label.name == 'pipelines:urgent' for label in pull.labels)
+                    if check_for_deferral and self.main_branch and pull.base.ref == self.main_branch:
                         # Check if we should defer pushing/testing this PR because it is based on "too new" of a commit
                         # of the main branch.
                         tmp_pr_branch = f"temporary_{pr_string}"

@@ -41,6 +41,9 @@ module "analytics_db" {
 
   allocated_storage     = 500
   max_allocated_storage = 1000
+  storage_type          = "gp3"
+  iops                  = 12000 # 12,000 is the minimum IOPs for gp3 storage. We can increase this as needed.
+  storage_throughput    = 500   # 500 is the minimum throughput for gp3 storage. We can increase this as needed.
 
   vpc_security_group_ids = [module.postgres_security_group.security_group_id]
 

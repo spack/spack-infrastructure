@@ -63,6 +63,10 @@ unless you really need to pull in these newer changes. Rebasing or merging
 develop into your PR branch is likely to cause your GitLab CI pipelines
 to be deferred for a longer period of time.
 
+When working on a large PR you may need to rebase frequently to resolve
+merge conflicts with develop. In this case, you can add the
+`pipelines:urgent` label to your PR to skip the deferred pipeline check.
+
 Note that the "@spackbot run pipeline" and "@spackbot rebuild everything"
 functions now check if your branch on GitLab is up-to-date before triggering
 a pipeline. So if your PR branch is currently ahead of latest-tested-develop

@@ -34,7 +34,7 @@ aws s3 ls s3://spack-binaries/
     PRE v0.21.2/
 ```
 
-Each of those prefixes correspond to a particular protected ref.  Included are prefixes for all protected *tags* (release tags as well as develop snapshots) and branches (`develop` and `releases/v*.*`).  Looking inside the `develop` prefix, we can see the top level mirror, `build_cache/`, along with all the stack-specific mirrors:
+Each of those prefixes correspond to a particular protected ref.  Included are prefixes for all protected *tags* (release tags as well as develop snapshots) and branches (`develop` and `releases/v*.*`).  Looking inside the `develop` prefix, we can see the top level mirror (`build_cache/` in the case of a v2 mirror, or `v3` and `blobs` in the case of a v3 mirror), along with all the stack-specific mirrors:
 
 
 ```
@@ -101,10 +101,11 @@ This directory contains an implementation of the program as a docker image.
 
 ## Running the container
 
-The container has two entrypoints:
+The container has three entrypoints:
 
-1. `python publish.py` (the default) Publish stack-specific mirrors to the top level
-2. `python validate_index.py` Read a mirror index and report on any missing specs (non-external specs marked as `in_buildcache: False`).
+1. `python -m pkg.publish` (the default) Publish stack-specific mirrors to the top level
+2. `python -m pkg.validate_index` Read a mirror index and report on any missing specs (non-external specs marked as `in_buildcache: False`)
+3. `python -m pkg.migrate` Migrate a v2 mirror to v3 in place
 
 The container application assumes the structure of the mirror is as described earlier in this document.  To publish the stacks for a single ref, you must provide a bucket and a ref (e.g. `develop`).  Other options allow:
 
@@ -124,10 +125,9 @@ To see the options available to either entrypoint, use the `--help` option:
 docker run --rm \
     -ti protected-publish:latest \
     --help
-Publish script started at 2024-05-09 22:27:27.646863
-usage: publish.py [-h] [-b BUCKET] [-r REF] [-d DAYS] [-f] [-p PARALLEL] [-w WORKDIR] [-x EXCLUDE [EXCLUDE ...]]
+usage: publish.py [-h] [-b BUCKET] [-r REF] [-d DAYS] [-f] [-p PARALLEL] [-w WORKDIR] [-v VERSION] [-x EXCLUDE [EXCLUDE ...]]
 
-Publish specs from stack-specific mirrors to the top level
+Publish specs from stack-specific mirrors to the root
 
 options:
   -h, --help            show this help message and exit
@@ -140,6 +140,8 @@ options:
                         Thread parallelism level
   -w WORKDIR, --workdir WORKDIR
                         A scratch directory, defaults to a tmp dir
+  -v VERSION, --version VERSION
+                        Target layout version to publish (either 2 or 3, defaults to 2)
   -x EXCLUDE [EXCLUDE ...], --exclude EXCLUDE [EXCLUDE ...]
                         Optional list of stacks to exclude
 ```
@@ -181,6 +183,46 @@ docker run --rm \
     --days 7
 ```
 
+### In-place buildcache migration
+
+A v2 buildcache differs from a v3 buildcache mostly in the layout of files within the mirror or prefix.  Thus, it is possible to copy files in such a way as to make a v2 mirror look like a v3 mirror, and this image provides a script to do that (only for s3 mirrors). The migration entrypoint takes a single positional argument, the url of the mirror to migrate in-place.
+
+```
+docker run --rm \
+    -v /path/to/pgp/keys/dir:/.gnupg \
+    -e GNUPGHOME=/.gnupg \
+    --entrypoint python \
+    -ti protected-publish:latest \
+    -m pkg.migrate \
+    s3://spack-binaries/develop/e4s
+```
+
+The migration functionality provided here only migrates signed specs. To that end, the signing key originally used to sign the binary packages (both the public and secret parts) must be available in your keychain in order to first verify, then update and re-sign the spec metadata files, during the migration process.
+
+Migrating buildcaches where the Spack reputational signing key was used to sign the binaries is a little more involved, and requires cluster access.  To support this use case, you can use the `migrate_job.yaml` in this directory.  Simply update the command args with the list of mirror urls you wish to migrate, then apply the kubernetes yaml files as follows:
+
+
+```
+kubectl apply -f migrate_service_account.yaml
+kubectl apply -f migrate_job.yaml
+```
+
+Find the pod you just created:
+
+```
+$ kubectl get pods -n pipeline
+NAME                                       READY   STATUS    RESTARTS   AGE
+migrate-mirrors-mqbln                      1/1     Running   0          19s
+...
+```
+
+If the job is still running, you can tail the logs or exec into the pod to monitor progress, until it finishes. To clean up afterwards, delete the job and then the service account as follows:
+
+```
+kubectl delete job -n pipeline migrate-mirrors
+kubectl delete serviceaccount -n pipeline migration-notary
+```
+
 ### Validate a buildcache index
 
 To examine a local or remote (S3 only) index for any missing specs:
@@ -189,10 +231,13 @@ To examine a local or remote (S3 only) index for any missing specs:
 docker run --rm \
     --entrypoint python \
     -ti protected-publish:latest \
-    validate_index.py --url s3://spack-binaries/develop-2024-01-07
+    -m pkg.validate_index \
+    --url s3://spack-binaries/develop-2024-01-07 --version 2
 ```
 
-Optionally you can specify a local file instead with `--file` and an absolute path.
+The version is used to select whether v2 or v3 index is sought.
+
+Optionally, instead of specifying `--url` and `--version`, you can specify a local buildcache index with `--file` followed by an absolute path.
 
 ### Options useful during development
 
