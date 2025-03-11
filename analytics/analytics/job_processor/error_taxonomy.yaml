@@ -172,6 +172,8 @@ taxonomy:
         - 'Error: module .+ has no attribute'
         - 'spack.error.InstallError'
         - 'Traceback \(most recent call last\):[\S\n\t\v ]+AssertionError'
+        - 'spack.error.SpecError'
+        - 'spack.config.ConfigFileError'
 
     invalid_pipeline_yaml:
       grep_for:
