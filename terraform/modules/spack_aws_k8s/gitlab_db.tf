@@ -48,20 +48,6 @@ module "gitlab_db" {
   storage_throughput    = 500   # 500 is the minimum throughput for gp3 storage. We can increase this as needed.
 
   vpc_security_group_ids = [module.postgres_security_group.security_group_id]
-
-  # Set up blue-green deployment.
-  # TODO: remove this when we're done with upgrade
-  blue_green_update = {
-    enabled = true
-  }
-  parameters = [
-    # required for blue-green deployment
-    {
-      name         = "rds.logical_replication"
-      value        = 1
-      apply_method = "pending-reboot"
-    }
-  ]
 }
 
 module "postgres_security_group" {
