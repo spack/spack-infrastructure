@@ -89,59 +89,59 @@ resource "aws_secretsmanager_secret_version" "gitlab_db" {
 }
 
 
-module "gitlab_db_proxy" {
-  source  = "terraform-aws-modules/rds-proxy/aws"
-  version = "3.1.0"
+# module "gitlab_db_proxy" {
+#   source  = "terraform-aws-modules/rds-proxy/aws"
+#   version = "3.1.0"
 
-  name                   = "spack-gitlab${local.suffix}"
-  iam_role_name          = "spack-gitlab${local.suffix}-db-proxy-role"
-  vpc_subnet_ids         = module.vpc.private_subnets
-  vpc_security_group_ids = [module.gitlab_db_proxy_sg.security_group_id]
+#   name                   = "spack-gitlab${local.suffix}"
+#   iam_role_name          = "spack-gitlab${local.suffix}-db-proxy-role"
+#   vpc_subnet_ids         = module.vpc.private_subnets
+#   vpc_security_group_ids = [module.gitlab_db_proxy_sg.security_group_id]
 
-  auth = {
-    (aws_secretsmanager_secret.gitlab_db.name) = {
-      auth_scheme               = "SECRETS"
-      client_password_auth_type = "POSTGRES_SCRAM_SHA_256"
-      description               = aws_secretsmanager_secret.gitlab_db.description
-      iam_auth                  = "DISABLED"
-      secret_arn                = aws_secretsmanager_secret.gitlab_db.arn
-    }
-  }
+#   auth = {
+#     (aws_secretsmanager_secret.gitlab_db.name) = {
+#       auth_scheme               = "SECRETS"
+#       client_password_auth_type = "POSTGRES_SCRAM_SHA_256"
+#       description               = aws_secretsmanager_secret.gitlab_db.description
+#       iam_auth                  = "DISABLED"
+#       secret_arn                = aws_secretsmanager_secret.gitlab_db.arn
+#     }
+#   }
 
-  engine_family = "POSTGRESQL"
-  debug_logging = true
+#   engine_family = "POSTGRESQL"
+#   debug_logging = true
 
-  target_db_instance     = true
-  db_instance_identifier = module.gitlab_db.db_instance_identifier
-}
+#   target_db_instance     = true
+#   db_instance_identifier = module.gitlab_db.db_instance_identifier
+# }
 
 
-module "gitlab_db_proxy_sg" {
-  source  = "terraform-aws-modules/security-group/aws"
-  version = "5.2.0"
+# module "gitlab_db_proxy_sg" {
+#   source  = "terraform-aws-modules/security-group/aws"
+#   version = "5.2.0"
 
-  name        = "spack-gitlab${local.suffix}-rds-proxy-sg"
-  description = "GitLab ${var.deployment_name} PostgreSQL RDS Proxy security group"
-  vpc_id      = module.vpc.vpc_id
+#   name        = "spack-gitlab${local.suffix}-rds-proxy-sg"
+#   description = "GitLab ${var.deployment_name} PostgreSQL RDS Proxy security group"
+#   vpc_id      = module.vpc.vpc_id
 
-  revoke_rules_on_delete = true
+#   revoke_rules_on_delete = true
 
-  ingress_with_cidr_blocks = [
-    {
-      description = "Private subnet PostgreSQL access"
-      rule        = "postgresql-tcp"
-      cidr_blocks = join(",", module.vpc.private_subnets_cidr_blocks)
-    }
-  ]
+#   ingress_with_cidr_blocks = [
+#     {
+#       description = "Private subnet PostgreSQL access"
+#       rule        = "postgresql-tcp"
+#       cidr_blocks = join(",", module.vpc.private_subnets_cidr_blocks)
+#     }
+#   ]
 
-  egress_with_cidr_blocks = [
-    {
-      description = "Database subnet PostgreSQL access"
-      rule        = "postgresql-tcp"
-      cidr_blocks = join(",", module.vpc.private_subnets_cidr_blocks)
-    },
-  ]
-}
+#   egress_with_cidr_blocks = [
+#     {
+#       description = "Database subnet PostgreSQL access"
+#       rule        = "postgresql-tcp"
+#       cidr_blocks = join(",", module.vpc.private_subnets_cidr_blocks)
+#     },
+#   ]
+# }
 
 # AWS secrets for Postgres
 resource "kubectl_manifest" "gitlab_secrets" {
@@ -157,7 +157,7 @@ resource "kubectl_manifest" "gitlab_secrets" {
       values.yaml: |
         global:
           psql:
-            host: "${module.gitlab_db_proxy.proxy_endpoint}"
+            host: "${module.gitlab_db.db_instance_address}"
   YAML
 }
 
