@@ -42,6 +42,7 @@ spec:
               - "ssh://git@ssh.gitlab.spack.io/kokkos/kokkos"
               - "https://gitlab.spack.io"
               - "kokkos/kokkos"
+              - "--sync-draft-prs"
 
           nodeSelector:
             spack.io/node-pool: base
