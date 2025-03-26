@@ -336,13 +336,13 @@ class SpackCIBridge(object):
     def list_github_mq_branches(self):
         """ Return a list of branch names associated with a merge queue"""
         def is_mq_branch(branch):
-            return branch.name.starswith("gh-readonly-queue/")
+            return branch.name.startswith("gh-readonly-queue/")
 
         branches = self.get_gh_branches()
-        mq_branches = [br.name for br in branches if is_mq_branch(br)]
+        mq_branches = [(br.name, br.commit.sha) for br in branches if is_mq_branch(br)]
         print("MQ Branches:")
-        for branch in mq_branches:
-            print("   {0}".format(branch))
+        for branch_name, sha in mq_branches:
+            print("   {0} / {1}".format(branch_name, sha))
         return mq_branches
 
     def list_github_tags(self):
@@ -630,11 +630,13 @@ class SpackCIBridge(object):
         for sha in self.unmergeable_shas:
             print('  {0}'.format(sha))
             self.create_status_for_commit(sha, "", "error", "", f"PR could not be merged with {self.main_branch}")
-        print("Rate limit at the end of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
 
         # Post a skip status for skip branches
-        for branch in skip_branches:
-            self.create_status_for_commit(branch, pr_branch, "skipped", None, "Skipped Gitlab CI for branch")
+        for branch_name, sha in skip_branches:
+            print("Posting skipped status for {} / {}".format(branch_name, sha))
+            self.create_status_for_commit(sha, branch_name, "success", "", "Skipped Gitlab CI for branch")
+
+        print("Rate limit at the end of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
 
     def create_status_for_commit(self, sha, branch, state, target_url, description):
         context = os.environ.get("GITHUB_STATUS_CONTEXT", "ci/gitlab-ci")
