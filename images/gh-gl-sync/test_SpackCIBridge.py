@@ -445,7 +445,7 @@ def test_post_pipeline_status(capfd):
     bridge.session = session
     os.environ["GITHUB_TOKEN"] = "my_github_token"
 
-    bridge.post_pipeline_status(open_prs, [])
+    bridge.post_pipeline_status(open_prs, [], [])
     assert bridge.session.get.call_count == 2
     assert gh_repo.get_commit.call_count == 1
     assert gh_commit.create_status.call_count == 1
@@ -507,7 +507,7 @@ def test_pipeline_status_backlogged_by_checks(capfd):
         expected_desc = all_open_prs["backlogged"][0]
         assert expected_desc == "waiting for style check to succeed"
 
-        bridge.post_pipeline_status(all_open_prs, [])
+        bridge.post_pipeline_status(all_open_prs, [], [])
         assert gh_commit.create_status.call_count == 1
         gh_commit.create_status.assert_called_with(
             state="pending",
@@ -561,7 +561,7 @@ def test_pipeline_status_backlogged_for_draft_PR(capfd):
 
     expected_desc = "GitLab CI is disabled for draft PRs"
 
-    bridge.post_pipeline_status(open_prs, [])
+    bridge.post_pipeline_status(open_prs, [], [])
     assert gh_commit.create_status.call_count == 1
     gh_commit.create_status.assert_called_with(
         state="pending",
@@ -572,5 +572,53 @@ def test_pipeline_status_backlogged_for_draft_PR(capfd):
     out, err = capfd.readouterr()
     expected_content = """Posting backlogged status to the following:
   pr1_readme -> shabaz"""
+    assert expected_content in out
+    del os.environ["GITHUB_TOKEN"]
+
+
+def test_skipped_status_for_merge_queue(capfd):
+    """Test skipping of merge queue branches."""
+    os.environ["GITHUB_TOKEN"] = "my_github_token"
+
+    github_branches_response = [
+        AttrDict({
+            "name": "gh-readonly-queue/my_topic_branch",
+            "commit": {
+                "sha": "shafoo"
+            },
+            "protected": False
+        }),
+    ]
+    gh_repo = Mock()
+    gh_repo.get_branches.return_value = github_branches_response
+
+    gh_commit = Mock()
+    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
+    gh_commit.create_status.return_value = AttrDict({"state": "success"})
+    gh_repo.get_commit.return_value = gh_commit
+
+    bridge = SpackCIBridge.SpackCIBridge(enable_mq=SpackCIBridge.MQ['SKIP'])
+    bridge.py_gh_repo = gh_repo
+    bridge.py_github = py_github
+    skip_branches = bridge.list_github_mq_branches()
+
+    open_prs = {
+        "pr_strings": [],
+        "base_shas": [],
+        "head_shas": [],
+        "backlogged": []
+    }
+
+    expected_desc = "Skipped Gitlab CI for branch"
+    bridge.post_pipeline_status(open_prs, [], skip_branches)
+    assert gh_commit.create_status.call_count == 1
+    gh_commit.create_status.assert_called_with(
+        state="success",
+        context="ci/gitlab-ci",
+        description=expected_desc,
+        target_url=""
+    )
+    out, err = capfd.readouterr()
+    expected_content = "Posting skipped status for gh-readonly-queue/my_topic_branch"
     assert expected_content in out
     del os.environ["GITHUB_TOKEN"]
