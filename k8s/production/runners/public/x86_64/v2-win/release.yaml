@@ -55,6 +55,11 @@ spec:
     runners:
       config: |
         [[runners]]
+
+          pre_get_sources_script = """
+          git config core.autocrlf true
+          """
+
           pre_build_script = """
           Write-Output 'Executing Spack pre-build setup script'
 
