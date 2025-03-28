@@ -25,7 +25,6 @@ spec:
           operator: In
           values:
             - "c8g"
-            - "i8g"
             - "m8g"
             - "r8g"
 
