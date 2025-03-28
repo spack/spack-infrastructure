@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
 - ../../production/karpenter/provisioners/runners/testing/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/graviton/3/provisioners.yaml
+- ../../production/karpenter/provisioners/runners/graviton/4/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/x86_64/v2/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/x86_64/v3/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/x86_64/v4/provisioners.yaml
@@ -38,6 +39,14 @@ patches:
   - target:
       kind: NodePool
       name: glr-graviton3
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/requirements/3/values
+        value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
+
+  - target:
+      kind: NodePool
+      name: glr-graviton4
     patch: |-
       - op: replace
         path: /spec/template/spec/requirements/3/values
