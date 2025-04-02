@@ -62,7 +62,10 @@ resource "aws_iam_policy" "gitlab_object_stores" {
           "s3:DeleteObject",
           "s3:PutObjectAcl",
         ],
-        "Resource" : [for bucket in aws_s3_bucket.gitlab_object_stores : "${bucket.arn}/*"],
+        "Resource" : concat(
+          [for bucket in aws_s3_bucket.gitlab_object_stores : "${bucket.arn}/*"],
+          ["${aws_s3_bucket.gitlab_gitaly_bundle_uri.arn}/*"],
+        )
       },
       {
         "Effect" : "Allow",
@@ -72,7 +75,10 @@ resource "aws_iam_policy" "gitlab_object_stores" {
           "s3:ListMultipartUploadParts",
           "s3:ListBucketMultipartUploads"
         ],
-        "Resource" : [for bucket in aws_s3_bucket.gitlab_object_stores : bucket.arn]
+        "Resource" : concat(
+          [for bucket in aws_s3_bucket.gitlab_object_stores : bucket.arn],
+          [aws_s3_bucket.gitlab_gitaly_bundle_uri.arn],
+        )
       }
     ]
   })
@@ -153,6 +159,9 @@ resource "kubectl_manifest" "gitlab_object_stores_config_map" {
                 config:
                   secret: ${local.backups_secret_name}
                   key: ${local.backups_secret_key}
+          gitaly:
+            bundleUri:
+              goCloudUrl: "s3://${aws_s3_bucket.gitlab_gitaly_bundle_uri.bucket}?region=${data.aws_region.current.name}"
   YAML
 }
 
@@ -185,4 +194,9 @@ resource "kubectl_manifest" "gitlab_object_stores_backup_secret" {
         [default]
         bucket_location = ${data.aws_region.current.name}
   YAML
+}
+
+# S3 infrastructure for Gitaly Bundle URIs
+resource "aws_s3_bucket" "gitlab_gitaly_bundle_uri" {
+  bucket = "spack-${var.deployment_name}-gitaly-bundle-storage"
 }
