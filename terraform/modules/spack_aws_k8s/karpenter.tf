@@ -51,7 +51,7 @@ resource "helm_release" "karpenter" {
     settings:
       clusterName: ${module.eks.cluster_name}
       clusterEndpoint: ${module.eks.cluster_endpoint}
-      interruptionQueueName: ${module.karpenter.queue_name}
+      interruptionQueue: ${module.karpenter.queue_name}
     serviceMonitor:
       enabled: true
     EOT
