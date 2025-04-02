@@ -212,6 +212,11 @@ spec:
           enabled: true
           serviceMonitor:
             enabled: true
+        extraEnv:
+          GITALY_FEATURE_GITALY_BUNDLE_URI: "true"
+        configuration:
+          bundle_uri:
+            go_cloud_url: "s3://spack-staging-gitaly-bundle-storage?region=us-west-2"
 
       migrations:
         nodeSelector:
