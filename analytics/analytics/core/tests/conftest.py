@@ -1,4 +1,5 @@
 import base64
+import time
 from pathlib import Path
 from time import sleep
 from typing import cast
@@ -95,8 +96,14 @@ def gitlab_group(gitlab_client: Gitlab):
 def gitlab_project(gitlab_client: Gitlab, gitlab_group: Group, pr_build_cache_bucket: str, protected_build_cache_bucket: str, request: pytest.FixtureRequest):
     root_project = gitlab_client.projects.get("root/spack")
 
+    # Create a fork of the project for this test
     fork: ProjectFork = root_project.forks.create({"namespace": gitlab_group.get_id()})
-    project: Project = gitlab_client.projects.get(fork.get_id())
+
+    # Wait for the fork to be created
+    project: Project
+    while (project := gitlab_client.projects.get(fork.get_id())).import_status != "finished":
+        time.sleep(1)
+
 
     # See these docs for more info on Spack GitLab CI variables:
     # https://spack.readthedocs.io/en/latest/pipelines.html#environment-variables-affecting-pipeline-operation
@@ -123,7 +130,6 @@ def gitlab_project(gitlab_client: Gitlab, gitlab_group: Group, pr_build_cache_bu
 
     project.ci_config_path = "share/spack/gitlab/cloud_pipelines/.gitlab-ci.yml"
     project.save()
-    project = cast(Project, gitlab_client.projects.create({"name": request.node.name}))
     project.hooks.create({"url": "http://django:8000", "job_events": True})
 
     yield project
