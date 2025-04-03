@@ -11,6 +11,52 @@ import minio
 import pytest
 import requests
 
+def _maybe_delete_bucket(client: minio.Minio, bucket_name: str):
+    if client.bucket_exists(bucket_name):
+        items_to_delete = client.list_objects(bucket_name)
+        for item in items_to_delete:
+            client.remove_object(bucket_name, item.object_name)
+        client.remove_bucket(bucket_name)
+
+@pytest.fixture(scope='session')
+def minio_client() -> minio.Minio:
+    return minio.Minio(
+        endpoint="localhost:9000",
+        access_key="minioAccessKey",
+        secret_key="minioSecretKey",
+        secure=False,
+        region="us-east-1",
+    )
+
+@pytest.fixture(scope='session')
+def pr_build_cache_bucket(minio_client: minio.Minio):
+    pr_bucket_name = 'spack-binaries-prs-test'
+
+    # Clean up the bucket if it exists
+    _maybe_delete_bucket(minio_client, pr_bucket_name)
+
+    minio_client.make_bucket(pr_bucket_name)
+
+    yield pr_bucket_name
+
+    # Clean up the bucket after the tests
+    _maybe_delete_bucket(minio_client, pr_bucket_name)
+
+
+@pytest.fixture(scope='session')
+def protected_build_cache_bucket(minio_client: minio.Minio):
+    protected_bucket_name = 'spack-binaries-test'
+
+    # Clean up the bucket if it exists
+    _maybe_delete_bucket(minio_client, protected_bucket_name)
+
+    minio_client.make_bucket(protected_bucket_name)
+
+    yield protected_bucket_name
+
+    # Clean up the bucket after the tests
+    _maybe_delete_bucket(minio_client, protected_bucket_name)
+
 
 @pytest.fixture(scope="session")
 def gitlab_client() -> Gitlab:
@@ -46,7 +92,7 @@ def gitlab_group(gitlab_client: Gitlab):
 
 
 @pytest.fixture()
-def gitlab_project(gitlab_client: Gitlab, gitlab_group: Group, request: pytest.FixtureRequest):
+def gitlab_project(gitlab_client: Gitlab, gitlab_group: Group, pr_build_cache_bucket: str, protected_build_cache_bucket: str, request: pytest.FixtureRequest):
     root_project = gitlab_client.projects.get("root/spack")
 
     fork: ProjectFork = root_project.forks.create({"namespace": gitlab_group.get_id()})
@@ -63,10 +109,10 @@ def gitlab_project(gitlab_client: Gitlab, gitlab_group: Group, request: pytest.F
         # Disable signing of packages. We don't want to sign packages in the test environment.
         "SPACK_REQUIRE_SIGNING": False,
         # Configure local minio build cache
-        "PR_MIRROR_FETCH_DOMAIN": "s3://spack-binaries-prs-test",
-        "PR_MIRROR_PUSH_DOMAIN": "s3://spack-binaries-prs-test",
-        "PROTECTED_MIRROR_FETCH_DOMAIN": "s3://spack-binaries-test",
-        "PROTECTED_MIRROR_PUSH_DOMAIN": "s3://spack-binaries-test",
+        "PR_MIRROR_FETCH_DOMAIN": f"s3://{pr_build_cache_bucket}",
+        "PR_MIRROR_PUSH_DOMAIN": f"s3://{pr_build_cache_bucket}",
+        "PROTECTED_MIRROR_FETCH_DOMAIN": f"s3://{protected_build_cache_bucket}",
+        "PROTECTED_MIRROR_PUSH_DOMAIN": f"s3://{protected_build_cache_bucket}",
         "S3_ENDPOINT_URL": "http://minio:9000",
         "AWS_ACCESS_KEY_ID": "minioAccessKey",
         "AWS_SECRET_ACCESS_KEY": "minioSecretKey",
@@ -77,17 +123,6 @@ def gitlab_project(gitlab_client: Gitlab, gitlab_group: Group, request: pytest.F
 
     project.ci_config_path = "share/spack/gitlab/cloud_pipelines/.gitlab-ci.yml"
     project.save()
-
-    client = minio.Minio(
-        endpoint="localhost:9000",
-        access_key="minioAccessKey",
-        secret_key="minioSecretKey",
-        secure=False,
-        region="us-east-1",
-    )
-    client.make_bucket("spack-binaries-test")
-    client.make_bucket("spack-binaries-prs-test")
-
     project = cast(Project, gitlab_client.projects.create({"name": request.node.name}))
     project.hooks.create({"url": "http://django:8000", "job_events": True})
 
