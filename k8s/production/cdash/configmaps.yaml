@@ -2,16 +2,24 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cdash-updater
+  name: cdash-site-ssl-config
   namespace: cdash
 data:
-  script: |
-    #! /bin/sh -e
-    date
-    echo
-    wget -O -                                                            \
-        "https://dl.k8s.io/v1.15.0/kubernetes-client-linux-amd64.tar.gz" \
-            | tar xzf -                                                  \
-    echo "ROLLOUT deployments/$dep"
-    exec kubernetes/client/bin/kubectl rollout restart -n cdash \
-        deployments/cdash
+  cdash-site-ssl.conf: |
+    <IfFile /var/www/my-cert.pem>
+        <VirtualHost *:443>
+            DocumentRoot "/cdash/public"
+            ServerName localhost
+            ErrorLog "/var/log/apache2/error.log"
+            CustomLog "/var/log/apache2/access.log" combined
+            SSLEngine on
+            SSLCertificateFile      /var/www/my-cert.pem
+            SSLCertificateKeyFile /var/www/my-cert.key
+            <Directory "/cdash/public">
+                AllowOverride All
+                Require all granted
+            </Directory>
+        </VirtualHost>
+    </IfFile>
+  ports.conf: |
+    Listen 8080
