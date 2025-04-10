@@ -37,7 +37,7 @@ jobs:
           - docker-image: ./images/gitlab-skipped-pipelines
             image-tags: ghcr.io/spack/gitlab-skipped-pipelines:0.0.2
           - docker-image: ./images/notary
-            image-tags: ghcr.io/spack/notary:latest
+            image-tags: ghcr.io/spack/notary:0.0.1
           - docker-image: ./images/python-aws-bash
             image-tags: ghcr.io/spack/python-aws-bash:0.0.2
           - docker-image: ./images/snapshot-release-tags
