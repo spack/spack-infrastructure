@@ -59,7 +59,7 @@ gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${UO_INT
 # Check downloaded spec files,  die if not signed/verified
 for FILE in $( find $INPUTDIR -type f ); do
     echo "VERIFY: ${FILE}"
-    gpg --no-tty --quiet ${FILE}
+    gpg --verify --no-tty --quiet ${FILE}
     rm ${FILE}
 done
 
