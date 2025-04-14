@@ -92,7 +92,7 @@ spec:
             service_account = "notary"
 
             # TODO Change to actual image before merge
-            allowed_images = ["ghcr.io/spack/notary:*"]
+            allowed_images = ["ghcr.io/spack/notary:*", "ghcr.io/spack/notary@*"]
             allowed_services = [""]
 
             # TODO Set up security contexts with the image
