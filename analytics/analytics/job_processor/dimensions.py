@@ -1,22 +1,26 @@
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Any
 
 import gitlab
 import gitlab.exceptions
-from gitlab.v4.objects import ProjectJob
 import yaml
+from gitlab.v4.objects import ProjectJob
 
 from analytics.core.models.dimensions import (
     DateDimension,
-    JobDataDimension,
+    GitlabJobDataDimension,
+    JobResultDimension,
+    JobRetryDimension,
+    JobType,
     NodeDimension,
     PackageDimension,
     PackageSpecDimension,
     RunnerDimension,
+    SpackJobDataDimension,
     TimeDimension,
 )
-from analytics.job_processor.metadata import JobMiscInfo, NodeInfo, PackageInfo, PodInfo
+from analytics.job_processor.metadata import JobMiscInfo, NodeInfo, PackageInfo
 from analytics.job_processor.utils import get_job_exit_code, get_job_retry_data
 
 UNNECESSARY_JOB_REGEX = re.compile(r"No need to rebuild [^,]+, found hash match")
@@ -86,40 +90,79 @@ def determine_job_type(job_input_data: dict):
     name = job_input_data["build_name"]
 
     if "-generate" in name:
-        return JobDataDimension.JobType.GENERATE
+        return JobType.GENERATE
 
     if name == "no-specs-to-rebuild":
-        return JobDataDimension.JobType.NO_SPECS
+        return JobType.NO_SPECS
     if name == "rebuild-index":
-        return JobDataDimension.JobType.REBUILD_INDEX
+        return JobType.REBUILD_INDEX
     if name == "copy":
-        return JobDataDimension.JobType.COPY
+        return JobType.COPY
     if name == "unsupported-copy":
-        return JobDataDimension.JobType.UNSUPPORTED_COPY
+        return JobType.UNSUPPORTED_COPY
     if name == "sign-pkgs":
-        return JobDataDimension.JobType.SIGN_PKGS
+        return JobType.SIGN_PKGS
     if name == "protected-publish":
-        return JobDataDimension.JobType.PROTECTED_PUBLISH
+        return JobType.PROTECTED_PUBLISH
 
     if re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"]) is not None:
-        return JobDataDimension.JobType.BUILD
+        return JobType.BUILD
 
     # Unrecognized type, raise error
     raise UnrecognizedJobType(job_input_data["build_id"], name)
 
 
-def create_job_data_dimension(
-    job_input_data: dict,
-    misc_info: JobMiscInfo | None,
-    pod_info: PodInfo | None,
-    gljob: ProjectJob,
-    job_trace: str,
-) -> JobDataDimension:
-    job_id = job_input_data["build_id"]
-    existing_job = JobDataDimension.objects.filter(job_id=job_id).first()
-    if existing_job is not None:
-        return existing_job
+def create_spack_job_data_dimension(data: JobMiscInfo | None):
+    if data is None:
+        return SpackJobDataDimension.get_empty_row()
 
+    res, _ = SpackJobDataDimension.objects.get_or_create(
+        job_size=data.job_size, stack=data.stack
+    )
+    return res
+
+
+def create_gitlab_job_data_dimension(
+    gljob: ProjectJob, job_input_data: dict, job_trace: str
+):
+    rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
+    runner_version = rvmatch.group(1) if rvmatch is not None else ""
+
+    res, _ = GitlabJobDataDimension.objects.get_or_create(
+        gitlab_runner_version=runner_version,
+        ref=gljob.ref,
+        tags=gljob.tag_list,
+        commit_id=job_input_data["commit"]["id"],
+        job_type=determine_job_type(job_input_data),
+    )
+
+    return res
+
+
+def create_job_result_dimension(job_input_data: dict, job_trace: str):
+    status = job_input_data["build_status"]
+    error_taxonomy = (
+        _assign_error_taxonomy(job_input_data, job_trace)[0]
+        if status == "failed"
+        else None
+    )
+    job_exit_code = get_job_exit_code(job_id=job_input_data["build_id"])
+    job_failure_reason: str = job_input_data["build_failure_reason"]
+    unnecessary = UNNECESSARY_JOB_REGEX.search(job_trace) is not None
+    res, _ = JobResultDimension.objects.get_or_create(
+        status=status,
+        error_taxonomy=error_taxonomy,
+        unnecessary=unnecessary,
+        job_type=determine_job_type(job_input_data=job_input_data),
+        job_exit_code=job_exit_code,
+        gitlab_failure_reason=job_failure_reason,
+    )
+
+    return res
+
+
+def create_job_retry_dimension(job_input_data: dict):
+    job_id = job_input_data["build_id"]
     job_name = job_input_data["build_name"]
     job_commit_id = job_input_data["commit"]["id"]
     job_failure_reason: str = job_input_data["build_failure_reason"]
@@ -130,45 +173,14 @@ def create_job_data_dimension(
         job_failure_reason=job_failure_reason,
     )
 
-    job_status = job_input_data["build_status"]
-    error_taxonomy = (
-        _assign_error_taxonomy(job_input_data, job_trace)[0] if job_status == "failed" else None
-    )
-
-    gitlab_section_timers = get_gitlab_section_timers(job_trace=job_trace)
-
-    rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
-    runner_version = rvmatch.group(1) if rvmatch is not None else ""
-    unnecessary = UNNECESSARY_JOB_REGEX.search(job_trace) is not None
-
-    job_exit_code = get_job_exit_code(job_id=job_id)
-
-    job_data = JobDataDimension.objects.create(
-        job_id=job_id,
-        commit_id=job_commit_id,
-        job_url=f"https://gitlab.spack.io/spack/spack/-/jobs/{job_id}",
-        name=job_name,
-        ref=gljob.ref,
-        tags=gljob.tag_list,
-        job_size=misc_info.job_size if misc_info else None,
-        stack=misc_info.stack if misc_info else None,
-        # Retry info
+    retry_info, _ = JobRetryDimension.objects.get_or_create(
         is_retry=retry_info.is_retry,
         is_manual_retry=retry_info.is_manual_retry,
         attempt_number=retry_info.attempt_number,
         final_attempt=retry_info.final_attempt,
-        status=job_status,
-        error_taxonomy=error_taxonomy,
-        unnecessary=unnecessary,
-        pod_name=pod_info.name if pod_info else None,
-        gitlab_runner_version=runner_version,
-        job_type=determine_job_type(job_input_data),
-        gitlab_section_timers=gitlab_section_timers,
-        gitlab_failure_reason=job_failure_reason,
-        job_exit_code=job_exit_code,
     )
 
-    return job_data
+    return retry_info
 
 
 def create_date_time_dimensions(
