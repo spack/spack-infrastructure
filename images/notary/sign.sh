@@ -60,8 +60,11 @@ gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${UO_INT
 
 # Check downloaded spec files,  die if not signed/verified
 for FILE in $( find $INPUTDIR -type f ); do
-    echo "VERIFY: ${FILE}"
-    gpg --verify --no-tty --quiet --output ${VERIFYDIR}/$(basename -- "${FILE}") ${FILE}
+    # preserve path structure within /tmp/input/ when writing output to /tmp/verified/
+    output="${VERIFYDIR}/${FILE#$INPUTDIR}"
+    echo "VERIFY: ${FILE} -> ${output}"
+    mkdir -p $(dirname -- $output)
+    gpg --verify --no-tty --quiet --output ${output} ${FILE}
     rm ${FILE}
 done
 
@@ -72,9 +75,12 @@ gpg --no-tty --import <(aws-encryption-cli --decrypt -S -w "key=${KMS_KEY_ARN}" 
 
 # Sign Keys with reputational key
 for FILE in $( find $VERIFYDIR -type f ); do
-   echo "SIGN: ${FILE}"
-   gpg --no-tty --output ${OUTPUTDIR}/$(basename -- "${FILE}") --clearsign ${FILE}
-   rm ${FILE}
+    # preserve path structure within /tmp/verified when writing output to /tmp/output/
+    output="${OUTPUTDIR}/${FILE#$VERIFYDIR}"
+    echo "SIGN: ${FILE} -> ${output}"
+    mkdir -p $(dirname -- $output)
+    gpg --no-tty --output ${output} --clearsign ${FILE}
+    rm ${FILE}
 done
 
 
