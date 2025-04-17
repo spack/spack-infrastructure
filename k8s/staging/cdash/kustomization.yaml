@@ -5,6 +5,8 @@ resources:
   - ../../production/cdash/certificates.yaml
   - ../../production/cdash/ingress.yaml
   - ../../production/cdash/namespace.yaml
+  - ../../production/cdash/release.yaml
+  - ../../production/cdash/namespace.yaml
 
 patches:
   - target:
@@ -12,9 +14,6 @@ patches:
       name: tls-cdash
       namespace: cdash
     patch: |-
-      - op: replace
-        path: /spec/commonName
-        value: cdash.staging.spack.io
       - op: replace
         path: /spec/dnsNames/0
         value: cdash.staging.spack.io
@@ -27,3 +26,21 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: cdash.staging.spack.io
+
+  - target:
+      kind: HelmRelease
+      name: cdash
+      namespace: cdash
+    patch: |-
+      - op: replace
+        path: /spec/values/cdash/host
+        value: cdash.staging.spack.io
+      - op: replace
+        path: /spec/values/cdash/website/resources/requests/memory
+        value: 50Mi
+      - op: replace
+        path: /spec/values/cdash/worker/replicas
+        value: 1
+      - op: replace
+        path: /spec/values/cdash/worker/resources/requests/memory
+        value: 50Mi
