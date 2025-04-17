@@ -14,13 +14,12 @@ module "cdash_db" {
 
   identifier = "spack-cdash${local.suffix}"
 
-  engine               = "mysql"
-  engine_version       = "8.0.35"
-  family               = "mysql8.0"
-  major_engine_version = "8.0"
+  engine               = "postgres"
+  family               = "postgres14"
+  major_engine_version = "14"
   instance_class       = var.cdash_db_instance_class
 
-  username                    = "admin"
+  username                    = "postgres"
   port                        = "3306"
   password                    = random_password.cdash_db_password.result
   manage_master_user_password = false
@@ -42,24 +41,142 @@ module "cdash_db" {
   iops               = 12000 # 3,000 is the minimum IOPs for <400 GB storage. We can increase this as needed.
   storage_throughput = 125   # 125 is the minimum throughput for <400 GB storage. We can increase this as needed.
 
-  vpc_security_group_ids = [module.mysql_security_group.security_group_id]
+  vpc_security_group_ids = [module.postgres_security_group.security_group_id]
 }
 
-module "mysql_security_group" {
-  source  = "terraform-aws-modules/security-group/aws"
-  version = "5.2.0"
+resource "aws_s3_bucket" "cdash" {
+  bucket = "spack-cdash${local.suffix}"
+  lifecycle {
+    prevent_destroy = true
+  }
+}
 
-  name        = "mysql_sg"
-  description = "Security group for RDS MySQL database"
-  vpc_id      = module.vpc.vpc_id
+resource "aws_s3_bucket_public_access_block" "cdash" {
+  bucket = aws_s3_bucket.cdash.id
 
-  ingress_with_cidr_blocks = [
-    {
-      from_port   = 3306
-      to_port     = 3306
-      protocol    = "tcp"
-      description = "MySQL access from within VPC"
-      cidr_blocks = module.vpc.vpc_cidr_block
-    },
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+# Bucket policy that prevents deletion of CDash bucket.
+resource "aws_s3_bucket_policy" "cdash" {
+  bucket = aws_s3_bucket.cdash.id
+
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Principal" : "*"
+        "Effect" : "Deny",
+        "Action" : [
+          "s3:DeleteBucket",
+        ],
+        "Resource" : aws_s3_bucket.cdash.arn
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.cdash]
+}
+
+resource "aws_iam_role" "cdash" {
+  name        = "CDashS3Role-${var.deployment_name}-${var.deployment_stage}"
+  description = "Managed by Terraform. Role for CDash to assume so that it can access relevant S3 buckets."
+  assume_role_policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "Federated" : module.eks.oidc_provider_arn,
+        },
+        "Action" : "sts:AssumeRoleWithWebIdentity",
+        "Condition" : {
+          "StringEquals" : {
+            "${module.eks.oidc_provider}:aud" : "sts.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "cdash" {
+  name        = "CDashS3Role-${var.deployment_name}-${var.deployment_stage}"
+  description = "Managed by Terraform. Grants required permissions for CDash to read/write to relevant S3 buckets."
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "s3:GetBucketLocation",
+          "s3:ListBucket"
+        ],
+        "Resource" : aws_s3_bucket.cdash.arn
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "s3:DeleteObject",
+          "s3:GetObject",
+          "s3:PutObject"
+        ],
+        "Resource" : [
+          aws_s3_bucket.cdash.arn,
+          "${aws_s3_bucket.cdash.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "cdash" {
+  role       = aws_iam_role.cdash.name
+  policy_arn = aws_iam_policy.cdash.arn
+}
+
+resource "kubectl_manifest" "cdash_service_account" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: cdash
+      namespace: cdash
+      annotations:
+        eks.amazonaws.com/role-arn: ${aws_iam_role.cdash.arn}
+  YAML
+  depends_on = [
+    aws_iam_role_policy_attachment.cdash,
   ]
+}
+
+resource "kubectl_manifest" "cdash_s3_secret" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: cdash-s3
+      namespace: cdash
+    stringData:
+      region: "${data.aws_region.current.name}"
+      bucket: ${aws_s3_bucket.cdash.id}"
+  YAML
+}
+
+resource "kubectl_manifest" "cdash_db_secret" {
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: cdash-db
+      namespace: cdash
+    stringData:
+      host: "${module.cdash_db.db_instance_address}"
+      database: "cdash"
+      username: "postgres"
+      password: "${random_password.cdash_db_password.result}"
+  YAML
 }
