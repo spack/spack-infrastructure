@@ -5,6 +5,8 @@ metadata:
   namespace: gitlab
 spec:
   schedule: "*/15 * * * *"  # Every 15 minutes
+  successfulJobsHistoryLimit: 1  # Only save most recent run to avoid overpopulating the pod list in the gitlab namespace
+  concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       template:
