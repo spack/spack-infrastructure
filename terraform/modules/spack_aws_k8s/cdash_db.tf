@@ -15,8 +15,8 @@ module "cdash_db" {
   identifier = "spack-cdash${local.suffix}"
 
   engine               = "postgres"
-  family               = "postgres14"
-  major_engine_version = "14"
+  family               = "postgres17"
+  major_engine_version = "17"
   instance_class       = var.cdash_db_instance_class
 
   username                    = "postgres"
@@ -36,10 +36,10 @@ module "cdash_db" {
   skip_final_snapshot     = true
   deletion_protection     = true
 
-  allocated_storage  = 300
+  allocated_storage  = 400
   storage_type       = "gp3"
   iops               = 12000 # 3,000 is the minimum IOPs for <400 GB storage. We can increase this as needed.
-  storage_throughput = 125   # 125 is the minimum throughput for <400 GB storage. We can increase this as needed.
+  storage_throughput = 500   # 500 is the minimum throughput for >=400 GB storage. We can increase this as needed.
 
   vpc_security_group_ids = [module.postgres_security_group.security_group_id]
 }
