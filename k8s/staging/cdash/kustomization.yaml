@@ -5,6 +5,7 @@ resources:
   - ../../production/cdash/certificates.yaml
   - ../../production/cdash/ingress.yaml
   - ../../production/cdash/release.yaml
+  - ../../production/cdash/namespace.yaml
 
 patches:
   - target:
