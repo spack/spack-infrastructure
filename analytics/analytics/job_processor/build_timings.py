@@ -9,23 +9,23 @@ from analytics.core.models.dimensions import (
     TimerPhaseDimension,
 )
 from analytics.core.models.facts import JobFact, TimerFact, TimerPhaseFact
-from analytics.job_processor.artifacts import JobArtifactFileNotFound, get_job_artifacts_file
+from analytics.job_processor.artifacts import (
+    JobArtifactFileNotFound,
+    find_job_artifacts_file,
+)
 
 
 def get_timings_json(job: ProjectJob) -> list[dict]:
-    timing_filename = "jobs_scratch_dir/user_data/install_times.json"
-    with get_job_artifacts_file(job, timing_filename) as file:
+    with find_job_artifacts_file(job, "install_times.json") as file:
         return json.load(file)
 
 
 def get_spec_json(job: ProjectJob) -> list[dict]:
-    repro_dir_prefix = "jobs_scratch_dir/reproduction"
-    with get_job_artifacts_file(job, f"{repro_dir_prefix}/repro.json") as file:
+    with find_job_artifacts_file(job, "repro.json") as file:
         repro = json.load(file)
 
     spec_filename = repro["job_spec_json"]
-    spec_file = f"{repro_dir_prefix}/{spec_filename}"
-    with get_job_artifacts_file(job, spec_file) as file:
+    with find_job_artifacts_file(job, spec_filename) as file:
         spec = json.load(file)
 
     return spec
@@ -118,7 +118,6 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob):
     # cache=False, except the package being built.
     job_package_hash = job_fact.spec.hash
     timings = [t for t in timing_data if t["cache"] or t["hash"] == job_package_hash]
-
 
     # First, ensure that all packages and specs are entered into the db. Then, fetch all timing packages
     create_packages_and_specs(gljob)
