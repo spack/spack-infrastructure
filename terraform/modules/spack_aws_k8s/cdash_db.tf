@@ -20,7 +20,7 @@ module "cdash_db" {
   instance_class       = var.cdash_db_instance_class
 
   username                    = "postgres"
-  port                        = "3306"
+  port                        = "5432"
   password                    = random_password.cdash_db_password.result
   manage_master_user_password = false
 
@@ -167,5 +167,6 @@ resource "kubectl_manifest" "cdash_db_secret" {
       database: "cdash"
       username: "postgres"
       password: "${random_password.cdash_db_password.result}"
+      port: "5432"
   YAML
 }
