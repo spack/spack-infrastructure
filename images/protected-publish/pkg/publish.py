@@ -27,6 +27,9 @@ from .common import (
     spec_catalogs_from_listing_v2,
     spec_catalogs_from_listing_v3,
     BuiltSpec,
+    MalformedManifestError,
+    NoSuchMediaTypeError,
+    UnexpectedURLFormatError,
 )
 
 sentry_sdk.init(traces_sample_rate=1.0)
@@ -34,7 +37,6 @@ sentry_sdk.init(traces_sample_rate=1.0)
 GITLAB_URL = "https://gitlab.spack.io"
 GITLAB_PROJECT = "spack/spack"
 PREFIX_REGEX_V2 = re.compile(r"/build_cache/(.+)$")
-METADATA_PREFIX_REGEX_V3 = re.compile(r"/v3/specs/(.+)$")
 PROTECTED_REF_REGEXES = [
     re.compile(r"^develop$"),
     re.compile(r"^v[\d]+\.[\d]+\.[\d]+$"),
@@ -44,6 +46,8 @@ PROTECTED_REF_REGEXES = [
 
 SPACK_PUBLIC_KEY_LOCATION = "https://spack.github.io/keys"
 SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
+TARBALL_MEDIA_TYPE = "application/vnd.spack.install.v1.tar+gzip"
+SPEC_METADATA_MEDIA_TYPE = "application/vnd.spack.buildcache_spec.v3+json"
 
 
 ################################################################################
@@ -111,42 +115,44 @@ def publish_missing_spec_v3(built_spec, bucket, ref, force, gpg_home, tmpdir):
     """Publish a single spec from a stack to the root"""
     spec_hash = built_spec.hash
     stack = built_spec.stack
+    stack_manifest_prefix = built_spec.manifest
     stack_meta_prefix = built_spec.meta
     stack_archive_prefix = built_spec.archive
 
     # In v3 land, we already had to download this file in order to access
-    # the content-address of the tarball and other metadata.
-    specfile_path = os.path.join(tmpdir, f"{spec_hash}_{stack}.spec.json.sig")
+    # the content-address of the tarball and metadata.
+    manifest_path = os.path.join(tmpdir, f"{spec_hash}_{stack}.spec.manifest.json")
 
-    # Verify the signature of the previously downloaded metadata file
+    # Verify the signature of the previously downloaded manifest file
     try:
         env = {"GNUPGHOME": gpg_home}
-        subprocess.run(["gpg", "--verify", specfile_path], env=env, check=True)
+        subprocess.run(["gpg", "--verify", manifest_path], env=env, check=True)
     except subprocess.CalledProcessError as cpe:
         error_msg = getattr(cpe, "message", cpe)
         print(f"Failed to verify signature of {stack_meta_prefix} due to {error_msg}")
         return False, error_msg
 
-    # Extract the spec dict from the signature
-    spec_dict = extract_json_from_clearsig(specfile_path)
-    if not spec_dict:
-        return False, "Unable to extract spec_dict from clear-signed file"
+    stack_regex = re.compile(rf"^{ref}/{stack}/(.+)$")
 
-    hash_alg = spec_dict["binary_cache_checksum"]["hash_algorithm"]
-    checksum = spec_dict["binary_cache_checksum"]["hash"]
-    blobs_path = f"blobs/{hash_alg}/{checksum[:2]}/{checksum}"
-    stack_archive_prefix = f"{ref}/{stack}/{blobs_path}"
-    top_level_archive_prefix = f"{ref}/{blobs_path}"
-
-    m = METADATA_PREFIX_REGEX_V3.search(stack_meta_prefix)
+    m = stack_regex.match(stack_manifest_prefix)
     if not m:
-        return False, f"Unable to parse {stack_meta_prefix} as a v3 metadata prefix"
+        raise UnexpectedURLFormatError(stack_manifest_prefix)
+    top_level_manifest_prefix = f"{ref}/{m.group(1)}"
 
-    top_level_meta_prefix = f"{ref}/v3/specs/{m.group(1)}"
+    m = stack_regex.match(stack_meta_prefix)
+    if not m:
+        raise UnexpectedURLFormatError(stack_meta_prefix)
+    top_level_meta_prefix = f"{ref}/{m.group(1)}"
+
+    m = stack_regex.match(stack_archive_prefix)
+    if not m:
+        raise UnexpectedURLFormatError(stack_archive_prefix)
+    top_level_archive_prefix = f"{ref}/{m.group(1)}"
 
     things_to_copy = [
         (stack_archive_prefix, top_level_archive_prefix),
         (stack_meta_prefix, top_level_meta_prefix),
+        (stack_manifest_prefix, top_level_manifest_prefix),
     ]
 
     # Finally, copy the files directly from source to dest, starting with the tarball
@@ -161,7 +167,7 @@ def publish_missing_spec_v3(built_spec, bucket, ref, force, gpg_home, tmpdir):
 
     return (
         True,
-        f"Published {stack_meta_prefix} and {stack_archive_prefix} to s3://{bucket}/{ref}/",
+        f"Published {stack_manifest_prefix}, {stack_meta_prefix}, and {stack_archive_prefix} to s3://{bucket}/{ref}/",
     )
 
 
@@ -233,7 +239,7 @@ def publish(
         return
 
     gnu_pg_home = os.path.join(workdir, ".gnupg")
-    local_key_path = download_and_import_key(gnu_pg_home, workdir, force)
+    download_and_import_key(gnu_pg_home, workdir, force)
 
     # Build a list of tasks for threads
     task_list = [
@@ -265,27 +271,37 @@ def publish(
 
     mirror_url = f"s3://{bucket}/{ref}"
 
-    if local_key_path:
-        key_dir = "build_cache" if layout_version == 2 else f"v{layout_version}/keys"
-        publish_key(
-            local_key_path, f"{mirror_url}/{key_dir}/_pgp/{SPACK_PUBLIC_KEY_NAME}"
-        )
-
     # When all the tasks are finished, rebuild the top-level index
+    print("Publishing complete")
+
+    # Clone spack version appropriate to what we're publishing
     clone_spack(ref)
-    print(f"Publishing complete, rebuilding index at {mirror_url}")
+    spack_exe = "/spack/bin/spack"
+
+    # Can be useful for testing to clone a custom spack to somewhere other than "/"
+    # clone_spack(
+    #     ref="content-addressable-tarballs-2",
+    #     repo="https://github.com/scottwittenburg/spack.git",
+    #     clone_dir=workdir,
+    # )
+    # spack_exe = f"{workdir}/spack/bin/spack"
+
+    # Publish the key used for verification
+    print(f"Publishing trusted keys to {mirror_url}")
+    my_env = os.environ.copy()
+    my_env["SPACK_GNUPGHOME"] = gnu_pg_home
     subprocess.run(
-        ["/spack/bin/spack", "buildcache", "update-index", "--keys", mirror_url],
+        [spack_exe, "gpg", "publish", "--mirror-url", mirror_url],
+        env=my_env,
         check=True,
     )
 
-
-################################################################################
-#
-def publish_key(local_key_path: str, remote_key_url: str):
-    """Copy the key at the local path to the remote url"""
-    cp_cmd = ["aws", "s3", "cp", local_key_path, remote_key_url]
-    subprocess.run(cp_cmd, check=True)
+    # Rebuild the package and key index
+    print(f"Rebuilding index at {mirror_url}")
+    subprocess.run(
+        [spack_exe, "buildcache", "update-index", "--keys", mirror_url],
+        check=True,
+    )
 
 
 ################################################################################
@@ -448,6 +464,30 @@ def generate_spec_catalogs_v2(
     return stack_specs, top_level_specs
 
 
+def find_data_with_media_type(
+    data: List[Dict[str, str]], mediaType: str
+) -> Dict[str, str]:
+    """Return data element with matching mediaType, or else raise"""
+    for elt in data:
+        if elt["mediaType"] == mediaType:
+            return elt
+    raise NoSuchMediaTypeError(mediaType)
+
+
+def format_blob_url(prefix: str, blob_record: Dict[str, str]) -> str:
+    """Use prefix and algorithm/checksum from record to build full prefix"""
+    hash_algo = blob_record.get("checksumAlgorithm", None)
+    checksum = blob_record.get("checksum", None)
+
+    if not hash_algo:
+        raise MalformedManifestError("Missing 'checksumAlgorithm'")
+
+    if not checksum:
+        raise MalformedManifestError("Missing 'checksum'")
+
+    return f"{prefix}/blobs/{hash_algo}/{checksum[:2]}/{checksum}"
+
+
 ################################################################################
 #
 def generate_spec_catalogs_v3(
@@ -479,11 +519,11 @@ def generate_spec_catalogs_v3(
 
         for spec_hash, built_spec in all_catalogs[prefix].items():
             stack_specs[spec_hash][stack] = built_spec
-            task_list.append((built_spec.hash, stack, built_spec.meta))
+            task_list.append((built_spec.hash, stack, built_spec.manifest))
 
     def _download_fn(spec_hash, stack, s3_prefix):
         download_path = os.path.join(
-            specfiles_dir, f"{spec_hash}_{stack}.spec.json.sig"
+            specfiles_dir, f"{spec_hash}_{stack}.spec.manifest.json"
         )
         s3_download_file(bucket, s3_prefix, download_path)
         return (spec_hash, stack, download_path)
@@ -493,13 +533,20 @@ def generate_spec_catalogs_v3(
         for future in as_completed(futures):
             try:
                 spec_hash, stack, download_path = future.result()
-                spec_dict = extract_json_from_clearsig(download_path)
-                hash_alg = spec_dict["binary_cache_checksum"]["hash_algorithm"]
-                checksum = spec_dict["binary_cache_checksum"]["hash"]
+                manifest_dict = extract_json_from_clearsig(download_path)
                 stack_specs[spec_hash][stack].stack = stack
-                stack_specs[spec_hash][
-                    stack
-                ].archive = f"{ref}/{stack}/blobs/{hash_alg}/{checksum[:2]}/{checksum}"
+                stack_specs[spec_hash][stack].meta = format_blob_url(
+                    f"{ref}/{stack}",
+                    find_data_with_media_type(
+                        manifest_dict["data"], SPEC_METADATA_MEDIA_TYPE
+                    ),
+                )
+                stack_specs[spec_hash][stack].archive = format_blob_url(
+                    f"{ref}/{stack}",
+                    find_data_with_media_type(
+                        manifest_dict["data"], TARBALL_MEDIA_TYPE
+                    ),
+                )
             except Exception as exc:
                 print(f"Exception: {exc}")
 
