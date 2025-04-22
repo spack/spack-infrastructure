@@ -51,15 +51,6 @@ resource "aws_s3_bucket" "cdash" {
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "cdash" {
-  bucket = aws_s3_bucket.cdash.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
 # Bucket policy that prevents deletion of CDash bucket.
 resource "aws_s3_bucket_policy" "cdash" {
   bucket = aws_s3_bucket.cdash.id
@@ -77,8 +68,6 @@ resource "aws_s3_bucket_policy" "cdash" {
       }
     ]
   })
-
-  depends_on = [aws_s3_bucket_public_access_block.cdash]
 }
 
 resource "aws_iam_role" "cdash" {
