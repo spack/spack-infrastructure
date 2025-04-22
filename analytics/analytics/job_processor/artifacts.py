@@ -75,10 +75,12 @@ def find_job_artifacts_file(job: ProjectJob, filename: str):
         # Search for specific file within artifacts zip
         with zipfile.ZipFile(artifacts_file) as zfile:
             for zipinfo in zfile.filelist:
-                name = zipinfo.filename.split("/")[-1]
-                if name == filename:
-                    with zfile.open(filename) as timing_file:
+                basename = zipinfo.filename.split("/")[-1]
+                if basename == filename:
+                    # Use fully qualified zipinfo filename, so that it's found
+                    with zfile.open(zipinfo.filename) as timing_file:
                         yield timing_file
+                        return
 
             raise JobArtifactFileNotFound(job, filename)
 
