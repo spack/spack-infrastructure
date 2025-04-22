@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: refresh-gitaly-bundle
+  namespace: gitlab
+spec:
+  schedule: "*/15 * * * *"  # Every 15 minutes
+  successfulJobsHistoryLimit: 1  # Only save most recent run to avoid overpopulating the pod list in the gitlab namespace
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: refresh-gitaly-bundle
+          restartPolicy: Never
+          containers:
+            - name: refresh-gitaly-bundle
+              image: bitnami/kubectl
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+
+                  # Enable Gitaly bundle URI feature
+                  # This command is idempotent, so we can run it every time to ensure the feature is enabled
+                  kubectl exec --stdin --namespace gitlab deploy/gitlab-toolbox --container toolbox -- /srv/gitlab/bin/rails runner "Feature.enable(:gitaly_bundle_uri)"
+
+                  # Get the hashed repository path
+                  REPO_PATH="$(kubectl exec --stdin --namespace gitlab deploy/gitlab-toolbox --container toolbox -- /srv/gitlab/bin/rails runner "puts Project.find_by_full_path('spack/spack').repository.disk_path").git"
+
+                  if [ -z "$REPO_PATH" ]; then
+                    echo "Error: Repository path not found!"
+                    exit 1
+                  fi
+
+                  echo "Found repository path: $REPO_PATH"
+
+                  # Run Gitaly bundle-uri command
+                  kubectl exec --stdin $(kubectl get pod --namespace gitlab --selector app=gitaly --output jsonpath='{.items[0].metadata.name}') -- \
+                    gitaly bundle-uri \
+                      --config=/etc/gitaly/config.toml \
+                      --storage=default \
+                      --repository=$REPO_PATH
+          nodeSelector:
+            spack.io/node-pool: base
