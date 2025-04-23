@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import io
 import json
 import re
 import os
@@ -31,11 +32,16 @@ INDEX_PATH = r"index.json"
 
 ### To switch to content-addressable: uncomment the lines below, and comment or
 ### remove the similar lines above.
-# ROOT_MATCHER = r"v[\d]+"
-# INDEX_PATH = r"specs/index.json"
+# ROOT_PATTERN = r"v[\d]+"
+# INDEX_PATH = r"manifests/index/index.manifest.json"
+
+INDEX_MEDIA_TYPE_PREFIX = "application/vnd.spack.db"
 
 ROOT_MATCHER = re.compile(rf"^{ROOT_PATTERN}$")
 INDEX_MATCHER = re.compile(rf"/{ROOT_PATTERN}/{INDEX_PATH}$")
+
+class IndexManifestError(Exception):
+    pass
 
 
 def get_label(subref):
@@ -54,6 +60,36 @@ def get_matching_ref(ref):
     return None
 
 
+def get_index_blob(manifest_data):
+    for elt in manifest_data:
+        if elt["mediaType"].startswith(INDEX_MEDIA_TYPE_PREFIX):
+            return elt
+    raise IndexManifestError("Unable to find index blob in manifest")
+
+
+def get_index_url(bucket_name, prefix):
+    # v2 layout: Indices are found directly
+    if prefix.endswith("index.json"):
+        return f"s3://{bucket_name}/{prefix}"
+
+    # v3 layout: Indices must be found via manifest
+    fd = io.BytesIO()
+    session = boto3.session.Session()
+    s3_resource = session.resource("s3")
+    s3_client = s3_resource.meta.client
+    s3_client.download_fileobj(bucket_name, prefix, fd)
+    manifest_data = json.loads(fd.getvalue().decode("utf-8"))
+    index_blob = get_index_blob(manifest_data["data"])
+    hash_algo = index_blob["checksumAlgorithm"]
+    checksum = index_blob["checksum"]
+
+    m = re.match(rf"^(.+)/{ROOT_PATTERN}/manifests", prefix)
+    if not m:
+        raise IndexManifestError(f"Unrecognized manifest url pattern: {prefix}")
+
+    return f"s3://{bucket_name}/{m.group(1)}/blobs/{hash_algo}/{checksum[:2]}/{checksum}"
+
+
 def build_json(bucket_name, index_paths):
     json_data = {}
 
@@ -65,10 +101,14 @@ def build_json(bucket_name, index_paths):
                 json_data[ref] = []
             mirror_label = get_label(parts[1])
             if mirror_label:
-                json_data[ref].append({
-                    "label": mirror_label,
-                    "url": f"s3://{bucket_name}/{p}",
-                })
+                try:
+                    json_data[ref].append({
+                        "label": mirror_label,
+                        "url": get_index_url(bucket_name, p),
+                    })
+                except IndexManifestError as e:
+                    print(f"Skipping {p} due to: {e}")
+                    continue
 
     return json_data
 
