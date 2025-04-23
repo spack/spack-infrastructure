@@ -110,8 +110,13 @@ resource "aws_iam_policy" "cdash" {
         "Effect" : "Allow",
         "Action" : [
           "s3:DeleteObject",
+          "s3:DeleteObjectVersion",
           "s3:GetObject",
-          "s3:PutObject"
+          "s3:GetObjectAcl",
+          "s3:GetObjectVersion",
+          "s3:PutObject",
+          "s3:PutObjectAcl",
+          "s3:ReplicateObject"
         ],
         "Resource" : [
           aws_s3_bucket.cdash.arn,
