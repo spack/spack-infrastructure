@@ -1,3 +1,9 @@
+locals {
+  cdash_db_name = "cdash"
+  cdash_db_user = "cdash"
+  cdash_db_port = "5432"
+}
+
 resource "aws_db_subnet_group" "cdash_db" {
   name       = "spack-cdash${local.suffix}"
   subnet_ids = module.vpc.private_subnets
@@ -19,9 +25,10 @@ module "cdash_db" {
   major_engine_version = "17"
   instance_class       = var.cdash_db_instance_class
 
-  username                    = "postgres"
-  port                        = "5432"
-  password                    = random_password.cdash_db_password.result
+  db_name                     = local.cdash_db_name
+  username                    = local.cdash_db_user
+  password                    = random_password.gitlab_db_password.result
+  port                        = local.cdash_db_port
   manage_master_user_password = false
 
   publicly_accessible  = false
@@ -169,9 +176,9 @@ resource "kubectl_manifest" "cdash_db_secret" {
       namespace: cdash
     stringData:
       host: "${module.cdash_db.db_instance_address}"
-      database: "cdash"
-      username: "postgres"
+      database: "${local.cdash_db_name}"
+      username: "${local.cdash_db_user}"
       password: "${random_password.cdash_db_password.result}"
-      port: "5432"
+      port: "${local.cdash_db_port}"
   YAML
 }
