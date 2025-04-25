@@ -10,7 +10,7 @@ resource "gitlab_project_hook" "job_webhook" {
 // gitlab_application_settings resource should be used to whitelist the domains in job_webhooks.
 
 locals {
-  webhook_handler_token_expires_at = "2025-04-25"
+  webhook_handler_token_expires_at = "2026-04-25"
 }
 
 resource "gitlab_personal_access_token" "webhook_handler" {

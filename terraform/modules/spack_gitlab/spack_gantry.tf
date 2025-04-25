@@ -61,7 +61,7 @@ resource "aws_iam_role_policy_attachment" "spack_gantry" {
 }
 
 locals {
-  spack_gantry_token_expires_at = "2025-04-25"
+  spack_gantry_token_expires_at = "2026-04-25"
 }
 
 resource "gitlab_personal_access_token" "spack_gantry" {
