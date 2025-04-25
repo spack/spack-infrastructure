@@ -291,17 +291,88 @@ def _migrate_spec(
 
 ################################################################################
 #
-def migrate_keys(mirror_url: str):
+def migrate_keys(bucket: str, target_prefix: str, listing_file: str, tmpdir: str):
     """Migrate the _pgp directory to the new layout"""
-    print("Migrating signing keys")
-    old_keys_prefix = f"{mirror_url}/build_cache/_pgp"
-    new_keys_prefix = f"{mirror_url}/v3/keys/_pgp"
-    key_sync_cmd = ["aws", "s3", "sync", old_keys_prefix, new_keys_prefix]
+    print("Migrating public keys")
+    original_key_prefixes = []
 
-    try:
-        subprocess.run(key_sync_cmd, check=True)
-    except Exception as e:
-        print(f"Failed to migrate gpg verification keys due to {e}")
+    key_id_regex = re.compile(r"_pgp/([^/]+)\.pub$")
+    public_key_pattern = r"\.pub$"
+    grep_cmd = ["grep", "-E", public_key_pattern, listing_file]
+    proc = subprocess.Popen(grep_cmd, stdout=subprocess.PIPE)
+
+    for matching_line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+        regex = re.compile(rf"^{TIMESTAMP_AND_SIZE}([^\s]+)$")
+        line = matching_line.strip()
+        m = regex.match(line)
+
+        if not m:
+            print(f"Unable to migrate key due to parse failure: {line}")
+            continue
+
+        original_key_prefixes.append(m.group(1))
+
+    for original_key_prefix in original_key_prefixes:
+        local_key_path = os.path.join(tmpdir, os.path.basename(original_key_prefix))
+
+        # Download the key file
+        try:
+            s3_download_file(bucket, original_key_prefix, local_key_path)
+        except Exception as e:
+            error_msg = getattr(e, "message", e)
+            error_msg = f"Failed to download {bucket}/{original_key_prefix} due to {error_msg}"
+            print(error_msg)
+            continue
+
+        # Compute the checksum and size on disk
+        key_checksum = compute_checksum(local_key_path)
+        key_checksum_algo = "sha256"
+        key_size = os.stat(local_key_path).st_size
+        key_blob_prefix = f"{target_prefix}/blobs/{key_checksum_algo}/{key_checksum[:2]}/{key_checksum}"
+
+        m = key_id_regex.search(original_key_prefix)
+        if not m:
+            print(f"Could not parse key id from {original_key_prefix}")
+            continue
+
+        key_id = m.group(1)
+        key_manifest_prefix = f"{target_prefix}/v3/manifests/key/{key_id}.key.manifest.json"
+
+        # Create and write a manifest
+        key_manifest_dict = {
+            "version": 3,
+            "data" : [
+                {
+                    "contentLength": key_size,
+                    "mediaType": "application/pgp-keys",
+                    "compression": "none",
+                    "checksumAlgorithm": key_checksum_algo,
+                    "checksum": key_checksum,
+                },
+            ],
+        }
+
+        local_manifest_path = os.path.join(tmpdir, f"{key_id}.key.manifest.json")
+        with open(local_manifest_path, "w", encoding="utf-8") as fd:
+            json.dump(key_manifest_dict, fd, indent=0, separators=(",", ":"))
+
+        # Push the key blob
+        print(f"Uploading {local_key_path} to s3://{bucket}/{key_blob_prefix}")
+
+        try:
+            s3_upload_file(local_key_path, bucket, key_blob_prefix)
+        except Exception as e:
+            print(f"Failed to upload {local_key_path} to s3://{bucket}/{key_blob_prefix}")
+            continue
+
+        # Push the key blob manifest
+        print(f"Uploading {local_manifest_path} to s3://{bucket}/{key_manifest_prefix}")
+
+        try:
+            s3_upload_file(local_manifest_path, bucket, key_manifest_prefix)
+        except Exception as e:
+            print(f"Failed to upload {local_manifest_path} to s3://{bucket}/{key_manifest_prefix}")
+            continue
 
 
 ################################################################################
@@ -412,7 +483,7 @@ def migrate(mirror_url: str, workdir: str, force: bool = False, parallel: int = 
 
     if migrated_specs > 0:
         # Migrate any signing keys
-        migrate_keys(mirror_url=mirror_url)
+        migrate_keys(bucket, target_prefix, listing_file, tmp_storage_dir)
 
         # Rebuild the top-level index
         update_mirror_index(mirror_url=mirror_url, clone_spack_dir=workdir)
