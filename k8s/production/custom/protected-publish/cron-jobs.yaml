@@ -35,7 +35,7 @@ spec:
               - "--parallel"
               - "16"
               - "--version"
-              - "2"
+              - "3"
             volumeMounts:
               - name: ephemeral
                 mountPath: "/tmp"
