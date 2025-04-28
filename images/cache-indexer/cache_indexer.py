@@ -27,13 +27,9 @@ SUBREF_IGNORE_REGEXES = [
     re.compile(r"^e4s-mac$"),
 ]
 
-ROOT_PATTERN = r"build_cache"
-INDEX_PATH = r"index.json"
-
-### To switch to content-addressable: uncomment the lines below, and comment or
-### remove the similar lines above.
-# ROOT_PATTERN = r"v[\d]+"
-# INDEX_PATH = r"manifests/index/index.manifest.json"
+# Regex and path to find modern index manifest
+ROOT_PATTERN = r"v[\d]+"
+INDEX_PATH = r"manifests/index/index.manifest.json"
 
 INDEX_MEDIA_TYPE_PREFIX = "application/vnd.spack.db"
 

@@ -14,7 +14,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: index-binary-caches
-            image: ghcr.io/spack/cache-indexer:0.0.5
+            image: ghcr.io/spack/cache-indexer:0.0.6
             imagePullPolicy: IfNotPresent
             env:
               - name: BUCKET_NAME
