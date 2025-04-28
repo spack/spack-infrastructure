@@ -5,6 +5,7 @@ import atexit
 import base64
 from datetime import datetime, timedelta, timezone
 import dateutil.parser
+import enum
 from github import Github
 import json
 import os
@@ -21,6 +22,15 @@ import urllib.request
 import sentry_sdk
 
 sentry_sdk.init(traces_sample_rate=0.1)
+
+
+class MQ(enum.Enum):
+    OFF = enum.auto()
+    SKIP = enum.auto()
+    GITLAB = enum.auto()
+
+    def __str__(self):
+        return f"{self.name}".lower()
 
 
 def _durable_subprocess_run(*args, **kwargs):
@@ -45,7 +55,7 @@ class SpackCIBridge(object):
 
     def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
                  disable_status_post=True, sync_draft_prs=False,
-                 main_branch=None, prereq_checks=[]):
+                 main_branch=None, prereq_checks=[], enable_mq=MQ.OFF):
         self.gitlab_repo = gitlab_repo
         self.github_project = github_project
         github_token = os.environ.get('GITHUB_TOKEN')
@@ -76,6 +86,11 @@ class SpackCIBridge(object):
 
         self.prereq_checks = prereq_checks
 
+        self.enable_mq = enable_mq
+
+        if self.enable_mq is MQ.GITLAB:
+            raise Exception("Gitlab intergration for Merge Queue is not implemented")
+
         dt = datetime.now(timezone.utc) + timedelta(minutes=-60)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
 
@@ -90,6 +105,7 @@ class SpackCIBridge(object):
         self.commit_api_template += "/repository/commits/{0}"
 
         self.cached_commits = {}
+        self.cached_branches = []
 
     @atexit.register
     def cleanup():
@@ -305,8 +321,7 @@ class SpackCIBridge(object):
 
     def list_github_protected_branches(self):
         """ Return a list of protected branch names from GitHub."""
-        branches = self.py_gh_repo.get_branches()
-        print("Rate limit after get_branches(): {}".format(self.py_github.rate_limiting[0]))
+        branches = self.get_gh_branches()
         protected_branches = [br.name for br in branches if br.protected]
         protected_branches = sorted(protected_branches)
         if self.currently_running_sha:
@@ -317,6 +332,18 @@ class SpackCIBridge(object):
         for protected_branch in protected_branches:
             print("    {0}".format(protected_branch))
         return protected_branches
+
+    def list_github_mq_branches(self):
+        """ Return a list of branch names associated with a merge queue"""
+        def is_mq_branch(branch):
+            return branch.name.startswith("gh-readonly-queue/")
+
+        branches = self.get_gh_branches()
+        mq_branches = [(br.name, br.commit.sha) for br in branches if is_mq_branch(br)]
+        print("MQ Branches:")
+        for branch_name, sha in mq_branches:
+            print("   {0} / {1}".format(branch_name, sha))
+        return mq_branches
 
     def list_github_tags(self):
         """ Return a list of tag names from GitHub."""
@@ -353,6 +380,14 @@ class SpackCIBridge(object):
         branch_args = ["git", "branch", "--remotes", "--list", "gitlab/pr*"]
         self.gitlab_pr_output = \
             _durable_subprocess_run(branch_args, stdout=subprocess.PIPE).stdout
+
+    def get_gh_branches(self):
+        if self.cached_branches:
+            return self.cached_branches
+
+        self.cached_branches = self.py_gh_repo.get_branches()
+        print("Rate limit after get_branches(): {}".format(self.py_github.rate_limiting[0]))
+        return self.cached_branches
 
     def gitlab_shallow_fetch(self):
         """Perform a shallow fetch from GitLab"""
@@ -530,7 +565,7 @@ class SpackCIBridge(object):
 
         return self.dedupe_pipelines(pipelines)
 
-    def post_pipeline_status(self, open_prs, protected_branches):
+    def post_pipeline_status(self, open_prs, protected_branches, skip_branches):
         print("Rate limit at the beginning of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
         pipeline_branches = []
         backlog_branches = []
@@ -595,6 +630,12 @@ class SpackCIBridge(object):
         for sha in self.unmergeable_shas:
             print('  {0}'.format(sha))
             self.create_status_for_commit(sha, "", "error", "", f"PR could not be merged with {self.main_branch}")
+
+        # Post a skip status for skip branches
+        for branch_name, sha in skip_branches:
+            print("Posting skipped status for {} / {}".format(branch_name, sha))
+            self.create_status_for_commit(sha, branch_name, "success", "", "Skipped Gitlab CI for branch")
+
         print("Rate limit at the end of post_pipeline_status(): {}".format(self.py_github.rate_limiting[0]))
 
     def create_status_for_commit(self, sha, branch, state, target_url, description):
@@ -664,6 +705,10 @@ class SpackCIBridge(object):
             # Get protected branches on GitHub.
             protected_branches = self.list_github_protected_branches()
 
+            skip_branches = []
+            if self.enable_mq is MQ.SKIP:
+                skip_branches.extend(self.list_github_mq_branches())
+
             # Get tags on GitHub.
             tags = self.list_github_tags()
 
@@ -684,7 +729,7 @@ class SpackCIBridge(object):
             # Post pipeline status to GitHub for each open PR, if enabled
             if self.post_status:
                 print('Posting pipeline status for open PRs and protected branches')
-                self.post_pipeline_status(all_open_prs, protected_branches)
+                self.post_pipeline_status(all_open_prs, protected_branches, skip_branches)
 
 
 if __name__ == "__main__":
@@ -707,6 +752,8 @@ to not interrupt this pipeline. We also defer pushing any PR branches that are b
 on a commit of the main branch that is newer than the latest commit tested by GitLab.""")
     parser.add_argument("--prereq-check", nargs="+", default=False,
                         help="Only push branches that have already passed this GitHub check")
+    parser.add_argument("--enable-mq", default="off", choices=[str(opt) for opt in list(MQ)],
+                        help="Configure how to post statuses for merge queue branches")
 
     args = parser.parse_args()
 
@@ -724,6 +771,7 @@ on a commit of the main branch that is newer than the latest commit tested by Gi
                            disable_status_post=args.disable_status_post,
                            sync_draft_prs=args.sync_draft_prs,
                            main_branch=args.main_branch,
-                           prereq_checks=args.prereq_check)
+                           prereq_checks=args.prereq_check,
+                           enable_mq=MQ[args.enable_mq.upper()])
     bridge.setup_ssh(ssh_key_base64)
     bridge.sync()
