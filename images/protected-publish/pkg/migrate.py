@@ -30,9 +30,6 @@ from .common import (
 
 sentry_sdk.init(traces_sample_rate=1.0)
 
-CONTENT_ADDRESSABLE_TARBALLS_REPO = "https://github.com/scottwittenburg/spack.git"
-CONTENT_ADDRESSABLE_TARBALLS_REF = "content-addressable-tarballs-2"
-
 
 class MigrationResult(NamedTuple):
     #: False unless a spec was actually migrated
@@ -381,11 +378,7 @@ def update_mirror_index(mirror_url: str, clone_spack_dir: str):
     """Clone spack and update the index for the new layout"""
     print(f"Rebuilding index at {mirror_url}")
 
-    clone_spack(
-        ref=CONTENT_ADDRESSABLE_TARBALLS_REF,
-        repo=CONTENT_ADDRESSABLE_TARBALLS_REPO,
-        clone_dir=clone_spack_dir,
-    )
+    clone_spack(clone_dir=clone_spack_dir)
 
     try:
         subprocess.run(
