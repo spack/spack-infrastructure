@@ -1,11 +1,11 @@
-from contextlib import contextmanager
-from dataclasses import dataclass
 import tempfile
 import zipfile
+from contextlib import contextmanager
+from dataclasses import dataclass
 
+import yaml
 from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import ProjectJob
-import yaml
 
 
 class JobArtifactDownloadFailed(Exception):
@@ -28,15 +28,13 @@ class JobArtifactVariablesNotFound(Exception):
 
 class JobArtifactsMissingVariable(Exception):
     def __init__(self, job: ProjectJob, variable: str) -> None:
-        message = (
-            f"The following variable was missing in the artifacts for job {job.id}: {variable}"
-        )
+        message = f"The following variable was missing in the artifacts for job {job.id}: {variable}"
         super().__init__(message)
 
 
 @contextmanager
-def get_job_artifacts_file(job: ProjectJob, filename: str):
-    """Yields a file IO, raises KeyError if the filename is not present"""
+def get_job_artifacts_file(job: ProjectJob, filepath: str):
+    """Yields a file IO, raises KeyError if filepath is not present."""
     with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
         artifacts_file = temp.name
 
@@ -50,10 +48,41 @@ def get_job_artifacts_file(job: ProjectJob, filename: str):
         # Open specific file within artifacts zip
         with zipfile.ZipFile(artifacts_file) as zfile:
             try:
-                with zfile.open(filename) as timing_file:
+                with zfile.open(filepath) as timing_file:
                     yield timing_file
             except KeyError:
-                raise JobArtifactFileNotFound(job, filename)
+                raise JobArtifactFileNotFound(job, filepath)
+
+
+@contextmanager
+def find_job_artifacts_file(job: ProjectJob, filename: str):
+    """
+    Yields a file IO, raises KeyError if the filename is not present.
+
+    Search for a file within the artifacts zip file, and yield its bytes.
+    Filename should be just the name of the file itself, without any prefix.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
+        artifacts_file = temp.name
+
+        # Download artifacts zip
+        try:
+            with open(artifacts_file, "wb") as f:
+                job.artifacts(streamed=True, action=f.write)
+        except GitlabGetError:
+            raise JobArtifactDownloadFailed(job)
+
+        # Search for specific file within artifacts zip
+        with zipfile.ZipFile(artifacts_file) as zfile:
+            for zipinfo in zfile.filelist:
+                basename = zipinfo.filename.split("/")[-1]
+                if basename == filename:
+                    # Use fully qualified zipinfo filename, so that it's found
+                    with zfile.open(zipinfo.filename) as timing_file:
+                        yield timing_file
+                        return
+
+            raise JobArtifactFileNotFound(job, filename)
 
 
 @dataclass
@@ -74,8 +103,7 @@ class JobArtifactsData:
 
 def get_job_artifacts_data(gljob: ProjectJob) -> JobArtifactsData:
     """Fetch the artifacts of a job to retrieve info about it."""
-    pipeline_yml_filename = "jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml"
-    with get_job_artifacts_file(gljob, pipeline_yml_filename) as pipeline_file:
+    with find_job_artifacts_file(gljob, "cloud-ci-pipeline.yml") as pipeline_file:
         raw_pipeline = yaml.safe_load(pipeline_file)
 
     pipeline_vars = raw_pipeline.get("variables", {})

@@ -1,5 +1,5 @@
 locals {
-  delete_stale_branches_token_expires_at = "2025-04-25"
+  delete_stale_branches_token_expires_at = "2026-04-25"
 }
 
 resource "gitlab_personal_access_token" "delete_stale_branches" {

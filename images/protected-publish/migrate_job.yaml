@@ -14,12 +14,35 @@ spec:
       serviceAccountName: migration-notary
       containers:
       - name: migrate
-        image: ghcr.io/spack/protected-publish:0.0.3
-        # image: ghcr.io/scottwittenburg/protected-publish:0.0.4
+        image: ghcr.io/spack/protected-publish:0.0.5
         command: ["/srcs/migrate.sh"]
         args:
-          - s3://spack-binaries/develop-2024-12-15/build_systems
-          - s3://spack-binaries/develop-2024-12-08/build_systems
+          - s3://spack-binaries/develop/aws-pcluster-neoverse_v1
+          - s3://spack-binaries/develop/aws-pcluster-x86_64_v4
+          - s3://spack-binaries/develop/bootstrap-aarch64-darwin
+          - s3://spack-binaries/develop/bootstrap-x86_64-linux-gnu
+          - s3://spack-binaries/develop/build_systems
+          - s3://spack-binaries/develop/data-vis-sdk
+          - s3://spack-binaries/develop/developer-tools-aarch64-linux-gnu
+          - s3://spack-binaries/develop/developer-tools-darwin
+          - s3://spack-binaries/develop/developer-tools-x86_64_v3-linux-gnu
+          - s3://spack-binaries/develop/e4s-cray-rhel
+          - s3://spack-binaries/develop/e4s-neoverse-v2
+          - s3://spack-binaries/develop/e4s-oneapi
+          - s3://spack-binaries/develop/e4s-rocm-external
+          - s3://spack-binaries/develop/e4s
+          - s3://spack-binaries/develop/hep
+          - s3://spack-binaries/develop/ml-darwin-aarch64-mps
+          - s3://spack-binaries/develop/ml-linux-aarch64-cpu
+          - s3://spack-binaries/develop/ml-linux-aarch64-cuda
+          - s3://spack-binaries/develop/ml-linux-x86_64-cpu
+          - s3://spack-binaries/develop/ml-linux-x86_64-cuda
+          - s3://spack-binaries/develop/ml-linux-x86_64-rocm
+          - s3://spack-binaries/develop/radiuss-aws-aarch64
+          - s3://spack-binaries/develop/radiuss-aws
+          - s3://spack-binaries/develop/radiuss
+          - s3://spack-binaries/develop/tutorial
+          - s3://spack-binaries/develop/windows-vis
         imagePullPolicy: Always
         resources:
           requests:

@@ -17,7 +17,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: protected-publish
-            image: ghcr.io/spack/protected-publish:0.0.3
+            image: ghcr.io/spack/protected-publish:0.0.5
             imagePullPolicy: IfNotPresent
             resources:
               requests:

@@ -2,7 +2,7 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
-  name: runner-x86-v4-prot
+  name: runner-graviton4-prot
   namespace: gitlab
 spec:
   interval: 10m
@@ -12,7 +12,7 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: runner-x86-v4-prot
+  name: runner-graviton4-prot
   namespace: gitlab
 spec:
   interval: 10m
@@ -22,7 +22,7 @@ spec:
       version: 0.76.0 # gitlab-runner@17.11.0
       sourceRef:
         kind: HelmRepository
-        name: runner-x86-v4-prot
+        name: runner-graviton4-prot
   dependsOn:
     - name: gitlab
       namespace: gitlab
@@ -35,7 +35,7 @@ spec:
 
   values:
     imagePullPolicy: IfNotPresent
-    replicas: 6
+    replicas: 3
     probeTimeoutSeconds: 70
 
     gitlabUrl: "https://gitlab.spack.io/"
@@ -79,6 +79,7 @@ spec:
           output_limit = 20480
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
+            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:arm64-latest"
             privileged = false
             helper_memory_request = "512M"
 
@@ -98,13 +99,13 @@ spec:
             [runners.kubernetes.affinity]
               [runners.kubernetes.affinity.node_affinity]
 
-              # Schedule this pod on any node with x86_64 = v4
+              # Schedule this pod on only graviton 4 nodes
               [runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution]
                 [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms]]
                   [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
-                      key = "spack.io/x86_64"
+                      key = "spack.io/graviton"
                       operator = "In"
-                      values = ["v4"]
+                      values = ["4"]
                   [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
                       key = "spack.io/pipeline"
                       operator = "Exists"
@@ -169,7 +170,7 @@ spec:
       protected: true
       runUntagged: false
 
-      tags: "x86_64,x86_64_v2,x86_64_v3,x86_64_v4,avx,avx2,avx512,small,medium,large,huge,protected,aws,spack"
+      tags: "arm,aarch64,graviton4,neoverse_v2,small,medium,large,huge,protected,aws,spack"
       secret: spack-project-runner-registration-token
 
       serviceAccountName: runner
@@ -178,15 +179,13 @@ spec:
 
       services: {}
 
-      helpers: {}
-
     nodeSelector:
       spack.io/node-pool: base # pool for the runner
 
     resources:
       requests:
         # Based on this prometheus query:
-        # sum by (pod) (container_memory_max_usage_bytes{namespace="gitlab", pod=~"runner-x86.*"})
+        # sum by (pod) (container_memory_max_usage_bytes{namespace="gitlab", pod=~"runner-graviton.*"})
         memory: 1G
 
     podAnnotations:

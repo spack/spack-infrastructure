@@ -8,9 +8,9 @@ module "spack_aws_k8s" {
 
   flux_path = "k8s/staging/"
 
-  gitlab_db_instance_class    = "db.t3.small"
+  gitlab_db_instance_class    = "db.t4g.small"
   gitlab_redis_instance_class = "cache.t4g.small"
-  cdash_db_instance_class     = "db.t3.small"
+  cdash_db_instance_class     = "db.t4g.small"
   opensearch_instance_type    = "t3.small.search"
   opensearch_volume_size      = 100
 }

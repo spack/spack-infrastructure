@@ -1,43 +1,32 @@
 ---
-# Provisioner for x86_64_v4 gitlab runners
+# Provisioner for graviton4 gitlab runners
 apiVersion: karpenter.sh/v1beta1
 kind: NodePool
 metadata:
-  name: glr-x86-64-v4
+  name: glr-graviton4
 spec:
   template:
     metadata:
-      # Label all provisioned nodes as x86-64-v4
+      # Label all provisioned nodes as graviton 4
       labels:
         spack.io/pipeline: "true"
-        spack.io/x86_64: "v4" # highest supported x86_64 microarch version
+        spack.io/graviton: "4"
 
     spec:
       requirements:
-        # Only spin up amd64 nodes
+        # Only spin up arm64 nodes
         - key: "kubernetes.io/arch"
           operator: In
-          values: ["amd64"]
+          values: ["arm64"]
 
-        # Only provision nodes from certain instance families that have been verified
-        # to support x86_64_v4 by archspec.
+        # Only provision nodes with graviton4 processors.
+        # Data gleaned from https://aws.amazon.com/ec2/instance-types/
         - key: "karpenter.k8s.aws/instance-family"
           operator: In
           values:
-            - "c5"
-            - "c5n"
-            - "c6i"
-            - "m5"
-            - "m5n"
-            - "m5zn"
-            - "m6i"
-            - "r5"
-            - "r5b"
-            - "r5n"
-            - "r6i"
-            - "t3"
-            - "x2iedn"
-            - "x2iezn"
+            - "c8g"
+            - "m8g"
+            - "r8g"
 
         # Instance Size
         - key: "karpenter.k8s.aws/instance-size"
@@ -85,7 +74,6 @@ spec:
         - key: spack.io/runner-taint
           value: "true"
           effect: NoSchedule
-
 
   # Terminate nodes after 5 minutes of idle time
   disruption:

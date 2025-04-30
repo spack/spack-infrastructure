@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import json
 import os
 import re
@@ -26,7 +27,7 @@ REGEX_V2_ARCHIVE_RELATIVE = re.compile(
     rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(\.spack)$"
 )
 REGEX_V3_SIGNED_SPECFILE_RELATIVE = re.compile(
-    rf"{TIMESTAMP_AND_SIZE}(.+)(/v3/specs/.+-)([^-\.]+)(\.spec\.json\.sig)$"
+    rf"{TIMESTAMP_AND_SIZE}(.+)(/v3/manifests/spec/.+-)([^-\.]+)(\.spec\.manifest\.json)$"
 )
 
 #: Regular expression to pull spec contents out of clearsigned signature
@@ -60,12 +61,14 @@ class BuiltSpec:
         prefix: Optional[str] = None,
         meta: Optional[str] = None,
         archive: Optional[str] = None,
+        manifest: Optional[str] = None,
     ):
         self.hash = hash
         self.stack = stack
         self.prefix = prefix
         self.meta = meta
         self.archive = archive
+        self.manifest = manifest
 
 
 ################################################################################
@@ -137,7 +140,7 @@ def spec_catalogs_from_listing_v3(listing_path: str) -> Dict[str, Dict[str, Buil
                 end_bit = m.group(4)
                 spec = all_catalogs[prefix][hash]
                 spec.hash = hash
-                spec.meta = f"{prefix}{middle_bit}{hash}{end_bit}"
+                spec.manifest = f"{prefix}{middle_bit}{hash}{end_bit}"
                 continue
 
     return all_catalogs
@@ -213,11 +216,11 @@ def clone_spack(ref: str = "develop", repo: str = SPACK_REPO, clone_dir: str = "
 ################################################################################
 # Download a file from s3
 def s3_download_file(bucket: str, prefix: str, save_path: str, force: bool = False):
-    session = boto3.session.Session()
-    s3_resource = session.resource("s3")
-    s3_client = s3_resource.meta.client
-
     if not os.path.isfile(save_path) or force is True:
+        session = boto3.session.Session()
+        s3_resource = session.resource("s3")
+        s3_client = s3_resource.meta.client
+
         with open(save_path, "wb") as f:
             s3_client.download_fileobj(bucket, prefix, f)
 
@@ -250,3 +253,32 @@ def s3_upload_file(file_path: str, bucket: str, prefix: str):
 
     with open(file_path, "rb") as fd:
         s3_client.upload_fileobj(fd, bucket, prefix)
+
+
+################################################################################
+#
+def compute_checksum(input_file: str, buf_size: int = 65536) -> str:
+    sha256 = hashlib.sha256()
+
+    with open(input_file, 'rb') as f:
+        while True:
+            data = f.read(buf_size)
+            if not data:
+                break
+            sha256.update(data)
+
+    return sha256.hexdigest()
+
+
+################################################################################
+#
+class NoSuchMediaTypeError(Exception):
+    pass
+
+
+class MalformedManifestError(Exception):
+    pass
+
+
+class UnexpectedURLFormatError(Exception):
+    pass

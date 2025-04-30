@@ -28,10 +28,14 @@ jobs:
           role-to-assume: arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole
           aws-region: us-east-1
 
+      - name: Get Terraform Version
+        id: tf_version
+        run: echo "value=$(cat .terraform-version)" >> $GITHUB_OUTPUT
+
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~1.9.7"
+          terraform_version: ${{ steps.tf_version.outputs.value }}
           terraform_wrapper: false
 
       - name: Initialize Terraform
