@@ -46,8 +46,8 @@ PROTECTED_REF_REGEXES = [
 
 SPACK_PUBLIC_KEY_LOCATION = "https://spack.github.io/keys"
 SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
-TARBALL_MEDIA_TYPE = "application/vnd.spack.install.v1.tar+gzip"
-SPEC_METADATA_MEDIA_TYPE = "application/vnd.spack.buildcache_spec.v3+json"
+TARBALL_MEDIA_TYPE = "application/vnd.spack.install.v2.tar+gzip"
+SPEC_METADATA_MEDIA_TYPE = "application/vnd.spack.spec.v5+json"
 
 
 ################################################################################
