@@ -14,7 +14,7 @@ spec:
       serviceAccountName: migration-notary
       containers:
       - name: migrate
-        image: ghcr.io/spack/protected-publish:0.0.7
+        image: ghcr.io/spack/protected-publish:0.0.8
         command: ["/srcs/migrate.sh"]
         args:
           - s3://spack-binaries/develop/aws-pcluster-neoverse_v1
