@@ -23,6 +23,7 @@ from .common import (
     get_workdir_context,
     list_prefix_contents,
     s3_copy_file,
+    s3_create_client,
     s3_download_file,
     spec_catalogs_from_listing_v2,
     spec_catalogs_from_listing_v3,
@@ -115,13 +116,13 @@ def publish_missing_spec_v3(built_spec, bucket, ref, force, gpg_home, tmpdir):
     """Publish a single spec from a stack to the root"""
     spec_hash = built_spec.hash
     stack = built_spec.stack
-    stack_manifest_prefix = built_spec.manifest
+    stack_manifest_prefix = built_spec.manifest_prefix
     stack_meta_prefix = built_spec.meta
     stack_archive_prefix = built_spec.archive
 
     # In v3 land, we already had to download this file in order to access
     # the content-address of the tarball and metadata.
-    manifest_path = os.path.join(tmpdir, f"{spec_hash}_{stack}.spec.manifest.json")
+    manifest_path = built_spec.manifest_path
 
     # Verify the signature of the previously downloaded manifest file
     try:
@@ -155,11 +156,13 @@ def publish_missing_spec_v3(built_spec, bucket, ref, force, gpg_home, tmpdir):
         (stack_manifest_prefix, top_level_manifest_prefix),
     ]
 
+    s3_client = s3_create_client()
+
     # Finally, copy the files directly from source to dest, starting with the tarball
     for src_prefix, dest_prefix in things_to_copy:
         try:
             copy_source = {"Bucket": bucket, "Key": src_prefix}
-            s3_copy_file(copy_source, bucket, dest_prefix)
+            s3_copy_file(copy_source, bucket, dest_prefix, client=s3_client)
         except Exception as error:
             error_msg = getattr(error, "message", error)
             error_msg = f"Failed to copy_object({src_prefix}) due to {error_msg}"
@@ -275,8 +278,8 @@ def publish(
     print("Publishing complete")
 
     # Clone spack version appropriate to what we're publishing
-    clone_spack(ref)
-    spack_exe = "/spack/bin/spack"
+    clone_spack(ref, clone_dir=workdir)
+    spack_exe = f"{workdir}/spack/bin/spack"
 
     # Can be useful for testing to clone a custom spack to somewhere other than "/"
     # clone_spack(
@@ -517,24 +520,61 @@ def generate_spec_catalogs_v3(
         if stack in exclude:
             continue
 
+        stack_manifests_dir = os.path.join(specfiles_dir, stack)
+        os.makedirs(stack_manifests_dir)
+        stack_manifest_sync_cmd = [
+            "aws",
+            "s3",
+            "sync",
+            "--exclude",
+            "*",
+            "--include",
+            "*.spec.manifest.json",
+            f"s3://{bucket}/{prefix}/v3/manifests/spec",
+            stack_manifests_dir,
+        ]
+
+        start_time = datetime.now()
+
+        try:
+            print(f"Downloading manifests for stack {stack}")
+            subprocess.run(stack_manifest_sync_cmd, check=True)
+        except subprocess.CalledProcessError as cpe:
+            error_msg = getattr(cpe, "message", cpe)
+            print(f"Failed to download manifests for {stack} due to: {error_msg}")
+            continue
+
+        end_time = datetime.now()
+        elapsed = end_time - start_time
+        print(f"Downloaded manifests for stack {stack}, elapsed time: {elapsed}")
+
         for spec_hash, built_spec in all_catalogs[prefix].items():
             stack_specs[spec_hash][stack] = built_spec
-            task_list.append((built_spec.hash, stack, built_spec.manifest))
+            task_list.append((built_spec.hash, stack))
 
-    def _download_fn(spec_hash, stack, s3_prefix):
-        download_path = os.path.join(
-            specfiles_dir, f"{spec_hash}_{stack}.spec.manifest.json"
-        )
-        s3_download_file(bucket, s3_prefix, download_path)
-        return (spec_hash, stack, download_path)
+    def _process_manifest_fn(spec_hash, stack):
+        download_dir = os.path.join(specfiles_dir, stack)
+        find_cmd = ["find", download_dir, "-type", "f", "-name", f"*{spec_hash}*"]
+        find_result = subprocess.run(find_cmd, capture_output=True)
+
+        if find_result.returncode != 0:
+            print(f"[{find_cmd}] failed to find manifest for {spec_hash} in {stack}")
+            return (None, None, None, None)
+
+        manifest_path = find_result.stdout.decode("utf-8").strip()
+        manifest_dict = extract_json_from_clearsig(manifest_path)
+        return (spec_hash, stack, manifest_dict, manifest_path)
 
     with ThreadPoolExecutor(max_workers=parallel) as executor:
-        futures = [executor.submit(_download_fn, *task) for task in task_list]
+        futures = [executor.submit(_process_manifest_fn, *task) for task in task_list]
         for future in as_completed(futures):
             try:
-                spec_hash, stack, download_path = future.result()
-                manifest_dict = extract_json_from_clearsig(download_path)
+                spec_hash, stack, manifest_dict, manifest_path = future.result()
+                if not spec_hash or not stack or not manifest_dict or not manifest_path:
+                    continue
+
                 stack_specs[spec_hash][stack].stack = stack
+                stack_specs[spec_hash][stack].manifest_path = manifest_path
                 stack_specs[spec_hash][stack].meta = format_blob_url(
                     f"{ref}/{stack}",
                     find_data_with_media_type(
@@ -548,7 +588,7 @@ def generate_spec_catalogs_v3(
                     ),
                 )
             except Exception as exc:
-                print(f"Exception: {exc}")
+                print(f"Exception processing manifests: {exc}")
 
     return stack_specs, top_level_specs
 

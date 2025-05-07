@@ -49,7 +49,7 @@ jobs:
           - docker-image: ./images/ci-prune-buildcache
             image-tags: ghcr.io/spack/ci-prune-buildcache:0.0.4
           - docker-image: ./images/protected-publish
-            image-tags: ghcr.io/spack/protected-publish:0.0.8
+            image-tags: ghcr.io/spack/protected-publish:0.0.9
           - docker-image: ./images/retry-trigger-jobs
             image-tags: ghcr.io/spack/retry-trigger-jobs:0.0.1
     steps:
