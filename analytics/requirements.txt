@@ -17,7 +17,7 @@ click-plugins==1.1.1
 click-repl==0.3.0
 dj-database-url==2.3.0
 dj-email-url==1.0.6
-Django==5.1.4
+Django==5.1.9
 django-click==2.4.0
 django-configurations==2.5.1
 django-cors-headers==4.6.0
