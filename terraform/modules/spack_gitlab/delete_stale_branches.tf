@@ -1,20 +1,8 @@
-locals {
-  delete_stale_branches_token_expires_at = "2025-04-25"
-}
+module "delete_stale_branches_token" {
+  source = "./modules/spackbot_personal_access_token"
 
-resource "gitlab_personal_access_token" "delete_stale_branches" {
-  user_id    = data.gitlab_user.spackbot.id
-  name       = "delete-stale-branches cronjob personal access token."
-  expires_at = local.delete_stale_branches_token_expires_at
-
+  name   = "delete-stale-branches cronjob personal access token"
   scopes = ["api"]
-
-  lifecycle {
-    precondition {
-      condition     = timecmp(timestamp(), "${local.delete_stale_branches_token_expires_at}T00:00:00Z") == -1
-      error_message = "The token has expired. Please update the expires_at date."
-    }
-  }
 }
 
 resource "kubectl_manifest" "delete_stale_branches" {
@@ -25,6 +13,6 @@ resource "kubectl_manifest" "delete_stale_branches" {
       name: delete-stale-branches-credentials
       namespace: custom
     data:
-      gitlab-token: ${base64encode("${gitlab_personal_access_token.delete_stale_branches.token}")}
+      gitlab-token: ${base64encode("${module.delete_stale_branches_token.token}")}
   YAML
 }

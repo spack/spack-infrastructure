@@ -9,23 +9,11 @@ resource "gitlab_project_hook" "job_webhook" {
 // TODO: Once https://gitlab.com/gitlab-org/terraform-provider-gitlab/-/issues/1350 is resolved the
 // gitlab_application_settings resource should be used to whitelist the domains in job_webhooks.
 
-locals {
-  webhook_handler_token_expires_at = "2025-04-25"
-}
+module "webhook_handler_token" {
+  source = "./modules/spackbot_personal_access_token"
 
-resource "gitlab_personal_access_token" "webhook_handler" {
-  user_id    = data.gitlab_user.spackbot.id
-  name       = "Webhook handler token"
-  expires_at = local.webhook_handler_token_expires_at
-
-  scopes = ["read_api", "read_repository"]
-
-  lifecycle {
-    precondition {
-      condition     = timecmp(timestamp(), "${local.webhook_handler_token_expires_at}T00:00:00Z") == -1
-      error_message = "The token has expired. Please update the expires_at date."
-    }
-  }
+  name   = "Webhook handler token"
+  scopes = ["api"]
 }
 
 resource "random_password" "webhook_handler" {
@@ -56,7 +44,7 @@ resource "kubectl_manifest" "webhook_secrets" {
        namespace: custom
      data:
        gitlab-endpoint: ${base64encode("${local.gitlab_url}")}
-       gitlab-token: ${base64encode("${gitlab_personal_access_token.webhook_handler.token}")}
+       gitlab-token: ${base64encode("${module.webhook_handler_token.token}")}
        gitlab-db-user: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["username"]}")}
        gitlab-db-host: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["host"]}")}
        gitlab-db-port: ${base64encode("${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["port"]}")}

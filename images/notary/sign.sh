@@ -20,7 +20,12 @@ unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 
 
 WORKINGDIR=${WORKINGDIR:-/tmp}
-mkdir -p $WORKINGDIR
+INPUTDIR="${WORKINGDIR}/input"
+OUTPUTDIR="${WORKINGDIR}/output"
+VERIFYDIR="${WORKINGDIR}/verified"
+mkdir -p $INPUTDIR
+mkdir -p $OUTPUTDIR
+mkdir -p $VERIFYDIR
 
 KMS_KEY_ARN=arn:aws:kms:us-east-1:588562868276:key/bc739d17-8569-4741-9385-9264715b90b6
 
@@ -54,9 +59,12 @@ gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${UO_INT
 
 
 # Check downloaded spec files,  die if not signed/verified
-for FILE in $( find $WORKINGDIR -type f ); do
-    echo "VERIFY: ${FILE}"
-    gpg --no-tty --quiet ${FILE}
+for FILE in $( find $INPUTDIR -type f ); do
+    # preserve path structure within /tmp/input/ when writing output to /tmp/verified/
+    output="${VERIFYDIR}/${FILE#$INPUTDIR}"
+    echo "VERIFY: ${FILE} -> ${output}"
+    mkdir -p $(dirname -- $output)
+    gpg --verify --no-tty --quiet --output ${output} ${FILE}
     rm ${FILE}
 done
 
@@ -66,10 +74,13 @@ gpg --no-tty --import <(aws-encryption-cli --decrypt -S -w "key=${KMS_KEY_ARN}" 
 
 
 # Sign Keys with reputational key
-for FILE in $( find $WORKINGDIR -type f ); do
-   echo "SIGN: ${FILE}"
-   gpg --no-tty --output ${FILE}.sig --clearsign ${FILE}
-   rm ${FILE}
+for FILE in $( find $VERIFYDIR -type f ); do
+    # preserve path structure within /tmp/verified when writing output to /tmp/output/
+    output="${OUTPUTDIR}/${FILE#$VERIFYDIR}"
+    echo "SIGN: ${FILE} -> ${output}"
+    mkdir -p $(dirname -- $output)
+    gpg --no-tty --output ${output} --clearsign ${FILE}
+    rm ${FILE}
 done
 
 
