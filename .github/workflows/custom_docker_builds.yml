@@ -43,13 +43,13 @@ jobs:
           - docker-image: ./images/snapshot-release-tags
             image-tags: ghcr.io/spack/snapshot-release-tags:0.0.4
           - docker-image: ./images/cache-indexer
-            image-tags: ghcr.io/spack/cache-indexer:0.0.5
+            image-tags: ghcr.io/spack/cache-indexer:0.0.6
           - docker-image: ./analytics
             image-tags: ghcr.io/spack/django:0.4.8
           - docker-image: ./images/ci-prune-buildcache
             image-tags: ghcr.io/spack/ci-prune-buildcache:0.0.4
           - docker-image: ./images/protected-publish
-            image-tags: ghcr.io/spack/protected-publish:0.0.5
+            image-tags: ghcr.io/spack/protected-publish:0.0.9
           - docker-image: ./images/retry-trigger-jobs
             image-tags: ghcr.io/spack/retry-trigger-jobs:0.0.1
     steps:

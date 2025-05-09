@@ -1,20 +1,8 @@
-locals {
-  spackbot_token_expires_at = "2026-04-25"
-}
+module "spackbot_token" {
+  source = "./modules/spackbot_personal_access_token"
 
-resource "gitlab_personal_access_token" "spackbot" {
-  user_id    = data.gitlab_user.spackbot.id
-  name       = "spackbot personal access token"
-  expires_at = local.spackbot_token_expires_at
-
+  name   = "spackbot personal access token"
   scopes = ["api"]
-
-  lifecycle {
-    precondition {
-      condition     = timecmp(timestamp(), "${local.spackbot_token_expires_at}T00:00:00Z") == -1
-      error_message = "The token has expired. Please update the expires_at date."
-    }
-  }
 }
 
 resource "kubectl_manifest" "spackbot_gitlab_credentials" {
@@ -25,6 +13,6 @@ resource "kubectl_manifest" "spackbot_gitlab_credentials" {
       name: spack-bot-gitlab-credentials
       namespace: spack
     data:
-      gitlab_token: ${base64encode("${gitlab_personal_access_token.spackbot.token}")}
+      gitlab_token: ${base64encode("${module.spackbot_token.token}")}
   YAML
 }
