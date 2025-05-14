@@ -1,26 +1,30 @@
-from datetime import timedelta
 import json
 import re
+from datetime import timedelta
 
-from celery import shared_task
-from django.db import transaction
 import gitlab
 import gitlab.exceptions
+from celery import shared_task
+from django.db import transaction
 from gitlab.v4.objects import ProjectJob
 from requests.exceptions import RequestException
 
 from analytics import setup_gitlab_job_sentry_tags
-from analytics.core.models.dimensions import JobDataDimension
+from analytics.core.models.dimensions import JobType
 from analytics.core.models.facts import JobFact
 from analytics.job_processor.build_timings import create_build_timing_facts
 from analytics.job_processor.dimensions import (
     BUILD_STAGE_REGEX,
     create_date_time_dimensions,
-    create_job_data_dimension,
+    create_gitlab_job_data_dimension,
+    create_job_result_dimension,
+    create_job_retry_dimension,
     create_node_dimension,
     create_package_dimension,
     create_package_spec_dimension,
     create_runner_dimension,
+    create_spack_job_data_dimension,
+    get_gitlab_section_timers,
 )
 from analytics.job_processor.metadata import (
     JobInfo,
@@ -28,7 +32,11 @@ from analytics.job_processor.metadata import (
     MissingPodInfo,
     retrieve_job_info,
 )
-from analytics.job_processor.utils import get_gitlab_handle, get_gitlab_job, get_gitlab_project
+from analytics.job_processor.utils import (
+    get_gitlab_handle,
+    get_gitlab_job,
+    get_gitlab_project,
+)
 
 
 def calculate_job_cost(info: JobInfo, duration: float) -> float | None:
@@ -48,13 +56,14 @@ def create_job_fact(
     job_info = retrieve_job_info(gljob=gljob, is_build=is_build)
 
     start_date, start_time = create_date_time_dimensions(gljob=gljob)
-    job_data = create_job_data_dimension(
-        job_input_data=job_input_data,
-        pod_info=job_info.pod,
-        misc_info=job_info.misc,
-        gljob=gljob,
-        job_trace=job_trace,
+    spack_job = create_spack_job_data_dimension(data=job_info.misc)
+    gitlab_job_data = create_gitlab_job_data_dimension(
+        gljob=gljob, job_input_data=job_input_data, job_trace=job_trace
     )
+    job_result = create_job_result_dimension(
+        job_input_data=job_input_data, job_trace=job_trace
+    )
+    job_retry_data = create_job_retry_dimension(job_input_data=job_input_data)
 
     node = create_node_dimension(job_info.node)
     runner = create_runner_dimension(gl=gl, gljob=gljob)
@@ -63,27 +72,23 @@ def create_job_fact(
 
     # Now that we have all the dimensions, we need to calculate any derived fields
     job_cost = calculate_job_cost(info=job_info, duration=gljob.duration)
-    node_price_per_second = job_info.node.spot_price / 3600 if job_info.node is not None else None
+    node_price_per_second = (
+        job_info.node.spot_price / 3600 if job_info.node is not None else None
+    )
 
     # Check that this fact hasn't already been created. If it has, return that value
-    # A fact table is unique to it's foreign keys
-    existing_job_fact = JobFact.objects.filter(
-        start_date=start_date,
-        start_time=start_time,
-        node=node,
-        runner=runner,
-        package=package,
-        spec=spec,
-        job=job_data,
-    ).first()
+    job_id = job_input_data["build_id"]
+    existing_job_fact = JobFact.objects.filter(job_id=job_id).first()
     if existing_job_fact is not None:
         return existing_job_fact
 
     pod_info = job_info.pod or MissingPodInfo()
     node_info = job_info.node or MissingNodeInfo()
+    section_timers = get_gitlab_section_timers(job_trace=job_trace)
 
     # Hasn't been created yet, create and return it
     return JobFact.objects.create(
+        job_id=job_id,
         # Foreign Keys
         start_date=start_date,
         start_time=start_time,
@@ -91,7 +96,14 @@ def create_job_fact(
         runner=runner,
         package=package,
         spec=spec,
-        job=job_data,
+        spack_job_data=spack_job,
+        gitlab_job_data=gitlab_job_data,
+        job_result=job_result,
+        job_retry=job_retry_data,
+        # small descriptive data
+        name=job_input_data["build_name"],
+        pod_name=pod_info.name or "",
+        job_url=f"https://gitlab.spack.io/spack/spack/-/jobs/{job_id}",
         # numeric
         duration=timedelta(seconds=gljob.duration),
         duration_seconds=gljob.duration,
@@ -110,6 +122,21 @@ def create_job_fact(
         pod_cpu_limit=pod_info.cpu_limit,
         pod_memory_request=pod_info.memory_request,
         pod_memory_limit=pod_info.memory_limit,
+        # Section timer data
+        gitlab_after_script=section_timers.get("after_script", 0),
+        gitlab_cleanup_file_variables=section_timers.get("cleanup_file_variables", 0),
+        gitlab_download_artifacts=section_timers.get("download_artifacts", 0),
+        gitlab_get_sources=section_timers.get("get_sources", 0),
+        gitlab_prepare_executor=section_timers.get("prepare_executor", 0),
+        gitlab_prepare_script=section_timers.get("prepare_script", 0),
+        gitlab_resolve_secrets=section_timers.get("resolve_secrets", 0),
+        gitlab_step_script=section_timers.get("step_script", 0),
+        gitlab_upload_artifacts_on_failure=section_timers.get(
+            "upload_artifacts_on_failure", 0
+        ),
+        gitlab_upload_artifacts_on_success=section_timers.get(
+            "upload_artifacts_on_success", 0
+        ),
     )
 
 
@@ -134,6 +161,8 @@ def process_job(job_input_data_json: str):
 
     # Create build timing facts in a separate transaction, in case this fails
     with transaction.atomic():
-        job_data = job.job
-        if job_data.job_type == JobDataDimension.JobType.BUILD and job_data.status == "success":
+        if (
+            job.gitlab_job_data.job_type == JobType.BUILD
+            and job.job_result.status == "success"
+        ):
             create_build_timing_facts(job_fact=job, gljob=gl_job)
