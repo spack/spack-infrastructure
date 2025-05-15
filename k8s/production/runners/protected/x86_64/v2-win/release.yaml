@@ -104,8 +104,8 @@ spec:
 
             memory_request = "2G"
             memory_request_overwrite_max_allowed = "64G"
-            memory_limit = "64G"
-            memory_limit_overwrite_max_allowed = "64G"
+            memory_limit = "96G"
+            memory_limit_overwrite_max_allowed = "96G"
 
             namespace = "pipeline"
             # Allow 30 minutes for the pod to be ready. This is necessary because
