@@ -131,13 +131,13 @@ resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn" {
   value   = data.aws_s3_bucket.pr_mirror.arn
 }
 
-# resource "gitlab_project_variable" "binary_mirror_role_arn_spack_packages" {
-#   for_each = resource.aws_iam_role.gitlab_runner
-#
-#   project = data.gitlab_project.spack_packages.id
-#   key     = local.mirror_roles[each.key].role_arn_ci_var_name
-#   value   = each.value.arn
-# }
+resource "gitlab_project_variable" "binary_mirror_role_arn_spack_packages" {
+  for_each = resource.aws_iam_role.gitlab_runner
+
+  project = data.gitlab_project.spack_packages.id
+  key     = local.mirror_roles[each.key].role_arn_ci_var_name
+  value   = each.value.arn
+}
 
 # pre_build.py needs access to this to request PR prefix scoped permissions
 resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn_spack_packages" {
