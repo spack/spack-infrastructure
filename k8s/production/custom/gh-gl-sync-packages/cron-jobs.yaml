@@ -16,7 +16,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: sync
-            image: ghcr.io/spack/ci-bridge:0.0.44
+            image: ghcr.io/spack/ci-bridge:0.0.45
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -38,14 +38,16 @@ spec:
               - configMapRef:
                   name: gh-gl-sync-sentry-config
             args:
-              - "spack/spack"
+              - "spack/spack-packages"
               - "ssh://git@ssh.gitlab.spack.io/spack/spack-packages"
               - "https://gitlab.spack.io"
               - "spack/spack-packages"
               - "--pr-mirror-bucket"
               - "spack-binaries-prs"
-              - "--main-branch"
-              - "develop"
+              # - "--main-branch"
+              # - "develop"
+              - "--disable-protected-sync"
+              - "--disable-tag-sync"
               # - "--prereq-check"
               # - "all-prechecks"
           nodeSelector:
