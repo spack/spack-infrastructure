@@ -8,6 +8,10 @@ data "aws_route53_zone" "spack_io" {
 provider "aws" {
   alias  = "acm"
   region = "us-east-1"
+
+  assume_role {
+    role_arn = "arn:aws:iam::588562868276:role/terraform-role"
+  }
 }
 
 resource "aws_acm_certificate" "binary_mirror" {
