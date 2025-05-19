@@ -44,10 +44,8 @@ spec:
               - "spack/spack-packages"
               - "--pr-mirror-bucket"
               - "spack-binaries-prs"
-              # - "--main-branch"
-              # - "develop"
-              - "--disable-protected-sync"
-              - "--disable-tag-sync"
+              - "--main-branch"
+              - "develop"
               # - "--prereq-check"
               # - "all-prechecks"
           nodeSelector:
