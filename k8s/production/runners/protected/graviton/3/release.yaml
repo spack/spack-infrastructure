@@ -77,7 +77,13 @@ spec:
           """
 
           output_limit = 20480
-          environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
+          environment = [
+            "FF_GITLAB_REGISTRY_HELPER_IMAGE=1",
+
+            # Avoid TLS errors when scheduling jobs on a new node
+            # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/37244
+            "FF_WAIT_FOR_POD_TO_BE_REACHABLE=1",
+          ]
           [runners.kubernetes]
             helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:arm-latest"
             privileged = false
