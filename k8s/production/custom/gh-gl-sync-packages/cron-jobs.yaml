@@ -26,13 +26,13 @@ spec:
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: gh-gl-sync
+                  name: gh-gl-sync-packages
                   key: github-access-token
             # This secret is double base64 encoded
             - name: GITLAB_SSH_KEY_BASE64
               valueFrom:
                 secretKeyRef:
-                  name: gh-gl-sync
+                  name: gh-gl-sync-packages
                   key: gitlab-ssh-key
             envFrom:
               - configMapRef:
