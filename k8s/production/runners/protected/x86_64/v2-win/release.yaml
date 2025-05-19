@@ -20,7 +20,7 @@ spec:
     spec:
       chart: gitlab-runner
       # Note: ensure this stays in sync with the `helper_image` field below
-      version: 0.76.0 # gitlab-runner@17.11.0
+      version: 0.76.1 # gitlab-runner@17.11.1
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v2-prot-windows
@@ -90,9 +90,12 @@ spec:
           executor = "kubernetes"
           output_limit = 20480
 
-          # Ensure windows paths are used
           [runners.feature_flags]
+            # Ensure windows paths are used
             FF_USE_POWERSHELL_PATH_RESOLVER = true
+            # Avoid TLS errors when scheduling jobs on a new node
+            # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/37244
+            FF_WAIT_FOR_POD_TO_BE_REACHABLE = true
 
           [runners.kubernetes]
             privileged = false
@@ -104,8 +107,8 @@ spec:
 
             memory_request = "2G"
             memory_request_overwrite_max_allowed = "64G"
-            memory_limit = "64G"
-            memory_limit_overwrite_max_allowed = "64G"
+            memory_limit = "96G"
+            memory_limit_overwrite_max_allowed = "96G"
 
             namespace = "pipeline"
             # Allow 30 minutes for the pod to be ready. This is necessary because
@@ -115,7 +118,7 @@ spec:
 
             # Image for windows 2022, runner helper
             image = "mcr.microsoft.com/windows/servercore:ltsc2022"
-            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v17.11.0-servercore21H2"
+            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v17.11.1-servercore21H2"
 
             ephemeral_storage_request = "500M"
             helper_ephemeral_storage_request = "500M"

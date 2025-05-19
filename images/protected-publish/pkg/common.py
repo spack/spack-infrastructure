@@ -61,14 +61,16 @@ class BuiltSpec:
         prefix: Optional[str] = None,
         meta: Optional[str] = None,
         archive: Optional[str] = None,
-        manifest: Optional[str] = None,
+        manifest_prefix: Optional[str] = None,
+        manifest_path: Optional[str] = None,
     ):
         self.hash = hash
         self.stack = stack
         self.prefix = prefix
         self.meta = meta
         self.archive = archive
-        self.manifest = manifest
+        self.manifest_prefix = manifest_prefix
+        self.manifest_path = manifest_path
 
 
 ################################################################################
@@ -140,7 +142,7 @@ def spec_catalogs_from_listing_v3(listing_path: str) -> Dict[str, Dict[str, Buil
                 end_bit = m.group(4)
                 spec = all_catalogs[prefix][hash]
                 spec.hash = hash
-                spec.manifest = f"{prefix}{middle_bit}{hash}{end_bit}"
+                spec.manifest_prefix = f"{prefix}{middle_bit}{hash}{end_bit}"
                 continue
 
     return all_catalogs
@@ -226,13 +228,24 @@ def s3_download_file(bucket: str, prefix: str, save_path: str, force: bool = Fal
 
     return save_path
 
+################################################################################
+# Create and return a new s3 client by first creating a Session, using that to
+# create a new "s3" resource, and return the client stored within the resources
+# metadata.
+def s3_create_client():
+    session = boto3.session.Session()
+    s3_resource = session.resource("s3")
+    return s3_resource.meta.client
 
 ################################################################################
 # Copy objects between s3 buckets/prefixes
-def s3_copy_file(copy_source: Dict[str, str], bucket: str, dest_prefix: str):
-    session = boto3.session.Session()
-    s3_resource = session.resource("s3")
-    s3_client = s3_resource.meta.client
+def s3_copy_file(copy_source: Dict[str, str], bucket: str, dest_prefix: str, client=None):
+    if client:
+        s3_client = client
+    else:
+        session = boto3.session.Session()
+        s3_resource = session.resource("s3")
+        s3_client = s3_resource.meta.client
 
     config = TransferConfig(
         multipart_threshold=MULTIPART_THRESHOLD,
@@ -246,10 +259,13 @@ def s3_copy_file(copy_source: Dict[str, str], bucket: str, dest_prefix: str):
 
 ################################################################################
 #
-def s3_upload_file(file_path: str, bucket: str, prefix: str):
-    session = boto3.session.Session()
-    s3_resource = session.resource("s3")
-    s3_client = s3_resource.meta.client
+def s3_upload_file(file_path: str, bucket: str, prefix: str, client=None):
+    if client:
+        s3_client = client
+    else:
+        session = boto3.session.Session()
+        s3_resource = session.resource("s3")
+        s3_client = s3_resource.meta.client
 
     with open(file_path, "rb") as fd:
         s3_client.upload_fileobj(fd, bucket, prefix)

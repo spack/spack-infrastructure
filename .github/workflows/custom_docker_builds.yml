@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - docker-image: ./images/gh-gl-sync
-            image-tags: ghcr.io/spack/ci-bridge:0.0.44
+            image-tags: ghcr.io/spack/ci-bridge:0.0.45
           - docker-image: ./images/ci-key-clear
             image-tags: ghcr.io/spack/ci-key-clear:0.0.2
           - docker-image: ./images/gitlab-stuckpods
@@ -43,13 +43,13 @@ jobs:
           - docker-image: ./images/snapshot-release-tags
             image-tags: ghcr.io/spack/snapshot-release-tags:0.0.4
           - docker-image: ./images/cache-indexer
-            image-tags: ghcr.io/spack/cache-indexer:0.0.5
+            image-tags: ghcr.io/spack/cache-indexer:0.0.6
           - docker-image: ./analytics
             image-tags: ghcr.io/spack/django:0.4.8
           - docker-image: ./images/ci-prune-buildcache
             image-tags: ghcr.io/spack/ci-prune-buildcache:0.0.4
           - docker-image: ./images/protected-publish
-            image-tags: ghcr.io/spack/protected-publish:0.0.5
+            image-tags: ghcr.io/spack/protected-publish:0.0.9
           - docker-image: ./images/retry-trigger-jobs
             image-tags: ghcr.io/spack/retry-trigger-jobs:0.0.1
     steps:
@@ -72,7 +72,7 @@ jobs:
 
       - name: Build ${{ (github.ref == 'refs/heads/main' && 'and push ') || '' }}${{ matrix.docker-image }}
         id: docker-build-push
-        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6.16.0
         with:
           context: ${{ matrix.docker-image }}
           file: ${{ matrix.docker-image }}/Dockerfile
