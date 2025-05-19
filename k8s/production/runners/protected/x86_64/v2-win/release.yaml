@@ -90,12 +90,9 @@ spec:
           executor = "kubernetes"
           output_limit = 20480
 
+          # Ensure windows paths are used
           [runners.feature_flags]
-            # Ensure windows paths are used
             FF_USE_POWERSHELL_PATH_RESOLVER = true
-            # Avoid TLS errors when scheduling jobs on a new node
-            # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/37244
-            FF_WAIT_FOR_POD_TO_BE_REACHABLE = true
 
           [runners.kubernetes]
             privileged = false
