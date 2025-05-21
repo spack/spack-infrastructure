@@ -10,13 +10,12 @@ def create_empty_dimension_rows(apps, schema_editor):
     JobResultDimension = apps.get_model("core", "JobResultDimension")
     JobRetryDimension = apps.get_model("core", "JobRetryDimension")
 
-    SpackJobDataDimension.objects.create(stack="", job_size="")
+    SpackJobDataDimension.objects.create(stack="", job_size="", job_type="")
     GitlabJobDataDimension.objects.create(
         gitlab_runner_version="",
         ref="",
         tags=[],
         commit_id=None,
-        job_type="",
     )
     JobResultDimension.objects.create(
         status="",
@@ -70,14 +69,15 @@ def reassign_job_fact_dimensions(apps, schema_editor):
 
         # Get or create new dimensional rows
         spack_job_data, _ = SpackJobDataDimension.objects.get_or_create(
-            job_size=job.job_size, stack=job.stack
+            job_size=job.job_size,
+            stack=job.stack,
+            job_type=job.job_type,
         )
         gitlab_job_data, _ = GitlabJobDataDimension.objects.get_or_create(
             gitlab_runner_version=job.gitlab_runner_version,
             ref=job.ref,
             tags=job.tags,
             commit_id=job.commit_id,
-            job_type=job.job_type,
         )
         job_result, _ = JobResultDimension.objects.get_or_create(
             status=job.status,

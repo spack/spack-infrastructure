@@ -34,22 +34,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("commit_id", models.PositiveBigIntegerField(null=True)),
-                (
-                    "job_type",
-                    models.CharField(
-                        choices=[
-                            ("build", "Build"),
-                            ("generate", "Generate"),
-                            ("no-specs-to-rebuild", "No Specs to Rebuild"),
-                            ("rebuild-index", "Rebuild Index"),
-                            ("copy", "Copy"),
-                            ("unsupported-copy", "Unsupported Copy"),
-                            ("sign-pkgs", "Sign Packages"),
-                            ("protected-publish", "Protected Publish"),
-                        ],
-                        max_length=19,
-                    ),
-                ),
             ],
         ),
         migrations.CreateModel(
@@ -167,6 +151,22 @@ class Migration(migrations.Migration):
                 ),
                 ("job_size", models.CharField(max_length=128, null=True)),
                 ("stack", models.CharField(max_length=128, null=True)),
+                (
+                    "job_type",
+                    models.CharField(
+                        choices=[
+                            ("build", "Build"),
+                            ("generate", "Generate"),
+                            ("no-specs-to-rebuild", "No Specs to Rebuild"),
+                            ("rebuild-index", "Rebuild Index"),
+                            ("copy", "Copy"),
+                            ("unsupported-copy", "Unsupported Copy"),
+                            ("sign-pkgs", "Sign Packages"),
+                            ("protected-publish", "Protected Publish"),
+                        ],
+                        max_length=19,
+                    ),
+                ),
             ],
         ),
         migrations.AlterField(
@@ -217,7 +217,6 @@ class Migration(migrations.Migration):
                     "ref",
                     "tags",
                     "commit_id",
-                    "job_type",
                 ),
                 name="unique-gitlab-job-data",
             ),
@@ -248,7 +247,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="spackjobdatadimension",
             constraint=models.UniqueConstraint(
-                fields=("job_size", "stack"), name="unique-spack-job-data"
+                fields=("stack", "job_size", "job_type"), name="unique-spack-job-data"
             ),
         ),
         # Add new nulled (for now) foreign keys on job fact

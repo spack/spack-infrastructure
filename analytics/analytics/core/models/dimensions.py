@@ -146,20 +146,24 @@ class JobType(models.TextChoices):
 
 
 class SpackJobDataDimension(models.Model):
-    job_size = models.CharField(max_length=128)
     stack = models.CharField(max_length=128)
+    job_size = models.CharField(max_length=128)
+    job_type = models.CharField(
+        max_length=max(len(c) for c, _ in JobType.choices), choices=JobType.choices
+    )
 
     @classmethod
     def get_empty_row(cls):
-        return cls.objects.get(job_size="", stack="")
+        return cls.objects.get(job_size="", stack="", job_type="")
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 name="unique-spack-job-data",
                 fields=[
-                    "job_size",
                     "stack",
+                    "job_size",
+                    "job_type"
                 ],
             ),
         ]
@@ -170,9 +174,6 @@ class GitlabJobDataDimension(models.Model):
     ref = models.CharField(max_length=256)
     tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
     commit_id = models.PositiveBigIntegerField(null=True)
-    job_type = models.CharField(
-        max_length=max(len(c) for c, _ in JobType.choices), choices=JobType.choices
-    )
 
     class Meta:
         constraints = [
@@ -183,7 +184,6 @@ class GitlabJobDataDimension(models.Model):
                     "ref",
                     "tags",
                     "commit_id",
-                    "job_type",
                 ],
             ),
         ]
