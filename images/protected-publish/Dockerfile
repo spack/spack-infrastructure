@@ -14,5 +14,6 @@ RUN pip install --upgrade pip && \
 COPY pkg /srcs/pkg
 COPY --chmod=755 migrate.sh /srcs/migrate.sh
 
+ENV PYTHONUNBUFFERED=1
 WORKDIR /srcs
 ENTRYPOINT ["python", "-m", "pkg.publish"]

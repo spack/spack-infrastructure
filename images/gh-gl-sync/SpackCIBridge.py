@@ -44,7 +44,7 @@ def _durable_subprocess_run(*args, **kwargs):
 class SpackCIBridge(object):
 
     def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
-                 disable_status_post=True, sync_draft_prs=False,
+                 disable_status_post=True, disable_protected_sync=True, disable_tag_sync=True, sync_draft_prs=False,
                  main_branch=None, prereq_checks=[]):
         self.gitlab_repo = gitlab_repo
         self.github_project = github_project
@@ -70,6 +70,8 @@ class SpackCIBridge(object):
 
         self.post_status = not disable_status_post
         self.sync_draft_prs = sync_draft_prs
+        self.sync_protected_branches = not disable_protected_sync
+        self.sync_tags = not disable_tag_sync
         self.main_branch = main_branch
         self.currently_running_sha = None
         self.latest_tested_main_commit = None
@@ -660,18 +662,21 @@ class SpackCIBridge(object):
 
             # Retrieve open PRs from GitHub.
             all_open_prs, open_prs = self.list_github_prs()
-
-            # Get protected branches on GitHub.
-            protected_branches = self.list_github_protected_branches()
-
-            # Get tags on GitHub.
-            tags = self.list_github_tags()
-
             # Get refspecs for open PRs and protected branches.
             open_refspecs = self.get_open_refspecs(open_prs)
+
             fetch_refspecs = []
-            self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
-            self.update_refspecs_for_tags(tags, open_refspecs, fetch_refspecs)
+            # Get protected branches on GitHub.
+            protected_branches = []
+            if self.sync_protected_branches:
+                protected_branches = self.list_github_protected_branches()
+                self.update_refspecs_for_protected_branches(protected_branches, open_refspecs, fetch_refspecs)
+
+            # Get tags on GitHub.
+            tags = []
+            if self.sync_tags:
+                tags = self.list_github_tags()
+                self.update_refspecs_for_tags(tags, open_refspecs, fetch_refspecs)
 
             # Sync open GitHub PRs and protected branches to GitLab.
             self.fetch_github_branches(fetch_refspecs)
@@ -694,6 +699,10 @@ if __name__ == "__main__":
     parser.add_argument("gitlab_repo", help="Full clone URL for GitLab")
     parser.add_argument("gitlab_host", help="GitLab web host")
     parser.add_argument("gitlab_project", help="GitLab project (org/repo or user/repo)")
+    parser.add_argument("--disable-protected-sync", action="store_true", default=False,
+                        help="Do not sync protected branches")
+    parser.add_argument("--disable-tag-sync", action="store_true", default=False,
+                        help="Do not sync tags")
     parser.add_argument("--disable-status-post", action="store_true", default=False,
                         help="Do not post pipeline status to each GitHub PR")
     parser.add_argument("--sync-draft-prs", action="store_true", default=False,
@@ -722,6 +731,8 @@ on a commit of the main branch that is newer than the latest commit tested by Gi
                            gitlab_project=args.gitlab_project,
                            github_project=args.github_project,
                            disable_status_post=args.disable_status_post,
+                           disable_protected_sync=args.disable_protected_sync,
+                           disable_tag_sync=args.disable_tag_sync,
                            sync_draft_prs=args.sync_draft_prs,
                            main_branch=args.main_branch,
                            prereq_checks=args.prereq_check)

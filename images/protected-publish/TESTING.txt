@@ -43,6 +43,12 @@ aws s3 sync \
     s3://spack-binaries-prs/scott/test-backup/develop/build_systems/build_cache \
     s3://spack-binaries-prs/develop/build_cache
 
+OR for a mirror signed with a test key:
+
+aws s3 sync \
+    s3://spack-binaries-prs/scott/test-backup/develop/my_key/build_systems/build_cache \
+    s3://spack-binaries-prs/develop/build_cache
+
 kubectl apply -f migrate_service_account.yaml
 kubectl apply -f migrate_job.yaml
 
