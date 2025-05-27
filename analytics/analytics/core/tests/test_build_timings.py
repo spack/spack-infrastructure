@@ -1,12 +1,12 @@
 import json
-from pathlib import Path
 import pickle
+from pathlib import Path
 
 import pytest
 
 from analytics.core.job_log_uploader import store_job_data
 from analytics.core.models.dimensions import (
-    JobDataDimension,
+    JobResultDimension,
     PackageDimension,
     PackageSpecDimension,
 )
@@ -54,11 +54,11 @@ def test_process_job_unnecessary_jobs(request, job_json_string, unnecessary):
     process_job(job_json_string)
 
     assert JobFact.objects.count() == 1
-    assert JobDataDimension.objects.count() == 1
+    assert JobResultDimension.objects.count() == 1
 
-    job = JobDataDimension.objects.first()
-    assert job is not None
-    assert job.unnecessary == unnecessary
+    result = JobResultDimension.objects.first()
+    assert result is not None
+    assert result.unnecessary == unnecessary
 
 
 @pytest.mark.django_db
