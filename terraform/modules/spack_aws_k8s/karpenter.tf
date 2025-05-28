@@ -68,6 +68,18 @@ resource "kubectl_manifest" "karpenter_node_class" {
       name: default
     spec:
       amiFamily: AL2023
+      userData: |
+        apiVersion: node.eks.aws/v1alpha1
+        kind: NodeConfig
+        spec:
+          kubelet:
+            config:
+              # The Amazon Linux 2023 AMI overrides the default kubelet config to disable
+              # serializeImagePulls in order to improve performance.
+              # This is not ideal for our use case, where we frequently create many pods at once
+              # when start a CI pipeline, because it can cause us to hit the container registry's
+              # max QPS, so we override it here.
+              serializeImagePulls: true
       role: ${module.karpenter.node_iam_role_name}
       subnetSelectorTerms:
         - tags:
