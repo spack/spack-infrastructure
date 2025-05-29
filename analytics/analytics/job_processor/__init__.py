@@ -56,7 +56,7 @@ def create_job_fact(
     job_info = retrieve_job_info(gljob=gljob, is_build=is_build)
 
     start_date, start_time = create_date_time_dimensions(gljob=gljob)
-    spack_job = create_spack_job_data_dimension(data=job_info.misc)
+    spack_job = create_spack_job_data_dimension(data=job_info.misc, job_input_data=job_input_data)
     gitlab_job_data = create_gitlab_job_data_dimension(
         gljob=gljob, job_input_data=job_input_data, job_trace=job_trace
     )
@@ -162,7 +162,7 @@ def process_job(job_input_data_json: str):
     # Create build timing facts in a separate transaction, in case this fails
     with transaction.atomic():
         if (
-            job.gitlab_job_data.job_type == JobType.BUILD
+            job.job_result.job_type == JobType.BUILD
             and job.job_result.status == "success"
         ):
             create_build_timing_facts(job_fact=job, gljob=gl_job)

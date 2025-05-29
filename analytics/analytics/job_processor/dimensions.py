@@ -112,12 +112,14 @@ def determine_job_type(job_input_data: dict):
     raise UnrecognizedJobType(job_input_data["build_id"], name)
 
 
-def create_spack_job_data_dimension(data: JobMiscInfo | None):
+def create_spack_job_data_dimension(data: JobMiscInfo | None, job_input_data: dict):
     if data is None:
         return SpackJobDataDimension.get_empty_row()
 
     res, _ = SpackJobDataDimension.objects.get_or_create(
-        job_size=data.job_size, stack=data.stack
+        job_size=data.job_size,
+        stack=data.stack,
+        job_type=determine_job_type(job_input_data),
     )
     return res
 
@@ -133,7 +135,6 @@ def create_gitlab_job_data_dimension(
         ref=gljob.ref,
         tags=gljob.tag_list,
         commit_id=job_input_data["commit"]["id"],
-        job_type=determine_job_type(job_input_data),
     )
 
     return res
