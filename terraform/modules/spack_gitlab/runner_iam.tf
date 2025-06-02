@@ -30,6 +30,14 @@ locals {
       ],
     }
   }
+
+  repo_ci_config = {
+    "default_variables" = {
+      "ARTIFACT_DOWNLOAD_ATTEMPTS" = "3",
+      "GET_SOURCES_ATTEMPTS"       = "3",
+      "RESTORE_CACHE_ATTEMPTS"     = "3",
+    }
+  }
 }
 
 data "aws_caller_identity" "current" {}
@@ -124,6 +132,14 @@ resource "gitlab_project_variable" "binary_mirror_role_arn" {
   value   = each.value.arn
 }
 
+resource "gitlab_project_variable" "default_variables" {
+  for_each = local.repo_ci_config.default_variables
+
+  project = data.gitlab_project.spack_packages.id
+  key     = each.key
+  value   = each.value
+}
+
 # pre_build.py needs access to this to request PR prefix scoped permissions
 resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn" {
   project = data.gitlab_project.spack.id
@@ -137,6 +153,14 @@ resource "gitlab_project_variable" "binary_mirror_role_arn_spack_packages" {
   project = data.gitlab_project.spack_packages.id
   key     = local.mirror_roles[each.key].role_arn_ci_var_name
   value   = each.value.arn
+}
+
+resource "gitlab_project_variable" "default_variables_spack_packages" {
+  for_each = local.repo_ci_config.default_variables
+
+  project = data.gitlab_project.spack_packages.id
+  key     = each.key
+  value   = each.value
 }
 
 # pre_build.py needs access to this to request PR prefix scoped permissions
