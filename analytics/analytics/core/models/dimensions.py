@@ -4,7 +4,7 @@ from dateutil.parser import isoparse
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.db.models import Case, Q, Value, When
+from django.db.models import Q
 from django.db.models.functions import Length
 
 
@@ -134,38 +134,70 @@ class TimeDimension(models.Model):
         )
 
 
-class JobDataDimension(models.Model):
-    class JobType(models.TextChoices):
-        BUILD = "build", "Build"
-        GENERATE = "generate", "Generate"
-        NO_SPECS = "no-specs-to-rebuild", "No Specs to Rebuild"
-        REBUILD_INDEX = "rebuild-index", "Rebuild Index"
-        COPY = "copy", "Copy"
-        UNSUPPORTED_COPY = "unsupported-copy", "Unsupported Copy"
-        SIGN_PKGS = "sign-pkgs", "Sign Packages"
-        PROTECTED_PUBLISH = "protected-publish", "Protected Publish"
+class JobType(models.TextChoices):
+    BUILD = "build", "Build"
+    GENERATE = "generate", "Generate"
+    NO_SPECS = "no-specs-to-rebuild", "No Specs to Rebuild"
+    REBUILD_INDEX = "rebuild-index", "Rebuild Index"
+    COPY = "copy", "Copy"
+    UNSUPPORTED_COPY = "unsupported-copy", "Unsupported Copy"
+    SIGN_PKGS = "sign-pkgs", "Sign Packages"
+    PROTECTED_PUBLISH = "protected-publish", "Protected Publish"
 
+
+class SpackJobDataDimension(models.Model):
+    stack = models.CharField(max_length=128)
+    job_size = models.CharField(max_length=128)
+    job_type = models.CharField(
+        max_length=max(len(c) for c, _ in JobType.choices), choices=JobType.choices
+    )
+
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(job_size="", stack="", job_type="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique-spack-job-data",
+                fields=[
+                    "stack",
+                    "job_size",
+                    "job_type"
+                ],
+            ),
+        ]
+
+
+class GitlabJobDataDimension(models.Model):
+    gitlab_runner_version = models.CharField(max_length=16)
+    ref = models.CharField(max_length=256)
+    tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
+    commit_id = models.PositiveBigIntegerField(null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique-gitlab-job-data",
+                fields=[
+                    "gitlab_runner_version",
+                    "ref",
+                    "tags",
+                    "commit_id",
+                ],
+            ),
+        ]
+
+
+class JobResultDimension(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
                 name="error-taxonomy-only-on-failed-status",
-                condition=models.Q(status="failed") | models.Q(error_taxonomy__isnull=True),
+                condition=models.Q(status="failed")
+                | models.Q(error_taxonomy__isnull=True),
             ),
         ]
-
-    job_id = models.PositiveBigIntegerField(primary_key=True)
-    commit_id = models.PositiveBigIntegerField(null=True)
-    job_url = models.URLField()
-    name = models.CharField(max_length=128)
-    ref = models.CharField(max_length=256)
-    tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
-    job_size = models.CharField(max_length=128, null=True)
-    stack = models.CharField(max_length=128, null=True)
-
-    is_retry = models.BooleanField()
-    is_manual_retry = models.BooleanField()
-    attempt_number = models.PositiveSmallIntegerField()
-    final_attempt = models.BooleanField()
 
     status = models.CharField(max_length=32)
     error_taxonomy = models.CharField(max_length=64, null=True)
@@ -174,6 +206,11 @@ class JobDataDimension(models.Model):
         db_comment="Whether this job has 'No need to rebuild' in its trace.",
     )  # type: ignore
 
+    # This field is duplicated here (from the gitlab job data dimension)
+    # to allow for the generated `infrastructure_error` field
+    job_type = models.CharField(
+        max_length=max(len(c) for c, _ in JobType.choices), choices=JobType.choices
+    )
     infrastructure_error = models.GeneratedField(
         output_field=models.BooleanField(),
         db_persist=True,
@@ -197,15 +234,6 @@ class JobDataDimension(models.Model):
         ),
         help_text='Whether or not this job is an "infrastructure error", or a legitimate CI failure.',
     )
-
-    pod_name = models.CharField(max_length=128, null=True, blank=True)
-    gitlab_runner_version = models.CharField(max_length=16)
-    job_type = models.CharField(
-        max_length=max(len(c) for c, _ in JobType.choices), choices=JobType.choices
-    )
-    gitlab_section_timers = models.JSONField(
-        default=dict, db_comment="The GitLab CI section timers for this job."
-    )  # type: ignore
     gitlab_failure_reason = models.CharField(
         max_length=256,
         help_text="The failure reason reported by GitLab",
@@ -217,6 +245,26 @@ class JobDataDimension(models.Model):
         # is 'script-error'. We'll leave it nullable for now until we can confirm that that
         # constraint is valid.
     )
+
+
+class JobRetryDimension(models.Model):
+    is_retry = models.BooleanField()
+    is_manual_retry = models.BooleanField()
+    attempt_number = models.PositiveSmallIntegerField()
+    final_attempt = models.BooleanField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique-retry-pairing",
+                fields=[
+                    "is_retry",
+                    "is_manual_retry",
+                    "attempt_number",
+                    "final_attempt",
+                ],
+            ),
+        ]
 
 
 class NodeCapacityType(models.TextChoices):
