@@ -18,7 +18,7 @@ module "cdash_db" {
   source  = "terraform-aws-modules/rds/aws"
   version = "6.10.0"
 
-  identifier = "spack-cdash${local.suffix}"
+  identifier = "spack-cdash-postgres${local.suffix}"
 
   engine               = "postgres"
   family               = "postgres17"
