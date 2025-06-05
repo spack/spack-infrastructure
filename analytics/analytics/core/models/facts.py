@@ -72,6 +72,7 @@ class JobFact(models.Model):
     pod_memory_limit = models.PositiveBigIntegerField(null=True, default=None)
 
     # Gitlab section timer data
+    gitlab_clear_worktree = models.PositiveIntegerField(default=0)
     gitlab_after_script = models.PositiveIntegerField(default=0)
     gitlab_cleanup_file_variables = models.PositiveIntegerField(default=0)
     gitlab_download_artifacts = models.PositiveIntegerField(default=0)
