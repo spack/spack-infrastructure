@@ -46,7 +46,7 @@ spec:
               - "spack-binaries-prs"
               - "--main-branch"
               - "develop"
-              # - "--prereq-check"
-              # - "all-prechecks"
+              - "--prereq-check"
+              - "all-prechecks"
           nodeSelector:
             spack.io/node-pool: base
