@@ -123,6 +123,7 @@ def create_job_fact(
         pod_memory_request=pod_info.memory_request,
         pod_memory_limit=pod_info.memory_limit,
         # Section timer data
+        gitlab_clear_worktree=section_timers.get("clear_worktree", 0),
         gitlab_after_script=section_timers.get("after_script", 0),
         gitlab_cleanup_file_variables=section_timers.get("cleanup_file_variables", 0),
         gitlab_download_artifacts=section_timers.get("download_artifacts", 0),
