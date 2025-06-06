@@ -252,7 +252,10 @@ class SpackCIBridge(object):
                                 print(f"Failed to merge PR {pull.number} ({pull.head.ref}) with latest tested "
                                       f"{self.main_branch} ({self.latest_tested_main_commit}). Skipping")
                                 self.unmergeable_shas.append(pull.head.sha)
-                                _durable_subprocess_run(["git", "merge", "--abort"])
+                                try:
+                                    _durable_subprocess_run(["git", "merge", "--abort"])
+                                except:
+                                    pass
                                 backlogged = "merge conflicts with {}".format(self.main_branch)
                                 push = False
                                 continue
