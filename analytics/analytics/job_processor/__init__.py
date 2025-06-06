@@ -103,7 +103,7 @@ def create_job_fact(
         # small descriptive data
         name=job_input_data["build_name"],
         pod_name=pod_info.name or "",
-        job_url=f"https://gitlab.spack.io/spack/spack/-/jobs/{job_id}",
+        job_url=f"https://gitlab.spack.io/spack/spack-packages/-/jobs/{job_id}",
         # numeric
         duration=timedelta(seconds=gljob.duration),
         duration_seconds=gljob.duration,
