@@ -254,7 +254,7 @@ class SpackCIBridge(object):
                                 self.unmergeable_shas.append(pull.head.sha)
                                 try:
                                     _durable_subprocess_run(["git", "merge", "--abort"])
-                                except:
+                                except subprocess.CalledProcessError:
                                     pass
                                 backlogged = "merge conflicts with {}".format(self.main_branch)
                                 push = False
