@@ -1,4 +1,6 @@
 module "cdash_db_old" {
+  count = var.deployment_name == "prod" ? 1 : 0
+
   source  = "terraform-aws-modules/rds/aws"
   version = "6.10.0"
 
@@ -30,12 +32,14 @@ module "cdash_db_old" {
   allocated_storage  = 300
   storage_type       = "gp3"
   iops               = 3000 # 3,000 is the minimum IOPs for <400 GB storage. We can increase this as needed.
-  storage_throughput = 125   # 125 is the minimum throughput for <400 GB storage. We can increase this as needed.
+  storage_throughput = 125  # 125 is the minimum throughput for <400 GB storage. We can increase this as needed.
 
-  vpc_security_group_ids = [module.mysql_security_group.security_group_id]
+  vpc_security_group_ids = [module.mysql_security_group[0].security_group_id]
 }
 
 module "mysql_security_group" {
+  count = var.deployment_name == "prod" ? 1 : 0
+
   source  = "terraform-aws-modules/security-group/aws"
   version = "5.2.0"
 
