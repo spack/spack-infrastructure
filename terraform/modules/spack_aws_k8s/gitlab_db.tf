@@ -109,7 +109,7 @@ module "gitlab_db_proxy" {
   }
 
   engine_family = "POSTGRESQL"
-  debug_logging = true
+  debug_logging = false
 
   target_db_instance     = true
   db_instance_identifier = module.gitlab_db.db_instance_identifier

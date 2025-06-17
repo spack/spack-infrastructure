@@ -15,7 +15,7 @@ module "cdash_db" {
   identifier = "spack-cdash${local.suffix}"
 
   engine               = "mysql"
-  engine_version       = "8.0.35"
+  engine_version       = "8.0.40"
   family               = "mysql8.0"
   major_engine_version = "8.0"
   instance_class       = var.cdash_db_instance_class
@@ -39,8 +39,8 @@ module "cdash_db" {
 
   allocated_storage  = 300
   storage_type       = "gp3"
-  iops               = 12000 # 3,000 is the minimum IOPs for <400 GB storage. We can increase this as needed.
-  storage_throughput = 125   # 125 is the minimum throughput for <400 GB storage. We can increase this as needed.
+  iops               = 3000 # 3,000 is the minimum IOPs for <400 GB storage. We can increase this as needed.
+  storage_throughput = 125  # 125 is the minimum throughput for <400 GB storage. We can increase this as needed.
 
   vpc_security_group_ids = [module.mysql_security_group.security_group_id]
 }
