@@ -1,5 +1,5 @@
 resource "gitlab_project_hook" "job_webhook" {
-  project                 = data.gitlab_project.spack.id
+  project                 = data.gitlab_project.spack_packages.id
   url                     = "http://webhook-handler.custom.svc.cluster.local"
   job_events              = true
   push_events             = false
