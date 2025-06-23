@@ -163,7 +163,7 @@ spec:
 
       tags: "x86_64,x86_64_v2,x86_64_v3,x86_64_v4,avx,avx2,avx512,small,medium,large,huge,public,aws,spack"
       runUntagged: false
-      secret: gitlab-gitlab-runner-secret # from gitlab release
+      secret: spack-group-runner-secret
 
       cache: {}
 

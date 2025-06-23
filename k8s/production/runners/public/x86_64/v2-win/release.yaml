@@ -173,7 +173,7 @@ spec:
 
       tags: "spack,public,small,medium,win64,x86_64-win,x86_64_v2-win,aws"
       runUntagged: false
-      secret: gitlab-gitlab-runner-secret # from gitlab release
+      secret: spack-group-runner-secret
 
       cache: {}
 
