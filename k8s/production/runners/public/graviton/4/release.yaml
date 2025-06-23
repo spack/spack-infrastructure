@@ -164,7 +164,7 @@ spec:
 
       tags: "arm,aarch64,graviton4,neoverse_v2,small,medium,large,huge,public,aws,spack"
       runUntagged: false
-      secret: gitlab-gitlab-runner-secret # from gitlab release
+      secret: spack-group-runner-secret
 
       serviceAccountName: runner
 
