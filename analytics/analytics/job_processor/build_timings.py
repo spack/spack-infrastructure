@@ -142,7 +142,7 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob):
         total_time = entry["total"]
         timer_facts.append(
             TimerFact(
-                job=job_fact.job,
+                job_id=job_fact.job_id,
                 date=job_fact.start_date,
                 time=job_fact.start_time,
                 timer_data=timer_data,
@@ -158,7 +158,7 @@ def create_build_timing_facts(job_fact: JobFact, gljob: ProjectJob):
             phase_facts.append(
                 TimerPhaseFact(
                     # Shared with timer
-                    job=job_fact.job,
+                    job_id=job_fact.job_id,
                     date=job_fact.start_date,
                     time=job_fact.start_time,
                     timer_data=timer_data,

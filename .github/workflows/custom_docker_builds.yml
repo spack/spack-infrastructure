@@ -25,7 +25,7 @@ jobs:
       matrix:
         include:
           - docker-image: ./images/gh-gl-sync
-            image-tags: ghcr.io/spack/ci-bridge:0.0.45
+            image-tags: ghcr.io/spack/ci-bridge:0.0.46
           - docker-image: ./images/ci-key-clear
             image-tags: ghcr.io/spack/ci-key-clear:0.0.2
           - docker-image: ./images/gitlab-stuckpods
@@ -37,7 +37,7 @@ jobs:
           - docker-image: ./images/gitlab-skipped-pipelines
             image-tags: ghcr.io/spack/gitlab-skipped-pipelines:0.0.2
           - docker-image: ./images/notary
-            image-tags: ghcr.io/spack/notary:0.0.2
+            image-tags: ghcr.io/spack/notary:0.0.3
           - docker-image: ./images/python-aws-bash
             image-tags: ghcr.io/spack/python-aws-bash:0.0.2
           - docker-image: ./images/snapshot-release-tags
@@ -45,7 +45,7 @@ jobs:
           - docker-image: ./images/cache-indexer
             image-tags: ghcr.io/spack/cache-indexer:0.0.6
           - docker-image: ./analytics
-            image-tags: ghcr.io/spack/django:0.4.8
+            image-tags: ghcr.io/spack/django:0.5.2
           - docker-image: ./images/ci-prune-buildcache
             image-tags: ghcr.io/spack/ci-prune-buildcache:0.0.4
           - docker-image: ./images/protected-publish

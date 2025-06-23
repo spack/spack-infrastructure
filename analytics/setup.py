@@ -57,6 +57,7 @@ setup(
         "python-gitlab>=5.2.0",
         "pyyaml",
         "requests",
+        "tqdm",
         "whitenoise[brotli]",
     ],
     extras_require={

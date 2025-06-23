@@ -16,7 +16,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: sync
-            image: ghcr.io/spack/ci-bridge:0.0.45
+            image: ghcr.io/spack/ci-bridge:0.0.46
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -44,11 +44,9 @@ spec:
               - "spack/spack-packages"
               - "--pr-mirror-bucket"
               - "spack-binaries-prs"
-              # - "--main-branch"
-              # - "develop"
-              - "--disable-protected-sync"
-              - "--disable-tag-sync"
-              # - "--prereq-check"
-              # - "all-prechecks"
+              - "--main-branch"
+              - "develop"
+              - "--prereq-check"
+              - "all-prechecks"
           nodeSelector:
             spack.io/node-pool: base

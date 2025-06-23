@@ -3,6 +3,7 @@ MAINTAINER Chris Kotfila <chris.kotfila@kitware.com>
 
 RUN apk add --no-cache \
         bash \
+        git \
         gpg \
         gpg-agent \
         python3 \
