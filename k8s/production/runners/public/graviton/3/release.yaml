@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: gitlab-runner
-      version: 0.76.1 # gitlab-runner@17.11.1
+      version: 0.77.3 # gitlab-runner@18.0.3
       sourceRef:
         kind: HelmRepository
         name: runner-graviton3-pub
@@ -164,7 +164,7 @@ spec:
 
       tags: "arm,aarch64,graviton,graviton3,neoverse_v1,small,medium,large,huge,public,aws,spack"
       runUntagged: false
-      secret: gitlab-gitlab-runner-secret # from gitlab release
+      secret: spack-group-runner-secret
 
       serviceAccountName: runner
 

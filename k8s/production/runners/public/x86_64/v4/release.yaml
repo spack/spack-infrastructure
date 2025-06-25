@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: gitlab-runner
-      version: 0.76.1 # gitlab-runner@17.11.1
+      version: 0.77.3 # gitlab-runner@18.0.3
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v4-pub
@@ -163,7 +163,7 @@ spec:
 
       tags: "x86_64,x86_64_v2,x86_64_v3,x86_64_v4,avx,avx2,avx512,small,medium,large,huge,public,aws,spack"
       runUntagged: false
-      secret: gitlab-gitlab-runner-secret # from gitlab release
+      secret: spack-group-runner-secret
 
       cache: {}
 
