@@ -63,6 +63,10 @@ resource "aws_s3_bucket_policy" "bootstrap" {
 provider "aws" {
   alias  = "acm"
   region = "us-east-1"
+
+  assume_role {
+    role_arn = "arn:aws:iam::588562868276:role/terraform-role"
+  }
 }
 
 resource "aws_acm_certificate" "bootstrap" {
