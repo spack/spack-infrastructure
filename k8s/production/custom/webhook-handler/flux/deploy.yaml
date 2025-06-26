@@ -1,0 +1,15 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: webhook-handler-deploy
+spec:
+  dependsOn:
+    - name: webhook-handler-pre-deploy
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: "./deploy/"
+  interval: 5m
+  timeout: 5m
+  prune: true
+  wait: true
