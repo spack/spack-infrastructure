@@ -187,7 +187,7 @@ spec:
       locked: true
       protected: true
       runUntagged: false
-      secret: spack-signing-runner-secret
+      secret: spack-group-runner-secret
 
       services: {}
       # cpuRequests: 50m

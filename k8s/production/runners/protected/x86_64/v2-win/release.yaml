@@ -179,7 +179,7 @@ spec:
       runUntagged: false
 
       tags: "spack,protected,small,medium,win64,x86_64-win,x86_64_v2-win,aws"
-      secret: spack-project-runner-registration-token
+      secret: spack-group-runner-secret
 
       serviceAccountName: runner
 
