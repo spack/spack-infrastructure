@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import json
 import os
 import re
@@ -17,7 +18,7 @@ sentry_sdk.init(
 )
 
 
-GITLAB_API_URL = "https://gitlab.spack.io/api/v4/projects/2"
+GITLAB_API_URL = "https://gitlab.spack.io/api/v4/projects/"
 AUTH_HEADER = {
     "PRIVATE-TOKEN": os.environ.get("GITLAB_TOKEN", None)
 }
@@ -70,12 +71,12 @@ def print_response(resp, padding=''):
     print(f"{padding}response value: {resp.text}")
 
 
-def run_new_pipeline(pipeline_ref):
+def run_new_pipeline(projectid, pipeline_ref):
     """Given a ref (branch name), run a new pipeline for that ref.  If
     the branch has already been deleted from gitlab, this will generate
     an error and a 400 response, but we probably don't care."""
     enc_ref = urllib.parse.quote_plus(pipeline_ref)
-    run_url = f"{GITLAB_API_URL}/pipeline?ref={enc_ref}"
+    run_url = f"{GITLAB_API_URL}/{projectid}/pipeline?ref={enc_ref}"
     print(f"    !!!! running new pipeline for {pipeline_ref}")
     try:
         resp = session.post(run_url, headers=AUTH_HEADER, timeout=10)
@@ -86,7 +87,7 @@ def run_new_pipeline(pipeline_ref):
     print_response(resp, "      ")
 
 
-def find_and_run_skipped_pipelines():
+def find_and_run_skipped_pipelines(projectid):
     """Query gitlab for all branches. Start a pipeline for any branch whose
     HEAD commit does not already have one.
     """
@@ -98,7 +99,7 @@ def find_and_run_skipped_pipelines():
     one_hour_ago = now - timedelta(hours=1)
 
     after_param = datetime.strftime(two_days_ago, '%Y-%m-%d')
-    events_url = f"{GITLAB_API_URL}/events?action=pushed&after={after_param}"
+    events_url = f"{GITLAB_API_URL}/{projectid}/events?action=pushed&after={after_param}"
     print(f"Getting push events from GitLab from the past two days")
     events = paginate(events_url)
     print(f"Found {len(events)} push events")
@@ -131,7 +132,7 @@ def find_and_run_skipped_pipelines():
             recently_pushed_branches.append(branch_name)
 
     print(f"Attempting to find & fix skipped pipelines")
-    branches_url = f"{GITLAB_API_URL}/repository/branches"
+    branches_url = f"{GITLAB_API_URL}/{projectid}/repository/branches"
     branches = paginate(branches_url)
     print(f"Found {len(branches)} branches")
 
@@ -147,10 +148,10 @@ def find_and_run_skipped_pipelines():
             continue
 
         branch_commit = branch["commit"]["id"]
-        pipelines_url = f"{GITLAB_API_URL}/pipelines?sha={branch_commit}"
+        pipelines_url = f"{GITLAB_API_URL}/{projectid}/pipelines?sha={branch_commit}"
         pipelines = paginate(pipelines_url)
         if len(pipelines) == 0:
-            run_new_pipeline(branch_name)
+            run_new_pipeline(projectid, branch_name)
         else:
             print(f"no need to run a new pipeline for {branch_name}")
 
@@ -158,8 +159,20 @@ def find_and_run_skipped_pipelines():
 if __name__ == "__main__":
     if "GITLAB_TOKEN" not in os.environ:
         raise Exception("GITLAB_TOKEN environment is not set")
+
+    parser = argparse.ArgumentParser(
+        prog="skipped_pipelines.py",
+        description="Find and run skipped pipelines",
+    )
+    parser.add_argument(
+        "projectid",
+        type=int,
+        help="Gitlab project ID to search for skipped pipelines"
+    )
+    args = parser.parse_args()
+
     try:
-        find_and_run_skipped_pipelines()
+        find_and_run_skipped_pipelines(args.projectid)
     except Exception as inst:
         print("Caught unhandled exception:")
         print(inst)

@@ -14,7 +14,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: skipped-pipelines
-            image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.2
+            image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.3
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -29,5 +29,7 @@ spec:
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config
+            args:
+              - "57"
           nodeSelector:
             spack.io/node-pool: base
