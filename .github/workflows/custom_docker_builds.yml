@@ -35,7 +35,7 @@ jobs:
           - docker-image: ./images/gitlab-delete-stale-branches
             image-tags: ghcr.io/spack/gitlab-delete-stale-branches:0.0.1
           - docker-image: ./images/gitlab-skipped-pipelines
-            image-tags: ghcr.io/spack/gitlab-skipped-pipelines:0.0.2
+            image-tags: ghcr.io/spack/gitlab-skipped-pipelines:0.0.3
           - docker-image: ./images/notary
             image-tags: ghcr.io/spack/notary:0.0.3
           - docker-image: ./images/python-aws-bash
