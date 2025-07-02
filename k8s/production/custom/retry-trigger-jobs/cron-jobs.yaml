@@ -16,14 +16,17 @@ spec:
           restartPolicy: Never
           containers:
           - name: retry-trigger-jobs
-            image: ghcr.io/spack/retry-trigger-jobs:0.0.1
+            image: ghcr.io/spack/retry-trigger-jobs:0.0.2
             imagePullPolicy: IfNotPresent
             resources:
               requests:
                 cpu: 500m
                 memory: 50M
             args:
+              - "--hours"
               - "2"
+              - "--projectid"
+              - "52"
             env:
             - name: GITLAB_TOKEN
               valueFrom:
