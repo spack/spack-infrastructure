@@ -125,6 +125,39 @@ module "spackbot" {
   service_account_namespace = "spack"
 }
 
+module "spackbot_dev" {
+  source = "../iam_service_account"
+
+  deployment_name  = var.deployment_name
+  deployment_stage = var.deployment_stage
+
+  service_account_iam_policies = [
+    jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:PutObject",
+          "Resource" : "${module.pr_binary_mirror.bucket_arn}/*"
+        }
+      ]
+    }),
+    jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:DeleteObject",
+          "Resource" : "${module.pr_binary_mirror.bucket_arn}/*"
+        }
+      ]
+    })
+  ]
+
+  service_account_name      = "spackbotdev-spack-io"
+  service_account_namespace = "spack"
+}
+
 module "fluent_bit" {
   source = "../iam_service_account"
 
