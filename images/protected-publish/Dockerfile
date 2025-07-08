@@ -8,8 +8,8 @@ RUN apt-get update && apt-get install -y \
 
 COPY requirements.txt /srcs/requirements.txt
 
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r /srcs/requirements.txt
+RUN pip install --upgrade uv
+RUN uv pip install --system --no-cache-dir -r /srcs/requirements.txt
 
 COPY pkg /srcs/pkg
 COPY --chmod=755 migrate.sh /srcs/migrate.sh
