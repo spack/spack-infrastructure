@@ -34,7 +34,7 @@ def get_job_retry_data(
         cursor.execute(
             """
             SELECT COUNT(*)
-            FROM ci_builds
+            FROM p_ci_builds
             WHERE id < %(job_id)s
             AND commit_id = %(commit_id)s
             AND name = %(job_name)s
@@ -46,7 +46,7 @@ def get_job_retry_data(
         cursor.execute(
             """
             SELECT bm.config_options->>'retry'
-            FROM ci_builds_metadata bm
+            FROM p_ci_builds_metadata bm
             WHERE bm.build_id = %(job_id)s
             """,
             {"job_id": job_id},
@@ -94,7 +94,7 @@ def get_job_exit_code(job_id: int) -> int | None:
         cursor.execute(
             """
             SELECT exit_code
-            FROM ci_builds_metadata
+            FROM p_ci_builds_metadata
             WHERE build_id = %(job_id)s
             """,
             {"job_id": job_id},
