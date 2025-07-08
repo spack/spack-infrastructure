@@ -19,7 +19,7 @@ def migrate_exit_codes(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> N
         failed_jobs.values_list("job_id", flat=True).iterator(chunk_size=BATCH_SIZE), BATCH_SIZE
     ):
         with connections["gitlab"].cursor() as cursor:
-            QUERY = "SELECT build_id, exit_code FROM public.ci_builds_metadata WHERE build_id IN %s"
+            QUERY = "SELECT build_id, exit_code FROM public.p_ci_builds_metadata WHERE build_id IN %s"
             cursor.execute(QUERY, [tuple(job_ids)])
             rows = cursor.fetchall()
 
@@ -91,7 +91,7 @@ def migrate_failure_reasons(apps: Apps, schema_editor: BaseDatabaseSchemaEditor)
         failed_jobs.values_list("job_id", flat=True).iterator(chunk_size=BATCH_SIZE), BATCH_SIZE
     ):
         with connections["gitlab"].cursor() as cursor:
-            QUERY = "SELECT id, failure_reason FROM public.ci_builds WHERE id IN %s"
+            QUERY = "SELECT id, failure_reason FROM public.p_ci_builds WHERE id IN %s"
             cursor.execute(QUERY, [tuple(job_ids)])
             rows = cursor.fetchall()
 
