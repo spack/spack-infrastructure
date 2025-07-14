@@ -26,7 +26,7 @@ variable "gitlab_redis_instance_class" {
 }
 
 variable "cdash_db_instance_class" {
-  description = "AWS RDS DB instance class for the Spack CDash MySQL database."
+  description = "AWS RDS DB instance class for the Spack CDash PostgreSQL database."
   type        = string
 }
 
