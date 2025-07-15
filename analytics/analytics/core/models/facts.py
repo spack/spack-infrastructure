@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import expressions
+from django.db.models.fields.generated import GeneratedField
 
 from analytics.core.models.dimensions import (
     DateDimension,
@@ -14,6 +16,22 @@ from analytics.core.models.dimensions import (
     TimerDataDimension,
     TimerPhaseDimension,
 )
+
+started_at_sql = """
+iso_timestamp(  -- Custom function implemented in the migration
+    SUBSTR(start_date_id::text, 1, 4)
+    || '-' ||
+    SUBSTR(start_date_id::text, 5, 2)
+    || '-' ||
+    SUBSTR(start_date_id::text, 7, 2)
+    || 'T' ||  -- Separation between date and time
+    SUBSTR(start_time_id::text, 1, 2)
+    || ':' ||
+    SUBSTR(start_time_id::text, 3, 2)
+    || ':' ||
+    SUBSTR(start_time_id::text, 5, 2)
+)
+"""
 
 
 class JobFact(models.Model):
@@ -40,6 +58,30 @@ class JobFact(models.Model):
     job_url = models.URLField()
     name = models.CharField(max_length=128)
     pod_name = models.CharField(max_length=128)
+
+    # Since metabase is very lacking when it comes to datetime and duration manipulation,
+    # we need to create these generated fields here. This is generally not aligned with a
+    # star schema approach, but we don't have much choice.
+    started_at = GeneratedField(
+        expression=expressions.RawSQL(
+            sql=started_at_sql,
+            params=[],
+            output_field=models.DateTimeField(),
+        ),
+        output_field=models.DateTimeField(),
+        db_persist=True,
+        db_comment="Represented in UTC",
+    )
+    finished_at = GeneratedField(
+        expression=expressions.RawSQL(
+            sql=started_at_sql + " + duration",
+            params=[],
+            output_field=models.DateTimeField(),
+        ),
+        output_field=models.DateTimeField(),
+        db_persist=True,
+        db_comment="Represented in UTC",
+    )
 
     # ############
     # Numeric Data
