@@ -19,17 +19,17 @@ from analytics.core.models.dimensions import (
 
 started_at_sql = """
 iso_timestamp(  -- Custom function implemented in the migration
-    SUBSTR(start_date_id::text, 1, 4)
+    SUBSTR(start_date_id, 1, 4)
     || '-' ||
-    SUBSTR(start_date_id::text, 5, 2)
+    SUBSTR(start_date_id, 5, 2)
     || '-' ||
-    SUBSTR(start_date_id::text, 7, 2)
+    SUBSTR(start_date_id, 7, 2)
     || 'T' ||  -- Separation between date and time
-    SUBSTR(start_time_id::text, 1, 2)
+    SUBSTR(start_time_id, 1, 2)
     || ':' ||
-    SUBSTR(start_time_id::text, 3, 2)
+    SUBSTR(start_time_id, 3, 2)
     || ':' ||
-    SUBSTR(start_time_id::text, 5, 2)
+    SUBSTR(start_time_id, 5, 2)
 )
 """
 
@@ -69,6 +69,7 @@ class JobFact(models.Model):
             output_field=models.DateTimeField(),
         ),
         output_field=models.DateTimeField(),
+        null=False,
         db_persist=True,
         db_comment="Represented in UTC",
     )
@@ -79,6 +80,7 @@ class JobFact(models.Model):
             output_field=models.DateTimeField(),
         ),
         output_field=models.DateTimeField(),
+        null=False,
         db_persist=True,
         db_comment="Represented in UTC",
     )
