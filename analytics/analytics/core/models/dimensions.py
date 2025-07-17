@@ -9,7 +9,11 @@ from django.db.models.functions import Length
 
 
 class DateDimension(models.Model):
-    date_key = models.PositiveIntegerField(primary_key=True)
+    date_key = models.CharField(
+        max_length=8,
+        primary_key=True,
+        db_comment="The date this row represents formatted as <YYYY><MM><DD>",
+    )
     date = models.DateField(unique=True)
     date_description = models.CharField(max_length=32)
 
@@ -25,19 +29,12 @@ class DateDimension(models.Model):
     quarter = models.PositiveSmallIntegerField()
     year = models.PositiveSmallIntegerField()
 
-    class Meta:
-        constraints = [
-            models.CheckConstraint(
-                name="date-key-value", condition=models.Q(date_key__lt=2044_01_01)
-            ),
-        ]
-
     @staticmethod
     def date_key_from_datetime(d: datetime.datetime | datetime.date | str):
         if isinstance(d, str):
             d = isoparse(d)
 
-        return int(d.strftime("%Y%m%d"))
+        return d.strftime("%Y%m%d")
 
     @classmethod
     def ensure_exists(cls, d: datetime.datetime | datetime.date | str):
@@ -68,8 +65,9 @@ class DateDimension(models.Model):
 
 
 class TimeDimension(models.Model):
-    time_key = models.PositiveIntegerField(
+    time_key = models.CharField(
         primary_key=True,
+        max_length=6,
         db_comment="The time this row represents formatted as <HOUR><MINUTE><SECOND>",
     )  # type: ignore
     time = models.TimeField(
@@ -106,7 +104,7 @@ class TimeDimension(models.Model):
         if isinstance(t, str):
             t = isoparse(t)
 
-        return int(t.strftime("%H%M%S"))
+        return t.strftime("%H%M%S")
 
     @classmethod
     def ensure_exists(cls, d: datetime.datetime | datetime.time | str):
