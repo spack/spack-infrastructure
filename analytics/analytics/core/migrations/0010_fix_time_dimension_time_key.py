@@ -13,11 +13,20 @@ def update_new_time_key(apps, _):
         )
     )
 
+    # Need to do the same padding to all FKs in all fact tables
     JobFact = apps.get_model("core", "JobFact")
     JobFact.objects.update(
         start_time=LPad(
             Cast("start_time_id", output_field=CharField()), 6, fill_text=Value("0")
         )
+    )
+    TimerFact = apps.get_model("core", "TimerFact")
+    TimerFact.objects.update(
+        time=LPad(Cast("time_id", output_field=CharField()), 6, fill_text=Value("0"))
+    )
+    TimerPhaseFact = apps.get_model("core", "TimerPhaseFact")
+    TimerPhaseFact.objects.update(
+        time=LPad(Cast("time_id", output_field=CharField()), 6, fill_text=Value("0"))
     )
 
 
@@ -29,11 +38,36 @@ def reverse_update_new_time_key(apps, _):
         )
     )
 
+    JobFact = apps.get_model("core", "JobFact")
+    JobFact.objects.update(
+        start_time=Cast(
+            Cast("start_time_id", output_field=IntegerField()), output_field=CharField()
+        )
+    )
+    TimerFact = apps.get_model("core", "TimerFact")
+    TimerFact.objects.update(
+        time=Cast(
+            Cast("time_id", output_field=IntegerField()), output_field=CharField()
+        )
+    )
+    TimerPhaseFact = apps.get_model("core", "TimerPhaseFact")
+    TimerPhaseFact.objects.update(
+        time=Cast(
+            Cast("time_id", output_field=IntegerField()), output_field=CharField()
+        )
+    )
 
-add_jobfact_start_time_fk_constraint = 'ALTER TABLE "core_jobfact" ADD CONSTRAINT "core_jobfact_start_time_id_b560bcac_fk" FOREIGN KEY ("start_time_id") REFERENCES "core_timedimension" ("time_key") DEFERRABLE INITIALLY DEFERRED'
-remove_jobfact_start_time_fk_constraint = (
-    "ALTER TABLE core_jobfact DROP CONSTRAINT core_jobfact_start_time_id_b560bcac_fk"
-)
+
+add_fk_constraints_sql = """
+ALTER TABLE "core_jobfact" ADD CONSTRAINT "core_jobfact_start_time_id_b560bcac_fk" FOREIGN KEY ("start_time_id") REFERENCES "core_timedimension" ("time_key") DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE "core_timerfact" ADD CONSTRAINT "core_timerfact_time_id_f787590b_fk" FOREIGN KEY ("time_id") REFERENCES "core_timedimension" ("time_key") DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE "core_timerphasefact" ADD CONSTRAINT "core_timerphasefact_time_id_7ae0d81c_fk" FOREIGN KEY ("time_id") REFERENCES "core_timedimension" ("time_key") DEFERRABLE INITIALLY DEFERRED;
+"""
+remove_fk_constraints_sql = """
+ALTER TABLE core_jobfact DROP CONSTRAINT core_jobfact_start_time_id_b560bcac_fk;
+ALTER TABLE core_timerfact DROP CONSTRAINT core_timerfact_time_id_f787590b_fk;
+ALTER TABLE core_timerphasefact DROP CONSTRAINT core_timerphasefact_time_id_7ae0d81c_fk;
+"""
 
 
 class Migration(migrations.Migration):
@@ -44,15 +78,15 @@ class Migration(migrations.Migration):
     operations = [
         # Need to remove the foreign key constraint on `start_time_id`, so that we can update it in both tables without violating the constraint
         migrations.RunSQL(
-            sql=remove_jobfact_start_time_fk_constraint,
-            reverse_sql=add_jobfact_start_time_fk_constraint,
+            sql=remove_fk_constraints_sql,
+            reverse_sql=add_fk_constraints_sql,
         ),
         migrations.RunPython(
             code=update_new_time_key, reverse_code=reverse_update_new_time_key
         ),
         # Both tables are updated, now the foreign key constraint can be added back
         migrations.RunSQL(
-            sql=add_jobfact_start_time_fk_constraint,
-            reverse_sql=remove_jobfact_start_time_fk_constraint,
+            sql=add_fk_constraints_sql,
+            reverse_sql=remove_fk_constraints_sql,
         ),
     ]
