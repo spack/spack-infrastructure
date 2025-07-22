@@ -138,6 +138,10 @@ class JobFact(models.Model):
     )  # type: ignore
 
     class Meta:
+        indexes = [
+            models.Index(fields=["started_at"], name="core_jobfact_started_at"),
+            models.Index(fields=["finished_at"], name="core_jobfact_finished_at"),
+        ]
         constraints = [
             # Ensure that these nullable fields are consistent
             models.CheckConstraint(
