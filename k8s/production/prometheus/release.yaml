@@ -1,5 +1,5 @@
 ---
-apiVersion: source.toolkit.fluxcd.io/v1beta2
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: kube-prometheus-stack
@@ -10,7 +10,7 @@ spec:
 
 
 ---
-apiVersion: helm.toolkit.fluxcd.io/v2beta2
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: kube-prometheus-stack
@@ -20,7 +20,7 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: 58.2.1 # prometheus-operator@v0.73.2
+      version: 75.12.0 # prometheus-operator@v0.83.0, grafana@9.2.10
       sourceRef:
         kind: HelmRepository
         name: kube-prometheus-stack
@@ -50,6 +50,8 @@ spec:
         spack.io/node-pool: base
       ingress:
         enabled: false
+      persistence:
+        enabled: true
       admin:
         existingSecret: "kube-prometheus-stack-grafana" # See: secrets.yaml
         userKey: admin-user
@@ -153,7 +155,7 @@ spec:
         - pods=[*]
         - nodes=[*]
       metricAnnotationsAllowList:
-        - pods=[gitlab/ci_job_id,metrics/spack_job_spec_pkg_name,metrics/spack_job_spec_pkg_version,metrics/spack_job_spec_compiler_name,metrics/spack_job_spec_compiler_version,metrics/spack_job_spec_arch,metrics/spack_job_spec_variants,metrics/spack_job_build_jobs,metrics/spack_ci_stack_name]
+        - pods=[gitlab/ci_job_id,metrics/spack_job_spec_pkg_name,metrics/spack_job_spec_hash,metrics/spack_job_spec_pkg_version,metrics/spack_job_spec_compiler_name,metrics/spack_job_spec_compiler_version,metrics/spack_job_spec_arch,metrics/spack_job_spec_variants,metrics/spack_job_build_jobs,metrics/spack_ci_stack_name]
 
   # Configure OpenSearch datasource
   valuesFrom:

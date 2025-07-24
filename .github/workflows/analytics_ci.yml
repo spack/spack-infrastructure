@@ -1,0 +1,73 @@
+name: Analytics Django App CI
+
+on:
+  pull_request:
+    paths:
+      - "analytics/**"
+
+jobs:
+  formatting:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: analytics/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install requirements
+        run: pip install .[dev]
+
+      - name: Lint code
+        run: tox -e lint
+
+  check-migrations:
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: django
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+      elasticsearch:
+        image: elasticsearch:7.14.0
+        env:
+          ES_JAVA_OPTS: "-Xms250m -Xmx750m"
+          discovery.type: single-node
+          xpack.security.enabled: "true"
+          ELASTIC_PASSWORD: elastic
+        ports:
+          - 9200:9200
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: analytics/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install requirements
+        run: pip install .[dev]
+
+      - name: Provide default env vars for django
+        run: cat ./dev/.env.docker-compose >> $GITHUB_ENV
+
+      # This runs on pull requests and blocks until any necessary migrations have been created
+      - name: Check for Migrations
+        run: ./manage.py makemigrations --check --noinput

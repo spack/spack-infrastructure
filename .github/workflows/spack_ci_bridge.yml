@@ -1,10 +1,13 @@
 name: spack_ci_bridge
 
-on: pull_request
+on:
+  pull_request:
+    paths:
+      - images/gh-gl-sync/**
 
 jobs:
   spack_ci_bridge:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
     - name: dependencies

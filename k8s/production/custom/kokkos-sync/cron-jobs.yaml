@@ -1,0 +1,48 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kokkos-sync
+  namespace: custom
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: sync
+            image: ghcr.io/spack/ci-bridge:0.0.46
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 500M
+            env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: kokkos-github-access-token
+            # This secret is double base64 encoded
+            - name: GITLAB_SSH_KEY_BASE64
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: gitlab-ssh-key
+            envFrom:
+              - configMapRef:
+                  name: gh-gl-sync-sentry-config
+            args:
+              - "kokkos/kokkos"
+              - "ssh://git@ssh.gitlab.spack.io/kokkos/kokkos"
+              - "https://gitlab.spack.io"
+              - "kokkos/kokkos"
+              - "--sync-draft-prs"
+
+          nodeSelector:
+            spack.io/node-pool: base

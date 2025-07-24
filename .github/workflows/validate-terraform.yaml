@@ -21,7 +21,7 @@ jobs:
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~1.5.2"
+          terraform_version: "~1.9.7"
 
       - name: Lint Terraform code
         run: terraform fmt -check -diff -recursive
@@ -42,10 +42,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Get Terraform Version
+        id: tf_version
+        run: echo "value=$(cat .terraform-version)" >> $GITHUB_OUTPUT
+
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~1.5.2"
+          terraform_version: ${{ steps.tf_version.outputs.value }}
 
       - name: Initialize Terraform (offline only)
         run: terraform init -backend=false

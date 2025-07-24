@@ -23,15 +23,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.2
+        uses: aws-actions/configure-aws-credentials@v4.2.0
         with:
-          role-to-assume: arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole-prod
+          role-to-assume: arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole
           aws-region: us-east-1
+
+      - name: Get Terraform Version
+        id: tf_version
+        run: echo "value=$(cat .terraform-version)" >> $GITHUB_OUTPUT
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~1.5.2"
+          terraform_version: ${{ steps.tf_version.outputs.value }}
           terraform_wrapper: false
 
       - name: Initialize Terraform
@@ -44,7 +48,8 @@ jobs:
       - name: Run Terraform Plan
         run: terraform plan -lock=false -detailed-exitcode -no-color -input=false -out=tfplan > tfplan_output.txt 2>&1
         env:
-          TF_VAR_eks_cluster_role: "arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole-prod"
+          TF_VAR_eks_cluster_role: "arn:aws:iam::588562868276:role/GitHubActionsReadonlyRole"
+          TF_VAR_gitlab_token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
 
       - name: Send Slack alert on drift
         if: failure()

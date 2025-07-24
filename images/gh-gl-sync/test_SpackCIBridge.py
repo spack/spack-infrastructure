@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
-from unittest.mock import create_autospec, patch, Mock
+import subprocess
+from unittest.mock import create_autospec, Mock
 
 import SpackCIBridge
 
@@ -18,6 +19,33 @@ class AttrDict(dict):
                 self.__dict__[key] = value
 
 
+def test_durable_subprocess_run(capfd):
+    """Test that the durable subprocess run function works and performs retries when necessary."""
+
+    # Create a fake subprocess.run method that will return a non-zero return code the first time it's called.
+    actual_run_method = subprocess.run
+    subprocess.run = create_autospec(subprocess.run)
+    called = False
+
+    def side_effect(*args, **kwargs):
+        nonlocal called
+        if not called:
+            called = True
+            raise subprocess.CalledProcessError(1, args[0], "Error occurred")
+        else:
+            return Mock(stdout=b"Success", returncode=0)
+    subprocess.run.side_effect = side_effect
+
+    # Call the durable subprocess run method.
+    SpackCIBridge._durable_subprocess_run(["echo", "hello"])
+
+    # Verify that the subprocess.run method was called twice.
+    assert subprocess.run.call_count == 2
+
+    # Restore the original subprocess.run method
+    subprocess.run = actual_run_method
+
+
 def test_list_github_prs(capfd):
     """Test the list_github_prs method."""
     dt = datetime.now()
@@ -33,7 +61,8 @@ def test_list_github_prs(capfd):
             "base": {
                 "ref": "main",
                 "sha": "shabar"
-            }
+            },
+            "labels": {}
         }),
         AttrDict({
             "number": 2,
@@ -46,7 +75,8 @@ def test_list_github_prs(capfd):
             "base": {
                 "ref": "main",
                 "sha": "shafaz"
-            }
+            },
+            "labels": {}
         }),
         AttrDict({
             "number": 3,
@@ -59,7 +89,8 @@ def test_list_github_prs(capfd):
             "base": {
                 "ref": "main",
                 "sha": "shaggg"
-            }
+            },
+            "labels": {}
         }),
     ]
     gh_repo = Mock()
@@ -390,29 +421,34 @@ def test_post_pipeline_status(capfd):
     gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
     gh_repo = Mock()
     gh_repo.get_commit.return_value = gh_commit
+    session = Mock()
+    session.get = Mock(
+        return_value=FakeResponse(
+            data=[
+                {
+                    "id": 1,
+                    "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "ref": "pr1_readme",
+                    "status": "failed",
+                    "created_at": "2020-08-26T17:26:30.216Z",
+                    "updated_at": "2020-08-26T17:26:36.807Z",
+                    "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/1",
+                }
+            ]
+        )
+    )
 
     bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
                                          gitlab_project="zack/my_test_proj",
                                          github_project="zack/my_test_proj")
     bridge.py_gh_repo = gh_repo
+    bridge.session = session
     os.environ["GITHUB_TOKEN"] = "my_github_token"
 
-    mock_data = [
-        {
-            "id": 1,
-            "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "ref": "pr1_readme",
-            "status": "failed",
-            "created_at": "2020-08-26T17:26:30.216Z",
-            "updated_at": "2020-08-26T17:26:36.807Z",
-            "web_url": "https://gitlab.spack.io/zack/my_test_proj/pipelines/1"
-        }
-    ]
-    with patch('requests.get', return_value=FakeResponse(data=mock_data)) as mock_requests_get:
-        bridge.post_pipeline_status(open_prs, [])
-        assert mock_requests_get.call_count == 2
-        assert gh_repo.get_commit.call_count == 1
-        assert gh_commit.create_status.call_count == 1
+    bridge.post_pipeline_status(open_prs, [])
+    assert bridge.session.get.call_count == 2
+    assert gh_repo.get_commit.call_count == 1
+    assert gh_commit.create_status.call_count == 1
     out, err = capfd.readouterr()
     expected_content = "  pr1_readme -> aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
     assert expected_content in out
@@ -436,7 +472,8 @@ def test_pipeline_status_backlogged_by_checks(capfd):
                 },
                 "base": {
                     "sha": "shabar"
-                }
+                },
+                "labels": {}
             }),
         ]
 

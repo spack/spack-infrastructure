@@ -1,5 +1,4 @@
 import json
-import re
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
@@ -7,11 +6,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import sentry_sdk
 
-from analytics.core.job_failure_classifier import upload_job_failure_classification
 from analytics.core.job_log_uploader import store_job_data
 from analytics.job_processor import process_job
-
-BUILD_STAGE_REGEX = r"^stage-\d+$"
 
 
 @require_http_methods(["POST"])
@@ -23,16 +19,13 @@ def webhook_handler(request: HttpRequest) -> HttpResponse:
         sentry_sdk.capture_message("Not a build event")
         return HttpResponse("Not a build event", status=400)
 
-    if job_input_data["build_status"] in ["success", "failed"]:
-        store_job_data.delay(request.body)
+    if job_input_data["build_status"] not in ["success", "failed"]:
+        return HttpResponse("Build job not finished. Skipping.", status=200)
 
-    if job_input_data["build_status"] == "failed":
-        upload_job_failure_classification.delay(request.body)
+    # Store gitlab job log and failure data in opensearch
+    store_job_data.delay(request.body)
 
-    if (
-        re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"])
-        and job_input_data["build_status"] == "success"
-    ):
-        process_job.delay(request.body)
+    # Store job data in postgres DB
+    process_job.delay(request.body)
 
     return HttpResponse("OK", status=200)

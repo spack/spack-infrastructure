@@ -1,5 +1,5 @@
 ---
-apiVersion: source.toolkit.fluxcd.io/v1beta2
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: runner-x86-v2-prot
@@ -9,7 +9,7 @@ spec:
   url: https://charts.gitlab.io
 
 ---
-apiVersion: helm.toolkit.fluxcd.io/v2beta2
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: runner-x86-v2-prot
@@ -19,10 +19,13 @@ spec:
   chart:
     spec:
       chart: gitlab-runner
-      version: 0.64.0 # gitlab-runner@16.11.0
+      version: 0.79.0 # gitlab-runner@18.2.0
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v2-prot
+  dependsOn:
+    - name: gitlab
+      namespace: gitlab
 
   valuesFrom:
     # See terraform/modules/sentry/sentry.tf
@@ -33,6 +36,7 @@ spec:
   values:
     imagePullPolicy: IfNotPresent
     replicas: 6
+    probeTimeoutSeconds: 70
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
@@ -80,11 +84,12 @@ spec:
 
             cpu_request = "750m"
             cpu_request_overwrite_max_allowed = "16"
+            cpu_limit_overwrite_max_allowed = "32"
 
             memory_request = "2G"
             memory_request_overwrite_max_allowed = "64G"
-            memory_limit = "64G"
-            memory_limit_overwrite_max_allowed = "64G"
+            memory_limit = "96G"
+            memory_limit_overwrite_max_allowed = "96G"
 
             namespace = "pipeline"
             poll_timeout = 600  # ten minutes
@@ -143,13 +148,14 @@ spec:
             [runners.kubernetes.pod_annotations]
               "pod-cleanup.gitlab.com/ttl" = "7h"
               "fluentbit.io/exclude" = "true"
-              "karpenter.sh/do-not-evict" = "true"
+              "karpenter.sh/do-not-disrupt" = "true"
               "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
               "gitlab/ci_job_url" = "$CI_JOB_URL"
               "gitlab/ci_project_url" = "$CI_PROJECT_URL"
               "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
               "gitlab/ci_job_id" = "$CI_JOB_ID"
               "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
+              "metrics/spack_job_spec_hash" = "$SPACK_JOB_SPEC_DAG_HASH"
               "metrics/spack_job_spec_pkg_version" = "$SPACK_JOB_SPEC_PKG_VERSION"
               "metrics/spack_job_spec_compiler_name" = "$SPACK_JOB_SPEC_COMPILER_NAME"
               "metrics/spack_job_spec_compiler_version" = "$SPACK_JOB_SPEC_COMPILER_VERSION"
@@ -184,7 +190,7 @@ spec:
       runUntagged: false
 
       tags: "x86_64,x86_64_v2,small,medium,large,huge,protected,aws,spack"
-      secret: spack-project-runner-registration-token
+      secret: spack-group-runner-secret
 
       serviceAccountName: runner
 
@@ -197,5 +203,11 @@ spec:
     nodeSelector:
       spack.io/node-pool: base # pool for the runner
 
+    resources:
+      requests:
+        # Based on this prometheus query:
+        # sum by (pod) (container_memory_max_usage_bytes{namespace="gitlab", pod=~"runner-x86.*"})
+        memory: 1G
+
     podAnnotations:
-      karpenter.sh/do-not-evict: true
+      karpenter.sh/do-not-disrupt: true

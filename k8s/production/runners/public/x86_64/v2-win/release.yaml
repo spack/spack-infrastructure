@@ -1,0 +1,194 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: runner-x86-v2-pub-windows
+  namespace: gitlab
+spec:
+  interval: 10m
+  url: https://charts.gitlab.io
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: runner-x86-v2-pub-windows
+  namespace: gitlab
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: gitlab-runner
+      # Note: ensure this stays in sync with the `helper_image` field below
+      version: 0.79.0 # gitlab-runner@18.2.0
+      sourceRef:
+        kind: HelmRepository
+        name: runner-x86-v2-pub-windows
+  dependsOn:
+    - name: gitlab
+      namespace: gitlab
+
+  valuesFrom:
+    # See terraform/modules/sentry/sentry.tf
+    - kind: ConfigMap
+      name: gitlab-runner-sentry-config
+      valuesKey: values.yaml
+
+  values:
+    imagePullPolicy: IfNotPresent
+    replicas: 6
+    probeTimeoutSeconds: 70
+
+    # TODO: change to production when ready
+    gitlabUrl: "https://gitlab.spack.io/"
+    unregisterRunners: true
+    terminationGracePeriodSeconds: 21600 # six hours
+    concurrent: 20
+    checkInterval: 30
+
+    metrics:
+      enabled: true
+
+    rbac:
+      serviceAccountName: runner
+
+    runners:
+      config: |
+        [[runners]]
+
+          pre_get_sources_script = """
+          git config --global core.autocrlf true
+          """
+
+          pre_build_script = """
+          Write-Output 'Executing Spack pre-build setup script'
+
+          $py=(get-command -ErrorAction SilentlyContinue python)
+          if ( -not $py ) {
+            Write-Output 'Python not found on the system. Add it to the PATH or install.'
+            exit 1
+          }
+
+          $scriptPath = Join-Path $PSScriptRoot 'pre_build.py'
+
+          $wc = New-Object System.Net.WebClient
+          $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
+
+          & python $scriptPath | Out-File -FilePath 'envvars.ps1' -Encoding utf8
+          if ($LASTEXITCODE -ne 0) {
+            Write-Output "Prebuild script pre_build.py failed with exit code $LASTEXITCODE. See error above for more info"
+            exit 1
+          }
+          ./envvars.ps1
+
+          Remove-Item $scriptPath -Force
+          Remove-Item 'envvars.ps1' -Force
+
+          $env:GITLAB_OIDC_TOKEN = $null
+          """
+
+          shell = "powershell"
+          executor = "kubernetes"
+          output_limit = 20480
+
+          # Ensure windows paths are used
+          [runners.feature_flags]
+            FF_USE_POWERSHELL_PATH_RESOLVER = true
+
+          [runners.kubernetes]
+            privileged = false
+            helper_memory_request = "1"
+
+            cpu_request = "750m"
+            cpu_request_overwrite_max_allowed = "12"
+            cpu_limit_overwrite_max_allowed = "24"
+
+            memory_request = "2G"
+            memory_request_overwrite_max_allowed = "64G"
+            memory_limit = "96G"
+            memory_limit_overwrite_max_allowed = "96G"
+
+            namespace = "pipeline"
+            # Allow 30 minutes for the pod to be ready. This is necessary because
+            # the windows docker image can take a significantly long time to pull.
+            poll_timeout = 1800
+            service_account = "runner"
+
+            # Image for windows 2022, runner helper
+            image = "mcr.microsoft.com/windows/servercore:ltsc2022"
+            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v18.2.0-servercore21H2"
+
+            ephemeral_storage_request = "500M"
+            helper_ephemeral_storage_request = "500M"
+
+            # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
+            # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled
+            [runners.kubernetes.affinity]
+              [runners.kubernetes.affinity.pod_affinity]
+                [[runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution]]
+                weight = 1
+                [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term]
+                  topology_key = "topology.kubernetes.io/zone"
+                  [runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term.label_selector]
+                    [[runners.kubernetes.affinity.pod_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term.label_selector.match_expressions]]
+                      key = "spack.io/runner"
+                      operator = "In"
+                      values = ["true"]
+
+            [[runners.kubernetes.pod_spec]]
+              ttlSecondsAfterFinished = "300" # 5 minutes
+            [runners.kubernetes.pod_annotations]
+              "fluentbit.io/exclude" = "true"
+              "karpenter.sh/do-not-disrupt" = "true"
+              "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
+              "gitlab/ci_job_url" = "$CI_JOB_URL"
+              "gitlab/ci_project_url" = "$CI_PROJECT_URL"
+              "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
+              "gitlab/ci_job_id" = "$CI_JOB_ID"
+            [runners.kubernetes.pod_labels]
+              "spack.io/runner" = "true"
+              "gitlab/ci_job_size" = "$CI_JOB_SIZE"
+              "metrics/gitlab_ci_pipeline_id" = "$CI_PIPELINE_ID"
+              "metrics/gitlab_ci_project_namespace" = "$CI_PROJECT_NAMESPACE"
+              "metrics/gitlab_ci_project_name" = "$CI_PROJECT_NAME"
+              "metrics/gitlab_ci_job_stage" = "$CI_JOB_STAGE"
+              "metrics/gitlab_ci_commit_ref_name" = "$CI_COMMIT_REF_NAME"
+              "metrics/spack_ci_stack_name" = "$SPACK_CI_STACK_NAME"
+              "metrics/spack_job_spec_pkg_name" = "$SPACK_JOB_SPEC_PKG_NAME"
+              "metrics/spack_job_spec_hash" = "$SPACK_JOB_SPEC_DAG_HASH"
+              "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
+            [runners.kubernetes.node_selector]
+              "kubernetes.io/os" = "windows"
+              # This is required to match the helper image based on this table
+              # https://gitlab.com/gitlab-org/gitlab-runner/-/blob/main/helpers/container/windows/version.go?ref_type=heads#L19-32
+              "node.kubernetes.io/windows-build" = "10.0.20348"
+            [runners.kubernetes.node_tolerations]
+              "spack.io/runner-taint=true" = "NoSchedule"
+              "windows=true" = "NoSchedule"
+
+      # default image
+      image: "mcr.microsoft.com/windows/servercore:ltsc2022"
+      imagePullPolicy: "if-not-present"
+      locked: false
+
+      tags: "spack,public,small,medium,win64,x86_64-win,x86_64_v2-win,aws"
+      runUntagged: false
+      secret: spack-group-runner-secret
+
+      cache: {}
+
+      services: {}
+
+      helpers: {}
+
+    nodeSelector:
+      spack.io/node-pool: base # pool for the runner
+
+    resources:
+      requests:
+        # Based on this prometheus query:
+        # sum by (pod) (container_memory_max_usage_bytes{namespace="gitlab", pod=~"runner-x86.*"})
+        memory: 1G
+
+    podAnnotations:
+      karpenter.sh/do-not-disrupt: true

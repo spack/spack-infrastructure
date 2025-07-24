@@ -1,0 +1,317 @@
+---
+taxonomy:
+  version: "0.0.0-dev"
+  error_classes:
+    network_timeout:
+      grep_for:
+        - "socket.timeout"
+        - 'curl: \(28\)'
+        - "The read operation timed out"
+
+    network_error:
+      grep_for:
+        - 'curl: \(22\)'
+        - "HTTP Error 404"
+        - 'curl: \(60\)'
+        - "ConnectionResetError:"
+        - "curl.+SSL_ERROR_SYSCALL"
+        - 'Job failed \(system failure\):.+TLS handshake timeout'
+        - 'curl: \(6\) Could not resolve host'
+
+    concretization_error:
+      grep_for:
+        - "does not satisfy"
+        - "Error: errors occurred during concretization"
+        - "Error: concretization failed for the following reasons"
+        - "Spack concretizer internal error."
+        - "failed to concretize .+ for the following reasons"
+        - "variant .+ not found in package"
+        - "trying to set variant .+ in package .+, but the package has no such variant"
+        - "No such variant .+ for spec"
+        - "UnknownVariantError"
+        - "Spec version is not concrete"
+        - "UnsatisfiableSpecError"
+        - "cannot have a dependency on"
+
+    job_log_missing:
+        grep_for:
+          - "ERROR: Got [0-9][0-9][0-9] for"
+          - "ERROR: Log File Empty"
+
+    limit_exceeded:
+      grep_for:
+        - "Job's log exceeded limit of"
+
+    execution_timeout:
+      grep_for:
+        - "ERROR: Job failed: execution took longer than"
+
+    5XX:
+      grep_for:
+        - 'HTTP Error 5[00|02|03]'
+
+    spack_root:
+      grep_for:
+        - 'Error: SPACK_ROOT'
+
+    setup_env:
+      grep_for:
+        - 'setup-env.sh: No such file or directory'
+
+    no_spec:
+      grep_for:
+        - 'SpackError: No installed spec matches the hash'
+
+    failed_to_get_specs:
+      grep_for:
+        - 'Error: Unable to generate package index: Failed to get list of specs from'
+
+    build_error:
+      grep_for:
+        - 'error found in build log:'
+        - 'errors found in build log:'
+
+    oom:
+      grep_for:
+        - 'command terminated with exit code 137'
+        - 'ERROR: Job failed: exit code 137'
+
+    aws_access_denied:
+      grep_for:
+        - 'The AWS Access Key Id you provided does not exist in our records'
+        - 'An error occurred (AccessDenied)'
+
+    gitlab_down:
+      grep_for:
+        - 'fatal: unable to access'
+
+    module_not_found:
+      grep_for:
+        - 'ModuleNotFoundError: No module named'
+
+    artifacts:
+      grep_for:
+        - 'ERROR: Uploading artifacts'
+        - 'ERROR: Downloading artifacts'
+
+    fatal:
+      grep_for:
+        - 'FATAL: invalid argument'
+
+    dial_backend:
+      grep_for:
+        - 'error dialing backend'
+
+    pod_cleanup:
+      grep_for:
+        - 'Error cleaning up pod'
+
+    pod_exec:
+      grep_for:
+        - 'Error response from daemon: No such exec instance'
+
+    cmd_not_found:
+      grep_for:
+        - 'Command exited with status 127'
+
+    db_match:
+      grep_for:
+        - 'Error: Expected database version'
+        - 'spack.store.MatchError:'
+
+    pod_timeout:
+      grep_for:
+        - 'timed out waiting for pod to start'
+        - 'ERROR: Job failed (system failure): prepare environment: Timeout occurred.'
+
+    pod_not_found:
+      grep_for:
+        - 'ERROR: Job failed \(system failure\):.+pods .+ not found'
+
+    pod_failed:
+      grep_for:
+        - 'ERROR: Job failed.*:.*pod.+status is ("Failed"|failed)'
+
+    pod_invalid:
+      grep_for:
+        - 'Pod.+is invalid'
+
+    helper_container_not_found:
+      grep_for:
+        - 'ERROR: Job failed.+:.+container helper not found in pod'
+        - 'container not found \("helper"\)'
+
+    docker_daemon:
+      grep_for:
+        - 'Cannot connect to the Docker daemon'
+
+    docker_format:
+      grep_for:
+        - 'exec /usr/bin/sh: exec format error'
+
+    rpc_failure:
+      grep_for:
+        - 'error: RPC failed'
+
+    write_lock_timeout:
+      grep_for:
+        - 'Timed out waiting for a write lock'
+
+    reloc_path_too_long:
+      grep_for:
+        - 'Error: Failed to install.+due to CannotGrowString: Cannot replace.+To fix this, compile with more padding'
+
+    spack_error:
+      grep_for:
+        - 'To reproduce this build locally, run:'
+        - 'Error: No version for .+ satisfies'
+        - 'Error: errors occurred during concretization of the environment'
+        - 'cannot load package .+ from the .builtin. repository'
+        - 'must have a default provider in /builds/spack/spack/etc/spack/defaults/packages.yaml'
+        - 'Error: .+ object has no attribute'
+        - 'Error: module .+ has no attribute'
+        - 'spack.error.InstallError'
+        - 'Traceback \(most recent call last\):[\S\n\t\v ]+AssertionError'
+
+    invalid_pipeline_yaml:
+      grep_for:
+        - 'Error:.+ is not valid under any of the given schemas'
+
+    file_not_found:
+      grep_for:
+        - "No such file or directory"
+
+    ref_not_found:
+      grep_for:
+        - 'fatal: Remote branch'
+        - 'fatal: couldn.t find remote ref'
+
+    pipeline_generation:
+      grep_for:
+        - 'Error: Pipeline generation failed'
+
+    killed:
+      grep_for:
+        - 'Killed'
+
+    remote_disconnect:
+      grep_for:
+        - 'http.client.RemoteDisconnected'
+
+    db_hash:
+      grep_for:
+        - 'Error: Expected database index keyed by'
+
+    image_pull:
+      grep_for:
+        - 'ERROR: Job failed.+image pull failed'
+        - 'ERROR: Job failed \(system failure\): failed to pull image'
+        - 'image pull failed: Back-off pulling image'
+
+    no_binary_for_spec:
+      grep_for:
+        - 'Error: No binary for .+ found when cache-only specified'
+
+    deprecated_stack_bug:
+      grep_for:
+        - 'Error: Mirror with name mirror_override already exists.'
+
+    checksum_mismatch:
+      grep_for:
+        - 'Error: sha256 checksum failed for .+'
+
+    sha256sum_not_found:
+      grep_for:
+        - 'sha256sum: command not found'
+
+    unallowed_image:
+      grep_for:
+        - 'The.+image is not present on list of allowed images'
+
+    aborted_terminated:
+      grep_for:
+        - 'ERROR: Job failed \(system failure\): aborted: terminated'
+
+    gpg_fail_open_files:
+      grep_for:
+        - "gpg: can't open '/tmp/*'"
+
+    gpg_no_valid_ids:
+      grep_for:
+        - 'gpg: key.+: no valid user IDs'
+
+    nvidia_detection_error:
+      grep_for:
+        - 'nvidia-container-cli: detection error: nvml error'
+
+    bootstrap_patchelf_failure:
+      grep_for:
+        - 'Error: cannot bootstrap any of the patchelf executables'
+
+    oidc_certificate_expired:
+      grep_for:
+        - "OpenIDConnect provider's HTTPS certificate doesn't match configured thumbprint"
+
+    # See upload_gitlab_failure_logs.py for how these are used
+    stuck_or_timeout_failure: null
+    scheduler_failure: null
+
+  deconflict_order:
+    # Network errors
+    - 'oidc_certificate_expired'
+    - 'network_timeout'
+    - 'network_error'
+    # API Scrape erorrs
+    - 'job_log_missing'
+    # Spack Errors
+    - 'invalid_pipeline_yaml'
+    - 'checksum_mismatch'
+    - 'concretization_error'
+    - 'no_binary_for_spec'
+    - 'db_match'
+    - 'db_hash'
+    - 'no_spec'
+    - 'failed_to_get_specs'
+    - 'ref_not_found'
+    - 'cmd_not_found'
+    - 'module_not_found'
+    - 'setup_env'
+    - 'spack_root'
+    - 'write_lock_timeout'
+    - 'reloc_path_too_long'
+    - 'build_error'
+    - 'spack_error'
+    - 'pipeline_generation'
+    - 'killed'
+    - 'deprecated_stack_bug'
+    - 'aborted_terminated'
+    - 'bootstrap_patchelf_failure'
+    # System Errors
+    - 'oom'
+    - 'gitlab_down'
+    - 'artifacts'
+    - 'fatal'
+    - 'pod_exec'
+    - 'pod_timeout'
+    - 'pod_cleanup'
+    - 'pod_not_found'
+    - 'pod_failed'
+    - 'pod_invalid'
+    - 'helper_container_not_found'
+    - 'image_pull'
+    - 'docker_daemon'
+    - 'docker_format'
+    - 'rpc_failure'
+    - 'dial_backend'
+    - 'remote_disconnect'
+    - 'aws_access_denied'
+    - 'nvidia_detection_error'
+    - 'execution_timeout'
+    - '5XX'
+    # Other Errors
+    - 'gpg_fail_open_files'
+    - 'gpg_no_valid_ids'
+    - 'unallowed_image'
+    - 'limit_exceeded'
+    - 'sha256sum_not_found'
+    - 'file_not_found'

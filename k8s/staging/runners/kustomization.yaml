@@ -4,11 +4,19 @@ resources:
 - ../../production/runners/sealed-secrets.yaml
 - ../../production/runners/service-accounts.yaml
 - ../../production/runners/namespace.yaml
-- ../../production/runners/public/graviton/2/release.yaml
 - ../../production/runners/public/graviton/3/release.yaml
+- ../../production/runners/public/graviton/4/release.yaml
 - ../../production/runners/public/x86_64/v2/release.yaml
 - ../../production/runners/public/x86_64/v3/release.yaml
 - ../../production/runners/public/x86_64/v4/release.yaml
+- ../../production/runners/public/x86_64/v2-win/release.yaml
+- ../../production/runners/protected/graviton/3/release.yaml
+- ../../production/runners/protected/graviton/4/release.yaml
+- ../../production/runners/protected/x86_64/v2/release.yaml
+- ../../production/runners/protected/x86_64/v3/release.yaml
+- ../../production/runners/protected/x86_64/v4/release.yaml
+- ../../production/runners/protected/x86_64/v2-win/release.yaml
+- ../../production/runners/signing/release.yaml
 
 patchesStrategicMerge:
   - rm-secrets.yaml
@@ -29,7 +37,7 @@ patches:
 
   - target:
       kind: HelmRelease
-      name: runner-graviton2-pub
+      name: runner-graviton3-pub
       namespace: gitlab
     patch: |-
       - op: replace
@@ -38,7 +46,7 @@ patches:
 
   - target:
       kind: HelmRelease
-      name: runner-graviton3-pub
+      name: runner-graviton4-pub
       namespace: gitlab
     patch: |-
       - op: replace
@@ -66,6 +74,78 @@ patches:
   - target:
       kind: HelmRelease
       name: runner-x86-v4-pub
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-x86-v2-pub-windows
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-graviton3-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-graviton4-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-x86-v2-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-x86-v3-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-x86-v4-prot
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-x86-v2-prot-windows
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/values/gitlabUrl
+        value: https://gitlab.staging.spack.io/
+
+  - target:
+      kind: HelmRelease
+      name: runner-spack-package-signing
       namespace: gitlab
     patch: |-
       - op: replace

@@ -229,6 +229,12 @@ def configure_parser():
         help="use the buildcache index to check for buildcache hashes",
         action="store_true",
     )
+    parser.add_argument(
+        "--fail-fast",
+        help="Fail immediately on an error, otherwise continue until"
+             "there is not more work.",
+        action="store_true",
+    )
 
     return parser
 
@@ -467,12 +473,12 @@ if __name__ == "__main__":
                         fname_template = f"{args.output_dir}/delete-{{0}}-{stack}{log_suffix}.json"
                         if err:
                             print(f"errors: {stack}")
-                            with open(fname_template.format("errors")) as fd:
+                            with open(fname_template.format("errors", "w")) as fd:
                                 helper.write_json(fd, err)
 
                         if fail:
                             print(f"failures: {stack}")
-                            with open(fname_template.format("failures")) as fd:
+                            with open(fname_template.format("failures", "w")) as fd:
                                 helper.write_json(fd, fail)
                     else:
                         print(f"--   Would have deleted of {len(lines)} from {stack} buildcache")
@@ -494,8 +500,10 @@ if __name__ == "__main__":
                     )
         except Exception as e:
             print(f"Error -- Skipping pruning of {stack}")
-            print(str(e))
-            raise "ff mode" from e
+            if args.fail_fast:
+                raise e
+            else:
+                print(str(e))
         finally:
             if prune_file:
                 prune_file.close()

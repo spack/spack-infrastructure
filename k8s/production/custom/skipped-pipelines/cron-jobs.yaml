@@ -14,7 +14,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: skipped-pipelines
-            image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.1
+            image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.3
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -24,10 +24,12 @@ spec:
             - name: GITLAB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: gitlab-clear-pipelines
+                  name: delete-stale-branches-credentials
                   key: gitlab-token
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config
+            args:
+              - "57"
           nodeSelector:
             spack.io/node-pool: base

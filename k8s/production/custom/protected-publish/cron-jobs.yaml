@@ -1,0 +1,52 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: protected-publish
+  namespace: custom
+spec:
+  schedule: "0 */3 * * *" # At the start of every 3rd hour
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 14400 # terminate any running job after 4 hours
+      backoffLimit: 0
+      template:
+        spec:
+          serviceAccountName: protected-publish
+          restartPolicy: Never
+          containers:
+          - name: protected-publish
+            image: ghcr.io/spack/protected-publish:0.0.9
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 1500m
+                memory: 12G
+                ephemeral-storage: "50G"
+            envFrom:
+              - configMapRef:
+                  name: python-scripts-sentry-config
+            args:
+              - "--bucket"
+              - "spack-binaries"
+              - "--ref"
+              - "recent"
+              - "--parallel"
+              - "16"
+              - "--version"
+              - "3"
+            volumeMounts:
+              - name: ephemeral
+                mountPath: "/tmp"
+            env:
+              # Tell tempfile.mkdtemp to use the ephemeral storage
+              #     https://docs.python.org/3/library/tempfile.html#tempfile.mkdtemp
+              - name: TMPDIR
+                value: "/tmp"
+          volumes:
+            - name: ephemeral
+              emptyDir:
+                sizeLimit: 50G
+          nodeSelector:
+            spack.io/node-pool: base

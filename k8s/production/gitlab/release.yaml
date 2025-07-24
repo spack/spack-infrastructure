@@ -1,5 +1,5 @@
 ---
-apiVersion: source.toolkit.fluxcd.io/v1beta2
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: gitlab
@@ -9,20 +9,27 @@ spec:
   url: https://charts.gitlab.io
 
 ---
-apiVersion: helm.toolkit.fluxcd.io/v2beta2
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: gitlab
   namespace: gitlab
 spec:
   interval: 10m
+  # GitLab can take a while to start up for the first time, so give it up to 15 mins before deciding it failed.
+  timeout: 15m
   chart:
     spec:
       chart: gitlab
-      version: 7.11.0 # gitlab@16.11.0
+      version: 9.2.0 # gitlab@18.2.0
       sourceRef:
         kind: HelmRepository
         name: gitlab
+  dependsOn:
+    - name: cert-manager
+      namespace: cert-manager
+    - name: ingress-nginx
+      namespace: ingress-nginx
 
   valuesFrom:
     - kind: Secret
@@ -68,6 +75,8 @@ spec:
         apiVersion: networking.k8s.io/v1
         configureCertmanager: false
         class: nginx
+        tls:
+          external: true
 
       gitlab:
         license: {}
@@ -86,7 +95,7 @@ spec:
           key: postgres-password
         port: 5432
         database: gitlabhq_production
-        username: gitlab
+        username: postgres
 
       minio:
         enabled: false
@@ -107,6 +116,10 @@ spec:
           enabled: false
         packages:
           enabled: false
+        # The graphQL API can be slow to respond when querying for
+        # pipelines with many jobs, so we increase the timeout
+        # to 90 from its default of 30.
+        graphQlTimeout: 90
 
       antiAffinity: hard
     ### END OF GLOBAL SECTION
@@ -139,14 +152,17 @@ spec:
         minReplicas: 4
         maxReplicas: 16
         resources:
-          # Based on webservice resources here
-          # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
+          # Requested values are based on the following Prometheus queries:
+          # cpu:
+          #   sum(rate(container_cpu_usage_seconds_total{namespace="gitlab", pod=~"gitlab-webservice-.*"}[5m])) by (pod)
+          # memory:
+          #   sum by (pod) (container_memory_max_usage_bytes{namespace="gitlab", pod=~"gitlab-webservice-.*"})
           limits:
-            cpu: 48
-            memory: 32G
+            cpu: 12
+            memory: 20G
           requests:
-            cpu: 16
-            memory: 14.4G
+            cpu: 1250m
+            memory: 10G
         nodeSelector:
           spack.io/node-pool: gitlab
       gitlab-exporter:
@@ -156,20 +172,26 @@ spec:
       gitlab-shell:
         service:
           type: LoadBalancer
+        resources:
+          requests:
+            cpu: 100m
+            memory: 300M
         nodeSelector:
           spack.io/node-pool: gitlab
 
       sidekiq:
         resources:
-          # Based on sidekiq resources here
-          # https://docs.gitlab.com/ee/administration/reference_architectures/3k_users.html#cluster-topology
           requests:
-            cpu: 4
-            memory: 15G
+            cpu: 2
+            memory: 6G
         nodeSelector:
           spack.io/node-pool: gitlab
 
       toolbox:
+        resources:
+          requests:
+            cpu: 250m
+            memory: 350M
         nodeSelector:
           spack.io/node-pool: gitlab
 
@@ -182,7 +204,7 @@ spec:
         resources:
           requests:
             cpu: 15000m
-            memory: 54Gi
+            memory: 20Gi
         nodeSelector:
           spack.io/node-pool: gitlab
           node.kubernetes.io/instance-type: m5.4xlarge

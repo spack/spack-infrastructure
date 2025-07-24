@@ -1,11 +1,17 @@
 import tempfile
 import zipfile
 from contextlib import contextmanager
+from dataclasses import dataclass
 
 import yaml
+from gitlab.exceptions import GitlabGetError
 from gitlab.v4.objects import ProjectJob
 
-from analytics.core.models import Job
+
+class JobArtifactDownloadFailed(Exception):
+    def __init__(self, job: ProjectJob) -> None:
+        message = f"Job {job.id} artifact download failed"
+        super().__init__(message)
 
 
 class JobArtifactFileNotFound(Exception):
@@ -14,41 +20,109 @@ class JobArtifactFileNotFound(Exception):
         super().__init__(message)
 
 
+class JobArtifactVariablesNotFound(Exception):
+    def __init__(self, job: ProjectJob) -> None:
+        message = f"Entry for job {job.id} not found in artifacts file: {job.name}"
+        super().__init__(message)
+
+
+class JobArtifactsMissingVariable(Exception):
+    def __init__(self, job: ProjectJob, variable: str) -> None:
+        message = f"The following variable was missing in the artifacts for job {job.id}: {variable}"
+        super().__init__(message)
+
+
 @contextmanager
-def get_job_artifacts_file(job: ProjectJob, filename: str):
-    """Yields a file IO, raises KeyError if the filename is not present"""
+def get_job_artifacts_file(job: ProjectJob, filepath: str):
+    """Yields a file IO, raises KeyError if filepath is not present."""
     with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
         artifacts_file = temp.name
-        with open(artifacts_file, "wb") as f:
-            job.artifacts(streamed=True, action=f.write)
 
+        # Download artifacts zip
+        try:
+            with open(artifacts_file, "wb") as f:
+                job.artifacts(streamed=True, action=f.write)
+        except GitlabGetError:
+            raise JobArtifactDownloadFailed(job)
+
+        # Open specific file within artifacts zip
         with zipfile.ZipFile(artifacts_file) as zfile:
             try:
-                with zfile.open(filename) as timing_file:
+                with zfile.open(filepath) as timing_file:
                     yield timing_file
             except KeyError:
-                raise JobArtifactFileNotFound(job, filename)
+                raise JobArtifactFileNotFound(job, filepath)
 
 
-def annotate_job_with_artifacts_data(gljob: ProjectJob, job: Job):
+@contextmanager
+def find_job_artifacts_file(job: ProjectJob, filename: str):
+    """
+    Yields a file IO, raises KeyError if the filename is not present.
+
+    Search for a file within the artifacts zip file, and yield its bytes.
+    Filename should be just the name of the file itself, without any prefix.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".zip") as temp:
+        artifacts_file = temp.name
+
+        # Download artifacts zip
+        try:
+            with open(artifacts_file, "wb") as f:
+                job.artifacts(streamed=True, action=f.write)
+        except GitlabGetError:
+            raise JobArtifactDownloadFailed(job)
+
+        # Search for specific file within artifacts zip
+        with zipfile.ZipFile(artifacts_file) as zfile:
+            for zipinfo in zfile.filelist:
+                basename = zipinfo.filename.split("/")[-1]
+                if basename == filename:
+                    # Use fully qualified zipinfo filename, so that it's found
+                    with zfile.open(zipinfo.filename) as timing_file:
+                        yield timing_file
+                        return
+
+            raise JobArtifactFileNotFound(job, filename)
+
+
+@dataclass
+class JobArtifactsData:
+    package_hash: str
+    package_name: str
+    package_version: str
+    compiler_name: str
+    compiler_version: str
+    arch: str
+    package_variants: str
+    job_size: str
+    stack: str
+
+    # This var isn't guaranteed to be present
+    build_jobs: int | None
+
+
+def get_job_artifacts_data(gljob: ProjectJob) -> JobArtifactsData:
     """Fetch the artifacts of a job to retrieve info about it."""
-    pipeline_yml_filename = "jobs_scratch_dir/reproduction/cloud-ci-pipeline.yml"
-    with get_job_artifacts_file(gljob, pipeline_yml_filename) as pipeline_file:
+    with find_job_artifacts_file(gljob, "cloud-ci-pipeline.yml") as pipeline_file:
         raw_pipeline = yaml.safe_load(pipeline_file)
 
     pipeline_vars = raw_pipeline.get("variables", {})
     job_vars = raw_pipeline.get(gljob.name, {}).get("variables", {})
     if not job_vars:
-        raise Exception(f"Empty job variables for job {gljob.id}")
+        raise JobArtifactVariablesNotFound(job=gljob)
 
-    job.package_name = job_vars["SPACK_JOB_SPEC_PKG_NAME"]
-    job.package_version = job_vars["SPACK_JOB_SPEC_PKG_VERSION"]
-    job.compiler_name = job_vars["SPACK_JOB_SPEC_COMPILER_NAME"]
-    job.compiler_version = job_vars["SPACK_JOB_SPEC_COMPILER_VERSION"]
-    job.arch = job_vars["SPACK_JOB_SPEC_ARCH"]
-    job.package_variants = job_vars["SPACK_JOB_SPEC_VARIANTS"]
-    job.job_size = job_vars["CI_JOB_SIZE"]
-    job.stack = pipeline_vars["SPACK_CI_STACK_NAME"]
-
-    # This var isn't guaranteed to be present
-    job.build_jobs = job_vars.get("SPACK_BUILD_JOBS")
+    try:
+        return JobArtifactsData(
+            package_hash=job_vars["SPACK_JOB_SPEC_DAG_HASH"],
+            package_name=job_vars["SPACK_JOB_SPEC_PKG_NAME"],
+            package_version=job_vars["SPACK_JOB_SPEC_PKG_VERSION"],
+            compiler_name=job_vars["SPACK_JOB_SPEC_COMPILER_NAME"],
+            compiler_version=job_vars["SPACK_JOB_SPEC_COMPILER_VERSION"],
+            arch=job_vars["SPACK_JOB_SPEC_ARCH"],
+            package_variants=job_vars["SPACK_JOB_SPEC_VARIANTS"],
+            job_size=job_vars["CI_JOB_SIZE"],
+            stack=pipeline_vars["SPACK_CI_STACK_NAME"],
+            build_jobs=job_vars.get("SPACK_BUILD_JOBS"),
+        )
+    except KeyError as e:
+        raise JobArtifactsMissingVariable(job=gljob, variable=e.args[0])

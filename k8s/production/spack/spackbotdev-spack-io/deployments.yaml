@@ -21,9 +21,9 @@ spec:
     spec:
       containers:
       - name: web
-        image: "ghcr.io/spack/spack-bot:latest"
+        # image: "ghcr.io/spack/spack-bot:latest"
         # Can use some other image for testing, see README.md
-        #image: "ghcr.io/kwryankrattiger/spackbot:0.0.1"
+        image: "ghcr.io/kwryankrattiger/spackbot:0.0.1"
         imagePullPolicy: Always
         resources:
           requests:
@@ -36,7 +36,7 @@ spec:
         - name: SPACKBOT_LOG_LEVEL
           value: "DEBUG"
         - name: REDIS_HOST
-          value: pr-binary-graduation-queue-prod.cev8lh.ng.0001.use1.cache.amazonaws.com
+          value: pr-binary-graduation-queue-prod-blue.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
           value: "6379"
         - name: PR_BINARIES_MIRROR_BASE_URL
@@ -101,9 +101,9 @@ spec:
       serviceAccountName: spackbotdev-spack-io
       containers:
       - name: worker
-        image: "ghcr.io/spack/spackbot-workers:latest"
+        # image: "ghcr.io/spack/spackbot-workers:latest"
         # Can use some other image for testing, see README.md
-        #image: "ghcr.io/kwryankrattiger/spackbot-workers:0.0.1"
+        image: "ghcr.io/kwryankrattiger/spackbot-workers:0.0.1"
         imagePullPolicy: Always
         resources:
           requests:
@@ -122,7 +122,7 @@ spec:
         - name: SPACKBOT_LOG_LEVEL
           value: "DEBUG"
         - name: REDIS_HOST
-          value: pr-binary-graduation-queue-prod.cev8lh.ng.0001.use1.cache.amazonaws.com
+          value: pr-binary-graduation-queue-prod-blue.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
           value: "6379"
         - name: TASK_QUEUE_SHORT
@@ -192,9 +192,9 @@ spec:
       serviceAccountName: spackbotdev-spack-io
       containers:
       - name: long-task-worker
-        image: "ghcr.io/spack/spackbot-workers:latest"
+        # image: "ghcr.io/spack/spackbot-workers:latest"
         # Can use some other image for testing, see README.md
-        #image: "ghcr.io/kwryankrattiger/spackbot-workers:0.0.1"
+        image: "ghcr.io/kwryankrattiger/spackbot-workers:0.0.1"
         imagePullPolicy: Always
         resources:
           requests:
@@ -213,7 +213,7 @@ spec:
         - name: SPACKBOT_LOG_LEVEL
           value: "DEBUG"
         - name: REDIS_HOST
-          value: pr-binary-graduation-queue-prod.cev8lh.ng.0001.use1.cache.amazonaws.com
+          value: pr-binary-graduation-queue-prod-blue.cev8lh.ng.0001.use1.cache.amazonaws.com
         - name: REDIS_PORT
           value: "6379"
         - name: TASK_QUEUE_SHORT
