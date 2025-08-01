@@ -121,6 +121,24 @@ spec:
             ephemeral_storage_request = "500M"
             helper_ephemeral_storage_request = "500M"
 
+            # This is set to 2000 ms by default, i.e. if a pod can't reach the EKS API server within 2 seconds,
+            # it is killed and the job will fail with a `error dialing backend: remote error: tls: internal error`.
+            # We increase it to 30 seconds to give the pod more time to reach the server; it's more important
+            # that the job eventually starts than for it to fail quickly and get retried.
+            # https://docs.gitlab.com/runner/executors/kubernetes/#configure-the-number-of-request-attempts-to-the-kubernetes-api
+            retry_backoff_max = 30000
+
+            # This is the default retry limit. We override this for specific classes of
+            # errors below.
+            retry_limit = 5
+
+            [runners.kubernetes.retry_limits]
+              # Retry this type of error 10 times instead of 5.
+              # This error usually occurs when the EKS API server times out or
+              # is unreachable. Presumably the server will eventually become
+              # available again, so we want to give the pod plenty of time to retry.
+              "tls: internal error" = 10
+
             # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
             # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled
             [runners.kubernetes.affinity]
