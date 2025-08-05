@@ -40,6 +40,8 @@ spec:
       env:
         - name: POD_CLEANUP_KUBERNETES_NAMESPACES
           value: pipeline
+        - name: POD_CLEANUP_LOG_LEVEL
+          value: debug
       resources:
         requests:
           cpu: 20m
