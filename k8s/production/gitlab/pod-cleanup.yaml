@@ -26,24 +26,34 @@ subjects:
     name: pod-cleanup-sa
     namespace: gitlab
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: gitlab-runner-pod-cleanup
   namespace: gitlab
 spec:
-  restartPolicy: Always
-  serviceAccountName: pod-cleanup-sa
-  containers:
-    - name: gitlab-runner-pod-cleanup
-      image: registry.gitlab.com/gitlab-org/ci-cd/gitlab-runner-pod-cleanup:latest
-      env:
-        - name: POD_CLEANUP_KUBERNETES_NAMESPACES
-          value: pipeline
-      resources:
-        requests:
-          cpu: 20m
-          memory: 300M
-        limits:
-          cpu: 1000m
-          memory: 2G
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab-runner-pod-cleanup
+  template:
+    metadata:
+      labels:
+        app: gitlab-runner-pod-cleanup
+    spec:
+      serviceAccountName: pod-cleanup-sa
+      containers:
+        - name: gitlab-runner-pod-cleanup
+          image: registry.gitlab.com/gitlab-org/ci-cd/gitlab-runner-pod-cleanup:latest
+          env:
+            - name: POD_CLEANUP_KUBERNETES_NAMESPACES
+              value: pipeline
+            - name: POD_CLEANUP_LOG_LEVEL
+              value: debug
+          resources:
+            requests:
+              cpu: 20m
+              memory: 300M
+            limits:
+              cpu: 1000m
+              memory: 2G
