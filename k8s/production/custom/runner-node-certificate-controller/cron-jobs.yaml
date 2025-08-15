@@ -34,7 +34,7 @@ spec:
             - /bin/bash
             - -c
             - |
-              set -e
+              set -euo pipefail
 
               TAINT_KEY="node.spack.io/certificate-pending"
 
