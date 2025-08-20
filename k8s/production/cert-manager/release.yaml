@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: cert-manager
-      version: v1.10.1
+      version: v1.18.2
       sourceRef:
         kind: HelmRepository
         name: cert-manager
@@ -53,8 +53,17 @@ spec:
     cainjector:
       enabled: true
       replicaCount: 3
-      requests:
-          cpu: 30m
-          memory: 200M
+      resources:
+        requests:
+            cpu: 30m
+            memory: 200M
       nodeSelector:
         spack.io/node-pool: base
+
+    config:
+      featureGates:
+        # TODO: try removing this when https://github.com/kubernetes/ingress-nginx/pull/13798 is released
+        # and we upgrade.
+        # Disable the use of Exact PathType in Ingress resources, to work around a bug in ingress-nginx
+        # https://github.com/kubernetes/ingress-nginx/issues/11176
+        ACMEHTTP01IngressPathTypeExact: false
