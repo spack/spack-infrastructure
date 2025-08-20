@@ -18,8 +18,8 @@ module "gitlab_db" {
   identifier = "spack-gitlab${local.suffix}"
 
   engine               = "postgres"
-  family               = "postgres14"
-  major_engine_version = "14"
+  family               = "postgres17"
+  major_engine_version = "17"
   instance_class       = var.gitlab_db_instance_class
 
   db_name                     = "gitlabhq_production"
