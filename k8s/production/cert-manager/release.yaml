@@ -53,8 +53,9 @@ spec:
     cainjector:
       enabled: true
       replicaCount: 3
-      requests:
-          cpu: 30m
-          memory: 200M
+      resources:
+        requests:
+            cpu: 30m
+            memory: 200M
       nodeSelector:
         spack.io/node-pool: base
