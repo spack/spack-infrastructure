@@ -17,6 +17,8 @@ metadata:
   namespace: monitoring
 spec:
   interval: 10m
+  # Prometheus can take a while to deploy due to the DaemonSet, so give it an increased timeout
+  timeout: 15m
   chart:
     spec:
       chart: kube-prometheus-stack
