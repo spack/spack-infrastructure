@@ -21,7 +21,7 @@ spec:
   chart:
     spec:
       chart: gitlab
-      version: 9.2.4 # gitlab@18.2.4
+      version: 9.3.1 # gitlab@18.3.1
       sourceRef:
         kind: HelmRepository
         name: gitlab
@@ -124,8 +124,7 @@ spec:
       antiAffinity: hard
     ### END OF GLOBAL SECTION
 
-    certmanager:
-      install: false
+    installCertmanager: false
 
     prometheus:
       install: false
