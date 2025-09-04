@@ -40,6 +40,13 @@ def _token_to_sts_request(raw_jwt, decoded_jwt):
                         "Action": "*",
                         # scope the actions down the pr prefix
                         "Resource": f"{os.environ['PR_BINARY_MIRROR_BUCKET_ARN']}/{os.environ['CI_COMMIT_REF_NAME']}/*",
+                    },
+                    {
+                        "Effect": "Allow",
+                        # allow every action the broader RoleArn allows
+                        "Action": "*",
+                        # scope the actions down the pr prefix
+                        "Resource": f"{os.environ['PR_BINARY_MIRROR_BUCKET_ARN']}/{os.environ['CI_PROJECT_NAME']}/{os.environ['CI_COMMIT_REF_NAME']}/*",
                     }
                 ]
             }
