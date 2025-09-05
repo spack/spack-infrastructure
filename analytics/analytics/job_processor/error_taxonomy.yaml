@@ -102,6 +102,10 @@ taxonomy:
       grep_for:
         - 'error dialing backend'
 
+    spot_reclamation:
+      grep_for:
+        - 'node no longer exists'
+
     pod_cleanup:
       grep_for:
         - 'Error cleaning up pod'
@@ -293,6 +297,7 @@ taxonomy:
     - 'fatal'
     - 'pod_exec'
     - 'pod_timeout'
+    - 'spot_reclamation'
     - 'pod_cleanup'
     - 'pod_not_found'
     - 'pod_failed'
