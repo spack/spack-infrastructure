@@ -86,6 +86,13 @@ spec:
           value: "true"
           effect: NoSchedule
 
+      startupTaints:
+        # See k8s/production/custom/runner-node-certificate-controller/
+        # for explanation of this
+        - key: "node.spack.io/certificate-pending"
+          value: "true"
+          effect: "NoSchedule"
+
 
   # Terminate nodes after 5 minutes of idle time
   disruption:
