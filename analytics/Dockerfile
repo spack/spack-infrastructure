@@ -8,7 +8,7 @@ RUN apt-get update && \
     apt-get install --no-install-recommends --yes \
     build-essential ca-certificates coreutils curl \
     environment-modules gfortran git gpg lsb-release \
-    python3 python3-distutils python3-venv unzip zip \
+    python3 python3-venv unzip zip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install spack
