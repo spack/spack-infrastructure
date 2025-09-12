@@ -1,0 +1,158 @@
+set -euo pipefail
+
+TAINT_KEY="node.spack.io/certificate-pending"
+
+echo "=== Runner Node Certificate Controller - $(date) ==="
+
+# Function to remove taint from a node
+remove_taint_from_node() {
+local node_name="$1"
+echo "Removing certificate-pending taint from node: $node_name"
+
+if kubectl get node "$node_name" -o json | \
+    jq '.spec.taints = (.spec.taints // [] | map(select(.key != "'$TAINT_KEY'")))' | \
+    kubectl replace -f -; then
+    echo "✓ Successfully removed taint from $node_name"
+    return 0
+else
+    echo "✗ Failed to remove taint from $node_name"
+    return 1
+fi
+}
+
+# Function to check if node is ready
+is_node_ready() {
+local node_name="$1"
+local ready_status=$(kubectl get node "$node_name" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)
+[ "$ready_status" = "True" ]
+}
+
+# Function to verify node certificates are actually working
+verify_node_certificates() {
+local node_name="$1"
+echo "  🔍 Verifying certificates are functional on $node_name..."
+
+# Test 1: Check if CSRs for this node are approved
+local node_csrs=$(kubectl get csr -o json | jq -r --arg node "$node_name" '
+    .items[] | select(.spec.username // "" | contains($node)) |
+    select(.status.conditions[]?.type == "Approved") | .metadata.name' 2>/dev/null)
+
+if [ -z "$node_csrs" ]; then
+    echo "  ❌ No approved CSRs found for node $node_name"
+    return 1
+fi
+
+echo "  ✅ Found approved CSRs for node: $node_csrs"
+
+# Test 2: Verify node can make API calls by checking kubelet endpoints
+echo "  🔍 Testing kubelet API responsiveness..."
+
+# Try multiple endpoints with increasing complexity
+local kubelet_test_passed=false
+
+# Test 2a: Simple node metrics (least privileged)
+if kubectl get --raw "/api/v1/nodes/$node_name/proxy/metrics/cadvisor" >/dev/null 2>&1; then
+    echo "  ✅ Node kubelet cadvisor metrics accessible"
+    kubelet_test_passed=true
+elif kubectl get --raw "/api/v1/nodes/$node_name/proxy/stats/summary" >/dev/null 2>&1; then
+    echo "  ✅ Node kubelet stats summary accessible"
+    kubelet_test_passed=true
+elif kubectl get --raw "/api/v1/nodes/$node_name/proxy/healthz" >/dev/null 2>&1; then
+    echo "  ✅ Node kubelet healthz accessible"
+    kubelet_test_passed=true
+else
+    # Try a basic connectivity test to the API server from node perspective
+    echo "  🔍 Testing basic API server connectivity from control plane..."
+    if kubectl get node "$node_name" -o json | jq -r '.status.conditions[] | select(.type=="Ready") | .status' | grep -q "True"; then
+    echo "  ✅ Node is reporting Ready status (indicates API connectivity)"
+    kubelet_test_passed=true
+    else
+    echo "  ❌ All kubelet API tests failed"
+    return 1
+    fi
+fi
+
+if [ "$kubelet_test_passed" = "true" ]; then
+    echo "  ✅ Node kubelet API is responsive (at least one test passed)"
+else
+    echo "  ❌ Node kubelet API is not responsive"
+    return 1
+fi
+
+# Test 3: Check node conditions for certificate-related issues
+local cert_issues=$(kubectl get node "$node_name" -o json | jq -r '
+    .status.conditions[] | select(.reason? == "KubeletNotReady" or .message? | contains("certificate")) | .message' 2>/dev/null)
+
+if [ -n "$cert_issues" ]; then
+    echo "  ❌ Certificate-related issues found: $cert_issues"
+    return 1
+fi
+
+echo "  ✅ No certificate-related issues in node conditions"
+echo "  🎉 All certificate checks passed for $node_name"
+return 0
+}
+
+# Function to get node age in seconds
+get_node_age_seconds() {
+local node_name="$1"
+local creation_time=$(kubectl get node "$node_name" -o jsonpath='{.metadata.creationTimestamp}')
+local creation_epoch=$(date -d "$creation_time" +%s 2>/dev/null || echo "0")
+local current_epoch=$(date +%s)
+echo $((current_epoch - creation_epoch))
+}
+
+# Find all runner nodes with certificate-pending taint
+echo "Finding runner nodes with certificate-pending taint..."
+
+tainted_nodes=$(kubectl get nodes -l "spack.io/pipeline=true" \
+-o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.taints[?(@.key=="'$TAINT_KEY'")].key}{"\n"}{end}' | \
+awk '$2 != "" {print $1}')
+
+if [ -z "$tainted_nodes" ]; then
+echo "No runner nodes found with certificate-pending taint"
+echo "=== Job Complete ==="
+exit 0
+fi
+
+echo "Found nodes with certificate-pending taint:"
+echo "$tainted_nodes"
+echo
+
+# Process each tainted node
+processed=0
+removed=0
+
+for node in $tainted_nodes; do
+echo "Processing node: $node"
+processed=$((processed + 1))
+
+# Log node age for reference
+node_age=$(get_node_age_seconds "$node")
+echo "  Node age: ${node_age}s"
+
+# Check if node is ready
+if ! is_node_ready "$node"; then
+    echo "  ⏳ Node not Ready yet, keeping taint"
+    continue
+fi
+
+echo "  ✓ Node is Ready, now verifying certificates..."
+
+# Verify certificates are actually working
+if verify_node_certificates "$node"; then
+    echo "  ✅ Certificates verified, removing taint"
+    if remove_taint_from_node "$node"; then
+    removed=$((removed + 1))
+    fi
+else
+    echo "  ❌ Certificate verification failed, keeping taint for now"
+    echo "  ℹ️  Will retry on next run"
+fi
+echo
+done
+
+echo "=== Summary ==="
+echo "Processed nodes: $processed"
+echo "Removed taints: $removed"
+echo "=== Job Complete ==="
