@@ -1,0 +1,43 @@
+# CronJob to remove certificate-pending taints from ready runner nodes
+# Fixes CSR timing issues that cause GitLab CI job failures
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: runner-node-certificate-controller
+  namespace: custom
+  labels:
+    app: runner-node-certificate-controller
+    component: certificate-controller
+    purpose: csr-timing-fix
+spec:
+  schedule: "*/1 * * * *"  # Run every minute
+  concurrencyPolicy: Forbid  # Don't run concurrent jobs
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: runner-node-certificate-controller-job
+        spec:
+          serviceAccountName: runner-node-certificate-controller
+          restartPolicy: Never
+          containers:
+          - name: runner-node-certificate-controller
+            image: ghcr.io/spack/runner-node-certificate-controller:0.0.1
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 20m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+            envFrom:
+            - configMapRef:
+              name: python-scripts-sentry-config
+          nodeSelector:
+            spack.io/node-pool: base
