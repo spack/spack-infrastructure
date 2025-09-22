@@ -1,0 +1,14 @@
+[project]
+name = "runner-node-certificate-controller"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "kubernetes>=33.1.0",
+    "sentry-sdk>=2.38.0",
+]
+
+[dependency-groups]
+dev = [
+    "kubernetes-stubs>=22.6.0.post1",
+]

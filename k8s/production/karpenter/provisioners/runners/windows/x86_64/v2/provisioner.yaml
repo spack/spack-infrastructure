@@ -54,6 +54,13 @@ spec:
           value: "true"
           effect: NoSchedule
 
+      startupTaints:
+        # See k8s/production/custom/runner-node-certificate-controller/
+        # for explanation of this
+        - key: "node.spack.io/certificate-pending"
+          value: "true"
+          effect: "NoSchedule"
+
   limits:
     cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
     memory: 15Ti # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
