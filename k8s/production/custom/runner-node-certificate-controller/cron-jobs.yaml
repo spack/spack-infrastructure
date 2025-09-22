@@ -38,6 +38,6 @@ spec:
                 memory: 256Mi
             envFrom:
             - configMapRef:
-              name: python-scripts-sentry-config
+                name: python-scripts-sentry-config
           nodeSelector:
             spack.io/node-pool: base
