@@ -53,7 +53,7 @@ jobs:
           - docker-image: ./images/retry-trigger-jobs
             image-tags: ghcr.io/spack/retry-trigger-jobs:0.0.2
           - docker-image: ./images/runner-node-certificate-controller
-            image-tags: ghcr.io/spack/runner-node-certificate-controller:0.0.1
+            image-tags: ghcr.io/spack/runner-node-certificate-controller:0.0.2
     steps:
       - name: Checkout
         uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3

@@ -28,36 +28,30 @@ def remove_taint_from_node(v1_client: client.CoreV1Api, node_name: str) -> bool:
     """Remove certificate-pending taint from a node"""
     print(f"Removing certificate-pending taint from node: {node_name}")
 
-    try:
-        # Get current node
-        node = v1_client.read_node(name=node_name)
+    # Get current node
+    node = v1_client.read_node(name=node_name)
 
-        # Remove the taint
-        if node.spec and node.spec.taints:
-            filtered_taints = [t for t in node.spec.taints if t.key != TAINT_KEY]
-            node.spec.taints = filtered_taints if filtered_taints else None
+    # Remove the taint
+    if node.spec and node.spec.taints:
+        filtered_taints = [t for t in node.spec.taints if t.key != TAINT_KEY]
+        if not filtered_taints:
+            return False
+        node.spec.taints = filtered_taints if filtered_taints else None
 
-        # Update the node
-        v1_client.patch_node(name=node_name, body=node)
-        print(f"✓ Successfully removed taint from {node_name}")
-        return True
-
-    except ApiException as e:
-        print(f"✗ Failed to remove taint from {node_name}: {e}")
-        return False
+    # Update the node
+    v1_client.patch_node(name=node_name, body=node)
+    print(f"✓ Successfully removed taint from {node_name}")
+    return True
 
 
 def is_node_ready(v1_client: client.CoreV1Api, node_name: str) -> bool:
     """Check if node is ready"""
-    try:
-        node = v1_client.read_node_status(name=node_name)
-        if node.status and node.status.conditions:
-            for condition in node.status.conditions:
-                if condition.type == "Ready":
-                    return condition.status == "True"
-        return False
-    except ApiException:
-        return False
+    node = v1_client.read_node_status(name=node_name)
+    if node.status and node.status.conditions:
+        for condition in node.status.conditions:
+            if condition.type == "Ready":
+                return condition.status == "True"
+    return False
 
 
 def verify_node_certificates(
@@ -66,26 +60,20 @@ def verify_node_certificates(
     """Verify node certificates are actually working"""
     print(f"  🔍 Verifying certificates are functional on {node_name}...")
 
-    # Test 1: Check if CSRs for this node are approved
-    try:
-        csr_list = cert_client.list_certificate_signing_request()
-        approved_csrs = []
+    csr_list = cert_client.list_certificate_signing_request()
+    approved_csrs = []
 
-        for csr in csr_list.items:
-            if csr.spec.username and node_name in csr.spec.username:
-                if csr.status and csr.status.conditions:
-                    if any(c.type == "Approved" for c in csr.status.conditions):
-                        approved_csrs.append(csr.metadata.name)
+    for csr in csr_list.items:
+        if csr.spec.username and node_name in csr.spec.username:
+            if csr.status and csr.status.conditions:
+                if any(c.type == "Approved" for c in csr.status.conditions):
+                    approved_csrs.append(csr.metadata.name)
 
-        if not approved_csrs:
-            print(f"  ❌ No approved CSRs found for node {node_name}")
-            return False
-
-        print(f"  ✅ Found approved CSRs for node: {', '.join(approved_csrs)}")
-
-    except ApiException as e:
-        print(f"  ❌ Failed to get CSRs: {e}")
+    if not approved_csrs:
+        print(f"  ❌ No approved CSRs found for node {node_name}")
         return False
+
+    print(f"  ✅ Found approved CSRs for node: {', '.join(approved_csrs)}")
 
     # Test 2: Verify node can make API calls by checking kubelet endpoints
     print("  🔍 Testing kubelet API responsiveness...")
@@ -127,20 +115,15 @@ def verify_node_certificates(
         print("  ❌ Node kubelet API is not responsive")
         return False
 
-    # Test 3: Check node conditions for certificate-related issues
-    try:
-        node = v1_client.read_node_status(name=node_name)
-        if node.status and node.status.conditions:
-            for condition in node.status.conditions:
-                reason = condition.reason or ""
-                message = condition.message or ""
+    node = v1_client.read_node_status(name=node_name)
+    if node.status and node.status.conditions:
+        for condition in node.status.conditions:
+            reason = condition.reason or ""
+            message = condition.message or ""
 
-                if reason == "KubeletNotReady" or "certificate" in message.lower():
-                    print(f"  ❌ Certificate-related issues found: {message}")
-                    return False
-    except ApiException:
-        print("  ❌ Failed to get node conditions")
-        return False
+            if reason == "KubeletNotReady" or "certificate" in message.lower():
+                print(f"  ❌ Certificate-related issues found: {message}")
+                return False
 
     print("  ✅ No certificate-related issues in node conditions")
     print(f"  🎉 All certificate checks passed for {node_name}")
@@ -149,39 +132,31 @@ def verify_node_certificates(
 
 def get_node_age_seconds(v1_client: client.CoreV1Api, node_name: str) -> int:
     """Get node age in seconds"""
-    try:
-        node = v1_client.read_node(name=node_name)
-        if node.metadata and node.metadata.creation_timestamp:
-            current_dt = datetime.now(timezone.utc)
-            age_seconds = int(
-                (current_dt - node.metadata.creation_timestamp).total_seconds()
-            )
-            return age_seconds
-        return 0
-    except ApiException:
-        return 0
+    node = v1_client.read_node(name=node_name)
+    if node.metadata and node.metadata.creation_timestamp:
+        current_dt = datetime.now(timezone.utc)
+        age_seconds = int(
+            (current_dt - node.metadata.creation_timestamp).total_seconds()
+        )
+        return age_seconds
+    return 0
 
 
 def get_tainted_runner_nodes(v1_client: client.CoreV1Api) -> list[str]:
     """Find all runner nodes with certificate-pending taint"""
     print("Finding runner nodes with certificate-pending taint...")
 
-    try:
-        nodes = v1_client.list_node(label_selector="spack.io/pipeline=true")
-        tainted_nodes = []
+    nodes = v1_client.list_node(label_selector="spack.io/pipeline=true")
+    tainted_nodes = []
 
-        for node in nodes.items:
-            node_name = node.metadata.name
-            if node.spec.taints:
-                # Check if this node has our taint
-                if any(taint.key == TAINT_KEY for taint in node.spec.taints):
-                    tainted_nodes.append(node_name)
+    for node in nodes.items:
+        node_name = node.metadata.name
+        if node.spec.taints:
+            # Check if this node has our taint
+            if any(taint.key == TAINT_KEY for taint in node.spec.taints):
+                tainted_nodes.append(node_name)
 
-        return tainted_nodes
-
-    except ApiException as e:
-        print(f"Failed to get nodes: {e}")
-        return []
+    return tainted_nodes
 
 
 def main():
