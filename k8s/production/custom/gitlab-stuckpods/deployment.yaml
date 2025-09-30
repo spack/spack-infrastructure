@@ -19,7 +19,7 @@ spec:
       serviceAccountName: stuckpod-controller
       containers:
         - name: deletor
-          image: ghcr.io/spack/stuckpods:0.0.1
+          image: ghcr.io/spack/stuckpods:0.0.2
           imagePullPolicy: Always
           resources:
             requests:

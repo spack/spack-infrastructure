@@ -15,7 +15,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: refresh-gitaly-bundle
-              image: bitnami/kubectl
+              image: bitnamisecure/kubectl
               imagePullPolicy: IfNotPresent
               command:
                 - /bin/sh

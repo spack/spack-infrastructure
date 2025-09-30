@@ -27,7 +27,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: restarter
-              image: bitnami/kubectl
+              image: bitnamisecure/kubectl
               imagePullPolicy: IfNotPresent
               command: ["kubectl"]
               args:
