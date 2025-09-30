@@ -43,6 +43,5 @@ __pycache__/
 # Spack secret files
 private.key
 
-# Editor config files
-.vscode
+# PyCharm config files
 .idea
