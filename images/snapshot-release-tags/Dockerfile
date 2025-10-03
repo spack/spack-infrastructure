@@ -9,4 +9,4 @@ RUN uv pip install --system -r requirements.txt
 
 COPY . .
 
-CMD [ "python", "./snapshot_release_tags.py" ]
+ENTRYPOINT [ "python" ]
