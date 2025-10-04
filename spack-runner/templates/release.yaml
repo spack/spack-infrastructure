@@ -1,0 +1,71 @@
+{{- $name := .Values.gitlabUrl | required ".Values.gitlabUrl is required." -}}
+{{- $name := .Values.tags | required ".Values.tags is required." -}}
+{{- $name := .Values.secret | required ".Values.secret is required." -}}
+
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  interval: 10m
+  url: https://charts.gitlab.io
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: gitlab-runner
+      version: {{ .Chart.Version }}
+      sourceRef:
+        kind: HelmRepository
+        name: {{ .Release.Name }}
+  values:
+    imagePullPolicy: IfNotPresent
+    replicas: 3
+
+    gitlabUrl: {{ .Values.gitlabUrl }}
+    unregisterRunners: true
+    terminationGracePeriodSeconds: 21600 # six hours
+    concurrent: 20
+    checkInterval: 30
+
+    metrics:
+      enabled: true
+
+    rbac:
+      serviceAccountName: runner
+
+    runners:
+      config: |
+        {{ include "config.toml" . | nindent 8 }}
+
+      # default image
+      image: "busybox:1.32.0"
+      imagePullPolicy: "if-not-present"
+
+      locked: true
+      protected: true
+      runUntagged: false
+
+      tags: {{ .Values.tags }}
+      secret: {{ .Values.secret }}
+
+      serviceAccountName: runner
+
+      cache: {}
+
+      services: {}
+
+    nodeSelector:
+      spack.io/node-pool: base # pool for the runner
+
+    podAnnotations:
+      karpenter.sh/do-not-evict: true
