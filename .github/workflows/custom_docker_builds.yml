@@ -41,7 +41,7 @@ jobs:
           - docker-image: ./images/python-aws-bash
             image-tags: ghcr.io/spack/python-aws-bash:0.0.2
           - docker-image: ./images/snapshot-release-tags
-            image-tags: ghcr.io/spack/snapshot-release-tags:0.0.4
+            image-tags: ghcr.io/spack/snapshot-release-tags:0.0.5
           - docker-image: ./images/cache-indexer
             image-tags: ghcr.io/spack/cache-indexer:0.0.6
           - docker-image: ./analytics
