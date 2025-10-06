@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
+set -e
+
 export PGUSER=postgres
 export PGPORT=5432
 export PGHOST=localhost
 export PGDATABASE=django
 export PGPASSWORD=postgres
-
-NULL_VALUE="<null>"
 
 
 function load_from_file {
@@ -20,6 +20,20 @@ function load_from_file {
     HEADERS=$(head -n 1 $backup_file)
     echo "loading $table_name from $backup_file ..."
     psql -c "\copy $table_name($HEADERS) FROM '$backup_file' WITH(FORMAT CSV, HEADER, NULL '<null>')"
+    # Fix the ID sequence after COPY FROM, if it exists.
+    # This has to be wrapped in an anonymous function to work around errors if the sequence does not exist.
+    seq_table_name=${table_name}_id_seq
+    psql -c "
+        DO
+        \$$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class where relname = '$seq_table_name') THEN
+                PERFORM setval('$seq_table_name', max(id)) FROM ${table_name};
+            END IF;
+        END;
+        \$$
+        LANGUAGE plpgsql;
+    "
 }
 
 
