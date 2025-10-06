@@ -24,12 +24,13 @@ class RetryInfo:
 
 
 def get_job_retry_data(
-    job_id: int, job_name: str, job_commit_id: int, job_failure_reason: str
+    job_id: int, job_name: str, job_pipeline_id: int, job_failure_reason: str
 ) -> RetryInfo:
     with connections["gitlab"].cursor() as cursor:
-        # the prior attempts for a given job are all jobs with a lower id, the same commit_id, and
-        # the same name. the commit_id is the foreign key for the pipeline.
-        # it's important to filter for a lower job id in the event that the webhook is delayed or
+        # In gitlab, the pipeline ID is stored as `commit_id`.
+        # The prior attempts for a given job are all jobs with a lower id, the same commit_id, and
+        # the same name. 
+        # It's important to filter for a lower job id in the event that the webhook is delayed or
         # received out of order.
         cursor.execute(
             """
@@ -39,7 +40,7 @@ def get_job_retry_data(
             AND commit_id = %(commit_id)s
             AND name = %(job_name)s
             """,
-            {"job_id": job_id, "job_name": job_name, "commit_id": job_commit_id},
+            {"job_id": job_id, "job_name": job_name, "commit_id": job_pipeline_id},
         )
         attempt_number = cursor.fetchone()[0] + 1
 

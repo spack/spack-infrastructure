@@ -60,7 +60,7 @@ def store_job_data(job_input_data_json: str) -> None:
     retry_info = get_job_retry_data(
         job_id=job_input_data["build_id"],
         job_name=job_input_data["build_name"],
-        job_commit_id=job_input_data["commit"]["id"],
+        job_pipeline_id=job_input_data["pipeline_id"],
         job_failure_reason=job_input_data["build_failure_reason"],
     )
     job_input_data.update(asdict(retry_info))

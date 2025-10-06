@@ -165,12 +165,12 @@ def create_job_result_dimension(job_input_data: dict, job_trace: str):
 def create_job_retry_dimension(job_input_data: dict):
     job_id = job_input_data["build_id"]
     job_name = job_input_data["build_name"]
-    job_commit_id = job_input_data["commit"]["id"]
+    job_pipeline_id = job_input_data["pipeline_id"]
     job_failure_reason: str = job_input_data["build_failure_reason"]
     retry_info = get_job_retry_data(
         job_id=job_id,
         job_name=job_name,
-        job_commit_id=job_commit_id,
+        job_pipeline_id=job_pipeline_id,
         job_failure_reason=job_failure_reason,
     )
 
