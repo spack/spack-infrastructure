@@ -134,7 +134,7 @@ def create_gitlab_job_data_dimension(
         gitlab_runner_version=runner_version,
         ref=gljob.ref,
         tags=gljob.tag_list,
-        commit_id=job_input_data["commit"]["id"],
+        pipeline_id=job_input_data["pipeline_id"],
     )
 
     return res

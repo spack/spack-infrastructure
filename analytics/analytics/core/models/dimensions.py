@@ -171,7 +171,7 @@ class GitlabJobDataDimension(models.Model):
     gitlab_runner_version = models.CharField(max_length=16)
     ref = models.CharField(max_length=256)
     tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
-    commit_id = models.PositiveBigIntegerField(null=True)
+    pipeline_id = models.PositiveBigIntegerField(null=True)
 
     class Meta:
         constraints = [
@@ -181,7 +181,7 @@ class GitlabJobDataDimension(models.Model):
                     "gitlab_runner_version",
                     "ref",
                     "tags",
-                    "commit_id",
+                    "pipeline_id",
                 ],
             ),
         ]
