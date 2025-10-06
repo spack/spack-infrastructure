@@ -47,7 +47,7 @@ jobs:
           - docker-image: ./analytics
             image-tags: ghcr.io/spack/django:0.5.9
           - docker-image: ./images/ci-prune-buildcache
-            image-tags: ghcr.io/spack/ci-prune-buildcache:0.0.4
+            image-tags: ghcr.io/spack/ci-prune-buildcache:0.0.5
           - docker-image: ./images/protected-publish
             image-tags: ghcr.io/spack/protected-publish:0.0.9
           - docker-image: ./images/retry-trigger-jobs
