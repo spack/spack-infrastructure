@@ -33,7 +33,7 @@ images:
     image: ghcr.io/spack/django:0.5.14
 
   - path: ./images/ci-prune-buildcache
-    image: ghcr.io/spack/ci-prune-buildcache:0.0.4
+    image: ghcr.io/spack/ci-prune-buildcache:0.0.5
 
   - path: ./images/protected-publish
     image: ghcr.io/spack/protected-publish:0.0.9
