@@ -1,5 +1,4 @@
+awscli
 boto3
-botocore
 python-gitlab
 sentry-sdk
-urllib3
