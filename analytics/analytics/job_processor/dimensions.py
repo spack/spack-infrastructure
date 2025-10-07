@@ -130,11 +130,18 @@ def create_gitlab_job_data_dimension(
     rvmatch = re.search(r"Running with gitlab-runner (\d+\.\d+\.\d+)", job_trace)
     runner_version = rvmatch.group(1) if rvmatch is not None else ""
 
+    # If a job doesn't have source_pipeline, then it exists within the parent pipeline itself.
+    if "source_pipeline" in job_input_data and "pipeline_id" in job_input_data["source_pipeline"]:
+        parent_pipeline_id = job_input_data["source_pipeline"]["pipeline_id"]
+    else:
+        parent_pipeline_id = job_input_data["pipeline_id"]
+
     res, _ = GitlabJobDataDimension.objects.get_or_create(
         gitlab_runner_version=runner_version,
         ref=gljob.ref,
         tags=gljob.tag_list,
         pipeline_id=job_input_data["pipeline_id"],
+        parent_pipeline_id=parent_pipeline_id,
     )
 
     return res
