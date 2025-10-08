@@ -7,14 +7,19 @@ import subprocess
 
 from collections import defaultdict
 from concurrent.futures import as_completed, ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Callable, Dict, List, Optional
 
 import botocore.exceptions
 
-import gitlab
+import github
 import requests
-import sentry_sdk
+try:
+    import sentry_sdk
+    sentry_sdk.init(traces_sample_rate=1.0)
+except ImportError:
+    print("Sentry Disabled")
+
 from boto3.s3.transfer import TransferConfig
 
 from .common import (
@@ -33,10 +38,7 @@ from .common import (
     UnexpectedURLFormatError,
 )
 
-sentry_sdk.init(traces_sample_rate=1.0)
-
-GITLAB_URL = "https://gitlab.spack.io"
-GITLAB_PROJECT = "spack/spack"
+GITHUB_PROJECT = "spack/spack-packages"
 PREFIX_REGEX_V2 = re.compile(r"/build_cache/(.+)$")
 PROTECTED_REF_REGEXES = [
     re.compile(r"^develop$"),
@@ -596,23 +598,29 @@ def generate_spec_catalogs_v3(
 ################################################################################
 #
 def get_recently_run_protected_refs(last_n_days):
-    """Query gitlab pipelines to get recently run refs
+    """Query Github for recently updated refs
 
     Filter through pipelines updated over the last_n_days to find all protected
     branches that had a pipeline run.
     """
-    gl = gitlab.Gitlab(GITLAB_URL)
-    project = gl.projects.get(GITLAB_PROJECT)
-    now = datetime.now()
-    previous = now - timedelta(days=last_n_days)
+    gh = github.Github()
+    repo = gh.get_repo(GITHUB_PROJECT)
+
     recent_protected_refs = set()
-    print(f"Piplines in the last {last_n_days} day(s):")
-    for pipeline in project.pipelines.list(
-        iterator=True, updated_before=now, updated_after=previous
-    ):
-        print(f"  {pipeline.id}: {pipeline.ref}")
-        if is_ref_protected(pipeline.ref):
-            recent_protected_refs.add(pipeline.ref)
+    now = datetime.now(timezone.utc)
+    previous = now - timedelta(days=last_n_days)
+    for branch in repo.get_branches():
+        if not branch.protected:
+            continue
+        if branch.commit.commit.author.date < previous:
+            continue
+        recent_protected_refs.add(branch.name)
+
+    for tag in repo.get_tags():
+        if tag.last_modified_datetime < previous:
+            continue
+        recent_protected_refs.add(tag.name)
+
     return list(recent_protected_refs)
 
 
@@ -669,7 +677,7 @@ def main():
         "-v",
         "--version",
         type=int,
-        default=2,
+        default=3,
         help=("Target layout version to publish (either 2 or 3, defaults to 2)"),
     )
     parser.add_argument(
