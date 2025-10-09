@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: prune-buildcache
+  name: prune-buildcache-v3
   namespace: custom
 spec:
   schedule: "0 0 * * 6"
@@ -17,17 +17,20 @@ spec:
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.4
-            imagePullPolicy: IfNotPresent
+            # TODO: change image
+            image: ghcr.io/mvandenburgh/ci-prune-buildcache:0.0.5
+            imagePullPolicy: Always
             resources:
               requests:
-                cpu: 500m
-                memory: 500M
+                cpu: "16" # 16 cores to allow for high degree of parallelism
+                memory: 1G  # based on testing, pruner uses between 500MB and 1GB of memory
+              limits:
+                memory: 1.5G
             env:
             - name: GITLAB_URL
               value: "https://gitlab.spack.io"
             - name: GITLAB_PROJECT
-              value: "spack/spack"
+              value: "spack/spack-packages"
             - name: BUILDCACHE_URL
               value: "s3://spack-binaries/develop"
             - name: PRUNE_REF
@@ -38,4 +41,4 @@ spec:
               - configMapRef:
                   name: python-scripts-sentry-config
           nodeSelector:
-            spack.io/node-pool: base
+            spack.io/node-pool: beefy
