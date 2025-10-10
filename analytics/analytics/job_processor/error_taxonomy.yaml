@@ -64,7 +64,7 @@ taxonomy:
 
     failed_to_get_specs:
       grep_for:
-        - 'Error: Unable to generate package index: Failed to get list of specs from'
+        - 'Error: Unable to generate package index: Failed to get list of entries from'
 
     build_error:
       grep_for:
