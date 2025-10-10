@@ -2,6 +2,15 @@ name: Check Docker Image Versions
 
 on:
   pull_request:
+    types:
+      # Default values
+      - opened
+      - synchronize
+      - reopened
+      # Re-run if labels change
+      - labeled
+      - unlabeled
+
 
 jobs:
   check-image:
