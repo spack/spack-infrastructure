@@ -50,7 +50,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "binary_mirror" {
     filter {}
 
     noncurrent_version_expiration {
-      noncurrent_days = 30
+      noncurrent_days = 7
+    }
+
+    expiration {
+      expired_object_delete_marker = true
     }
   }
 }
