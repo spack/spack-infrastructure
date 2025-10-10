@@ -5,13 +5,25 @@ on:
 
 jobs:
   check-image:
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-image-bump') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - run: git fetch --no-tags --prune --depth=1 origin main
+      - name: Check for no-image-bump label on PR
+        id: label-check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+        run: |
+          gh api -H "Accept: application/vnd.github+json" /repos/spack/spack-infrastructure/issues/${{ github.event.pull_request.number }}/labels \
+            | jq '[.[].name]' \
+            | jq -e 'any(. == "no-image-bump")'
+
+      - name: Fetch the rest of the repo
+        run: git fetch --no-tags --prune --depth=1 origin main
+        if: steps.label-check.outcome == 'failure'
 
       - name: Check for modified directories that need an image bump
+        if: steps.label-check.outcome == 'failure'
         run: ./.github/scripts/check_docker_image_versions.sh
