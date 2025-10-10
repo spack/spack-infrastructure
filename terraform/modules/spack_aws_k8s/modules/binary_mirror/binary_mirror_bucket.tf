@@ -40,6 +40,24 @@ resource "aws_s3_bucket_versioning" "binary_mirror" {
   }
 }
 
+resource "aws_s3_bucket_lifecycle_configuration" "binary_mirror" {
+  bucket = aws_s3_bucket.binary_mirror.id
+
+  rule {
+    id     = "Delete non-current versions after 30 days"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 7
+    }
+
+    expiration {
+      expired_object_delete_marker = true
+    }
+  }
+}
 
 resource "aws_s3_bucket_acl" "binary_mirror" {
   bucket = aws_s3_bucket.binary_mirror.id
