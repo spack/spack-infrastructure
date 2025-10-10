@@ -177,6 +177,7 @@ taxonomy:
         - 'spack.error.InstallError'
         - 'Traceback \(most recent call last\):[\S\n\t\v ]+AssertionError'
         - 'ConfigFormatError'
+        - 'KeyError: VersionBase'
 
     invalid_pipeline_yaml:
       grep_for:
