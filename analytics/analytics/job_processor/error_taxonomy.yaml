@@ -64,7 +64,7 @@ taxonomy:
 
     failed_to_get_specs:
       grep_for:
-        - 'Error: Unable to generate package index: Failed to get list of specs from'
+        - 'Error: Unable to generate package index: Failed to get list of entries from'
 
     build_error:
       grep_for:
@@ -83,7 +83,11 @@ taxonomy:
 
     gitlab_down:
       grep_for:
-        - 'fatal: unable to access'
+        - "fatal: unable to access 'https://gitlab.spack.io"
+
+    github_down:
+      grep_for:
+        - "fatal: unable to access 'https://github.com"
 
     module_not_found:
       grep_for:
@@ -176,6 +180,8 @@ taxonomy:
         - 'Error: module .+ has no attribute'
         - 'spack.error.InstallError'
         - 'Traceback \(most recent call last\):[\S\n\t\v ]+AssertionError'
+        - 'ConfigFormatError'
+        - 'KeyError: VersionBase'
 
     invalid_pipeline_yaml:
       grep_for:
@@ -293,6 +299,7 @@ taxonomy:
     # System Errors
     - 'oom'
     - 'gitlab_down'
+    - 'github_down'
     - 'artifacts'
     - 'fatal'
     - 'pod_exec'
