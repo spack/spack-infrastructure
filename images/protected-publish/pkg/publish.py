@@ -280,13 +280,14 @@ def publish(
     print("Publishing complete")
 
     # Clone spack version appropriate to what we're publishing
-    clone_spack(ref, clone_dir=workdir)
+    clone_spack(packages_ref=ref, clone_dir=workdir)
     spack_exe = f"{workdir}/spack/bin/spack"
 
     # Can be useful for testing to clone a custom spack to somewhere other than "/"
     # clone_spack(
-    #     ref="content-addressable-tarballs-2",
-    #     repo="https://github.com/scottwittenburg/spack.git",
+    #     packages_ref=ref,
+    #     spack_ref="content-addressable-tarballs-2",
+    #     spack_repo="https://github.com/scottwittenburg/spack.git",
     #     clone_dir=workdir,
     # )
     # spack_exe = f"{workdir}/spack/bin/spack"
@@ -641,7 +642,7 @@ def main():
     parser.add_argument(
         "-r",
         "--ref",
-        default="develop",
+        action="append",
         help=(
             "A single protected ref to publish, or else 'recent', to "
             "publish any protected refs that had a pipeline recently"
@@ -690,10 +691,18 @@ def main():
 
     args = parser.parse_args()
 
-    if args.ref == "recent":
+    refs = []
+    if not args.ref:
+        refs = ["develop"]
+
+    if "recent" in args.ref:
         refs = get_recently_run_protected_refs(args.days)
-    else:
-        refs = [args.ref]
+        args.ref.remove("recent")
+
+    if args.ref:
+        refs.extend(list(args.ref))
+        print(args.ref)
+        print(refs)
 
     exceptions = []
 
