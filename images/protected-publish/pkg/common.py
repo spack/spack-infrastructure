@@ -15,6 +15,7 @@ from boto3.s3.transfer import TransferConfig
 
 
 SPACK_REPO = "https://github.com/spack/spack"
+PACKAGES_REPO = "https://github.com/spack/spack-packages"
 
 TIMESTAMP_AND_SIZE = r"^[\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2}\s+\d+\s+"
 TIMESTAMP_PATTERN = "%Y-%m-%d %H:%M:%S"
@@ -188,11 +189,15 @@ def extract_json_from_clearsig(file_path):
 # clone the matching version of spack.
 #
 # Clones the version of spack specified by ref to the root of the file system
-def clone_spack(ref: str = "develop", repo: str = SPACK_REPO, clone_dir: str = "/"):
+def clone_spack(spack_ref: str = "develop", packages_ref: str = "develop", spack_repo: str = SPACK_REPO, packages_repo: str = PACKAGES_REPO, clone_dir: str = "/"):
     spack_path = f"{clone_dir}/spack"
+    packages_path = f"{clone_dir}/spack-packages"
 
     if os.path.isdir(spack_path):
         shutil.rmtree(spack_path)
+
+    if os.path.isdir(packages_path):
+        shutil.rmtree(packages_path)
 
     owd = os.getcwd()
 
@@ -206,8 +211,35 @@ def clone_spack(ref: str = "develop", repo: str = SPACK_REPO, clone_dir: str = "
                 "1",
                 "--single-branch",
                 "--branch",
-                f"{ref}",
-                f"{repo}",
+                f"{spack_ref}",
+                f"{spack_repo}",
+                spack_path,
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                "--single-branch",
+                "--branch",
+                f"{packages_ref}",
+                f"{packages_repo}",
+                packages_path,
+            ],
+            check=True,
+        )
+        # Configure the repo destination
+        subprocess.run(
+            [
+                "spack/bin/spack",
+                "repo",
+                "set",
+                "builtin",
+                "--destination",
+                packages_path,
             ],
             check=True,
         )
