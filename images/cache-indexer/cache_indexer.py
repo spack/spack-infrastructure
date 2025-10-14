@@ -98,10 +98,12 @@ def build_json(bucket_name, index_paths):
             mirror_label = get_label(parts[1])
             if mirror_label:
                 try:
+                    index_url = get_index_url(bucket_name, p)
                     json_data[ref].append({
                         "label": mirror_label,
-                        "url": get_index_url(bucket_name, p),
+                        "url": index_url,
                     })
+                    print(f"Adding index to label {mirror_label}: {index_url}")
                 except IndexManifestError as e:
                     print(f"Skipping {p} due to: {e}")
                     continue
@@ -118,6 +120,7 @@ def query_bucket(bucket_name):
         for obj in page["Contents"]:
             if INDEX_MATCHER.search(obj["Key"]):
                 results.append(obj["Key"])
+                print("Found index at: " + obj["Key"])
 
     return results
 
