@@ -1,11 +1,16 @@
+import logging
 from itertools import batched
 from django.db import connections
 from django.core.management.base import BaseCommand
 from analytics.core.models import GitlabJobDataDimension
 from django.db.models import F
+from tqdm import tqdm
 
 QUERY_BATCH_SIZE = 5_000
 UPDATE_BATCH_SIZE = 100
+
+logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
@@ -18,9 +23,17 @@ class Command(BaseCommand):
             .values_list("pipeline_id", flat=True)
         )
 
+        row_count = pipeline_id_query.count()
+        if not row_count:
+            logger.info("Nothing to do...")
+            return
+        logger.info("Rows to process: %s", row_count)
+
         # Process in batches to avoid loading too much into memory at once
         for pipeline_ids in batched(
-            pipeline_id_query.iterator(chunk_size=QUERY_BATCH_SIZE),
+            tqdm(
+                pipeline_id_query.iterator(chunk_size=QUERY_BATCH_SIZE), total=row_count
+            ),
             QUERY_BATCH_SIZE,
         ):
             with connections["gitlab"].cursor() as cursor:
