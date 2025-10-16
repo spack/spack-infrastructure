@@ -1,8 +1,9 @@
 import logging
 from itertools import batched
-from django.db import connections
-from django.core.management.base import BaseCommand
+
 from analytics.core.models import GitlabJobDataDimension
+from django.core.management.base import BaseCommand
+from django.db import connections
 from django.db.models import F
 from tqdm import tqdm
 
@@ -60,7 +61,9 @@ class Command(BaseCommand):
                 pipeline_id__in=pipeline_id_to_source_pipeline_id.keys()
             )
             for obj in objects_to_update:
-                obj.parent_pipeline_id = pipeline_id_to_source_pipeline_id.get(obj.pipeline_id)
+                obj.parent_pipeline_id = pipeline_id_to_source_pipeline_id.get(
+                    obj.pipeline_id
+                )
 
             # Django creates a CASE statement and Postgres chooses not to use the
             # primary key index if there are too many conditions.  We use a smaller
@@ -68,11 +71,11 @@ class Command(BaseCommand):
             GitlabJobDataDimension.objects.bulk_update(
                 objects_to_update,
                 ["parent_pipeline_id"],
-                batch_size=UPDATE_BATCH_SIZE
+                batch_size=UPDATE_BATCH_SIZE,
             )
 
         # Set the parent_pipeline_id for all pipelines without a parent.
         # This update happens entirely on the DB side, so no need to update in batches.
         GitlabJobDataDimension.objects.filter(
             parent_pipeline_id__isnull=True, pipeline_id__isnull=False
-        ).update(parent_pipeline_id=F('pipeline_id'))
+        ).update(parent_pipeline_id=F("pipeline_id"))
