@@ -3,7 +3,7 @@
 echoerr() { printf "%s\n" "$*" >&2; }
 escapestr() { sed -e 's/[.\/]/\\&/g'; }
 
-WORKFLOW_FILE=./.github/workflows/custom_docker_builds.yml
+IMAGES_FILE=./.github/images.yml
 
 # Set to 1 if any of the checks fail
 FAILED=0
@@ -12,7 +12,7 @@ GIT_DIFF='git diff origin/main HEAD'
 
 # What gets fed into the $image var is defined at the end of the loop
 while read image; do
-    DOCKER_IMAGE_DIR=$(echo $image | jq '."docker-image"' -r | sed 's/^\.\///')
+    DOCKER_IMAGE_DIR=$(echo $image | jq '.path' -r | sed 's/^\.\///')
     DOCKER_IMAGE_DIR_PATTERN=$(echo $DOCKER_IMAGE_DIR | escapestr)
 
     # Skip if the directory was not modified at all
@@ -22,7 +22,7 @@ while read image; do
 
     # Is the found tag in the added lines of the diff? If so, don't error just yet.
     # If not, error, as that means the tag we're looking at is the old tag
-    IMAGE_TAG=$(echo $image | jq '."image-tags"' -r)
+    IMAGE_TAGS=$(echo $image | jq '(.image + ":" + .version)')
     IMAGE_TAG_PATTERN=$(echo $IMAGE_TAG | escapestr)
     if ! $GIT_DIFF -- $WORKFLOW_FILE | grep "^+[^+].\+$IMAGE_TAG_PATTERN" > /dev/null; then
         FAILED=1
@@ -48,7 +48,7 @@ while read image; do
 # This is where the input to the while loop variable $image comes in. This is called a "here string" and
 # circumvents the issue with subshells setting global variables.
 # https://www.gnu.org/savannah-checkouts/gnu/bash/manual/bash.html#Here-Strings
-done <<< $(cat $WORKFLOW_FILE | yq ".jobs.build.strategy.matrix.include" -o json | jq -c ".[]")
+done <<< $(cat $WORKFLOW_FILE | yq ".images" -o json | jq -c ".[]")
 
 if [ "$FAILED" -eq "1" ]; then
     exit 1

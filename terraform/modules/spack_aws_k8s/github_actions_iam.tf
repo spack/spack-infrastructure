@@ -47,23 +47,27 @@ resource "aws_iam_role" "github_actions" {
       },
     ]
   })
+}
 
-  # The `ReadOnlyAccess` managed policy doesn't include secretsmanager, so we explicitly grant it here.
-  inline_policy {
-    name = "read-secrets"
-    policy = jsonencode({
-      "Version" : "2012-10-17",
-      "Statement" : [
-        {
-          "Effect" : "Allow",
-          "Action" : [
-            "secretsmanager:GetSecretValue"
-          ],
-          "Resource" : "*"
-        }
-      ]
-    })
-  }
+# The `ReadOnlyAccess` managed policy doesn't include secretsmanager, so we explicitly grant it here.
+resource "aws_iam_role_policy" "github_actions" {
+  count = var.deployment_name == "prod" ? 1 : 0
+
+  name = "${local.iam_role_name}-policy"
+  role = aws_iam_role.github_actions[0].id
+
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "secretsmanager:GetSecretValue"
+        ],
+        "Resource" : "*"
+      }
+    ]
+  })
 }
 
 # This policy grants the GitHub Actions role read-only access to most resources in the AWS account.
