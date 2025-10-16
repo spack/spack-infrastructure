@@ -15,45 +15,33 @@ on:
       - .github/workflows/custom_docker_builds.yml
 
 jobs:
+  check-modified-dirs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.dataStep.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch the main branch
+        run: git fetch --no-tags --prune --depth=1 origin main
+
+      - id: dataStep
+        run: |
+          echo "matrix"=$(.github/scripts/get_custom_image_build_matrix.sh) >> $GITHUB_OUTPUT
+
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    needs: check-modified-dirs
+    if: ${{ needs.check-modified-dirs.outputs.matrix  }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - docker-image: ./images/gh-gl-sync
-            image-tags: ghcr.io/spack/ci-bridge:0.0.46
-          - docker-image: ./images/ci-key-clear
-            image-tags: ghcr.io/spack/ci-key-clear:0.0.2
-          - docker-image: ./images/gitlab-stuckpods
-            image-tags: ghcr.io/spack/stuckpods:0.0.2
-          - docker-image: ./images/gitlab-clear-pipelines
-            image-tags: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
-          - docker-image: ./images/gitlab-delete-stale-branches
-            image-tags: ghcr.io/spack/gitlab-delete-stale-branches:0.0.1
-          - docker-image: ./images/gitlab-skipped-pipelines
-            image-tags: ghcr.io/spack/gitlab-skipped-pipelines:0.0.3
-          - docker-image: ./images/notary
-            image-tags: ghcr.io/spack/notary:0.0.3
-          - docker-image: ./images/python-aws-bash
-            image-tags: ghcr.io/spack/python-aws-bash:0.0.2
-          - docker-image: ./images/snapshot-release-tags
-            image-tags: ghcr.io/spack/snapshot-release-tags:0.0.4
-          - docker-image: ./images/cache-indexer
-            image-tags: ghcr.io/spack/cache-indexer:0.0.6
-          - docker-image: ./analytics
-            image-tags: ghcr.io/spack/django:0.5.11
-          - docker-image: ./images/ci-prune-buildcache
-            image-tags: ghcr.io/spack/ci-prune-buildcache:0.0.4
-          - docker-image: ./images/protected-publish
-            image-tags: ghcr.io/spack/protected-publish:0.0.9
-          - docker-image: ./images/retry-trigger-jobs
-            image-tags: ghcr.io/spack/retry-trigger-jobs:0.0.2
-          - docker-image: ./images/runner-node-certificate-controller
-            image-tags: ghcr.io/spack/runner-node-certificate-controller:0.0.2
+      matrix: ${{ fromJson(needs.check-modified-dirs.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
