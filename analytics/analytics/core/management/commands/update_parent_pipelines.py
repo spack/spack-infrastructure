@@ -9,15 +9,18 @@ UPDATE_BATCH_SIZE = 100
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        gljdd_query = GitlabJobDataDimension.objects.filter(
-            parent_pipeline_id__isnull=True, pipeline_id__isnull=False
+        # Get all the unique pipeline IDs
+        pipeline_id_query = (
+            GitlabJobDataDimension.objects.filter(
+                parent_pipeline_id__isnull=True, pipeline_id__isnull=False
+            )
+            .distinct("pipeline_id")
+            .values_list("pipeline_id", flat=True)
         )
 
         # Process in batches to avoid loading too much into memory at once
         for pipeline_ids in batched(
-            gljdd_query.values_list("pipeline_id", flat=True).iterator(
-                chunk_size=QUERY_BATCH_SIZE
-            ),
+            pipeline_id_query.iterator(chunk_size=QUERY_BATCH_SIZE),
             QUERY_BATCH_SIZE,
         ):
             with connections["gitlab"].cursor() as cursor:
@@ -38,8 +41,8 @@ class Command(BaseCommand):
             if not pipeline_id_to_source_pipeline_id:
                 continue
 
-            # Re-query the objects we got results back in case GitLab and the
-            # analytics DB are out of sync.
+            # Get all objects that will have `parent_pipeline_id` updated. The result of this query is
+            # almost always larger than the batch size, since pipeline IDs are not unique in this table.
             objects_to_update = GitlabJobDataDimension.objects.filter(
                 pipeline_id__in=pipeline_id_to_source_pipeline_id.keys()
             )
