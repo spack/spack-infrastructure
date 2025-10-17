@@ -41,7 +41,7 @@ images:
 
   - path: ./analytics
     image: ghcr.io/spack/django
-    version: 0.5.11
+    version: 0.5.12
 
   - path: ./images/ci-prune-buildcache
     image: ghcr.io/spack/ci-prune-buildcache
