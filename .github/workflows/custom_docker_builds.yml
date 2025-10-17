@@ -72,7 +72,8 @@ jobs:
         with:
           context: ${{ matrix.docker-image }}
           file: ${{ matrix.docker-image }}/Dockerfile
-          push: ${{ github.ref == 'refs/heads/main' }} # only publish image on push to main
+          # push: ${{ github.ref == 'refs/heads/main' }} # only publish image on push to main
+          push: ${{ github.ref == 'refs/heads/docker-build-hotfix' }} # TEST
           tags: ${{ matrix.image-tags }}
           platforms: linux/amd64,linux/arm64
 
