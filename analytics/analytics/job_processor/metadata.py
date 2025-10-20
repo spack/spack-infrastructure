@@ -183,7 +183,19 @@ def retrieve_job_info(gljob: ProjectJob, is_build: bool) -> JobInfo:
         artifacts = get_job_artifacts_data(gljob)
     except (JobArtifactDownloadFailed, JobArtifactFileNotFound, JobArtifactVariablesNotFound):
         if gljob.status == "failed":
-            return JobInfo()
+            # If a job failed and has no artifacts, we can still retrieve basic information about it
+            job_tokens = gljob.name.split()
+            return JobInfo(
+                package=PackageInfo(
+                    name=job_tokens[0].split("@")[0],
+                    hash=job_tokens[1].strip("/"),
+                    version=job_tokens[0].split("@")[1],
+                    compiler_name="",
+                    compiler_version="",
+                    arch="",
+                    variants="",
+                )
+            )
 
         raise
 

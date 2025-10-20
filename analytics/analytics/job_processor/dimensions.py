@@ -277,16 +277,28 @@ def create_package_spec_dimension(info: PackageInfo | None) -> PackageSpecDimens
     if info is None:
         return PackageSpecDimension.get_empty_row()
 
-    spec, _ = PackageSpecDimension.objects.get_or_create(
-        hash=info.hash,
-        defaults={
-            "name": info.name,
-            "version": info.version,
-            "compiler_name": info.compiler_name,
-            "compiler_version": info.compiler_version,
-            "arch": info.arch,
-            "variants": info.variants,
-        },
-    )
+    existing_spec = PackageSpecDimension.objects.filter(hash=info.hash).first()
 
-    return spec
+    if existing_spec is None:
+        return PackageSpecDimension.objects.create(
+            hash=info.hash,
+            name=info.name,
+            version=info.version,
+            compiler_name=info.compiler_name,
+            compiler_version=info.compiler_version,
+            arch=info.arch,
+            variants=info.variants,
+        )
+
+    # We may not have had all of the spec data available to us when originally creating this row.
+    # If we now have more data available to us, update the row.
+    changes_made = False
+    for field in [field.name for field in PackageSpecDimension._meta.fields]:
+        if getattr(existing_spec, field) == "" and getattr(info, field) != "":
+            setattr(existing_spec, field, getattr(info, field))
+            changes_made = True
+
+    if changes_made:
+        existing_spec.save()
+
+    return existing_spec
