@@ -3,8 +3,30 @@
 escapestr() { sed -e 's/[.\/]/\\&/g'; }
 
 IMAGES_FILE=./.github/images.yml
-GIT_DIFF='git diff origin/main HEAD'
 MATRIX_FILE=matrix.json
+
+
+if [[ -z $EVENT_TYPE ]]; then
+    echo EVENT_TYPE env var must be set!
+    exit 1
+fi
+
+# In the event of a force push, simply using ${{github.event.before}} won't work,
+# since it refers to a commit that's no longer in our history. To work around this, we parse the commits manually and
+if [ "$EVENT_TYPE" = "push" ]; then
+    # Github sets this value as null on pull_request event types
+    if [ -z "$COMMITS" ] || [ "$COMMITS" = "null" ]; then
+        echo COMMITS env var must be set on push events
+        exit 1
+    fi
+
+    FIRST_COMMIT=$(echo $COMMITS | jq '.[0].id' |  tr -d '"')
+    BEFORE_SHA=$FIRST_COMMIT~1
+    AFTER_SHA=$(echo $COMMITS | jq '.[-1].id' |  tr -d '"')
+fi
+
+# Defaults are for pull request events
+GIT_DIFF="git diff ${BEFORE_SHA:-origin/main} ${AFTER_SHA:-HEAD}"
 
 touch $MATRIX_FILE
 
