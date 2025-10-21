@@ -9,6 +9,8 @@ on:
       - images/**
       - .github/workflows/custom_docker_builds.yml
   pull_request:
+    branches:
+      - main
     paths:
       - analytics/**
       - images/**
