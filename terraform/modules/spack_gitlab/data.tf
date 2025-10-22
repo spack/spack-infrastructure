@@ -45,3 +45,7 @@ data "aws_route53_zone" "spack_io" {
 data "aws_elasticache_replication_group" "spackbot_queue" {
   replication_group_id = "pr-binary-graduation-queue-${var.deployment_name}-${var.deployment_stage}"
 }
+
+data "aws_iam_role" "eks_cluster_access" {
+  name = "SpackEKSClusterAccess-${var.deployment_name}-${var.deployment_stage}"
+}
