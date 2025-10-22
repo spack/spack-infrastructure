@@ -33,6 +33,8 @@ resource "aws_s3_bucket_policy" "gitlab_object_stores" {
 resource "aws_s3_bucket_lifecycle_configuration" "delete_old_artifacts" {
   bucket = aws_s3_bucket.gitlab_object_stores["artifacts"].id
 
+  transition_default_minimum_object_size = "varies_by_storage_class"
+
   rule {
     id = "DeleteObjectsOlderThan3Months"
 
