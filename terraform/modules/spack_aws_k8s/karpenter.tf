@@ -4,7 +4,7 @@ locals {
 
 module "karpenter" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "20.31.3"
+  version = "21.6.1"
 
   cluster_name = module.eks.cluster_name
 
@@ -18,8 +18,6 @@ module "karpenter" {
     # See comment above the aws_iam_policy resource below for more details.
     "karpenter-windows-pass-role" = aws_iam_policy.karpenter_windows_pass_role.arn
   }
-
-  enable_v1_permissions = true
 }
 
 
@@ -138,7 +136,7 @@ resource "kubectl_manifest" "karpenter_windows_node_class" {
 
 module "karpenter_windows" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "20.31.3"
+  version = "21.6.1"
 
   cluster_name = module.eks.cluster_name
 
@@ -152,8 +150,6 @@ module "karpenter_windows" {
   enable_spot_termination         = false
   create_instance_profile         = false
   create_iam_role                 = false # we'll use the role created by the `karpenter` module above
-
-  enable_v1_permissions = true
 }
 
 resource "aws_iam_policy" "karpenter_windows_pass_role" {
