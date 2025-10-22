@@ -162,7 +162,7 @@ resource "kubectl_manifest" "cdash_s3_secret" {
       name: cdash-s3
       namespace: cdash
     stringData:
-      region: "${data.aws_region.current.name}"
+      region: "${data.aws_region.current.region}"
       bucket: "${aws_s3_bucket.cdash.id}"
   YAML
 }
