@@ -113,7 +113,7 @@ data "aws_iam_policy_document" "main" {
     }
 
     actions   = ["es:ESHttp*"]
-    resources = ["arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${"spack${var.deployment_name == "prod" ? "" : "-${var.deployment_name}"}"}/*"]
+    resources = ["arn:aws:es:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:domain/${"spack${var.deployment_name == "prod" ? "" : "-${var.deployment_name}"}"}/*"]
   }
 }
 
