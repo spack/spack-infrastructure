@@ -53,7 +53,7 @@ resource "aws_iam_role" "github_actions" {
 resource "aws_iam_role_policy" "github_actions" {
   count = var.deployment_name == "prod" ? 1 : 0
 
-  name = "${local.iam_role_name}-policy"
+  name = "read-secrets"
   role = aws_iam_role.github_actions[0].id
 
   policy = jsonencode({
