@@ -24,7 +24,7 @@ while read image; do
     # If not, error, as that means the tag we're looking at is the old tag
     IMAGE_TAGS=$(echo $image | jq '(.image + ":" + .version)')
     IMAGE_TAG_PATTERN=$(echo $IMAGE_TAG | escapestr)
-    if ! $GIT_DIFF -- $WORKFLOW_FILE | grep "^+[^+].\+$IMAGE_TAG_PATTERN" > /dev/null; then
+    if ! $GIT_DIFF -- $IMAGES_FILE | grep "^+[^+].\+$IMAGE_TAG_PATTERN" > /dev/null; then
         FAILED=1
         echoerr "ERROR: Directory '$DOCKER_IMAGE_DIR' modified, but image tag $IMAGE_TAG not incremented!"
         continue
@@ -33,7 +33,7 @@ while read image; do
     # Find the old tag from the diff and search for it. If it exists, error, as that means it hasn't been bumped
     BASE_IMAGE_TAG=$(echo $IMAGE_TAG | cut -d ":" -f1)
     BASE_IMAGE_TAG_PATTERN=$(echo $BASE_IMAGE_TAG | escapestr)
-    OLD_TAG=$($GIT_DIFF -- $WORKFLOW_FILE | sed -nr s"/^-[^-].+($BASE_IMAGE_TAG_PATTERN)/\1/p")
+    OLD_TAG=$($GIT_DIFF -- $IMAGES_FILE | sed -nr s"/^-[^-].+($BASE_IMAGE_TAG_PATTERN)/\1/p")
 
     NEW_TAG_VERSION=$(echo $IMAGE_TAG | cut -d ":" -f2)
     OLD_TAG_VERSION=$(echo $OLD_TAG | cut -d ":" -f2)
@@ -48,7 +48,7 @@ while read image; do
 # This is where the input to the while loop variable $image comes in. This is called a "here string" and
 # circumvents the issue with subshells setting global variables.
 # https://www.gnu.org/savannah-checkouts/gnu/bash/manual/bash.html#Here-Strings
-done <<< $(cat $WORKFLOW_FILE | yq ".images" -o json | jq -c ".[]")
+done <<< $(cat $IMAGES_FILE | yq ".images" -o json | jq -c ".[]")
 
 if [ "$FAILED" -eq "1" ]; then
     exit 1

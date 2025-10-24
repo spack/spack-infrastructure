@@ -9,6 +9,8 @@ on:
       - images/**
       - .github/workflows/custom_docker_builds.yml
   pull_request:
+    branches:
+      - main
     paths:
       - analytics/**
       - images/**
@@ -24,13 +26,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Fetch the main branch
-        run: git fetch --no-tags --prune --depth=1 origin main
+        with:
+          fetch-depth: 0
 
       - id: dataStep
         run: |
           echo "matrix"=$(.github/scripts/get_custom_image_build_matrix.sh) >> $GITHUB_OUTPUT
+        env:
+          EVENT_TYPE: ${{ github.event_name }}
+          COMMITS: ${{ toJSON(github.event.commits) }}
+
 
   build:
     runs-on: ubuntu-latest

@@ -29,7 +29,14 @@ provider "kubectl" {
     api_version = "client.authentication.k8s.io/v1beta1"
     command     = "aws"
     # This requires the awscli to be installed locally where Terraform is executed
-    args = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.spack.name]
+    args = [
+      "eks",
+      "get-token",
+      "--cluster-name",
+      data.aws_eks_cluster.spack.name,
+      "--role",
+      data.aws_iam_role.eks_cluster_access.arn
+    ]
   }
 }
 
