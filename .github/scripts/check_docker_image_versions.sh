@@ -12,7 +12,7 @@ GIT_DIFF='git diff origin/main HEAD'
 
 # What gets fed into the $image var is defined at the end of the loop
 while read image; do
-    DOCKER_IMAGE_DIR=$(echo $image | jq '.path' -r | sed 's/^\.\///')
+    DOCKER_IMAGE_DIR=$(echo $image | jq -r '.path' | sed 's/^\.\///')
     DOCKER_IMAGE_DIR_PATTERN=$(echo $DOCKER_IMAGE_DIR | escapestr)
 
     # Skip if the directory was not modified at all
@@ -22,7 +22,7 @@ while read image; do
 
     # Is the found tag in the added lines of the diff? If so, don't error just yet.
     # If not, error, as that means the tag we're looking at is the old tag
-    IMAGE_TAG=$(echo $image | jq '.image')
+    IMAGE_TAG=$(echo $image | jq -r '.image')
     IMAGE_TAG_PATTERN=$(echo $IMAGE_TAG | escapestr)
     if ! $GIT_DIFF -- $IMAGES_FILE | grep "^+[^+].\+$IMAGE_TAG_PATTERN" > /dev/null; then
         FAILED=1
