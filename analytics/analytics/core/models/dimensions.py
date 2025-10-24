@@ -338,14 +338,15 @@ class PackageSpecDimension(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                # These fields must either have data, or all table rows must be empty (for the 'empty' row)
+                # Must have at least name, hash, and version, or all table rows must be empty (for the 'empty' row).
+                # We only require name, hash, and version because we allow for partial creation of
+                # the package spec if neccesary, to be later completed by another job.
                 name="no-missing-fields",
                 condition=(
                     models.Q(
                         name__length__gt=0,
                         hash__length=32,
                         version__length__gt=0,
-                        arch__length__gt=0,
                     )
                     | models.Q(
                         name="",
