@@ -22,7 +22,7 @@ while read image; do
 
     # Is the found tag in the added lines of the diff? If so, don't error just yet.
     # If not, error, as that means the tag we're looking at is the old tag
-    IMAGE_TAGS=$(echo $image | jq '(.image + ":" + .version)')
+    IMAGE_TAG=$(echo $image | jq '.image')
     IMAGE_TAG_PATTERN=$(echo $IMAGE_TAG | escapestr)
     if ! $GIT_DIFF -- $IMAGES_FILE | grep "^+[^+].\+$IMAGE_TAG_PATTERN" > /dev/null; then
         FAILED=1

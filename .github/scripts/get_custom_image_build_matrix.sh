@@ -47,7 +47,7 @@ while read image; do
     fi
 
     # Directory modified, add to list of images to include in matrix
-    export IMAGE_TAGS=$(echo $image | jq '(.image + ":" + .version)')
+    export IMAGE_TAGS=$(echo $image | jq '.image')
     export IMAGE_PATH=$(echo $image | jq '.path')
     yq '.include += {"docker-image": env(IMAGE_PATH), "image-tags": env(IMAGE_TAGS)}' -o json -i $MATRIX_FILE -I 0
 

@@ -1,60 +1,45 @@
 images:
   - path: ./images/gh-gl-sync
-    image: ghcr.io/spack/ci-bridge
-    version: 0.0.46
+    image: ghcr.io/spack/ci-bridge:0.0.46
 
   - path: ./images/ci-key-clear
-    image: ghcr.io/spack/ci-key-clear
-    version: 0.0.2
+    image: ghcr.io/spack/ci-key-clear:0.0.2
 
   - path: ./images/gitlab-stuckpods
-    image: ghcr.io/spack/stuckpods
-    version: 0.0.2
+    image: ghcr.io/spack/stuckpods:0.0.2
 
   - path: ./images/gitlab-clear-pipelines
-    image: ghcr.io/spack/gitlab-clear-pipelines
-    version: 0.0.1
+    image: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
 
   - path: ./images/gitlab-delete-stale-branches
-    image: ghcr.io/spack/gitlab-delete-stale-branches
-    version: 0.0.1
+    image: ghcr.io/spack/gitlab-delete-stale-branches:0.0.1
 
   - path: ./images/gitlab-skipped-pipelines
-    image: ghcr.io/spack/gitlab-skipped-pipelines
-    version: 0.0.3
+    image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.3
 
   - path: ./images/notary
-    image: ghcr.io/spack/notary
-    version: 0.0.3
+    image: ghcr.io/spack/notary:0.0.3
 
   - path: ./images/python-aws-bash
-    image: ghcr.io/spack/python-aws-bash
-    version: 0.0.2
+    image: ghcr.io/spack/python-aws-bash:0.0.2
 
   - path: ./images/snapshot-release-tags
-    image: ghcr.io/spack/snapshot-release-tags
-    version: 0.0.4
+    image: ghcr.io/spack/snapshot-release-tags:0.0.4
 
   - path: ./images/cache-indexer
-    image: ghcr.io/spack/cache-indexer
-    version: 0.0.6
+    image: ghcr.io/spack/cache-indexer:0.0.6
 
   - path: ./analytics
-    image: ghcr.io/spack/django
-    version: 0.5.14
+    image: ghcr.io/spack/django:0.5.14
 
   - path: ./images/ci-prune-buildcache
-    image: ghcr.io/spack/ci-prune-buildcache
-    version: 0.0.4
+    image: ghcr.io/spack/ci-prune-buildcache:0.0.4
 
   - path: ./images/protected-publish
-    image: ghcr.io/spack/protected-publish
-    version: 0.0.9
+    image: ghcr.io/spack/protected-publish:0.0.9
 
   - path: ./images/retry-trigger-jobs
-    image: ghcr.io/spack/retry-trigger-jobs
-    version: 0.0.2
+    image: ghcr.io/spack/retry-trigger-jobs:0.0.2
 
   - path: ./images/runner-node-certificate-controller
-    image: ghcr.io/spack/runner-node-certificate-controller
-    version: 0.0.2
+    image: ghcr.io/spack/runner-node-certificate-controller:0.0.2
