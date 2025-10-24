@@ -20,9 +20,9 @@ if [ "$EVENT_TYPE" = "push" ]; then
         exit 1
     fi
 
-    FIRST_COMMIT=$(echo $COMMITS | jq '.[0].id' |  tr -d '"')
+    FIRST_COMMIT=$(echo $COMMITS | jq -r '.[0].id')
     BEFORE_SHA=$FIRST_COMMIT~1
-    AFTER_SHA=$(echo $COMMITS | jq '.[-1].id' |  tr -d '"')
+    AFTER_SHA=$(echo $COMMITS | jq -r '.[-1].id')
 fi
 
 # Defaults are for pull request events
@@ -32,7 +32,7 @@ touch $MATRIX_FILE
 
 # What gets fed into the $image var is defined at the end of the loop
 while read image; do
-    DOCKER_IMAGE_DIR=$(echo $image | jq '.path' -r | sed 's/^\.\///')
+    DOCKER_IMAGE_DIR=$(echo $image | jq -r '.path' | sed 's/^\.\///')
     DOCKER_IMAGE_DIR_PATTERN=$(echo $DOCKER_IMAGE_DIR | escapestr)
 
     # Skip if the directory was not modified at all
@@ -47,8 +47,8 @@ while read image; do
     fi
 
     # Directory modified, add to list of images to include in matrix
-    export IMAGE_TAGS=$(echo $image | jq '(.image + ":" + .version)')
-    export IMAGE_PATH=$(echo $image | jq '.path')
+    export IMAGE_TAGS=$(echo $image | jq -r '.image')
+    export IMAGE_PATH=$(echo $image | jq -r '.path')
     yq '.include += {"docker-image": env(IMAGE_PATH), "image-tags": env(IMAGE_TAGS)}' -o json -i $MATRIX_FILE -I 0
 
 # This is where the input to the while loop variable $image comes in. This is called a "here string" and
