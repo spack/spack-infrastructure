@@ -45,7 +45,7 @@ images:
 
   - path: ./images/ci-prune-buildcache
     image: ghcr.io/spack/ci-prune-buildcache
-    version: 0.0.4
+    version: 0.0.5
 
   - path: ./images/protected-publish
     image: ghcr.io/spack/protected-publish
