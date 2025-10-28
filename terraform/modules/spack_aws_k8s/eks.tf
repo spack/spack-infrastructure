@@ -69,6 +69,14 @@ module "eks" {
     }
     vpc-cni = {
       addon_version = "v1.20.1-eksbuild.1"
+      configuration_values = jsonencode({
+        # This setting is required for Windows pods to be able to join the cluster
+        enableWindowsIpam = "true"
+        # TODO: this setting is false by default, but we may want to explore enabling it in the
+        # future if we encounter issues with the CNI not being able to assign IPs to
+        # Windows pods. See https://docs.aws.amazon.com/eks/latest/best-practices/prefix-mode-win.html
+        enableWindowsPrefixDelegation = "false"
+      })
     }
     aws-ebs-csi-driver = {
       addon_version            = "v1.47.0-eksbuild.1"
