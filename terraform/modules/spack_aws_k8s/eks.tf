@@ -88,6 +88,11 @@ module "eks" {
     }
   }
 
+  iam_role_additional_policies = {
+    # Required for the VPC CNI plugin to work on Windows nodes
+    AmazonEKSVPCResourceController = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
+  }
+
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
