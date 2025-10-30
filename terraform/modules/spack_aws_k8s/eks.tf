@@ -59,16 +59,19 @@ module "eks" {
 
   addons = {
     coredns = {
-      addon_version = "v1.11.4-eksbuild.20"
+      # https://docs.aws.amazon.com/eks/latest/userguide/managing-coredns.html#coredns-versions
+      addon_version = "v1.12.4-eksbuild.1"
     }
     eks-pod-identity-agent = {
-      addon_version = "v1.3.8-eksbuild.2"
+      addon_version = "v1.3.9-eksbuild.3"
     }
     kube-proxy = {
-      addon_version = "v1.32.6-eksbuild.6"
+      # https://docs.aws.amazon.com/eks/latest/userguide/managing-kube-proxy.html#kube-proxy-versions
+      addon_version = "v1.34.0-eksbuild.4"
     }
     vpc-cni = {
-      addon_version = "v1.20.1-eksbuild.1"
+      # https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html
+      addon_version = "v1.20.4-eksbuild.1"
       configuration_values = jsonencode({
         # This setting is required for Windows pods to be able to join the cluster
         enableWindowsIpam = "true"
@@ -83,7 +86,7 @@ module "eks" {
       service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
     }
     aws-efs-csi-driver = {
-      addon_version            = "v2.1.10-eksbuild.1"
+      addon_version            = "v2.1.13-eksbuild.1"
       service_account_role_arn = aws_iam_role.efs_csi_driver.arn
     }
   }
