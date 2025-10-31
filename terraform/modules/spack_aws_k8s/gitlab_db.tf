@@ -91,7 +91,7 @@ resource "aws_secretsmanager_secret_version" "gitlab_db" {
 
 module "gitlab_db_proxy" {
   source  = "terraform-aws-modules/rds-proxy/aws"
-  version = "3.1.0"
+  version = "4.0.0"
 
   name                   = "spack-gitlab${local.suffix}"
   iam_role_name          = "spack-gitlab${local.suffix}-db-proxy-role"

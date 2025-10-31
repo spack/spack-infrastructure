@@ -59,7 +59,7 @@ resource "kubectl_manifest" "ses_config_map" {
             reply_to: noreply@${local.gitlab_email_domain}
           smtp:
             enabled: true
-            address: email-smtp.${data.aws_region.current.name}.amazonaws.com
+            address: email-smtp.${data.aws_region.current.region}.amazonaws.com
             user_name: ${aws_iam_access_key.ses_user.id}
             password:
               secret: ${local.smtp_secret_name}

@@ -33,6 +33,8 @@ resource "aws_s3_bucket_policy" "gitlab_object_stores" {
 resource "aws_s3_bucket_lifecycle_configuration" "delete_old_artifacts" {
   bucket = aws_s3_bucket.gitlab_object_stores["artifacts"].id
 
+  transition_default_minimum_object_size = "varies_by_storage_class"
+
   rule {
     id = "DeleteObjectsOlderThan3Months"
 
@@ -161,7 +163,7 @@ resource "kubectl_manifest" "gitlab_object_stores_config_map" {
                   key: ${local.backups_secret_key}
           gitaly:
             bundleUri:
-              goCloudUrl: "s3://${aws_s3_bucket.gitlab_gitaly_bundle_uri.bucket}?region=${data.aws_region.current.name}"
+              goCloudUrl: "s3://${aws_s3_bucket.gitlab_gitaly_bundle_uri.bucket}?region=${data.aws_region.current.region}"
   YAML
 }
 
@@ -177,7 +179,7 @@ resource "kubectl_manifest" "gitlab_object_stores_secret" {
       ${local.connection_secret_key}: |
         provider: "AWS"
         use_iam_profile: "true"
-        region: "${data.aws_region.current.name}"
+        region: "${data.aws_region.current.region}"
   YAML
 }
 
@@ -192,7 +194,7 @@ resource "kubectl_manifest" "gitlab_object_stores_backup_secret" {
     stringData:
       ${local.backups_secret_key}: |
         [default]
-        bucket_location = ${data.aws_region.current.name}
+        bucket_location = ${data.aws_region.current.region}
   YAML
 }
 

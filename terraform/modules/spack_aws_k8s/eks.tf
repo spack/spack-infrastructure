@@ -1,14 +1,14 @@
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.31.3"
+  version = "21.8.0"
 
-  cluster_name    = local.eks_cluster_name
-  cluster_version = "1.32"
+  name               = local.eks_cluster_name
+  kubernetes_version = "1.34"
 
   # Give the Terraform identity admin access to the cluster
   # which will allow it to deploy resources into the cluster
   enable_cluster_creator_admin_permissions = true
-  cluster_endpoint_public_access           = true
+  endpoint_public_access                   = true
 
   access_entries = merge(
     {
@@ -57,27 +57,43 @@ module "eks" {
       }
   } : {})
 
-  cluster_addons = {
+  addons = {
     coredns = {
-      addon_version = "v1.11.4-eksbuild.20"
+      # https://docs.aws.amazon.com/eks/latest/userguide/managing-coredns.html#coredns-versions
+      addon_version = "v1.12.4-eksbuild.1"
     }
     eks-pod-identity-agent = {
-      addon_version = "v1.3.8-eksbuild.2"
+      addon_version = "v1.3.9-eksbuild.3"
     }
     kube-proxy = {
-      addon_version = "v1.32.6-eksbuild.6"
+      # https://docs.aws.amazon.com/eks/latest/userguide/managing-kube-proxy.html#kube-proxy-versions
+      addon_version = "v1.34.0-eksbuild.4"
     }
     vpc-cni = {
-      addon_version = "v1.20.1-eksbuild.1"
+      # https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html
+      addon_version = "v1.20.4-eksbuild.1"
+      configuration_values = jsonencode({
+        # This setting is required for Windows pods to be able to join the cluster
+        enableWindowsIpam = "true"
+        # TODO: this setting is false by default, but we may want to explore enabling it in the
+        # future if we encounter issues with the CNI not being able to assign IPs to
+        # Windows pods. See https://docs.aws.amazon.com/eks/latest/best-practices/prefix-mode-win.html
+        enableWindowsPrefixDelegation = "false"
+      })
     }
     aws-ebs-csi-driver = {
-      addon_version            = "v1.47.0-eksbuild.1"
+      addon_version            = "v1.51.1-eksbuild.1"
       service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
     }
     aws-efs-csi-driver = {
-      addon_version            = "v2.1.10-eksbuild.1"
+      addon_version            = "v2.1.13-eksbuild.1"
       service_account_role_arn = aws_iam_role.efs_csi_driver.arn
     }
+  }
+
+  iam_role_additional_policies = {
+    # Required for the VPC CNI plugin to work on Windows nodes
+    AmazonEKSVPCResourceController = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
   }
 
   vpc_id     = module.vpc.vpc_id
