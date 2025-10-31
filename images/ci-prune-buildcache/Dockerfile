@@ -1,20 +1,26 @@
-FROM fedora:40
+FROM python:3.14-slim
 
 WORKDIR /app/
 
-# python dependencies
-COPY requirements.txt /app/setup/requirements.txt
-COPY setup.sh /app/setup/setup.sh
-RUN /app/setup/setup.sh
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install pruning app
-COPY __init__.py ./
-COPY ci_buildcache_prune.py ./
-COPY pruner.py ./
-COPY buildcache.py ./
-COPY helper.py ./
+# Don't write .pyc files to disk
+ENV PYTHONDONTWRITEBYTECODE=1
+# Don't buffer Python output
+ENV PYTHONUNBUFFERED=1
+
+# Install Python dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY entrypoint.sh ./
+COPY fetch_keeplist.py ./
+COPY prune.py ./
 
-WORKDIR /work/
+WORKDIR /app/
 
-ENTRYPOINT [ "bash", "/app/entrypoint.sh"]
+ENTRYPOINT [ "bash", "/app/entrypoint.sh" ]
