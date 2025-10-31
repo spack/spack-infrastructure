@@ -3,4 +3,3 @@ kind: Kustomization
 resources:
 - ../../production/kube-system/metrics-server.yaml
 - ../../production/kube-system/gp3-storage-class.yaml
-- ../../production/kube-system/enable-windows-ipam.yaml
