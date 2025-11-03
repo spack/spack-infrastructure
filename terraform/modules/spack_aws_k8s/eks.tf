@@ -57,6 +57,9 @@ module "eks" {
       }
   } : {})
 
+  # NOTE: Additional configuration of these addons (like in the vpc-cni addon below) won't necessarily
+  # take immediate effect, as it is configuring the addon, not anything in the cluster directly.
+  # If making configuration changes, you should verify the result manually after a terraform apply.
   addons = {
     coredns = {
       # https://docs.aws.amazon.com/eks/latest/userguide/managing-coredns.html#coredns-versions
