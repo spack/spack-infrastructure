@@ -50,3 +50,56 @@ spec:
               - "all-prechecks"
           nodeSelector:
             spack.io/node-pool: base
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gh-gl-sync-spack
+  namespace: custom
+spec:
+  schedule: "3-59/5 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: sync
+            image: ghcr.io/spack/ci-bridge:0.0.46
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 500M
+            env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: github-access-token
+            # This secret is double base64 encoded
+            - name: GITLAB_SSH_KEY_BASE64
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: gitlab-ssh-key
+            envFrom:
+              - configMapRef:
+                  name: gh-gl-sync-sentry-config
+            args:
+              - "spack/spack"
+              - "ssh://git@ssh.gitlab.spack.io/spack/spack"
+              - "https://gitlab.spack.io"
+              - "spack/spack"
+              - "--pr-mirror-bucket"
+              - "spack-binaries-prs"
+              - "--main-branch"
+              - "develop"
+              - "--prereq-check"
+              - "all-prechecks"
+          nodeSelector:
+            spack.io/node-pool: base
