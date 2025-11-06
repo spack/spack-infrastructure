@@ -2,32 +2,40 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: prune-buildcache
+  name: prune-buildcache-v3
   namespace: custom
 spec:
   schedule: "0 0 * * 6"
   concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      activeDeadlineSeconds: 1200 # terminate any running job after 20 minutes
-      backoffLimit: 0
       template:
+        metadata:
+          annotations:
+            # This is a long-running job, so we don't want to disrupt it
+            karpenter.sh/do-not-disrupt: "true"
         spec:
           serviceAccountName: prune-buildcache
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.4
-            imagePullPolicy: IfNotPresent
+            image: ghcr.io/spack/ci-prune-buildcache:0.0.5
+            imagePullPolicy: Always
             resources:
               requests:
-                cpu: 500m
-                memory: 500M
+                cpu: "4" # at least 4 cores to allow for meaningful parallelism
+                memory: 12G  # based on testing
+                ephemeral-storage: "50G" # based on testing
+              limits:
+                cpu: "6"
+                memory: 16G
             env:
             - name: GITLAB_URL
               value: "https://gitlab.spack.io"
             - name: GITLAB_PROJECT
-              value: "spack/spack"
+              value: "spack/spack-packages"
             - name: BUILDCACHE_URL
               value: "s3://spack-binaries/develop"
             - name: PRUNE_REF
@@ -38,4 +46,4 @@ spec:
               - configMapRef:
                   name: python-scripts-sentry-config
           nodeSelector:
-            spack.io/node-pool: base
+            spack.io/node-pool: beefy

@@ -5,57 +5,57 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 echo "Input: $@"
 
-now=${1:-$(date --iso-8601)}
-echo "Pruning from now: ${now}"
-
-snapshot_dir="$PWD/snapshot-${now}"
-echo "Using snapshot directory : ${snapshot_dir}"
-
-# Configure spack
+# Clone spack
 echo "Cloning spack..."
-if [ ! -d spack ]; then
-  git clone --depth 1 --branch develop https://github.com/spack/spack.git
-fi
+git clone --depth 1 https://github.com/spack/spack.git
 echo "Cloning spack...done"
 
+# Configure spack
 echo "Configuring spack shell..."
-. ./spack/share/spack/setup-env.sh
+. /app/spack/share/spack/setup-env.sh
 echo "Configuring spack shell...done"
 
 # Use the $SPACKROOT/etc/ dir for configs
 export SPACK_DISABLE_LOCAL_CONFIG=1
 
-function add_mirrors() {
-  # Add the mirrors
-  # Don't fail if they are already there... || true may be too heavy haned but I don't think there is any other reason for this command to fail if the
-  cat ${snapshot_dir}/config | jq '.stacks | keys[] as $k | "echo Adding mirror for \($k) \(.[$k]) && spack mirror add \($k) \(.[$k]) || true"' | sed 's/"//g' | bash
-}
+# Environment variables from cronjob
+echo "Configuration:"
+echo "  GITLAB_URL: ${GITLAB_URL}"
+echo "  GITLAB_PROJECT: ${GITLAB_PROJECT}"
+echo "  BUILDCACHE_URL: ${BUILDCACHE_URL}"
+echo "  PRUNE_REF: ${PRUNE_REF}"
+echo "  PRUNE_SINCE_DAYS: ${PRUNE_SINCE_DAYS}"
 
-function update_index() {
-  # Update the mirror indices
-  cat ${snapshot_dir}/config | jq '.stacks | keys[] as $k | "echo Updating index for \($k); spack buildcache update-index \($k)"' | sed 's/"//g' | bash
-}
+# Calculate date range
+now=$(date --iso-8601)
+since_date=$(date --iso-8601 -d "${PRUNE_SINCE_DAYS} days ago")
+echo "Pruning binaries older than: ${since_date}"
 
-echo "Running direct pruning..."
-# Perform direct pruning
-python3 ${SCRIPT_DIR}/ci_buildcache_prune.py --start-date ${now} --snapshot-dir ${snapshot_dir} --output-dir ./out --direct --delete
-echo "Running direct pruning...done"
+# Create keep list from GitLab pipelines
+keeplist_file="keeplist.txt"
+echo "Fetching keep hashes from GitLab pipelines..."
+python3 ${SCRIPT_DIR}/fetch_keeplist.py \
+  --gitlab-url "${GITLAB_URL}" \
+  --project "${GITLAB_PROJECT}" \
+  --ref "${PRUNE_REF}" \
+  --since-days "${PRUNE_SINCE_DAYS}" \
+  --output "${keeplist_file}"
+echo "Keep list created with $(wc -l < ${keeplist_file}) hashes"
 
-# Add the mirrors detected by direct pruning
-echo "Adding mirrros..."
-add_mirrors
-echo "Adding mirrros...done"
+# Add the mirror
+echo "Adding mirror..."
+spack mirror add mirror-to-prune "${BUILDCACHE_URL}"
+echo "Adding mirror...done"
 
-# Perform orphan pruning
-echo "Running orphan pruning..."
-python3 ${SCRIPT_DIR}/ci_buildcache_prune.py --start-date ${now} --snapshot-dir ${snapshot_dir} --output-dir ./out --orphaned --config ${snapshot_dir}/config --delete
-echo "Running orphan pruning...done"
+# Run pruning with keeplist
+echo "Running buildcache prune with keeplist..."
+spack python prune.py --mirror mirror-to-prune --keeplist "${keeplist_file}"
+echo "Running buildcache prune...done"
 
-echo "Updating mirror indices..."
-update_index
-echo "Updating mirror indices...done"
+# Update the mirror index
+echo "Updating mirror index..."
+spack buildcache update-index mirror-to-prune
+echo "Updating mirror index...done"
 
 echo ""
-echo ""
-
 echo "Pruning complete"
