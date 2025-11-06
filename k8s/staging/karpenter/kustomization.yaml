@@ -1,7 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- ../../production/karpenter/provisioners/runners/testing/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/graviton/3/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/graviton/4/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/x86_64/v2/provisioners.yaml
