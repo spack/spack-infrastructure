@@ -118,8 +118,6 @@ spec:
               value: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
             - name: ALLOWED_HOSTS
               value: "webhook-handler.custom.svc.cluster.local"
-      nodeSelector:
-        spack.io/node-pool: beefy
 
 ---
 apiVersion: apps/v1
@@ -252,5 +250,3 @@ spec:
               value: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
             - name: ALLOWED_HOSTS
               value: "webhook-handler.custom.svc.cluster.local"
-      nodeSelector:
-        spack.io/node-pool: beefy

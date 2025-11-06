@@ -42,9 +42,6 @@ spec:
       # udp:
       #   configMapNamespace: ""
 
-      nodeSelector:
-        spack.io/node-pool: beefy
-
       resources:
         requests:
           cpu: 500m  # request 0.5 CPU cores

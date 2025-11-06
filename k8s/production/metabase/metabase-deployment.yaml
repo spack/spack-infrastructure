@@ -49,5 +49,3 @@ spec:
             timeoutSeconds: 1
             periodSeconds: 10
             failureThreshold: 3
-      nodeSelector:
-        spack.io/node-pool: beefy

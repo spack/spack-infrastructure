@@ -6,11 +6,6 @@ metadata:
   name: beefy
 spec:
   template:
-    metadata:
-      # Only provision nodes for pods specifying the beefy node pool
-      labels:
-        spack.io/node-pool: beefy
-
     spec:
       requirements:
       - key: "node.kubernetes.io/instance-type"

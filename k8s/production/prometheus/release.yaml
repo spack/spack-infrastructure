@@ -134,8 +134,6 @@ spec:
             scheme: "https"
             static_configs:
               - targets: ["gitlab.spack.io"]
-        nodeSelector:
-          spack.io/node-pool: beefy
 
     prometheusOperator:
       resources:
