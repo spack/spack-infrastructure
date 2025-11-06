@@ -1,13 +1,18 @@
 import contextlib
 import hashlib
 import json
+import logging
 import os
 import re
+import requests
 import shutil
+import stat
 import subprocess
 import tempfile
 from collections import defaultdict
-from typing import Dict, Optional
+from concurrent.futures import as_completed, ThreadPoolExecutor
+from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Optional
 
 import boto3
 import boto3.session
@@ -19,6 +24,11 @@ PACKAGES_REPO = "https://github.com/spack/spack-packages"
 
 TIMESTAMP_AND_SIZE = r"^[\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2}\s+\d+\s+"
 TIMESTAMP_PATTERN = "%Y-%m-%d %H:%M:%S"
+
+SPACK_PUBLIC_KEY_LOCATION = "https://spack.github.io/keys"
+SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
+TARBALL_MEDIA_TYPE = "application/vnd.spack.install.v2.tar+gzip"
+SPEC_METADATA_MEDIA_TYPE = "application/vnd.spack.spec.v5+json"
 
 #: regular expressions designed to match "aws s3 ls" output
 REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(
@@ -50,6 +60,74 @@ MULTIPART_THRESHOLD = 100 * MB
 MULTIPART_CHUNKSIZE = 20 * MB
 MAX_CONCURRENCY = 10
 USE_THREADS = True
+
+SNAPSHOT_TAG_REGEXES = [
+    re.compile(r"^develop-[\d]{4}-[\d]{2}-[\d]{2}$"),
+    re.compile(r"^v([\d])+\.([\d])+\.[\d]+$"),
+]
+
+PROTECTED_BRANCH_REGEXES = [
+    re.compile(r"^develop$"),
+    re.compile(r"^releases/v[\d]+\.[\d]+$"),
+]
+
+
+LOGGER = logging.getLogger(__name__)
+
+
+def download_and_import_key(gpg_home: str, tmpdir: str, force: bool) -> str | None:
+    """Download spack public signing key and import it"""
+    if os.path.isdir(gpg_home):
+        if force is True:
+            shutil.rmtree(gpg_home)
+        else:
+            return None
+
+    mode_owner_rwe = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
+    os.makedirs(gpg_home, mode=mode_owner_rwe)
+
+    public_key_url = f"{SPACK_PUBLIC_KEY_LOCATION}/{SPACK_PUBLIC_KEY_NAME}"
+    public_key_id = "2C8DD3224EF3573A42BD221FA8E0CA3C1C2ADA2F"
+
+    # Fetch the public key and write it to a file to be imported
+    tmp_key_path = os.path.join(tmpdir, SPACK_PUBLIC_KEY_NAME)
+    response = requests.get(public_key_url)
+    with open(tmp_key_path, "w") as f:
+        f.write(response.text)
+
+    # Also write an ownertrust file to be imported
+    ownertrust_path = os.path.join(tmpdir, "trustfile")
+    with open(ownertrust_path, "w") as f:
+        f.write(f"{public_key_id}:6:\n")
+
+    env = {"GNUPGHOME": gpg_home}
+
+    # Import the key
+    subprocess.run(["gpg", "--no-tty", "--import", tmp_key_path], env=env, check=True)
+
+    # Trust it ultimately
+    subprocess.run(
+        ["gpg", "--no-tty", "--import-ownertrust", ownertrust_path],
+        env=env,
+        check=True,
+    )
+
+    return tmp_key_path
+
+
+def tag_source_branch(tag):
+    """Parse a tag and return the source branch
+    """
+    m = SNAPSHOT_TAG_REGEXES[0].match(tag)
+    if m:
+        return "develop"
+
+    m = SNAPSHOT_TAG_REGEXES[1].match(tag)
+    if m:
+        major, minor = m.groups()
+        return "releases/v{major}.{minor}"
+
+    return None
 
 
 ################################################################################
@@ -85,12 +163,14 @@ def bucket_name_from_s3_url(url):
 
 ################################################################################
 #
-def spec_catalogs_from_listing_v2(listing_path: str) -> Dict[str, Dict[str, BuiltSpec]]:
+def spec_catalogs_from_listing_v2(bucket: str, ref: str) -> Dict[str, Dict[str, BuiltSpec]]:
     """Return a complete catalog of all the built specs in the listing
 
     Return a complete catalog of all the built specs for every prefix in the
     listing.  The returned dictionary of catalogs is keyed by unique prefix.
     """
+    list_url = f"s3://{bucket}/{ref}/"
+    listing_path = list_prefix_contents(list_url)
     all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
         lambda: defaultdict(BuiltSpec)
     )
@@ -128,7 +208,9 @@ def spec_catalogs_from_listing_v2(listing_path: str) -> Dict[str, Dict[str, Buil
 
 ################################################################################
 #
-def spec_catalogs_from_listing_v3(listing_path: str) -> Dict[str, Dict[str, BuiltSpec]]:
+def spec_catalogs_from_listing_v3(bucket: str, ref: str) -> Dict[str, Dict[str, BuiltSpec]]:
+    list_url = f"s3://{bucket}/{ref}/"
+    listing_path = list_prefix_contents(list_url)
     all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
         lambda: defaultdict(BuiltSpec)
     )
@@ -150,6 +232,197 @@ def spec_catalogs_from_listing_v3(listing_path: str) -> Dict[str, Dict[str, Buil
 
 
 ################################################################################
+#
+def generate_spec_catalogs_v2(
+    bucket: str, ref: str, exclude: List[str] = [], listing_path: Optional[str] = None
+) -> tuple[Dict[str, Dict[str, BuiltSpec]], Dict[str, BuiltSpec]]:
+    """Return information about specs in stacks and at the root
+
+    Read the listing file, populate and return a tuple of dicts indicating which
+    specs exist in stacks, and which exist in the top-level buildcache. Stacks
+    appearing in the ``exclude`` list are ignoreed.
+
+    Returns a tuple like the following:
+
+        (
+            # First element of tuple is the stack specs
+            {
+                <hash>: {
+                    <stack>: <BuiltSpec>,
+                    ...
+                },
+                ...
+            },
+            # Followed by specs at the top level
+            {
+                <hash>: <BuiltSpec>,
+                ...
+            }
+        )
+    """
+    stack_prefix_regex = re.compile(rf"{ref}/(.+)")
+    stack_specs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
+        lambda: defaultdict(BuiltSpec)
+    )
+    all_catalogs = spec_catalogs_from_listing_v2(bucket, ref)
+    top_level_specs = all_catalogs[ref]
+
+    for prefix in all_catalogs:
+        m = stack_prefix_regex.search(prefix)
+        if not m:
+            continue
+
+        stack = m.group(1)
+        if stack in exclude:
+            continue
+
+        for spec_hash, built_spec in all_catalogs[prefix].items():
+            stack_specs[stack][spec_hash] = built_spec
+
+    return stack_specs, top_level_specs
+
+
+def format_blob_url(prefix: str, blob_record: Dict[str, str]) -> str:
+    """Use prefix and algorithm/checksum from record to build full prefix"""
+    hash_algo = blob_record.get("checksumAlgorithm", None)
+    checksum = blob_record.get("checksum", None)
+
+    if not hash_algo:
+        raise MalformedManifestError("Missing 'checksumAlgorithm'")
+
+    if not checksum:
+        raise MalformedManifestError("Missing 'checksum'")
+
+    return f"{prefix}/blobs/{hash_algo}/{checksum[:2]}/{checksum}"
+
+
+def find_data_with_media_type(
+    data: List[Dict[str, str]], mediaType: str
+) -> Dict[str, str]:
+    """Return data element with matching mediaType, or else raise"""
+    for elt in data:
+        if elt["mediaType"] == mediaType:
+            return elt
+    raise NoSuchMediaTypeError(mediaType)
+
+
+################################################################################
+#
+def generate_spec_catalogs_v3(
+    bucket: str,
+    ref: str,
+    exclude: List[str] = [],
+    include: List[str] = [],
+    parallel: int = 8,
+    workdir: Optional[str] = None,
+) -> tuple[Dict[str, Dict[str, BuiltSpec]], Dict[str, BuiltSpec]]:
+    """Return information about specs in stacks and at the root"""
+    stack_prefix_regex = re.compile(rf"{ref}/(.+)")
+    stack_specs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
+        lambda: defaultdict(BuiltSpec)
+    )
+    all_catalogs = spec_catalogs_from_listing_v3(bucket, ref)
+    top_level_specs = all_catalogs[ref]
+
+    task_list = []
+    delete_on_exit = False
+    if not workdir:
+        delete_on_exit = True
+        workdir = tempfile.mkdtemp()
+
+    tmpdir = workdir
+
+    for prefix in all_catalogs:
+        m = stack_prefix_regex.search(prefix)
+        if not m:
+            continue
+
+        stack = m.group(1)
+        if stack in exclude:
+            continue
+
+        if include and stack not in include:
+            continue
+
+        stack_manifests_dir = os.path.join(tmpdir, stack)
+        os.makedirs(stack_manifests_dir, exist_ok=True)
+        stack_manifest_sync_cmd = [
+            "aws",
+            "s3",
+            "sync",
+            "--exclude",
+            "*",
+            "--include",
+            "*.spec.manifest.json",
+            f"s3://{bucket}/{prefix}/v3/manifests/spec",
+            stack_manifests_dir,
+        ]
+
+        start_time = datetime.now()
+
+        try:
+            print(f"Downloading manifests for stack {stack}")
+            subprocess.run(stack_manifest_sync_cmd, check=True)
+        except subprocess.CalledProcessError as cpe:
+            error_msg = getattr(cpe, "message", cpe)
+            print(f"Failed to download manifests for {stack} due to: {error_msg}")
+            continue
+
+        end_time = datetime.now()
+        elapsed = end_time - start_time
+        print(f"Downloaded manifests for stack {stack}, elapsed time: {elapsed}")
+
+        for spec_hash, built_spec in all_catalogs[prefix].items():
+            stack_specs[stack][spec_hash] = built_spec
+            task_list.append((built_spec.hash, stack))
+
+    def _process_manifest_fn(spec_hash, stack):
+        download_dir = os.path.join(tmpdir, stack)
+        LOGGER.debug(f"searching {download_dir} for spec /{spec_hash}")
+        find_cmd = ["find", download_dir, "-type", "f", "-name", f"*{spec_hash}*"]
+        find_result = subprocess.run(find_cmd, capture_output=True)
+
+        # Check for an error searching for the spec
+        manifest_path = find_result.stdout.decode("utf-8").strip()
+        if not manifest_path or find_result.returncode != 0:
+            LOGGER.debug(f"[{find_cmd}] failed to find manifest for /{spec_hash} in {stack}")
+            return (None, None, None, None)
+
+        manifest_dict = extract_json_from_clearsig(manifest_path)
+        return (spec_hash, stack, manifest_dict, manifest_path)
+
+    with ThreadPoolExecutor(max_workers=parallel) as executor:
+        futures = [executor.submit(_process_manifest_fn, *task) for task in task_list]
+        for future in as_completed(futures):
+            try:
+                spec_hash, stack, manifest_dict, manifest_path = future.result()
+                if not spec_hash or not stack or not manifest_dict or not manifest_path:
+                    continue
+
+                stack_specs[stack][spec_hash].stack = stack
+                stack_specs[stack][spec_hash].manifest_path = manifest_path
+                stack_specs[stack][spec_hash].meta = format_blob_url(
+                    f"{ref}/{stack}",
+                    find_data_with_media_type(
+                        manifest_dict["data"], SPEC_METADATA_MEDIA_TYPE
+                    ),
+                )
+                stack_specs[stack][spec_hash].archive = format_blob_url(
+                    f"{ref}/{stack}",
+                    find_data_with_media_type(
+                        manifest_dict["data"], TARBALL_MEDIA_TYPE
+                    ),
+                )
+            except Exception as exc:
+                LOGGER.error(f"Exception processing manifests: {exc}")
+
+    # Cleanup the tmpdir
+    if delete_on_exit:
+        shutil.rmtree(tmpdir)
+    return stack_specs, top_level_specs
+
+
+################################################################################
 # If the cli didn't provide a working directory, we will create (and clean up)
 # a temporary directory.
 def get_workdir_context(workdir: Optional[str] = None):
@@ -159,15 +432,32 @@ def get_workdir_context(workdir: Optional[str] = None):
     return contextlib.nullcontext(workdir)
 
 
+listing_prefix = os.environ.get("LISTING_CACHE_PREFIX", ".")
 ################################################################################
 # Given a url and a file path to use for writing, get a recursive listing of
 # everything under the prefix defined by the url, and write it to disk using the
 # supplied path.
-def list_prefix_contents(url: str, output_file: str):
+def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: bool = False):
     list_cmd = ["aws", "s3", "ls", "--recursive", url]
 
-    with open(output_file, "w") as f:
-        subprocess.run(list_cmd, stdout=f, check=True)
+    # Auto caching of listing file
+    global listing_prefix
+    if not output_prefix:
+        if not listing_prefix:
+            listing_prefix = tempfile.mkdtemp()
+        output_prefix = listing_prefix
+
+    # Store the listing has the checksum of the url
+    h = hashlib.sha256()
+    h.update(url.encode())
+    output_file = os.path.join(output_prefix, h.hexdigest())
+
+    if not os.path.isfile(output_file) or force:
+        LOGGER.info(f"Writing cached listfile for {url} to {output_file}")
+        with open(output_file, "w") as f:
+            subprocess.run(list_cmd, stdout=f, check=True)
+
+    return output_file
 
 
 ################################################################################
@@ -215,6 +505,8 @@ def clone_spack(spack_ref: str = "develop", packages_ref: str = "develop", spack
                 f"{spack_repo}",
                 spack_path,
             ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             check=True,
         )
         subprocess.run(
@@ -229,6 +521,8 @@ def clone_spack(spack_ref: str = "develop", packages_ref: str = "develop", spack
                 f"{packages_repo}",
                 packages_path,
             ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             check=True,
         )
         # Configure the repo destination
@@ -242,6 +536,7 @@ def clone_spack(spack_ref: str = "develop", packages_ref: str = "develop", spack
                 packages_path,
             ],
             check=True,
+            stdout=subprocess.DEVNULL,
         )
     finally:
         os.chdir(owd)
@@ -301,6 +596,21 @@ def s3_upload_file(file_path: str, bucket: str, prefix: str, client=None):
 
     with open(file_path, "rb") as fd:
         s3_client.upload_fileobj(fd, bucket, prefix)
+
+
+def s3_object_exists(bucket: str, key: str, client=None):
+    """Check if an s3 object exists"""
+
+    if client:
+        s3_client = client
+    else:
+        s3_client = s3_create_client()
+
+    try:
+        _ = s3_client.head_object(Bucket=bucket, Key=key)
+        return True
+    except Exception:
+        return False
 
 
 ################################################################################
