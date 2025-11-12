@@ -87,7 +87,8 @@ def create_develop_snapshot_tag(project):
     tags = commit.refs("tag")
     snapshot_tag = None
     for t in tags:
-        if re.match(t.name, "develop-.*"):
+        print(t)
+        if re.match(t.get("name", ""), "develop-.*"):
             snapshot_tag = t
             break
 
@@ -132,12 +133,12 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
     branch = tag_source_branch(t.name)
     if not branch:
         LOGGER.warning(f"Skipping snapshot for {tag.name}, cannot determine base branch")
-        return
+        return False
 
     client = s3_create_client()
     if s3_object_exists(bucket, "{tag.name}/v3/layout.json"):
         LOGGER.info(f"Skipping snapshot for {tag.name} as it already exists")
-        return
+        return True
 
     gl_project = DEFAULT_GITLAB_PROJECT
     if isinstance(gl_project, str):
@@ -146,12 +147,12 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
     pipeline = gl_project.pipelines.list(get_all=False, per_page=1, sha=tag.commit.sha, ref=branch, status="success")
     if not pipeline:
         LOGGER.warning(f"Skipping {tag.name}: Could not find corresponding successful pipeline for {branch}")
-        return
+        return False
 
     LOGGER.info(f"Creating snapshot for: {t.name} from {branch}:{pipeline[0].id}")
 
     # Assuming all snapshots are v3 only now
-    all_specs_catalog, _ = generate_spec_catalogs_v3(bucket, branch, workdir=workdir, include=["tutorial"])
+    all_specs_catalog, _ = generate_spec_catalogs_v3(bucket, branch, workdir=workdir)
 
     gnu_pg_home = os.path.join(workdir, ".gnupg")
     download_and_import_key(gnu_pg_home, workdir, False)
@@ -162,8 +163,6 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
             continue
 
         stack = j.name.replace("-generate", "")
-        if stack not in ("tutorial"):
-            continue
 
         # Get the lockfile/concrete hashes to sync to snapshot mirror
         job = gl_project.jobs.get(j.id, lazy=True)
@@ -262,8 +261,8 @@ if __name__ == "__main__":
             continue
 
         tempdir = WORKDIR or tempfile.mkdtemp()
-        create_snapshot(args.bucket, t, tempdir)
-        # Now use publish to create the top level mirror
-        # Don't re-verify everything, it was already done by create_snapshot
-        publish(args.bucket, t.name, verify=False, workdir=tempdir)
+        if create_snapshot(args.bucket, t, tempdir):
+            # Now use publish to create the top level mirror if the snapshot exists
+            # Don't re-verify everything, it was already done by create_snapshot
+            publish(args.bucket, t.name, verify=False, workdir=tempdir)
 
