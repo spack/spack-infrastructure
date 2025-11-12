@@ -135,7 +135,6 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
         LOGGER.warning(f"Skipping snapshot for {tag.name}, cannot determine base branch")
         return False
 
-    client = s3_create_client()
     if s3_object_exists(bucket, "{tag.name}/v3/layout.json"):
         LOGGER.info(f"Skipping snapshot for {tag.name} as it already exists")
         return True
@@ -163,6 +162,10 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
             continue
 
         stack = j.name.replace("-generate", "")
+
+        if s3_object_exists(bucket, "{tag.name}/{stack}/v3/layout.json"):
+            LOGGER.info(f"Skipping snapshot for {tag.name}/{stack} as it already exists")
+            continue
 
         # Get the lockfile/concrete hashes to sync to snapshot mirror
         job = gl_project.jobs.get(j.id, lazy=True)
@@ -219,6 +222,8 @@ DRYRUN: publish
         else:
             publish_keys(mirror_url, gnu_pg_home, ref=tag.name)
 
+    return True
+
 
 if __name__ == "__main__":
 
@@ -255,14 +260,16 @@ if __name__ == "__main__":
     # Iterate all of the project tags and attempt to create a
     # snaptshot if it is needed
     py_gh_repo = GH.get_repo(args.project)
+    tempdir = WORKDIR or tempfile.mkdtemp()
     for t in py_gh_repo.get_tags():
         if args.tag and t.name not in args.tag:
             LOGGER.debug("Skipping tag {t.name}")
             continue
 
-        tempdir = WORKDIR or tempfile.mkdtemp()
-        if create_snapshot(args.bucket, t, tempdir):
-            # Now use publish to create the top level mirror if the snapshot exists
-            # Don't re-verify everything, it was already done by create_snapshot
-            publish(args.bucket, t.name, verify=False, workdir=tempdir)
-
+        try:
+            if create_snapshot(args.bucket, t, tempdir):
+                # Now use publish to create the top level mirror if the snapshot exists
+                # Don't re-verify everything, it was already done by create_snapshot
+                publish(args.bucket, t.name, verify=False, workdir=tempdir)
+        except Exception as e:
+            LOGGER.error(f"Failed to create snapshot for {t.name}: {e}")
