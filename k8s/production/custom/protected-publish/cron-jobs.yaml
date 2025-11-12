@@ -17,7 +17,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: protected-publish
-            image: ghcr.io/spack/protected-publish:0.0.9
+            image: ghcr.io/spack/protected-publish:0.0.10
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -28,6 +28,7 @@ spec:
               - configMapRef:
                   name: python-scripts-sentry-config
             args:
+              - "publish"
               - "--bucket"
               - "spack-binaries"
               - "--ref"

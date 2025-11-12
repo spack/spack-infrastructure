@@ -36,7 +36,7 @@ images:
     image: ghcr.io/spack/ci-prune-buildcache:0.0.5
 
   - path: ./images/protected-publish
-    image: ghcr.io/spack/protected-publish:0.0.9
+    image: ghcr.io/spack/protected-publish:0.0.10
 
   - path: ./images/retry-trigger-jobs
     image: ghcr.io/spack/retry-trigger-jobs:0.0.2
