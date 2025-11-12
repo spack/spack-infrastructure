@@ -20,7 +20,7 @@ spec:
     spec:
       chart: gitlab-runner
       # Note: ensure this stays in sync with the `helper_image` field below
-      version: 0.81.0 # gitlab-runner@18.4.0
+      version: 0.82.0 # gitlab-runner@18.5.0
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v2-pub-windows
@@ -116,7 +116,7 @@ spec:
 
             # Image for windows 2022, runner helper
             image = "mcr.microsoft.com/windows/servercore:ltsc2022"
-            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v18.4.0-servercore21H2"
+            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v18.5.0-servercore21H2"
 
             ephemeral_storage_request = "500M"
             helper_ephemeral_storage_request = "500M"
