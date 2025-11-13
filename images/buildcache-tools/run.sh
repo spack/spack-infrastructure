@@ -1,3 +1,8 @@
+#/bin/bash
+
+# TODO: Enable running chain of commands
+# buildcache-tools publish ... -- snapshot ... -- validate-index ...
+
 cmd=$1
 shift
 
