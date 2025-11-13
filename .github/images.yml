@@ -23,9 +23,6 @@ images:
   - path: ./images/python-aws-bash
     image: ghcr.io/spack/python-aws-bash:0.0.2
 
-  - path: ./images/snapshot-release-tags
-    image: ghcr.io/spack/snapshot-release-tags:0.0.4
-
   - path: ./images/cache-indexer
     image: ghcr.io/spack/cache-indexer:0.0.6
 
@@ -35,8 +32,8 @@ images:
   - path: ./images/ci-prune-buildcache
     image: ghcr.io/spack/ci-prune-buildcache:0.0.5
 
-  - path: ./images/protected-publish
-    image: ghcr.io/spack/protected-publish:0.0.10
+  - path: ./images/buildcache-tools
+    image: ghcr.io/spack/buildcache-tools:0.0.1
 
   - path: ./images/retry-trigger-jobs
     image: ghcr.io/spack/retry-trigger-jobs:0.0.2
