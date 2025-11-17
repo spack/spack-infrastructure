@@ -13,7 +13,14 @@ spec:
           restartPolicy: Never
           containers:
           - name: clear-admin-keys
-            image: ghcr.io/spack/ci-key-clear:0.0.2
+            image: ghcr.io/spack/ci-key-clear:0.0.3
             imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 500m
+                memory: 50M
+            envFrom:
+            - configMapRef:
+                name: python-scripts-sentry-config
           nodeSelector:
             spack.io/node-pool: base

@@ -3,7 +3,7 @@ images:
     image: ghcr.io/spack/ci-bridge:0.0.46
 
   - path: ./images/ci-key-clear
-    image: ghcr.io/spack/ci-key-clear:0.0.2
+    image: ghcr.io/spack/ci-key-clear:0.0.3
 
   - path: ./images/gitlab-stuckpods
     image: ghcr.io/spack/stuckpods:0.0.2
