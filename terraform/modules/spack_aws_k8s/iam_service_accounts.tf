@@ -11,8 +11,8 @@ module "build_cache_pruner" {
         {
           "Effect" : "Allow",
           "Action" : [
-              "s3:PutObject",
-              "s3:DeleteObject"
+            "s3:PutObject",
+            "s3:DeleteObject"
           ],
           "Resource" : "${module.protected_binary_mirror.bucket_arn}/develop/*"
         }
