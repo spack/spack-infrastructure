@@ -10,18 +10,11 @@ module "build_cache_pruner" {
       "Statement" : [
         {
           "Effect" : "Allow",
-          "Action" : "s3:PutObject",
-          "Resource" : "${module.protected_binary_mirror.bucket_arn}/*"
-        }
-      ]
-    }),
-    jsonencode({
-      "Version" : "2012-10-17",
-      "Statement" : [
-        {
-          "Effect" : "Allow",
-          "Action" : "s3:DeleteObject",
-          "Resource" : "${module.protected_binary_mirror.bucket_arn}/*"
+          "Action" : [
+              "s3:PutObject",
+              "s3:DeleteObject"
+          ],
+          "Resource" : "${module.protected_binary_mirror.bucket_arn}/develop/*"
         }
       ]
     })
