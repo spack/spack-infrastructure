@@ -213,7 +213,6 @@ resource "aws_iam_role" "eks_cluster_access" {
             "arn:aws:iam::588562868276:user/zack",
             "arn:aws:iam::588562868276:user/dan",
             "arn:aws:iam::588562868276:user/william",
-            "arn:aws:iam::588562868276:user/caetanomelone",
           ]
         },
         "Action" : "sts:AssumeRole"
@@ -257,7 +256,6 @@ resource "aws_iam_role" "readonly_clusterrole" {
             "arn:aws:iam::588562868276:user/alecscott",
             "arn:aws:iam::588562868276:user/tgamblin",
             "arn:aws:iam::588562868276:user/vsoch",
-            "arn:aws:iam::588562868276:user/caetanomelone",
           ]
         },
         "Action" : "sts:AssumeRole"

@@ -10,18 +10,11 @@ module "build_cache_pruner" {
       "Statement" : [
         {
           "Effect" : "Allow",
-          "Action" : "s3:PutObject",
-          "Resource" : "${module.protected_binary_mirror.bucket_arn}/*"
-        }
-      ]
-    }),
-    jsonencode({
-      "Version" : "2012-10-17",
-      "Statement" : [
-        {
-          "Effect" : "Allow",
-          "Action" : "s3:DeleteObject",
-          "Resource" : "${module.protected_binary_mirror.bucket_arn}/*"
+          "Action" : [
+            "s3:PutObject",
+            "s3:DeleteObject"
+          ],
+          "Resource" : "${module.protected_binary_mirror.bucket_arn}/develop/*"
         }
       ]
     })
@@ -228,4 +221,35 @@ module "notary" {
 
   service_account_name      = "notary"
   service_account_namespace = "pipeline"
+}
+
+module "rotate_keys" {
+  source = "../iam_service_account"
+
+  deployment_name  = var.deployment_name
+  deployment_stage = var.deployment_stage
+
+  service_account_iam_role_description = "IAM role used by the rotate-keys job to rotate the admin access keys."
+  service_account_iam_policies = [
+    jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : [
+            "iam:GetGroup",
+            "iam:ListAccessKeys",
+            "iam:DeleteAccessKey"
+          ],
+          "Resource" : [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:group/Administrators",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/*"
+          ]
+        }
+      ]
+    })
+  ]
+
+  service_account_name      = "clear-admin-keys"
+  service_account_namespace = "custom"
 }
