@@ -89,6 +89,10 @@ taxonomy:
       grep_for:
         - "fatal: unable to access 'https://github.com"
 
+    no_space:
+      grep_for:
+        - "No space left on device"
+
     module_not_found:
       grep_for:
         - 'ModuleNotFoundError: No module named'
@@ -273,6 +277,8 @@ taxonomy:
     - 'network_error'
     # API Scrape erorrs
     - 'job_log_missing'
+    # System Errors that would otherwise get categorized as Spack Errors
+    - 'no_space'
     # Spack Errors
     - 'invalid_pipeline_yaml'
     - 'checksum_mismatch'
