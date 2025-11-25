@@ -50,6 +50,24 @@ spec:
     grafana:
       nodeSelector:
         spack.io/node-pool: base
+      affinity:
+        # This pod affinity is required to ensure that multiple pods don't get scheduled on separate nodes
+        # https://github.com/spack/spack-infrastructure/issues/1265
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/instance
+                  operator: In
+                  values:
+                  - kube-prometheus-stack
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - grafana
       ingress:
         enabled: false
       persistence:
