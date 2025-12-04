@@ -30,7 +30,7 @@ images:
     image: ghcr.io/spack/cache-indexer:0.0.6
 
   - path: ./analytics
-    image: ghcr.io/spack/django:0.5.15
+    image: ghcr.io/spack/django:0.5.16
 
   - path: ./images/ci-prune-buildcache
     image: ghcr.io/spack/ci-prune-buildcache:0.0.5
