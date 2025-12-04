@@ -224,7 +224,7 @@ taxonomy:
 
     no_binary_for_spec:
       grep_for:
-        - 'Error: No binary for .+ found when cache-only specified'
+        - 'Error: No binary found when cache-only was specified'
 
     deprecated_stack_bug:
       grep_for:
