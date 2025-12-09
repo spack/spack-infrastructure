@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: metabase
-          image: metabase/metabase:v0.57.3
+          image: metabase/metabase:v0.57.5
           imagePullPolicy: "IfNotPresent"
           resources:
             requests:
