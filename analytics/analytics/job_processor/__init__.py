@@ -33,6 +33,7 @@ from analytics.job_processor.metadata import (
     retrieve_job_info,
 )
 from analytics.job_processor.utils import (
+    JobMetadataNotFound,
     get_gitlab_handle,
     get_gitlab_job,
     get_gitlab_project,
@@ -157,8 +158,11 @@ def process_job(job_input_data_json: str):
     gl_job = get_gitlab_job(gl_project, job_input_data["build_id"])
     job_trace: str = gl_job.trace().decode()  # type: ignore
 
-    with transaction.atomic():
-        job = create_job_fact(gl, gl_job, job_input_data, job_trace)
+    try:
+        with transaction.atomic():
+            job = create_job_fact(gl, gl_job, job_input_data, job_trace)
+    except JobMetadataNotFound:
+        return
 
     # Create build timing facts in a separate transaction, in case this fails
     with transaction.atomic():

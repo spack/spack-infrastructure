@@ -13,7 +13,7 @@ from requests.exceptions import ReadTimeout
 from urllib3.exceptions import ReadTimeoutError
 
 from analytics import setup_gitlab_job_sentry_tags
-from analytics.job_processor.utils import get_job_retry_data
+from analytics.job_processor.utils import JobMetadataNotFound, get_job_retry_data
 
 
 class JobLog(Document):
@@ -57,12 +57,15 @@ def store_job_data(job_input_data_json: str) -> None:
     job = project.jobs.get(job_input_data["build_id"])
     job_trace: str = job.trace().decode()
 
-    retry_info = get_job_retry_data(
-        job_id=job_input_data["build_id"],
-        job_name=job_input_data["build_name"],
-        job_pipeline_id=job_input_data["pipeline_id"],
-        job_failure_reason=job_input_data["build_failure_reason"],
-    )
+    try:
+        retry_info = get_job_retry_data(
+            job_id=job_input_data["build_id"],
+            job_name=job_input_data["build_name"],
+            job_pipeline_id=job_input_data["pipeline_id"],
+            job_failure_reason=job_input_data["build_failure_reason"],
+        )
+    except JobMetadataNotFound:
+        return
     job_input_data.update(asdict(retry_info))
 
     # Remove ANSI escape sequences from colorized output

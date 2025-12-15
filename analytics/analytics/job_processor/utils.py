@@ -15,6 +15,10 @@ T = typing.TypeVar("T")
 P = typing.ParamSpec("P")
 
 
+class JobMetadataNotFound(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class RetryInfo:
     is_retry: bool
@@ -53,6 +57,9 @@ def get_job_retry_data(
             {"job_id": job_id},
         )
         job = cursor.fetchone()
+        # This is a temporary workaround for GitLab 18.6.0.
+        if job is None:
+            raise JobMetadataNotFound(job_id)
         if not job[0]:
             # config_options->>retry should always be defined for non-trigger (aka Ci::Bridge)
             # jobs in spack. this is an edge case where a job in gitlab isn't explicitly
