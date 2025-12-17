@@ -85,7 +85,7 @@ resource "aws_iam_role" "gitlab_runner" {
 
   name                 = "GitLabRunner${local.mirror_roles[each.key].role_name_suffix}"
   assume_role_policy   = each.value.json
-  max_session_duration = 3600 * 6 # only allow a max of 6 hours for a session to be active
+  max_session_duration = 3600 * 12 # allow a max of 12 hours for a session to be active. This is the max value allowed by AWS.
 }
 
 data "aws_iam_policy_document" "gitlab_runner" {
