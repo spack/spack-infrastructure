@@ -44,20 +44,39 @@ def get_job_retry_data(
         )
         attempt_number = cursor.fetchone()[0] + 1
 
+        # Retrieve retry config
         cursor.execute(
             """
-            SELECT bm.config_options->>'retry'
-            FROM p_ci_builds_metadata bm
-            WHERE bm.build_id = %(job_id)s
+            SELECT jd.config->'options'->'retry'
+            FROM p_ci_job_definition_instances jdi
+            INNER JOIN p_ci_job_definitions jd on jd.id = jdi.job_definition_id
+            WHERE jdi.job_id = %(job_id)s;
             """,
             {"job_id": job_id},
         )
-        job = cursor.fetchone()
-        if not job[0]:
-            # config_options->>retry should always be defined for non-trigger (aka Ci::Bridge)
-            # jobs in spack. this is an edge case where a job in gitlab isn't explicitly
+        job: tuple[str | None] | None = cursor.fetchone()
+
+        # For jobs earlier than Nov 12 2025, the retry config may exist in the old table
+        # TODO: Remove once sufficient time has passed.
+        if job is None:
+            cursor.execute(
+                """
+                SELECT bm.config_options->>'retry'
+                FROM p_ci_builds_metadata bm
+                WHERE bm.build_id = %(job_id)s
+                """,
+                {"job_id": job_id},
+            )
+            job = cursor.fetchone()
+
+        # A value of tuple[None] means the retry config for this job is set to empty,
+        # while a value of None means no retry config was found at all.
+        if job is None or job[0] is None:
+            # A retry config should always be defined for non-trigger (aka Ci::Bridge)
+            # jobs in spack. This is an edge case where a job in gitlab isn't explicitly
             # configured for retries at all.
             sentry_sdk.capture_message(f"Job {job_id} missing retry configuration.")
+
             # this is the default retry configuration for gitlab
             # see https://docs.gitlab.com/ee/ci/yaml/#retry
             retry_config = {
