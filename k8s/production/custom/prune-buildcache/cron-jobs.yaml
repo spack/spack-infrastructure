@@ -5,6 +5,7 @@ metadata:
   name: prune-buildcache-v3
   namespace: custom
 spec:
+  suspend: "true"
   schedule: "0 0 * * 6"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
