@@ -39,7 +39,7 @@ def _assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
 
     # Read taxonomy file
     with open(Path(__file__).parent / "error_taxonomy.yaml") as f:
-        taxonomy = yaml.safe_load(f)["taxonomy"]
+        taxonomy = yaml.load(f, Loader=yaml.CSafeLoader)["taxonomy"]
 
     error_taxonomy_version = taxonomy["version"]
 
