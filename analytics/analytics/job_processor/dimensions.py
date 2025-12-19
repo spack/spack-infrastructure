@@ -104,6 +104,8 @@ def determine_job_type(job_input_data: dict):
         return JobType.SIGN_PKGS
     if name == "protected-publish":
         return JobType.PROTECTED_PUBLISH
+    if name == "dotenv":
+        return JobType.DOTENV
 
     if re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"]) is not None:
         return JobType.BUILD
