@@ -134,6 +134,7 @@ class TimeDimension(models.Model):
 
 class JobType(models.TextChoices):
     BUILD = "build", "Build"
+    DOTENV = "dotenv", "Dotenv"
     GENERATE = "generate", "Generate"
     NO_SPECS = "no-specs-to-rebuild", "No Specs to Rebuild"
     REBUILD_INDEX = "rebuild-index", "Rebuild Index"
