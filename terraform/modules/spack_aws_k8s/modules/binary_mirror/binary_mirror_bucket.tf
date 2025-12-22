@@ -44,13 +44,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "binary_mirror" {
   bucket = aws_s3_bucket.binary_mirror.id
 
   rule {
-    id     = "Delete non-current versions after 30 days"
+    id     = "Delete non-current versions after 7 days"
     status = "Enabled"
 
     filter {}
 
     noncurrent_version_expiration {
       noncurrent_days = 7
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 3
     }
 
     expiration {
