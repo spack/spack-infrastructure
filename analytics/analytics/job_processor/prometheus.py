@@ -248,6 +248,14 @@ class PrometheusClient:
             step=step,
         )
 
+        # Require more than one timeline value for the node, as we
+        # need a range of values, not just a single point in time.
+        if len(results) == 1:
+            raise UnexpectedPrometheusResult(
+                message=f"Node {node} only returned 1 timeline value",
+                query=cpu_seconds_query,
+            )
+
         # First, get the cpu utlization by the pod we care about
         # To do this, just get the last value from the response, since that'll be the total of the counter
         pod_results = next((res for res in results if res["metric"]["pod"] == pod), None)
