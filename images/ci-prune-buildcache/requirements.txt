@@ -17,4 +17,4 @@ rsa==4.7.2
 s3transfer==0.14.0
 sentry-sdk==2.42.1
 six==1.17.0
-urllib3==2.5.0
+urllib3==2.6.0
