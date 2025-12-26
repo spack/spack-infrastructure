@@ -18,6 +18,16 @@ import boto3
 import boto3.session
 from boto3.s3.transfer import TransferConfig
 
+try:
+    import sentry_sdk
+    sentry_sdk.init(
+        # This cron job only runs once weekly,
+        # so just record all transactions.
+        traces_sample_rate=1.0,
+    )
+except ImportError:
+    print("Sentry Disabled")
+
 
 SPACK_REPO = "https://github.com/spack/spack"
 PACKAGES_REPO = "https://github.com/spack/spack-packages"
@@ -29,6 +39,8 @@ SPACK_PUBLIC_KEY_LOCATION = "https://spack.github.io/keys"
 SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
 TARBALL_MEDIA_TYPE = "application/vnd.spack.install.v2.tar+gzip"
 SPEC_METADATA_MEDIA_TYPE = "application/vnd.spack.spec.v5+json"
+
+REGEX_LISTING_DATA = r"^([\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2})\s+(\d+)\s+(.+)"
 
 #: regular expressions designed to match "aws s3 ls" output
 REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(
@@ -63,7 +75,7 @@ USE_THREADS = True
 
 SNAPSHOT_TAG_REGEXES = [
     re.compile(r"^develop-[\d]{4}-[\d]{2}-[\d]{2}$"),
-    re.compile(r"^v([\d])+\.([\d])+\.[\d]+$"),
+    re.compile(r"^v([\d]+)\.([\d]+)\.[\d]+$"),
 ]
 
 PROTECTED_BRANCH_REGEXES = [
@@ -125,7 +137,7 @@ def tag_source_branch(tag):
     m = SNAPSHOT_TAG_REGEXES[1].match(tag)
     if m:
         major, minor = m.groups()
-        return "releases/v{major}.{minor}"
+        return f"releases/v{major}.{minor}"
 
     return None
 
@@ -362,7 +374,12 @@ def generate_spec_catalogs_v3(
 
         try:
             print(f"Downloading manifests for stack {stack}")
-            subprocess.run(stack_manifest_sync_cmd, check=True)
+            subprocess.run(
+                stack_manifest_sync_cmd,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         except subprocess.CalledProcessError as cpe:
             error_msg = getattr(cpe, "message", cpe)
             print(f"Failed to download manifests for {stack} due to: {error_msg}")
@@ -380,12 +397,15 @@ def generate_spec_catalogs_v3(
         download_dir = os.path.join(tmpdir, stack)
         LOGGER.debug(f"searching {download_dir} for spec /{spec_hash}")
         find_cmd = ["find", download_dir, "-type", "f", "-name", f"*{spec_hash}*"]
-        find_result = subprocess.run(find_cmd, capture_output=True)
+        find_result = subprocess.run(
+            find_cmd,
+            capture_output=True,
+        )
 
         # Check for an error searching for the spec
         manifest_path = find_result.stdout.decode("utf-8").strip()
         if not manifest_path or find_result.returncode != 0:
-            LOGGER.debug(f"[{find_cmd}] failed to find manifest for /{spec_hash} in {stack}")
+            LOGGER.error(f"[{find_cmd}] failed to find manifest for /{spec_hash} in {stack}")
             return (None, None, None, None)
 
         manifest_dict = extract_json_from_clearsig(manifest_path)
@@ -437,8 +457,7 @@ listing_prefix = os.environ.get("LISTING_CACHE_PREFIX", ".")
 # Given a url and a file path to use for writing, get a recursive listing of
 # everything under the prefix defined by the url, and write it to disk using the
 # supplied path.
-def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: bool = False):
-    list_cmd = ["aws", "s3", "ls", "--recursive", url]
+def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: bool = False, iterator: bool = False):
 
     # Auto caching of listing file
     global listing_prefix
@@ -453,11 +472,53 @@ def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: b
     output_file = os.path.join(output_prefix, h.hexdigest())
 
     if not os.path.isfile(output_file) or force:
-        LOGGER.info(f"Writing cached listfile for {url} to {output_file}")
-        with open(output_file, "w") as f:
-            subprocess.run(list_cmd, stdout=f, check=True)
+        if iterator:
+            client = s3_create_client()
+            purl = urllib.parse.urlparse(url)
+            prefix = re.sub("^/*", "/")
+            list_args = dict(Bucket=url.netloc, Prefix=prefix)
+            # Local buffer of objects to cache to a file
+            all_objects = []
+            while True:
+                resp = client.list_objects_v2(**list_args)
 
-    return output_file
+                all_objects.extend(resp.get("Contents", []))
+                obj = None
+                for obj in resp.get("Contents", []):
+                    yield obj["Key"]
+
+                if resp.get("IsTruncated", False) and obj:
+                    list_args.update({
+                        "StartAfter": obj
+                    })
+                else:
+                    break
+
+            # Write the listing in the same format used by "aws s3 ls"
+            dt_format = "%Y-%m-%d %H:%M:%S"
+            msize = max([obj["Size"] for obj in all_objects])
+            msize = math.ceil(math.log(msize) / math.log(10)) + 1
+            with open(output_file, "w", encoding="utf=8") as fd:
+                for obj in all_objects:
+                    date_time = obj["LastModified"].strftime(dt_format)
+                    size = obj["Size"]
+                    key = obj["Key"]
+                    fd.write(f"{date_time} {size:msize} {key}\n")
+
+        else:
+            LOGGER.info(f"Writing cached listfile for {url} to {output_file}")
+            list_cmd = ["aws", "s3", "ls", "--recursive", url]
+            with open(output_file, "w") as f:
+                subprocess.run(list_cmd, stdout=f, stderr=subprocess.DEVNULL, check=True)
+    elif iterator:
+        with open(output_file, "r", encoding="utf-8") as fd:
+            for line in fd
+                m = REGEX_LISTING_DATA.search(line)
+                if m:
+                    yield m.group(3).strip()
+
+    if not iterator:
+        return output_file
 
 
 ################################################################################

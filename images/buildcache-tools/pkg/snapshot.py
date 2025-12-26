@@ -15,7 +15,7 @@ from concurrent.futures import as_completed, ThreadPoolExecutor
 from github import Github, InputGitAuthor
 from gitlab import Gitlab
 
-from .common import (
+from pkg.common import (
     download_and_import_key,
     generate_spec_catalogs_v3,
     s3_create_client,
@@ -30,17 +30,6 @@ from .publish import (
     publish,
     publish_keys,
 )
-
-
-try:
-    import sentry_sdk
-    sentry_sdk.init(
-        # This cron job only runs once weekly,
-        # so just record all transactions.
-        traces_sample_rate=1.0,
-    )
-except ImportError:
-    print("Sentry Disabled")
 
 
 DRYRUN = False
@@ -148,13 +137,15 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
         LOGGER.warning(f"Skipping {tag.name}: Could not find corresponding successful pipeline for {branch}")
         return False
 
-    LOGGER.info(f"Creating snapshot for: {t.name} from {branch}:{pipeline[0].id}")
+    LOGGER.info(f"Creating snapshot for: {t.name} from {branch} using pipeline {pipeline[0].id}")
 
     # Assuming all snapshots are v3 only now
-    all_specs_catalog, _ = generate_spec_catalogs_v3(bucket, branch, workdir=workdir)
+    include_stacks = ["windows-vis"]
+    all_specs_catalog, _ = generate_spec_catalogs_v3(bucket, branch, workdir=workdir, include=include_stacks)
 
     gnu_pg_home = os.path.join(workdir, ".gnupg")
-    download_and_import_key(gnu_pg_home, workdir, False)
+    if not DRYRUN:
+        download_and_import_key(gnu_pg_home, workdir, False)
 
     # Get the lockfile artifacts for the generate jobs
     for j in pipeline[0].jobs.list(iterator=True, scope="success"):
@@ -162,6 +153,9 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
             continue
 
         stack = j.name.replace("-generate", "")
+
+        if include_stacks and stack not in include_stacks:
+            continue
 
         if s3_object_exists(bucket, "{tag.name}/{stack}/v3/layout.json"):
             LOGGER.info(f"Skipping snapshot for {tag.name}/{stack} as it already exists")
@@ -174,7 +168,7 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
         artifact = job.artifact(artifact_path)
         lockfile = json.loads(artifact)
 
-        snapshot_hashes = [h for h in lockfile["concrete_specs"].keys()]
+        snapshot_hashes = list(iter(lockfile["concrete_specs"].keys()))
 
         task_list = [
             (
@@ -183,7 +177,7 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
                 f"{branch}/{stack}",
                 f"{tag.name}/{stack}",
                 False,
-                gnu_pg_home,
+                None, #gnu_pg_home,
                 workdir,
             )
             for hash, built_spec in all_specs_catalog[stack].items()
@@ -200,7 +194,7 @@ DRYRUN: publish
     source: {source}
     dest: {dest}
 """)
-                return True, "DRYRUN: Nothing published"
+                return True, None
             publish_fn = dryrun_publish
 
         with ThreadPoolExecutor(max_workers=parallel) as executor:
@@ -214,13 +208,14 @@ DRYRUN: publish
                     if not result[0]:
                         LOGGER.error(f"Publishing failed: {result[1]}")
                     else:
-                        LOGGER.info(result[1])
+                        if result[1]:
+                            LOGGER.debug(result[1])
 
         mirror_url = f"s3://{bucket}/{tag.name}/{stack}"
         if DRYRUN:
             LOGGER.info("DRYRUN: Skipping key publish")
         else:
-            publish_keys(mirror_url, gnu_pg_home, ref=tag.name)
+            publish_keys(mirror_url, gnu_pg_home)
 
     return True
 
@@ -255,7 +250,8 @@ if __name__ == "__main__":
         DRYRUN=True
 
     # Create a new develop snapshot if one is created
-    create_develop_snapshot_tag(args.project)
+    if not args.tag:
+        create_develop_snapshot_tag(args.project)
 
     # Iterate all of the project tags and attempt to create a
     # snaptshot if it is needed
@@ -272,4 +268,5 @@ if __name__ == "__main__":
                 # Don't re-verify everything, it was already done by create_snapshot
                 publish(args.bucket, t.name, verify=False, workdir=tempdir)
         except Exception as e:
+            raise Exception from e
             LOGGER.error(f"Failed to create snapshot for {t.name}: {e}")

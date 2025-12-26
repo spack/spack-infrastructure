@@ -1,3 +1,40 @@
+module "buildcache_snapshoter" {
+  source = "../iam_service_account"
+
+  deployment_name  = var.deployment_name
+  deployment_stage = var.deployment_stage
+
+  service_account_iam_policies = [
+    jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:PutObject",
+          "Resource" : "${module.protected_binary_mirror.bucket_arn}/v*"
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:PutObject",
+          "Resource" : "${module.protected_binary_mirror.bucket_arn}/develop-*"
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:GetObject",
+          "Resource" : "${module.protected_binary_mirror.bucket_arn}/releases/*"
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:GetObject",
+          "Resource" : "${module.protected_binary_mirror.bucket_arn}/develop/*"
+        }
+      ]
+    }),
+  ]
+  service_account_name      = "buildcache-snapshot"
+  service_account_namespace = "custom"
+}
+
 module "build_cache_pruner" {
   source = "../iam_service_account"
 

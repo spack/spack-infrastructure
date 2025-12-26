@@ -16,15 +16,9 @@ import botocore.exceptions
 
 import github
 
-try:
-    import sentry_sdk
-    sentry_sdk.init(traces_sample_rate=1.0)
-except ImportError:
-    print("Sentry Disabled")
-
 from boto3.s3.transfer import TransferConfig
 
-from .common import (
+from pkg.common import (
     clone_spack,
     download_and_import_key,
     extract_json_from_clearsig,
@@ -164,6 +158,7 @@ def publish_spec_v3(built_spec, bucket, prefix_from, prefix_to, force, gpg_home,
     s3_client = s3_create_client()
 
     # Finally, copy the files directly from source to dest, starting with the tarball
+    errs = []
     for src_prefix, dest_prefix in things_to_copy:
         try:
             copy_source = {"Bucket": bucket, "Key": src_prefix}
@@ -171,7 +166,13 @@ def publish_spec_v3(built_spec, bucket, prefix_from, prefix_to, force, gpg_home,
         except Exception as error:
             error_msg = getattr(error, "message", error)
             error_msg = f"Failed to copy_object({src_prefix}) due to {error_msg}"
-            return False, error_msg
+            errs.append(error_msg)
+
+    if errs:
+        msg = f"Failed to publish /{built_spec.hash}"
+        for err in errs:
+            msg = msg + f"\n\t{err}"
+        return False, msg
 
     return (
         True,
@@ -282,9 +283,14 @@ def publish(
 def publish_keys(mirror_url, gnu_pg_home, ref: str = "develop"):
     # Clone spack version appropriate to what we're publishing
     with tempfile.TemporaryDirectory() as workdir:
-        clone_spack(packages_ref="develop", clone_dir=workdir)
-        spack_exe = f"{workdir}/spack/bin/spack"
+        spack_root = os.environ.get("SPACK_ROOT")
+        if not spack_root:
+            clone_spack(packages_ref="develop", clone_dir=workdir)
+            spack_root = f"{workdir}/spack"
 
+        spack_exe = f"{spack_root}/bin/spack"
+
+        gnu_pg_home = os.path.abspath(gnu_pg_home)
         # Can be useful for testing to clone a custom spack to somewhere other than "/"
         # clone_spack(
         #     packages_ref=ref,
@@ -295,14 +301,13 @@ def publish_keys(mirror_url, gnu_pg_home, ref: str = "develop"):
         # spack_exe = f"{workdir}/spack/bin/spack"
 
         # Publish the key used for verification
-        LOGGER.info(f"Publishing trusted keys to {mirror_url}")
+        LOGGER.info(f"Publishing trusted keys to {mirror_url} ({gnu_pg_home})")
         my_env = os.environ.copy()
         my_env["SPACK_GNUPGHOME"] = gnu_pg_home
         subprocess.run(
             [spack_exe, "gpg", "publish", "--mirror-url", mirror_url],
             env=my_env,
             check=True,
-            stdout=subprocess.DEVNULL,
         )
 
         # Rebuild the package and key index
