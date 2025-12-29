@@ -18,7 +18,7 @@ images:
     image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.3
 
   - path: ./images/notary
-    image: ghcr.io/spack/notary:0.0.3
+    image: ghcr.io/spack/notary:0.0.4
 
   - path: ./images/python-aws-bash
     image: ghcr.io/spack/python-aws-bash:0.0.2
