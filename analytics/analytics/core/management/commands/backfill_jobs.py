@@ -234,14 +234,19 @@ def backfill_jobs(start: datetime, end: datetime, dry_run: bool) -> None:
             f"Found {len(build_ids)} unprocessed jobs between {start} and {end}."
         )
 
+        pbar = tqdm(total=len(build_ids))
         for i, ids_chunk in enumerate(batched(build_ids, BATCH_SIZE)):
-            click.echo(
+            pbar.set_description(
                 f"Querying jobs {i * BATCH_SIZE} - {i * BATCH_SIZE + len(ids_chunk)}..."
             )
 
             # Make query that formulates the webhook shape using the relevant database tables
             cursor.execute(WEBHOOK_QUERY, {"job_ids": ids_chunk})
             results = dict_fetchall(cursor)
+
+            pbar.set_description(
+                f"Processing records {i * BATCH_SIZE} - {i * BATCH_SIZE + len(ids_chunk)}"
+            )
 
             # Process each result
             for result in results:
@@ -279,13 +284,11 @@ def backfill_jobs(start: datetime, end: datetime, dry_run: bool) -> None:
                 click.echo(
                     f"[Dry Run] Would process records {i * BATCH_SIZE} - {i * BATCH_SIZE + len(ids_chunk)}"
                 )
+                pbar.update(len(results))
                 continue
 
-            pbar = tqdm(results, total=len(build_ids))
-            for webhook_dict in pbar:
-                pbar.set_description(
-                    f"Processing records {i * BATCH_SIZE} - {i * BATCH_SIZE + len(ids_chunk)}"
-                )
+            for webhook_dict in results:
                 process_job(json.dumps(webhook_dict))
+                pbar.update(1)
 
     click.echo(f"Total records processed: {len(build_ids)}")
