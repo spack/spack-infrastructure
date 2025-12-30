@@ -180,7 +180,7 @@ spec:
               medium = "Memory"
 
       # default image
-      image: "ghcr.io/spack/notary:0.0.3"
+      image: "ghcr.io/spack/notary:0.0.4"
       imagePullPolicy: "always"
       tags: "spack,notary,aws,protected"
 
