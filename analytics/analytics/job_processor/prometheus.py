@@ -84,6 +84,13 @@ def calculate_node_occupancy(data: list[dict], step: int):
     This is achieved by summing the number of pods present for all of the selected samples,
     multiplied by the step size (to normalize result across step size), and divided by the
     duration, to return a fraction.
+
+    This seems counter-intuitive, as no individual pod is mentioned in this function.
+    This is because node occupancy is a "shared" metric. It computes the occupancy of any one
+    pod on this node, over the course of a pod's lifetime. The only thing that tailors this
+    function to a specific pod is that the "data" argument conforms to the lifetime of that
+    one pod. Two pods on the same node with the same lifetime would return identical node
+    occupancy values.
     """
     # Key is the timestamp, value is the number of jobs
     timeline = {}
