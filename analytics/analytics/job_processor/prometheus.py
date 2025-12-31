@@ -84,6 +84,13 @@ def calculate_node_occupancy(data: list[dict], step: int):
     This is achieved by summing the number of pods present for all of the selected samples,
     multiplied by the step size (to normalize result across step size), and divided by the
     duration, to return a fraction.
+
+    This seems counter-intuitive, as no individual pod is mentioned in this function.
+    This is because node occupancy is a "shared" metric. It computes the occupancy of any one
+    pod on this node, over the course of a pod's lifetime. The only thing that tailors this
+    function to a specific pod is that the "data" argument conforms to the lifetime of that
+    one pod. Two pods on the same node with the same lifetime would return identical node
+    occupancy values.
     """
     # Key is the timestamp, value is the number of jobs
     timeline = {}
@@ -98,6 +105,11 @@ def calculate_node_occupancy(data: list[dict], step: int):
 
     start = min(timeline.keys())
     end = max(timeline.keys())
+
+    # There is an edge case where all data points are at the same point in time.
+    # In this case, the node occupancy is just one over the number of pods present at that time.
+    if start == end:
+        return 1 / timeline[start]
 
     # Remove the first data point, as otherwise we'd be counting an extra time step towards the numerator
     timeline.pop(start)
@@ -247,6 +259,14 @@ class PrometheusClient:
             end=end,
             step=step,
         )
+
+        # Require more than one timeline value for the node, as we
+        # need a range of values, not just a single point in time.
+        if len(results) == 1:
+            raise UnexpectedPrometheusResult(
+                message=f"Node {node} only returned 1 timeline value",
+                query=cpu_seconds_query,
+            )
 
         # First, get the cpu utlization by the pod we care about
         # To do this, just get the last value from the response, since that'll be the total of the counter
