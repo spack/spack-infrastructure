@@ -99,6 +99,11 @@ def calculate_node_occupancy(data: list[dict], step: int):
     start = min(timeline.keys())
     end = max(timeline.keys())
 
+    # There is an edge case where all data points are at the same point in time.
+    # In this case, the node occupancy is just one over the number of pods present at that time.
+    if start == end:
+        return 1 / timeline[start]
+
     # Remove the first data point, as otherwise we'd be counting an extra time step towards the numerator
     timeline.pop(start)
 
