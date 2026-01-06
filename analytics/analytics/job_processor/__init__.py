@@ -1,11 +1,12 @@
-import json
-import re
 from datetime import timedelta
+import json
+import logging
+import re
 
-import gitlab
-import gitlab.exceptions
 from celery import shared_task
 from django.db import transaction
+import gitlab
+import gitlab.exceptions
 from gitlab.v4.objects import ProjectJob
 from requests.exceptions import RequestException
 
@@ -37,6 +38,8 @@ from analytics.job_processor.utils import (
     get_gitlab_job,
     get_gitlab_project,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_job_cost(info: JobInfo, duration: float) -> float | None:
@@ -155,8 +158,13 @@ def process_job(job_input_data_json: str):
     gl = get_gitlab_handle()
     gl_project = get_gitlab_project(job_input_data["project_id"])
     gl_job = get_gitlab_job(gl_project, job_input_data["build_id"])
-    job_trace: str = gl_job.trace().decode()  # type: ignore
 
+    # In this case, don't bother processing the job, as it likely never started.
+    if gl_job.started_at is None:
+        logger.info("Build found with no start time. Skipping...")
+        return
+
+    job_trace: str = gl_job.trace().decode()  # type: ignore
     with transaction.atomic():
         job = create_job_fact(gl, gl_job, job_input_data, job_trace)
 

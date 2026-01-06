@@ -234,8 +234,9 @@ def backfill_jobs(start: datetime, end: datetime, dry_run: bool) -> None:
             f"Found {len(build_ids)} unprocessed jobs between {start} and {end}."
         )
 
+        pbar = tqdm(total=len(build_ids))
         for i, ids_chunk in enumerate(batched(build_ids, BATCH_SIZE)):
-            click.echo(
+            pbar.set_description(
                 f"Querying jobs {i * BATCH_SIZE} - {i * BATCH_SIZE + len(ids_chunk)}..."
             )
 
@@ -253,6 +254,10 @@ def backfill_jobs(start: datetime, end: datetime, dry_run: bool) -> None:
                 # https://github.com/spack/spack-infrastructure/issues/1284
                 if result.get("build_started_at") is None:
                     result["build_started_at"] = result["build_created_at"]
+
+                pbar.set_description(
+                    f"Processing records for {result['build_started_at'].replace(second=0, microsecond=0)}"
+                )
 
                 # The Gitlab DB returns a nullable integer, but the webhooks we
                 # receive use a string from the enum.
@@ -279,13 +284,11 @@ def backfill_jobs(start: datetime, end: datetime, dry_run: bool) -> None:
                 click.echo(
                     f"[Dry Run] Would process records {i * BATCH_SIZE} - {i * BATCH_SIZE + len(ids_chunk)}"
                 )
+                pbar.update(len(results))
                 continue
 
-            pbar = tqdm(results, total=len(build_ids))
-            for webhook_dict in pbar:
-                pbar.set_description(
-                    f"Processing records {i * BATCH_SIZE} - {i * BATCH_SIZE + len(ids_chunk)}"
-                )
+            for webhook_dict in results:
                 process_job(json.dumps(webhook_dict))
+                pbar.update(1)
 
     click.echo(f"Total records processed: {len(build_ids)}")
