@@ -244,10 +244,6 @@ def backfill_jobs(start: datetime, end: datetime, dry_run: bool) -> None:
             cursor.execute(WEBHOOK_QUERY, {"job_ids": ids_chunk})
             results = dict_fetchall(cursor)
 
-            pbar.set_description(
-                f"Processing records {i * BATCH_SIZE} - {i * BATCH_SIZE + len(ids_chunk)}"
-            )
-
             # Process each result
             for result in results:
                 # If the "build_started_at" field is None, set it to the created_at value. This seems
@@ -258,6 +254,10 @@ def backfill_jobs(start: datetime, end: datetime, dry_run: bool) -> None:
                 # https://github.com/spack/spack-infrastructure/issues/1284
                 if result.get("build_started_at") is None:
                     result["build_started_at"] = result["build_created_at"]
+
+                pbar.set_description(
+                    f"Processing records for {result['build_started_at'].replace(second=0, microsecond=0)}"
+                )
 
                 # The Gitlab DB returns a nullable integer, but the webhooks we
                 # receive use a string from the enum.
