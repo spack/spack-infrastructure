@@ -121,9 +121,11 @@ spec:
         # to 90 from its default of 30.
         graphQlTimeout: 90
 
+        # https://docs.gitlab.com/charts/charts/globals/#omniauth
         omniauth:
           enabled: true
 
+          # This secret specifies the github provider with its secret values
           providers:
             - secret: gitlab-omniauth-github
               key: provider
@@ -135,15 +137,16 @@ spec:
           # will not have access to internal GitLab projects
           externalProviders: ['github']
 
-          # Allow single sign on from GitHub
+          # Allow new accounts to be created when authenticating through GitHub
           allowSingleSignOn: true
 
           # If a user is logging in via GitHub for the first time and already has an account
           # on Spack GitLab, automatically link the accounts
           autoLinkUser: true
 
-          # Block auto-created users from logging in until an admin has approved them
-          # TODO: do we want to do this?
+          # Block auto-created users from logging in until an admin has approved them.
+          # Since the primary purpose of this integration is authentication between
+          # the two services (and nothing more), this is preferred.
           blockAutoCreatedUsers: true
 
       antiAffinity: hard
