@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import gitlab
 from gitlab.v4.objects import Project, ProjectPipeline
 import sys
-from typing import List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 import sentry_sdk
 
 sentry_sdk.init(
@@ -16,7 +16,7 @@ sentry_sdk.init(
 )
 
 
-def fetch_job_hashes(project: Project, job_id: int, job_name: str) -> List[str]:
+def fetch_job_hashes(project: Project, job_id: int, job_name: str) -> Tuple[str, List[str]]:
     """Fetch hashes from a generate job's spack.lock artifact."""
     job = project.jobs.get(job_id, lazy=True)
     stack_name = job_name.replace("-generate", "")
@@ -24,12 +24,12 @@ def fetch_job_hashes(project: Project, job_id: int, job_name: str) -> List[str]:
     artifact = job.artifact(artifact_path)
     lock = json.loads(artifact)
     hashes = list(lock["concrete_specs"].keys())
-    return hashes
+    return stack_name, hashes
 
 
 def process_pipeline(
     project: Project, pipeline: ProjectPipeline, max_workers: int = 10
-) -> Set[str]:
+) -> Tuple[str, Set[str]]:
     """Process all generate jobs in a pipeline in parallel."""
     print(
         f"\nProcessing pipeline {pipeline.id}...",
@@ -42,7 +42,8 @@ def process_pipeline(
             generate_jobs.append((job.id, job.name))
 
     # Fetch artifacts in parallel
-    all_hashes: Set[str] = set()
+    hashes_by_stack: Dict[str, Set[str]] = {}
+    hashes_by_stack["develop"] = set()
     if generate_jobs:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_job = {
@@ -54,10 +55,13 @@ def process_pipeline(
             }
 
             for future in as_completed(future_to_job):
-                hashes = future.result()
-                all_hashes.update(hashes)
+                stack_name, hashes = future.result()
+                if stack_name not in hashes_by_stack:
+                    hashes_by_stack[stack_name] = set()
+                hashes_by_stack[stack_name].update(hashes)
+                hashes_by_stack["develop"].update(hashes)
 
-    return all_hashes
+    return hashes_by_stack
 
 
 def main() -> int:
@@ -84,12 +88,6 @@ def main() -> int:
         type=int,
         default=14,
         help="Number of days to look back for pipelines",
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        required=True,
-        help="Output file for keep list",
     )
     parser.add_argument(
         "--max-workers",
@@ -127,7 +125,9 @@ def main() -> int:
     )
 
     # Process pipelines in parallel
-    all_hashes: Set[str] = set()
+    hashes_by_stack: Dict[str, Set[str]] = {}
+    hashes_by_stack["develop"] = set()
+
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
         future_to_pipeline = {
             executor.submit(
@@ -137,24 +137,25 @@ def main() -> int:
         }
 
         for future in as_completed(future_to_pipeline):
-            hashes = future.result()
-            all_hashes.update(hashes)
+            pipeline_hashes = future.result()
+            for stack_name, hashes in pipeline_hashes.items():
+                if stack_name not in hashes_by_stack:
+                    hashes_by_stack[stack_name] = set()
+                hashes_by_stack[stack_name].update(hashes)
 
     print(
         f"\nProcessed {len(pipelines)} pipelines",
     )
     print(
-        f"Total unique hashes to keep: {len(all_hashes)}",
+        f"Total unique hashes to keep: {len(hashes_by_stack["develop"])}",
     )
 
-    # Write keeplist file (one hash per line)
-    with open(args.output, "w") as f:
-        for hash_val in sorted(all_hashes):
-            f.write(f"{hash_val}\n")
-
-    print(
-        f"Keep list written to {args.output}",
-    )
+    # Write keeplist files (one hash per line)
+    for stack, hashes in hashes_by_stack.items():
+        with open(f"{stack}_keeplist.txt", "w") as f:
+            for hash_val in sorted(hashes):
+                f.write(f"{hash_val}\n")
+        print(f"Keep list written to {stack}_keeplist.txt")
     return 0
 
 

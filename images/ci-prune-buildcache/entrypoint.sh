@@ -3,8 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-echo "Input: $@"
-
 # Clone spack
 echo "Cloning spack..."
 git clone --depth 1 https://github.com/spack/spack.git
@@ -32,30 +30,44 @@ since_date=$(date --iso-8601 -d "${PRUNE_SINCE_DAYS} days ago")
 echo "Pruning binaries older than: ${since_date}"
 
 # Create keep list from GitLab pipelines
-keeplist_file="keeplist.txt"
 echo "Fetching keep hashes from GitLab pipelines..."
-python3 ${SCRIPT_DIR}/fetch_keeplist.py \
+python3 ${SCRIPT_DIR}/fetch_keeplists.py \
   --gitlab-url "${GITLAB_URL}" \
   --project "${GITLAB_PROJECT}" \
   --ref "${PRUNE_REF}" \
-  --since-days "${PRUNE_SINCE_DAYS}" \
-  --output "${keeplist_file}"
-echo "Keep list created with $(wc -l < ${keeplist_file}) hashes"
+  --since-days "${PRUNE_SINCE_DAYS}"
+echo "Keep lists created with $(wc -l < develop_keeplist.txt) total hashes"
 
-# Add the mirror
-echo "Adding mirror..."
-spack mirror add mirror-to-prune "${BUILDCACHE_URL}"
-echo "Adding mirror...done"
+# Prune each buildcache
+for file in *_keeplist.txt; do
+  stack="${file%_keeplist.txt}"
+  echo "Start pruning process for $stack buildcache"
+  keeplist_file="${stack}_keeplist.txt"
 
-# Run pruning with keeplist
-echo "Running buildcache prune with keeplist..."
-spack python prune.py --mirror mirror-to-prune --keeplist "${keeplist_file}"
-echo "Running buildcache prune...done"
+  echo "Contents of $keeplist_file:"
+  cat $keeplist_file
+  echo ""
 
-# Update the mirror index
-echo "Updating mirror index..."
-spack buildcache update-index mirror-to-prune
-echo "Updating mirror index...done"
+  # Add the mirror
+  echo "Adding mirror $stack..."
+  if [[ "$stack" == "develop" ]]; then
+    spack mirror add "${stack}" "${BUILDCACHE_URL}"
+  else
+    spack mirror add "${stack}" "${BUILDCACHE_URL}/${stack}"
+  fi
+  echo "Adding mirror $stack... done!"
 
-echo ""
-echo "Pruning complete"
+  # Run pruning with keeplist
+  echo "Running buildcache prune for $stack..."
+  spack --debug python prune.py --mirror "${stack}" --keeplist "${keeplist_file}"
+  echo "Running buildcache prune for $stack... done!"
+
+  # Update the mirror index
+  echo "Updating mirror index for $stack..."
+  spack buildcache update-index "${stack}"
+  echo "Updating mirror index for $stack... done!"
+  echo ""
+
+done
+
+echo "Pruning complete!!!"
