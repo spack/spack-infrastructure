@@ -50,6 +50,10 @@ spec:
     grafana:
       nodeSelector:
         spack.io/node-pool: base
+      resources:
+        requests:
+          cpu: 100m
+          memory: 350Mi
       ingress:
         enabled: false
       persistence:
@@ -153,11 +157,23 @@ spec:
     kube-state-metrics:
       nodeSelector:
         spack.io/node-pool: base
+      # Recommended requests taken from here:
+      # https://github.com/kubernetes/kube-state-metrics/blob/main/README.md
+      resources:
+        requests:
+          cpu: 100m
+          memory: 250Mi
       metricLabelsAllowlist:
         - pods=[*]
         - nodes=[*]
       metricAnnotationsAllowList:
         - pods=[gitlab/ci_job_id,metrics/spack_job_spec_pkg_name,metrics/spack_job_spec_hash,metrics/spack_job_spec_pkg_version,metrics/spack_job_spec_compiler_name,metrics/spack_job_spec_compiler_version,metrics/spack_job_spec_arch,metrics/spack_job_spec_variants,metrics/spack_job_build_jobs,metrics/spack_ci_stack_name]
+
+    prometheus-node-exporter:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
 
   # Configure OpenSearch datasource
   valuesFrom:
