@@ -113,6 +113,7 @@ taxonomy:
     spot_reclamation:
       grep_for:
         - 'node no longer exists'
+        - 'Pod was terminated in response to imminent node shutdown'
 
     pod_cleanup:
       grep_for:
