@@ -7,9 +7,9 @@ from datetime import datetime
 
 import botocore.exceptions
 import boto3.session
-import sentry_sdk
 
-sentry_sdk.init(traces_sample_rate=1.0)
+# Import to init sentry if available
+import pkg.common
 
 
 ################################################################################
@@ -57,7 +57,7 @@ def validate_s3_index(url, layout_version=2):
     if layout_version == 2:
         prefix = f"{m.group(2)}/build_cache/index.json"
     elif layout_version == 3:
-        prefix = f"{m.group(2)}/v3/specs/index.json"
+        prefix = f"{m.group(2)}/v3/manifests/index/index.json"
     else:
         print(f"Unrecognized layout_version given ({layout_version}): must be 2 or 3")
         sys.exit(1)
