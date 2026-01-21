@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spackbot-dev-spack-io
+  namespace: spack
+  labels:
+    app: spackbot-dev-spack-io
+    svc: web
+spec:
+  selector:
+    matchLabels:
+      app: spackbot-dev-spack-io
+      svc: web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: spackbot-dev-spack-io
+        svc: web
+    spec:
+      containers:
+      - name: web
+        # Note that we can switch between development images or latest to test.
+        # This should not be merged until the digest of the working image is selected.
+        image: "ghcr.io/spack/spack-bot:v-test-1"
+#        image: "ghcr.io/spack/spack-bot:latest"
+#        image: "ghcr.io/spack/spack-bot@sha256:94fc2270c03f13218f748e34f4ff1a6d48da5d232240df06020c9fb14ed81063"
+
+        # Mount secrets to non-existing location
+        volumeMounts:
+          - mountPath: "/git_rsa"
+            name: spack-bot-dev-idrsa
+            readOnly: true
+
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: GITHUB_APP_IDENTIFIER
+          value: "126480"
+        - name: GITHUB_APP_REQUESTER
+          value: "spackbot"
+        - name: GITHUB_IDRSA
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-dev-credentials
+              key: github_idrsa
+        - name: GITHUB_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-dev-credentials
+              key: github_private_key
+        - name: GITHUB_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: spack-bot-dev-credentials
+              key: github_webhook_secret
+      volumes:
+        - name: spack-bot-dev-idrsa
+          secret:
+            secretName: spack-bot-dev-idrsa
+      nodeSelector:
+        spack.io/node-pool: base
