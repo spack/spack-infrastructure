@@ -141,6 +141,20 @@ module "eks" {
       self        = true # Only apply this rule to other nodes in this security group
     }
   }
+
+  # Necessary for AWS VPC Lattice / Gateway API
+  security_group_additional_rules = {
+    aws_vpc_lattice = {
+      prefix_list_ids = [
+        data.aws_ec2_managed_prefix_list.cluster_prefix_list.id,
+        data.aws_ec2_managed_prefix_list.cluster_prefix_list_ipv6.id
+      ]
+      type      = "ingress"
+      protocol  = "-1"
+      from_port = 0
+      to_port   = 0
+    }
+  }
 }
 
 resource "aws_iam_role" "ebs_csi_driver" {
