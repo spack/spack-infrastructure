@@ -1,0 +1,33 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: aws-gateway-controller
+  namespace: aws-application-networking-system
+spec:
+  type: oci
+  interval: 10m
+  url: oci://public.ecr.aws/aws-application-networking-k8s
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gateway-api-controller
+  namespace: aws-application-networking-system
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: aws-gateway-controller-chart
+      version: v2.0.0
+      sourceRef:
+        kind: HelmRepository
+        name: aws-gateway-controller
+  values:
+    # Service account is managed by k8s manifests (serviceaccounts.yaml)
+    serviceAccount:
+      create: false
+    # Use "debug" for debug-level logs
+    log:
+      # TODO: change to "info" after debugging
+      level: debug
