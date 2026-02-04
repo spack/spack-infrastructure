@@ -6,3 +6,4 @@ resources:
   - ../../production/gateway/namespace.yaml
   - ../../production/gateway/release.yaml
   - ../../production/gateway/serviceaccounts.yaml
+  - ../../production/gateway/gatewayclasses.yaml
