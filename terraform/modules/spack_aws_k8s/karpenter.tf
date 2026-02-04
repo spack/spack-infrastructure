@@ -68,6 +68,8 @@ resource "kubectl_manifest" "karpenter_node_class" {
       amiFamily: AL2023
       amiSelectorTerms:
         - alias: al2023@latest
+      metadataOptions:
+        httpPutResponseHopLimit: 2
       userData: |
         apiVersion: node.eks.aws/v1alpha1
         kind: NodeConfig
