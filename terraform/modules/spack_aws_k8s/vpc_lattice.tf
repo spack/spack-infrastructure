@@ -5,6 +5,18 @@ data "aws_ec2_managed_prefix_list" "cluster_prefix_list_ipv6" {
   name = "com.amazonaws.${var.region}.ipv6.vpc-lattice"
 }
 
+resource "aws_security_group_rule" "vpc_lattice_ingress_all" {
+  type      = "ingress"
+  from_port = "-1"
+  to_port   = "-1"
+  protocol  = "-1"
+  prefix_list_ids = [
+    data.aws_ec2_managed_prefix_list.cluster_prefix_list.id,
+    data.aws_ec2_managed_prefix_list.cluster_prefix_list_ipv6.id
+  ]
+  security_group_id = module.eks.cluster_primary_security_group_id
+}
+
 # VPC Lattice controller IAM policy
 resource "aws_iam_policy" "vpc_lattice_controller" {
   name        = "VPCLatticeControllerIAMPolicy"
