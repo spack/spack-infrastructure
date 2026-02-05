@@ -6,7 +6,7 @@ resources:
   - ../../production/cdash/ingress.yaml
   - ../../production/cdash/namespace.yaml
   - ../../production/cdash/release.yaml
-  - ../../production/cdash/gateway.yaml
+  - ../../production/cdash/httproutes.yaml
 
 patches:
   - target:
@@ -28,19 +28,13 @@ patches:
         value: cdash.staging.spack.io
 
   - target:
-      kind: Gateway
-      name: cdash
-      namespace: cdash
-    patch: |-
-      - op: replace
-        path: /spec/listeners/0/hostname
-        value: cdash.staging.spack.io
-
-  - target:
       kind: HTTPRoute
       name: cdash
       namespace: cdash
     patch: |-
+      - op: replace
+        path: /spec/parentRefs/0/name
+        value: spack-staging-blue-gateway
       - op: replace
         path: /spec/hostnames/0
         value: cdash.staging.spack.io

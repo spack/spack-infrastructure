@@ -5,6 +5,19 @@ data "aws_ec2_managed_prefix_list" "cluster_prefix_list_ipv6" {
   name = "com.amazonaws.${var.region}.ipv6.vpc-lattice"
 }
 
+# VPC Lattice service network for the spack Gateway. The AWS Gateway API controller
+# looks up a service network by the Gateway's name (e.g. Gateway "spack-gateway" -> service network "spack-gateway").
+resource "aws_vpclattice_service_network" "spack_gateway" {
+  name      = "${local.eks_cluster_name}-gateway"
+  auth_type = "NONE"
+}
+
+resource "aws_vpclattice_service_network_vpc_association" "spack_gateway" {
+  service_network_identifier = aws_vpclattice_service_network.spack_gateway.id
+  vpc_identifier             = module.vpc.vpc_id
+  # security_group_ids = [module.eks.cluster_primary_security_group_id]
+}
+
 resource "aws_security_group_rule" "vpc_lattice_ingress_all" {
   type      = "ingress"
   from_port = "-1"

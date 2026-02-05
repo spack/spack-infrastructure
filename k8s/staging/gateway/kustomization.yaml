@@ -7,3 +7,30 @@ resources:
   - ../../production/gateway/release.yaml
   - ../../production/gateway/serviceaccounts.yaml
   - ../../production/gateway/gatewayclasses.yaml
+  - ../../production/gateway/gateways.yaml
+
+patches:
+  - target:
+      kind: Gateway
+      name: spack-gateway
+      namespace: aws-application-networking-system
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: spack-staging-blue-gateway
+  - target:
+      kind: Gateway
+      name: spack-gateway
+      namespace: aws-application-networking-system
+    patch: |-
+      - op: replace
+        path: /spec/listeners/0/hostname
+        value: "*.staging.spack.io"
+  - target:
+      kind: HelmRelease
+      name: gateway-api-controller
+      namespace: aws-application-networking-system
+    patch: |-
+      - op: replace
+        path: /spec/values/defaultServiceNetwork/name
+        value: spack-staging-blue-gateway

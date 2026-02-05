@@ -31,3 +31,7 @@ spec:
     log:
       # TODO: change to "info" after debugging
       level: debug
+
+    # TODO: Remove hardcoding
+    defaultServiceNetwork:
+      name: spack-gateway
