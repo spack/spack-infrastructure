@@ -1,6 +1,6 @@
 images:
   - path: ./images/gh-gl-sync
-    image: ghcr.io/spack/ci-bridge:0.0.46
+    image: ghcr.io/spack/ci-bridge:0.0.47
 
   - path: ./images/ci-key-clear
     image: ghcr.io/spack/ci-key-clear:0.0.3

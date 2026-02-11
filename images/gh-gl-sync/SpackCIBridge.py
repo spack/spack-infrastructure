@@ -6,6 +6,7 @@ import base64
 from datetime import datetime, timedelta, timezone
 import dateutil.parser
 from github import Github
+from github.GithubException import GithubException
 import json
 import os
 import re
@@ -138,7 +139,11 @@ class SpackCIBridge(object):
         """ Check our cache for a commit on GitHub.
             If we don't have it yet, use the GitHub API to retrieve it."""
         if commit not in self.cached_commits:
-            self.cached_commits[commit] = self.py_gh_repo.get_commit(sha=commit)
+            try:
+                self.cached_commits[commit] = self.py_gh_repo.get_commit(sha=commit)
+            except GithubException as ghe:
+                print(ghe)
+                return None
         return self.cached_commits[commit]
 
     def list_github_prs(self):
@@ -605,6 +610,9 @@ class SpackCIBridge(object):
     def create_status_for_commit(self, sha, branch, state, target_url, description):
         context = os.environ.get("GITHUB_STATUS_CONTEXT", "ci/gitlab-ci")
         commit = self.get_commit(sha)
+        if commit is None:
+            print(f"Unable to find GitHub commit for sha {sha} on branch {branch}")
+            return
         existing_statuses = commit.get_combined_status()
         for status in existing_statuses.statuses:
             if (status.context == context and
