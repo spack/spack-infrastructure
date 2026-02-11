@@ -27,6 +27,8 @@ spec:
     # Service account is managed by k8s manifests (serviceaccounts.yaml)
     serviceAccount:
       create: false
+      name: gateway-api-controller
+
     # Use "debug" for debug-level logs
     log:
       # TODO: change to "info" after debugging
