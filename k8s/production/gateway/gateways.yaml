@@ -13,10 +13,9 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-      # tls:
-      #   mode: Terminate
-      #   certificateRefs:
-      #     # AWS controller ignores this; set tls.options["application-networking.k8s.aws/certificate-arn"] to your ACM cert ARN for TLS.
-      #     - kind: Secret
-      #       name: tls-cdash
-      #       group: ""
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: tls-cdash
+            group: ""
