@@ -3,9 +3,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../production/cdash/certificates.yaml
-  - ../../production/cdash/ingress.yaml
   - ../../production/cdash/namespace.yaml
   - ../../production/cdash/release.yaml
+  - ../../production/cdash/httproutes.yaml
 
 patches:
   - target:
@@ -18,12 +18,12 @@ patches:
         value: cdash.staging.spack.io
 
   - target:
-      kind: Ingress
+      kind: HTTPRoute
       name: cdash
       namespace: cdash
     patch: |-
       - op: replace
-        path: /spec/rules/0/host
+        path: /spec/hostnames/0
         value: cdash.staging.spack.io
 
   - target:
