@@ -28,8 +28,6 @@ spec:
   dependsOn:
     - name: cert-manager
       namespace: cert-manager
-    - name: ingress-nginx
-      namespace: ingress-nginx
 
   valuesFrom:
     - kind: Secret
@@ -72,11 +70,7 @@ spec:
         ssh: ssh.gitlab.spack.io
 
       ingress:
-        apiVersion: networking.k8s.io/v1
-        configureCertmanager: false
-        class: nginx
-        tls:
-          external: true
+        enabled: false
 
       gitlab:
         license: {}
