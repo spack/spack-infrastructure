@@ -25,9 +25,6 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: gitlab
-  dependsOn:
-    - name: cert-manager
-      namespace: cert-manager
 
   valuesFrom:
     - kind: Secret
