@@ -477,7 +477,7 @@ resource "kubectl_manifest" "gateway" {
 data "aws_lb" "gateway" {
   tags = {
     "elbv2.k8s.aws/cluster" = module.eks.cluster_name
-    "Application"            = "spack"
+    "Application"           = "spack"
   }
 
   depends_on = [kubectl_manifest.gateway]
