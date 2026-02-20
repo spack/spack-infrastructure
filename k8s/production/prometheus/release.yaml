@@ -94,7 +94,6 @@ spec:
         - grafana-opensearch-datasource
 
 
-
       envValueFrom:
         GF_AUTH_GITHUB_CLIENT_ID:
           secretKeyRef:

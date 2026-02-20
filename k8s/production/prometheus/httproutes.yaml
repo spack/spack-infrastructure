@@ -1,0 +1,66 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: oauth2-proxy
+  namespace: monitoring
+spec:
+  parentRefs:
+    - name: spack-gateway
+      namespace: gateway-api
+  hostnames:
+    - prometheus.spack.io
+  rules:
+    - matches:
+        - path:
+            # oauth2-proxy is mounted at the root path and proxies all requests to the prometheus service
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: oauth2-proxy
+          port: 4180
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kube-prometheus-stack-alertmanager
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack-alertmanager
+    app.kubernetes.io/instance: kube-prometheus-stack
+spec:
+  parentRefs:
+    - name: spack-gateway
+      namespace: gateway-api
+  hostnames:
+    - alertmanager.spack.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: kube-prometheus-stack-alertmanager
+          port: 9093
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kube-prometheus-stack-grafana
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack-grafana
+    app.kubernetes.io/instance: kube-prometheus-stack
+spec:
+  parentRefs:
+    - name: spack-gateway
+      namespace: gateway-api
+  hostnames:
+    - grafana.spack.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: kube-prometheus-stack-grafana
+          port: 80

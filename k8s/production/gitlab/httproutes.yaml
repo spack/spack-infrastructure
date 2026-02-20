@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: gitlab-webservice-default
+  namespace: gitlab
+spec:
+  parentRefs:
+    - name: spack-gateway
+      namespace: gateway-api
+  hostnames:
+    - gitlab.spack.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: gitlab-webservice-default
+          port: 8181  # Point to the gitlab-workhorse port

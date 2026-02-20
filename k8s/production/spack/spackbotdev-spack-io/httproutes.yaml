@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: spackbotdev-spack-io
+  namespace: spack
+spec:
+  parentRefs:
+    - name: spack-gateway
+      namespace: gateway-api
+  hostnames:
+    - spackbotdev.spack.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: spackbotdev-spack-io
+          port: 80
