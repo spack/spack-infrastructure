@@ -11,9 +11,7 @@ from contextlib import closing
 from datetime import datetime
 from typing import NamedTuple
 
-import sentry_sdk
-
-from .common import (
+from pkg.common import (
     BuiltSpec,
     TIMESTAMP_AND_SIZE,
     TIMESTAMP_PATTERN,
@@ -27,8 +25,6 @@ from .common import (
     s3_upload_file,
     spec_catalogs_from_listing_v2,
 )
-
-sentry_sdk.init(traces_sample_rate=1.0)
 
 
 class MigrationResult(NamedTuple):

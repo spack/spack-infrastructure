@@ -13,7 +13,8 @@ RUN uv pip install --system --no-cache-dir -r /srcs/requirements.txt
 
 COPY pkg /srcs/pkg
 COPY --chmod=755 migrate.sh /srcs/migrate.sh
+COPY --chmod=755 run.sh /srcs/run.sh
 
 ENV PYTHONUNBUFFERED=1
 WORKDIR /srcs
-ENTRYPOINT ["python", "-m", "pkg.publish"]
+ENTRYPOINT ["bash", "/srcs/run.sh"]

@@ -16,7 +16,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: snapshot-release-tags
-            image: ghcr.io/spack/snapshot-release-tags:0.0.4
+            image: ghcr.io/spack/buildcache-tools:0.0.1
             imagePullPolicy: IfNotPresent
             resources:
               requests:
@@ -31,5 +31,12 @@ spec:
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config
+            args:
+              - "snapshot"
+              - "--bucket"
+              - "spack-binaries"
+              - "--project"
+              - "spack/spack-packages"
+
           nodeSelector:
             spack.io/node-pool: base
