@@ -1,0 +1,14 @@
+- op: replace
+  path: /metadata/name
+  value: glr-x86-64-v2
+# Apply label for highest supported x86_64 microarch version (v2)
+- op: add
+  path: /spec/template/metadata/labels/spack.io~1x86_64
+  value: "v2"
+# Require amd64 nodes
+- op: add
+  path: /spec/template/spec/requirements/-
+  value:
+    key: "kubernetes.io/arch"
+    operator: In
+    values: ["amd64"]
