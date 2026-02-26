@@ -1,0 +1,22 @@
+- op: replace
+  path: /metadata/name
+  value: glr-notary
+# Apply special "notary" label to nodes in this pool
+- op: add
+  path: /spec/template/metadata/labels/spack.io~1notary
+  value: "true"
+# Taint these nodes so only notary pods will be scheduled on them.
+- op: replace
+  path: /spec/template/spec/taints
+  value:
+    - key: spack.io/notary-taint
+      value: "true"
+      effect: NoSchedule
+# Limits are calculated as follows:
+#   10 vCPUs * 20 concurrent jobs (1 runner, 1 replica)
+#   64G * 20 concurrent jobs (1 runner, 1 replica)
+- op: replace
+  path: /spec/limits
+  value:
+    cpu: 200
+    memory: 1280G

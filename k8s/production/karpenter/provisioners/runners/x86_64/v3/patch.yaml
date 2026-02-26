@@ -1,0 +1,48 @@
+- op: replace
+  path: /metadata/name
+  value: glr-x86-64-v3
+# Apply label for highest supported x86_64 microarch version (v3)
+- op: add
+  path: /spec/template/metadata/labels/spack.io~1x86_64
+  value: "v3"
+# Require amd64 nodes
+- op: add
+  path: /spec/template/spec/requirements/-
+  value:
+    key: "kubernetes.io/arch"
+    operator: In
+    values: ["amd64"]
+# Only provision nodes from instance families that have been verified
+# to support x86_64_v3 by archspec.
+- op: add
+  path: /spec/template/spec/requirements/-
+  value:
+    key: "karpenter.k8s.aws/instance-family"
+    operator: In
+    values:
+      - "c4"
+      - "c5"
+      - "c5a"
+      - "c5n"
+      - "c6a"
+      - "c6i"
+      - "m4"
+      - "m5"
+      - "m5a"
+      - "m5n"
+      - "m5zn"
+      - "m6a"
+      - "m6i"
+      - "r4"
+      - "r5"
+      - "r5a"
+      - "r5b"
+      - "r5n"
+      - "r6a"
+      - "r6i"
+      - "t2"
+      - "t3"
+      - "t3a"
+      - "x1e"
+      - "x2iedn"
+      - "x2iezn"
