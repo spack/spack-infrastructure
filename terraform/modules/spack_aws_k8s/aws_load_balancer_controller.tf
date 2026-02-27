@@ -356,19 +356,29 @@ resource "aws_acm_certificate_validation" "gateway" {
 }
 
 # --- Gateway API CRDs ---
+# Fetched and applied by Terraform so the Kubernetes provider tracks state and manages lifecycle.
 
-resource "null_resource" "gateway_api_crds" {
-  triggers = { version = "v1.3.0" }
-  provisioner "local-exec" {
-    command = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml"
+data "http" "gateway_api_crds" {
+  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml"
+
+  request_headers = {
+    Accept = "application/yaml"
   }
 }
+resource "kubectl_manifest" "gateway_api_crds" {
+  yaml_body = data.http.gateway_api_crds.response_body
+}
 
-resource "null_resource" "aws_lbc_gateway_crds" {
-  triggers = { version = "v3.0.0" }
-  provisioner "local-exec" {
-    command = "kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/refs/heads/main/helm/aws-load-balancer-controller/crds/gateway-crds.yaml"
+data "http" "aws_lbc_gateway_crds" {
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/refs/heads/main/helm/aws-load-balancer-controller/crds/gateway-crds.yaml"
+
+  request_headers = {
+    Accept = "application/yaml"
   }
+}
+resource "kubectl_manifest" "aws_lbc_gateway_crds" {
+  yaml_body  = data.http.aws_lbc_gateway_crds.response_body
+  depends_on = [kubectl_manifest.gateway_api_crds]
 }
 
 # --- Gateway API resources ---
@@ -393,7 +403,7 @@ resource "kubectl_manifest" "gateway_class" {
   YAML
 
   depends_on = [
-    null_resource.gateway_api_crds,
+    kubectl_manifest.gateway_api_crds,
     helm_release.aws_load_balancer_controller,
   ]
 }
@@ -425,7 +435,7 @@ resource "kubectl_manifest" "gateway_lb_config" {
   YAML
 
   depends_on = [
-    null_resource.aws_lbc_gateway_crds,
+    kubectl_manifest.aws_lbc_gateway_crds,
     kubectl_manifest.gateway_api_namespace,
     aws_acm_certificate_validation.gateway,
   ]
@@ -461,7 +471,7 @@ resource "kubectl_manifest" "gateway" {
   YAML
 
   depends_on = [
-    null_resource.gateway_api_crds,
+    kubectl_manifest.gateway_api_crds,
     kubectl_manifest.gateway_api_namespace,
     kubectl_manifest.gateway_class,
     kubectl_manifest.gateway_lb_config,
