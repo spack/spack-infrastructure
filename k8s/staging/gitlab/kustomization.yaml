@@ -6,6 +6,7 @@ resources:
   - ../../production/gitlab/namespace.yaml
   - ../../production/gitlab/release.yaml
   - ../../production/gitlab/pod-cleanup.yaml
+  - ../../production/gitlab/httproutes.yaml
 patches:
   - target:
       kind: Certificate
@@ -14,6 +15,15 @@ patches:
     patch: |-
       - op: replace
         path: /spec/dnsNames/0
+        value: gitlab.staging.spack.io
+
+  - target:
+      kind: HTTPRoute
+      name: gitlab-webservice-default
+      namespace: gitlab
+    patch: |-
+      - op: replace
+        path: /spec/hostnames/0
         value: gitlab.staging.spack.io
 
   - target:

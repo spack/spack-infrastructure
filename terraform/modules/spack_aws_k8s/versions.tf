@@ -3,6 +3,9 @@ terraform {
     aws = {
       source = "hashicorp/aws"
     }
+    http = {
+      source = "hashicorp/http"
+    }
     kubectl = {
       source = "alekc/kubectl"
     }
