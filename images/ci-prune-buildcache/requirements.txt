@@ -7,7 +7,7 @@ colorama==0.4.6
 docutils==0.19
 idna==3.11
 jmespath==1.0.1
-pyasn1==0.6.1
+pyasn1==0.6.2
 python-dateutil==2.9.0.post0
 python-gitlab==6.5.0
 PyYAML==6.0.3
