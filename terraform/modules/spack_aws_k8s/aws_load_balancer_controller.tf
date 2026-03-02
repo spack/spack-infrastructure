@@ -470,6 +470,12 @@ resource "kubectl_manifest" "gateway" {
 
 # --- DNS: wildcard record pointing to the ALB ---
 
+
+resource "time_sleep" "gateway_wait_30_seconds" {
+  depends_on      = [kubectl_manifest.gateway]
+  create_duration = "30s"
+}
+
 # Look up the ALB created by the LBC controller.
 # NOTE: The ALB is created asynchronously by the LBC after the Gateway resource
 # is applied. If this data source fails on the first `terraform apply`, re-run
@@ -480,7 +486,7 @@ data "aws_lb" "gateway" {
     "Application"           = "spack"
   }
 
-  depends_on = [kubectl_manifest.gateway]
+  depends_on = [time_sleep.gateway_wait_30_seconds]
 }
 
 resource "aws_route53_record" "gateway_wildcard" {
