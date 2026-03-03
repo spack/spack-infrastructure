@@ -357,18 +357,40 @@ resource "aws_acm_certificate_validation" "gateway" {
 
 # --- Gateway API CRDs ---
 
-resource "null_resource" "gateway_api_crds" {
-  triggers = { version = "v1.3.0" }
-  provisioner "local-exec" {
-    command = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml"
-  }
+data "http" "gateway_api_crds" {
+  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml"
+}
+data "http" "aws_lbc_gateway_crds" {
+  url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/refs/tags/v3.0.0/helm/aws-load-balancer-controller/crds/gateway-crds.yaml"
 }
 
-resource "null_resource" "aws_lbc_gateway_crds" {
-  triggers = { version = "v3.0.0" }
-  provisioner "local-exec" {
-    command = "kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/refs/heads/main/helm/aws-load-balancer-controller/crds/gateway-crds.yaml"
-  }
+
+locals {
+  gateway_api_crd_docs = [
+    for doc in slice(
+      split("---", data.http.gateway_api_crds.response_body),
+      1,
+      length(split("---", data.http.gateway_api_crds.response_body))
+    ) : trimspace(doc)
+  ]
+  aws_lbc_gateway_crd_docs = [
+    for doc in slice(
+      split("---", data.http.aws_lbc_gateway_crds.response_body),
+      1,
+      length(split("---", data.http.aws_lbc_gateway_crds.response_body))
+    ) : trimspace(doc)
+  ]
+}
+
+resource "kubectl_manifest" "gateway_api_crds" {
+  for_each  = { for i, doc in local.gateway_api_crd_docs : i => doc }
+  yaml_body = each.value
+}
+resource "kubectl_manifest" "aws_lbc_gateway_crds" {
+  for_each  = { for i, doc in local.aws_lbc_gateway_crd_docs : i => doc }
+  yaml_body = each.value
+
+  depends_on = [kubectl_manifest.gateway_api_crds]
 }
 
 # --- Gateway API resources ---
@@ -393,7 +415,7 @@ resource "kubectl_manifest" "gateway_class" {
   YAML
 
   depends_on = [
-    null_resource.gateway_api_crds,
+    kubectl_manifest.gateway_api_crds,
     helm_release.aws_load_balancer_controller,
   ]
 }
@@ -425,7 +447,7 @@ resource "kubectl_manifest" "gateway_lb_config" {
   YAML
 
   depends_on = [
-    null_resource.aws_lbc_gateway_crds,
+    kubectl_manifest.aws_lbc_gateway_crds,
     kubectl_manifest.gateway_api_namespace,
     aws_acm_certificate_validation.gateway,
   ]
@@ -461,7 +483,7 @@ resource "kubectl_manifest" "gateway" {
   YAML
 
   depends_on = [
-    null_resource.gateway_api_crds,
+    kubectl_manifest.gateway_api_crds,
     kubectl_manifest.gateway_api_namespace,
     kubectl_manifest.gateway_class,
     kubectl_manifest.gateway_lb_config,
