@@ -53,29 +53,59 @@ jobs:
 
       - name: Send Slack alert on drift
         if: failure()
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: spack-alerts
+          SLACK_CHANNEL_ID: C06NHUC54NB
         run: |
+          upload_file() {
+            local filepath="$1"
+            local title="$2"
+            local filename
+            filename=$(basename "$filepath")
+            local filesize
+            filesize=$(wc -c < "$filepath")
+
+            # Step 1: Get upload URL
+            local response
+            response=$(curl -s -X POST \
+              -H "Authorization: Bearer $SLACK_TOKEN" \
+              -F "filename=$filename" \
+              -F "length=$filesize" \
+              https://slack.com/api/files.getUploadURLExternal)
+
+            local upload_url file_id
+            upload_url=$(echo "$response" | jq -r '.upload_url')
+            file_id=$(echo "$response" | jq -r '.file_id')
+
+            if [ "$upload_url" = "null" ] || [ -z "$upload_url" ]; then
+              echo "Error getting upload URL for $filename: $response"
+              return 1
+            fi
+
+            # Step 2: Upload file content to the presigned URL
+            curl -s -X POST \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$filepath" \
+              "$upload_url"
+
+            # Step 3: Complete the upload and share to channel
+            curl -s -X POST \
+              -H "Authorization: Bearer $SLACK_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"files\": [{\"id\": \"$file_id\", \"title\": \"$title\"}], \"channel_id\": \"$SLACK_CHANNEL_ID\"}" \
+              https://slack.com/api/files.completeUploadExternal
+          }
+
           # Post message
-          curl -X POST \
-          -H "Content-type: application/json" \
-          -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
-          -d '{
-                "channel": "spack-alerts",
-                "text": ":rotating_light: :rotating_light: :rotating_light: Infrastructure drift detected! :rotating_light: :rotating_light: :rotating_light:"
-              }' \
-          https://slack.com/api/chat.postMessage
+          curl -s -X POST \
+            -H "Content-type: application/json" \
+            -H "Authorization: Bearer $SLACK_TOKEN" \
+            -d "{\"channel\": \"$SLACK_CHANNEL\", \"text\": \":rotating_light: :rotating_light: :rotating_light: Infrastructure drift detected! :rotating_light: :rotating_light: :rotating_light:\"}" \
+            https://slack.com/api/chat.postMessage
 
           # Upload TF plan stdout
-          curl -F file=@tfplan_output.txt \
-          -F channels=spack-alerts \
-          -F title="tfplan_output.txt" \
-          -F filetype="text" \
-          -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
-          https://slack.com/api/files.upload
+          upload_file tfplan_output.txt "tfplan_output.txt"
 
           # Upload TF plan binary file
-          curl -F file=@tfplan \
-          -F channels=spack-alerts \
-          -F title="tfplan" \
-          -F filetype="binary" \
-          -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
-          https://slack.com/api/files.upload
+          upload_file tfplan "tfplan"
