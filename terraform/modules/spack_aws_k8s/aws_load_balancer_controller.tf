@@ -283,8 +283,6 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
   policy_arn = aws_iam_policy.aws_load_balancer_controller.arn
 }
 
-# TODO: apply "CriticalAddonsOnly" toleration so that it can run on the
-# `bootstrap-node-group` managed node group
 resource "helm_release" "aws_load_balancer_controller" {
   name             = "aws-load-balancer-controller"
   namespace        = "aws-load-balancer-controller"
