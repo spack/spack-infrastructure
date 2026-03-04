@@ -4,8 +4,9 @@ module "spack_aws_k8s" {
   deployment_name  = "prod"
   deployment_stage = "blue"
 
-  region           = "us-east-1"
-  eks_cluster_role = var.eks_cluster_role
+  region               = "us-east-1"
+  eks_cluster_role     = var.eks_cluster_role
+  aws_assume_role_arn  = var.aws_assume_role_arn
 
   flux_path = "k8s/production/"
 
@@ -24,5 +25,6 @@ module "spack_gitlab" {
 
   region = "us-east-1"
 
-  gitlab_token = var.gitlab_token
+  gitlab_token        = var.gitlab_token
+  aws_assume_role_arn = var.aws_assume_role_arn
 }
