@@ -1,0 +1,25 @@
+- op: replace
+  path: /metadata/name
+  value: glr-graviton3
+# Label all provisioned nodes as graviton 3
+- op: add
+  path: /spec/template/metadata/labels/spack.io~1graviton
+  value: "3"
+# Only spin up arm64 nodes
+- op: add
+  path: /spec/template/spec/requirements/-
+  value:
+    key: "kubernetes.io/arch"
+    operator: In
+    values: ["arm64"]
+# Only provision nodes with graviton3 processors.
+# Data gleaned from https://aws.amazon.com/ec2/graviton/
+- op: add
+  path: /spec/template/spec/requirements/-
+  value:
+    key: "karpenter.k8s.aws/instance-family"
+    operator: In
+    values:
+      - "c7g"
+      - "m7g"
+      - "r7g"

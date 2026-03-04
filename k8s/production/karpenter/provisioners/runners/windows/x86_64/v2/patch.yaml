@@ -1,0 +1,59 @@
+- op: replace
+  path: /metadata/name
+  value: x86-64-v2-win
+# Apply x86_64 v2 label for highest supported x86_64 microarch version
+- op: add
+  path: /spec/template/metadata/labels/spack.io~1x86_64
+  value: "v2"
+# Apply "windows" label
+- op: replace
+  path: /spec/template/metadata/labels/spack.io~1os
+  value: "windows"
+# This pool consists solely of m5.2xlarge on-demand windows instances
+- op: replace
+  path: /spec/template/spec/requirements/1
+  value:
+    key: "karpenter.k8s.aws/instance-size"
+    operator: In
+    values: ["2xlarge"]
+- op: replace
+  path: /spec/template/spec/requirements/2
+  value:
+    key: karpenter.sh/capacity-type
+    operator: In
+    values: ["on-demand"]
+- op: replace
+  path: /spec/template/spec/requirements/3
+  value:
+    key: kubernetes.io/os
+    operator: In
+    values: ["windows"]
+- op: add
+  path: /spec/template/spec/requirements/-
+  value:
+    key: "kubernetes.io/arch"
+    operator: In
+    values: ["amd64"]
+- op: add
+  path: /spec/template/spec/requirements/-
+  value:
+    key: "karpenter.k8s.aws/instance-family"
+    operator: In
+    values:
+      - "m5"
+# EC2NodeClass is windows (not default)
+- op: replace
+  path: /spec/template/spec/nodeClassRef/name
+  value: windows
+# Taint windows nodes to ensure pods must explicitly "opt-in" to be scheduled on them
+- op: add
+  path: /spec/template/spec/taints/0
+  value:
+    key: "windows"
+    value: "true"
+    effect: NoSchedule
+# Wait 2 hours before deprovisioning a Windows runner pod.
+# This is due to the long startup time Windows nodes have.
+- op: replace
+  path: /spec/disruption/consolidateAfter
+  value: 7200s
