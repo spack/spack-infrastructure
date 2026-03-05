@@ -206,13 +206,11 @@ resource "aws_iam_role" "eks_cluster_access" {
         "Effect" : "Allow",
         "Principal" : {
           "AWS" : [
-            "arn:aws:iam::588562868276:user/scott",
             "arn:aws:iam::588562868276:user/jacob",
             "arn:aws:iam::588562868276:user/krattiger1",
             "arn:aws:iam::588562868276:user/mike",
             "arn:aws:iam::588562868276:user/zack",
             "arn:aws:iam::588562868276:user/dan",
-            "arn:aws:iam::588562868276:user/william",
           ]
         },
         "Action" : "sts:AssumeRole"
@@ -252,10 +250,8 @@ resource "aws_iam_role" "readonly_clusterrole" {
         "Effect" : "Allow",
         "Principal" : {
           "AWS" : [
-            "arn:aws:iam::588562868276:user/joesnyder",
             "arn:aws:iam::588562868276:user/alecscott",
             "arn:aws:iam::588562868276:user/tgamblin",
-            "arn:aws:iam::588562868276:user/vsoch",
           ]
         },
         "Action" : "sts:AssumeRole"
