@@ -184,7 +184,7 @@ spec:
       imagePullPolicy: "if-not-present"
       locked: false
 
-      tags: "x86_64,x86_64_v2,small,medium,large,huge,public,aws,spack,service"
+      tags: "x86_64,x86_64_v2,small,medium,large,huge,public,aws,spack,service,service_noop"
       runUntagged: false
       secret: spack-group-runner-secret
 
