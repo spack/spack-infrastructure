@@ -69,7 +69,7 @@ spec:
             exit 1
           }
 
-          $scriptPath = Join-Path $PSScriptRoot 'pre_build.py'
+          $scriptPath = Join-Path $HOME 'pre_build.py'
 
           $wc = New-Object System.Net.WebClient
           $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
