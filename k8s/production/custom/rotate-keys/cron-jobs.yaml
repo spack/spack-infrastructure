@@ -4,7 +4,7 @@ metadata:
   name: clear-admin-keys
   namespace: custom
 spec:
-  schedule: "0 0 10 */2 *"
+  schedule: "0 0 10 * *"
   jobTemplate:
     spec:
       template:
@@ -13,7 +13,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: clear-admin-keys
-            image: ghcr.io/spack/ci-key-clear:0.0.3
+            image: ghcr.io/spack/ci-key-clear:0.0.4
             imagePullPolicy: IfNotPresent
             resources:
               requests:
