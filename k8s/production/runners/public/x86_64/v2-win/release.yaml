@@ -100,7 +100,7 @@ spec:
             helper_memory_request = "1"
 
             cpu_request = "750m"
-            cpu_request_overwrite_max_allowed = "12"
+            cpu_request_overwrite_max_allowed = "16"
             cpu_limit_overwrite_max_allowed = "24"
 
             memory_request = "2G"
