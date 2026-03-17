@@ -66,8 +66,21 @@ spec:
           enabled: false
         ssh: ssh.gitlab.spack.io
 
+      # ###########################
+      # These values, while often redundant, are necessary to ensure that the gitlab helm chart
+      # doesn't attempt to mount a volume that doesn't exist.
+      # See https://gitlab.com/gitlab-org/charts/gitlab/-/blob/master/templates/_certificates.tpl#L3-8
       ingress:
         enabled: false
+        configureCertmanager: false
+        class: none
+        tls:
+          enabled: false
+
+      gatewayApi:
+        enabled: false
+        configureCertmanager: false
+      # ###########################
 
       gitlab:
         license: {}
