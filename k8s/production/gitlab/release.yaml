@@ -215,6 +215,8 @@ spec:
           enabled: true
           serviceMonitor:
             enabled: true
+        extraEnv:
+          AWS_REQUEST_CHECKSUM_CALCULATION: "WHEN_REQUIRED"
 
       migrations:
         nodeSelector:
