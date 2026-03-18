@@ -48,6 +48,46 @@ resource "aws_iam_group_policy" "custodians_assume_terraform_role" {
     ]
   })
 }
+resource "aws_iam_group_policy" "custodians_rds_snapshots" {
+  name  = "RDSSnapshots"
+  group = aws_iam_group.custodians.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "CreateAndListRDSSnapshots"
+        Effect = "Allow"
+        Action = [
+          "rds:CreateDBSnapshot",
+          "rds:DescribeDBSnapshots",
+          "rds:ListTagsForResource",
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+resource "aws_iam_group_policy" "custodians_ebs_snapshots" {
+  name  = "EBSSnapshots"
+  group = aws_iam_group.custodians.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "CreateAndListEBSSnapshots"
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateSnapshot",
+          "ec2:DescribeSnapshots",
+          "ec2:DescribeVolumes",
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
 resource "aws_iam_group_policy_attachment" "e4s_cache_allow_bucket_list" {
   group      = aws_iam_group.e4s_cache.name
   policy_arn = aws_iam_policy.allow_group_to_see_bucket_list_in_the_console.arn
