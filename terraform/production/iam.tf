@@ -17,10 +17,6 @@ resource "aws_iam_group" "e4s_cache" {
 resource "aws_iam_group" "eks_users" {
   name = "EKSUsers"
 }
-resource "aws_iam_group_policy_attachment" "administrators_assume_eks_access_role" {
-  group      = aws_iam_group.administrators.name
-  policy_arn = aws_iam_policy.assume_eks_access_role.arn
-}
 resource "aws_iam_group_policy_attachment" "administrators_administrator_access" {
   group      = aws_iam_group.administrators.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
@@ -119,26 +115,6 @@ resource "aws_iam_group_policy" "custodians_ebs_snapshots" {
 resource "aws_iam_group_policy_attachment" "e4s_cache_allow_bucket_list" {
   group      = aws_iam_group.e4s_cache.name
   policy_arn = aws_iam_policy.allow_group_to_see_bucket_list_in_the_console.arn
-}
-resource "aws_iam_group_policy_attachment" "eks_users_assume_eks_access_role" {
-  group      = aws_iam_group.eks_users.name
-  policy_arn = aws_iam_policy.assume_eks_access_role.arn
-}
-resource "aws_iam_group_policy" "eks_users_eks_cluster_access" {
-  name  = "EKS-Cluster-Access"
-  group = aws_iam_group.eks_users.name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "PermissionToAssumeEKSAccessRole"
-        Effect   = "Allow"
-        Action   = "sts:AssumeRole"
-        Resource = "arn:aws:iam::588562868276:role/SpackEKSClusterAccess20230124203318984800000001"
-      }
-    ]
-  })
 }
 resource "aws_iam_user_group_membership" "alecscott" {
   user = aws_iam_user.alecscott.name
@@ -382,23 +358,6 @@ resource "aws_iam_policy" "put_and_delete_from_spack_llnl_bootstrap_mirror" {
   })
 }
 
-
-# Outdated stuff. TODO: remove
-resource "aws_iam_policy" "assume_eks_access_role" {
-  name = "AssumeEKSAccessRole"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "PermissionToAssumeEKSAccessRole"
-        Effect   = "Allow"
-        Action   = "sts:AssumeRole"
-        Resource = "arn:aws:iam::588562868276:role/Spack-EKS-Cluster-Access"
-      }
-    ]
-  })
-}
 resource "aws_iam_policy" "allow_group_to_see_bucket_list_in_the_console" {
   name = "AllowGroupToSeeBucketListInTheConsole"
 
