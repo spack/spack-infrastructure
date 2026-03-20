@@ -5,9 +5,6 @@ data "aws_iam_role" "terraform" {
 }
 
 # IAM Groups
-resource "aws_iam_group" "administrators" {
-  name = "Administrators"
-}
 resource "aws_iam_group" "custodians" {
   name = "Custodians"
 }
@@ -16,10 +13,6 @@ resource "aws_iam_group" "e4s_cache" {
 }
 resource "aws_iam_group" "eks_users" {
   name = "EKSUsers"
-}
-resource "aws_iam_group_policy_attachment" "administrators_administrator_access" {
-  group      = aws_iam_group.administrators.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 resource "aws_iam_group_policy_attachment" "custodians_iam_read_only_access" {
   group      = aws_iam_group.custodians.name
