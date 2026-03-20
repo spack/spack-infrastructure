@@ -207,9 +207,6 @@ resource "aws_iam_user_policy_attachment" "tgamblin_s3" {
 
 
 # Robot IAM users
-resource "aws_iam_user" "cray_binary_mirror" {
-  name = "cray-binary-mirror"
-}
 resource "aws_iam_user" "cz_source_mirror_sync" {
   name = "cz-source-mirror-sync"
 }
@@ -221,10 +218,6 @@ resource "aws_iam_user" "metabase_ses_smtp_user" {
 }
 resource "aws_iam_user" "spack_bootstrap_mirror_upload" {
   name = "spack-bootstrap-mirror-upload"
-}
-resource "aws_iam_user_policy_attachment" "cray_binary_mirror_crud" {
-  user       = aws_iam_user.cray_binary_mirror.name
-  policy_arn = aws_iam_policy.crud_access_to_spack_binaries_cray.arn
 }
 resource "aws_iam_user_policy_attachment" "cz_source_mirror_sync_put_delete" {
   user       = aws_iam_user.cz_source_mirror_sync.name
@@ -276,32 +269,6 @@ resource "aws_iam_user_policy" "metabase_ses_sending_access" {
 
 
 # IAM policies (applied to users and groups)
-resource "aws_iam_policy" "crud_access_to_spack_binaries_cray" {
-  name = "CRUDAccessToSpackBinariesCray"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "VisualEditor0"
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:GetObjectAttributes",
-          "s3:DeleteObject",
-        ]
-        Resource = ["arn:aws:s3:::spack-binaries-cray/*"]
-      },
-      {
-        Sid      = "Statement1"
-        Effect   = "Allow"
-        Action   = ["s3:ListBucket"]
-        Resource = ["arn:aws:s3:::spack-binaries-cray"]
-      }
-    ]
-  })
-}
 resource "aws_iam_policy" "put_and_delete_from_spack_llnl_source_mirror" {
   name = "PutAndDeleteFromSpackLLNLSourceMirror"
 
