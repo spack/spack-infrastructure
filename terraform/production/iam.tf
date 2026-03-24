@@ -5,9 +5,6 @@ data "aws_iam_role" "terraform" {
 }
 
 # IAM Groups
-resource "aws_iam_group" "administrators" {
-  name = "Administrators"
-}
 resource "aws_iam_group" "custodians" {
   name = "Custodians"
 }
@@ -17,14 +14,6 @@ resource "aws_iam_group" "e4s_cache" {
 resource "aws_iam_group" "eks_users" {
   name = "EKSUsers"
 }
-resource "aws_iam_group_policy_attachment" "administrators_assume_eks_access_role" {
-  group      = aws_iam_group.administrators.name
-  policy_arn = aws_iam_policy.assume_eks_access_role.arn
-}
-resource "aws_iam_group_policy_attachment" "administrators_administrator_access" {
-  group      = aws_iam_group.administrators.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-}
 resource "aws_iam_group_policy_attachment" "custodians_iam_read_only_access" {
   group      = aws_iam_group.custodians.name
   policy_arn = "arn:aws:iam::aws:policy/IAMReadOnlyAccess"
@@ -32,34 +21,6 @@ resource "aws_iam_group_policy_attachment" "custodians_iam_read_only_access" {
 resource "aws_iam_group_policy_attachment" "custodians_rds_read_only_access" {
   group      = aws_iam_group.custodians.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonRDSReadOnlyAccess"
-}
-resource "aws_iam_group_policy" "custodians_iam_management" {
-  name  = "IAMManagement"
-  group = aws_iam_group.custodians.name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "ManageGroupPolicies"
-        Effect = "Allow"
-        Action = [
-          "iam:PutGroupPolicy",
-          "iam:DeleteGroupPolicy",
-        ]
-        Resource = "arn:aws:iam::588562868276:group/Custodians"
-      },
-      {
-        Sid    = "ManageUserTags"
-        Effect = "Allow"
-        Action = [
-          "iam:TagUser",
-          "iam:UntagUser",
-        ]
-        Resource = "arn:aws:iam::588562868276:user/*"
-      }
-    ]
-  })
 }
 resource "aws_iam_group_policy" "custodians_assume_terraform_role" {
   name  = "AssumeTerraformRole"
@@ -119,26 +80,6 @@ resource "aws_iam_group_policy" "custodians_ebs_snapshots" {
 resource "aws_iam_group_policy_attachment" "e4s_cache_allow_bucket_list" {
   group      = aws_iam_group.e4s_cache.name
   policy_arn = aws_iam_policy.allow_group_to_see_bucket_list_in_the_console.arn
-}
-resource "aws_iam_group_policy_attachment" "eks_users_assume_eks_access_role" {
-  group      = aws_iam_group.eks_users.name
-  policy_arn = aws_iam_policy.assume_eks_access_role.arn
-}
-resource "aws_iam_group_policy" "eks_users_eks_cluster_access" {
-  name  = "EKS-Cluster-Access"
-  group = aws_iam_group.eks_users.name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "PermissionToAssumeEKSAccessRole"
-        Effect   = "Allow"
-        Action   = "sts:AssumeRole"
-        Resource = "arn:aws:iam::588562868276:role/SpackEKSClusterAccess20230124203318984800000001"
-      }
-    ]
-  })
 }
 resource "aws_iam_user_group_membership" "alecscott" {
   user = aws_iam_user.alecscott.name
@@ -238,9 +179,6 @@ resource "aws_iam_user_policy_attachment" "tgamblin_s3" {
 
 
 # Robot IAM users
-resource "aws_iam_user" "cray_binary_mirror" {
-  name = "cray-binary-mirror"
-}
 resource "aws_iam_user" "cz_source_mirror_sync" {
   name = "cz-source-mirror-sync"
 }
@@ -252,10 +190,6 @@ resource "aws_iam_user" "metabase_ses_smtp_user" {
 }
 resource "aws_iam_user" "spack_bootstrap_mirror_upload" {
   name = "spack-bootstrap-mirror-upload"
-}
-resource "aws_iam_user_policy_attachment" "cray_binary_mirror_crud" {
-  user       = aws_iam_user.cray_binary_mirror.name
-  policy_arn = aws_iam_policy.crud_access_to_spack_binaries_cray.arn
 }
 resource "aws_iam_user_policy_attachment" "cz_source_mirror_sync_put_delete" {
   user       = aws_iam_user.cz_source_mirror_sync.name
@@ -307,32 +241,6 @@ resource "aws_iam_user_policy" "metabase_ses_sending_access" {
 
 
 # IAM policies (applied to users and groups)
-resource "aws_iam_policy" "crud_access_to_spack_binaries_cray" {
-  name = "CRUDAccessToSpackBinariesCray"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "VisualEditor0"
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:GetObjectAttributes",
-          "s3:DeleteObject",
-        ]
-        Resource = ["arn:aws:s3:::spack-binaries-cray/*"]
-      },
-      {
-        Sid      = "Statement1"
-        Effect   = "Allow"
-        Action   = ["s3:ListBucket"]
-        Resource = ["arn:aws:s3:::spack-binaries-cray"]
-      }
-    ]
-  })
-}
 resource "aws_iam_policy" "put_and_delete_from_spack_llnl_source_mirror" {
   name = "PutAndDeleteFromSpackLLNLSourceMirror"
 
@@ -382,23 +290,6 @@ resource "aws_iam_policy" "put_and_delete_from_spack_llnl_bootstrap_mirror" {
   })
 }
 
-
-# Outdated stuff. TODO: remove
-resource "aws_iam_policy" "assume_eks_access_role" {
-  name = "AssumeEKSAccessRole"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "PermissionToAssumeEKSAccessRole"
-        Effect   = "Allow"
-        Action   = "sts:AssumeRole"
-        Resource = "arn:aws:iam::588562868276:role/Spack-EKS-Cluster-Access"
-      }
-    ]
-  })
-}
 resource "aws_iam_policy" "allow_group_to_see_bucket_list_in_the_console" {
   name = "AllowGroupToSeeBucketListInTheConsole"
 
