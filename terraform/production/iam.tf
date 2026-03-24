@@ -22,34 +22,6 @@ resource "aws_iam_group_policy_attachment" "custodians_rds_read_only_access" {
   group      = aws_iam_group.custodians.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonRDSReadOnlyAccess"
 }
-resource "aws_iam_group_policy" "custodians_iam_management" {
-  name  = "IAMManagement"
-  group = aws_iam_group.custodians.name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "ManageGroupPolicies"
-        Effect = "Allow"
-        Action = [
-          "iam:PutGroupPolicy",
-          "iam:DeleteGroupPolicy",
-        ]
-        Resource = "arn:aws:iam::588562868276:group/Custodians"
-      },
-      {
-        Sid    = "ManageUserTags"
-        Effect = "Allow"
-        Action = [
-          "iam:TagUser",
-          "iam:UntagUser",
-        ]
-        Resource = "arn:aws:iam::588562868276:user/*"
-      }
-    ]
-  })
-}
 resource "aws_iam_group_policy" "custodians_assume_terraform_role" {
   name  = "AssumeTerraformRole"
   group = aws_iam_group.custodians.name
