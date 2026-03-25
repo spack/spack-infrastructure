@@ -3,11 +3,6 @@ variable "bucket_name" {
   type        = string
 }
 
-variable "bucket_iam_username" {
-  description = "Username for IAM user that has write access to this bucket."
-  type        = string
-}
-
 variable "enable_logging" {
   description = "Whether or not this bucket has logging enabled."
   type        = bool
