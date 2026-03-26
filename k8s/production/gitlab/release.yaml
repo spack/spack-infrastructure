@@ -21,7 +21,7 @@ spec:
   chart:
     spec:
       chart: gitlab
-      version: 9.9.1 # gitlab@18.9.1
+      version: 9.9.3 # gitlab@18.9.2
       sourceRef:
         kind: HelmRepository
         name: gitlab
@@ -66,8 +66,21 @@ spec:
           enabled: false
         ssh: ssh.gitlab.spack.io
 
+      # ###########################
+      # These values, while often redundant, are necessary to ensure that the gitlab helm chart
+      # doesn't attempt to mount a volume that doesn't exist.
+      # See https://gitlab.com/gitlab-org/charts/gitlab/-/blob/master/templates/_certificates.tpl#L3-8
       ingress:
         enabled: false
+        configureCertmanager: false
+        class: none
+        tls:
+          enabled: false
+
+      gatewayApi:
+        enabled: false
+        configureCertmanager: false
+      # ###########################
 
       gitlab:
         license: {}
@@ -202,6 +215,8 @@ spec:
           enabled: true
           serviceMonitor:
             enabled: true
+        extraEnv:
+          AWS_REQUEST_CHECKSUM_CALCULATION: "WHEN_REQUIRED"
 
       migrations:
         nodeSelector:

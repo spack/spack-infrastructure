@@ -58,22 +58,13 @@ resource "aws_s3_bucket_policy" "bootstrap" {
   depends_on = [aws_s3_bucket_public_access_block.bootstrap]
 }
 
-# ACM Certificates created for CloudFront distributions must be in us-east-1
-# See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cnames-and-https-requirements.html#https-requirements-certificate-issuer
-provider "aws" {
-  alias  = "acm"
-  region = "us-east-1"
-
-  assume_role {
-    role_arn = "arn:aws:iam::588562868276:role/terraform-role"
-  }
-}
-
 resource "aws_acm_certificate" "bootstrap" {
   domain_name       = "bootstrap.${local.domain_suffix}spack.io"
   validation_method = "DNS"
 
-  provider = aws.acm
+  # ACM Certificates created for CloudFront distributions must be in us-east-1
+  # See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cnames-and-https-requirements.html#https-requirements-certificate-issuer
+  region = "us-east-1"
 }
 
 resource "aws_route53_record" "acm_validation" {
@@ -96,7 +87,9 @@ resource "aws_acm_certificate_validation" "bootstrap" {
   certificate_arn         = aws_acm_certificate.bootstrap.arn
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 
-  provider = aws.acm
+  # ACM Certificates created for CloudFront distributions must be in us-east-1
+  # See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cnames-and-https-requirements.html#https-requirements-certificate-issuer
+  region = "us-east-1"
 }
 
 resource "aws_route53_record" "bootstrap" {

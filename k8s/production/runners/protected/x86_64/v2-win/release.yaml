@@ -67,7 +67,7 @@ spec:
             exit 1
           }
 
-          $scriptPath = Join-Path $PSScriptRoot 'pre_build.py'
+          $scriptPath = Join-Path $HOME 'pre_build.py'
 
           $wc = New-Object System.Net.WebClient
           $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
@@ -99,7 +99,7 @@ spec:
             helper_memory_request = "1"
 
             cpu_request = "750m"
-            cpu_request_overwrite_max_allowed = "12"
+            cpu_request_overwrite_max_allowed = "16"
             cpu_limit_overwrite_max_allowed = "24"
 
             memory_request = "2G"

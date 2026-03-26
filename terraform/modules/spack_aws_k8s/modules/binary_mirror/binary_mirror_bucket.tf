@@ -1,7 +1,3 @@
-resource "aws_iam_user" "binary_mirror" {
-  name = var.bucket_iam_username
-}
-
 resource "aws_s3_bucket" "binary_mirror" {
   bucket = var.bucket_name
 
