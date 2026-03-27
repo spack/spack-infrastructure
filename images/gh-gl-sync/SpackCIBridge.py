@@ -46,7 +46,7 @@ class SpackCIBridge(object):
 
     def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
                  disable_status_post=True, disable_protected_sync=True, disable_tag_sync=True, sync_draft_prs=False,
-                 main_branch=None, prereq_checks=[]):
+                 main_branch=None, prereq_checks=[], required_label=""):
         self.gitlab_repo = gitlab_repo
         self.github_project = github_project
         github_token = os.environ.get('GITHUB_TOKEN')
@@ -78,6 +78,7 @@ class SpackCIBridge(object):
         self.latest_tested_main_commit = None
 
         self.prereq_checks = prereq_checks
+        self.required_label = required_label
 
         dt = datetime.now(timezone.utc) + timedelta(minutes=-60)
         self.time_threshold_brief = urllib.parse.quote_plus(dt.isoformat(timespec="seconds"))
@@ -187,10 +188,11 @@ class SpackCIBridge(object):
 
             if push:
                 # Check the PRs-to-be-pushed to see if any of them should be considered "backlogged".
-                # We currently recognize three types of backlogged PRs:
+                # We currently recognize four types of backlogged PRs:
                 # 1) Some required "prerequisite checks" have not yet completed successfully.
-                # 2) The PR is based on a version of the "main branch" that has not yet been tested
-                # 3) Draft PRs. Handled earlier in this function.
+                # 2) The PR is missing the required label.
+                # 3) The PR is based on a version of the "main branch" that has not yet been tested
+                # 4) Draft PRs. Handled earlier in this function.
                 if not backlogged and self.prereq_checks:
                     checks_desc = "waiting for {} check to succeed"
                     checks_to_verify = self.prereq_checks.copy()
@@ -206,6 +208,12 @@ class SpackCIBridge(object):
                         backlogged = checks_desc.format(checks_to_verify[0])
                         push = False
                     if backlogged:
+                        print("Skip pushing {0} because of {1}".format(pr_string, backlogged))
+
+                if not backlogged and self.required_label:
+                    if not any(label.name == self.required_label for label in pull.labels):
+                        push = False
+                        backlogged = f"Missing label '{self.required_label}'"
                         print("Skip pushing {0} because of {1}".format(pr_string, backlogged))
 
                 if not backlogged:
@@ -727,6 +735,8 @@ to not interrupt this pipeline. We also defer pushing any PR branches that are b
 on a commit of the main branch that is newer than the latest commit tested by GitLab.""")
     parser.add_argument("--prereq-check", nargs="+", default=False,
                         help="Only push branches that have already passed this GitHub check")
+    parser.add_argument("--required-label", default=False,
+                        help="Only push branches that have this label on GitHub")
 
     args = parser.parse_args()
 
@@ -746,6 +756,7 @@ on a commit of the main branch that is newer than the latest commit tested by Gi
                            disable_tag_sync=args.disable_tag_sync,
                            sync_draft_prs=args.sync_draft_prs,
                            main_branch=args.main_branch,
-                           prereq_checks=args.prereq_check)
+                           prereq_checks=args.prereq_check,
+                           required_label=args.required_label)
     bridge.setup_ssh(ssh_key_base64)
     bridge.sync()
