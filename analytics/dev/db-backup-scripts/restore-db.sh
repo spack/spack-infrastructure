@@ -51,3 +51,40 @@ for backup_file in ./dumps/*fact*.csv
 do
     load_from_file $backup_file
 done
+
+
+# Since we don't import all job fact rows, delete any dimension rows that are
+# not referenced by existing job fact rows, to ensure consistency.
+
+# Step 1: Discover FK relationships where core_jobfact is the referencing table.
+# Each row is: dim_table,dim_pk_col,jobfact_fk_col
+echo "Discovering FK relationships for core_jobfact..."
+readarray -t FK_RELATIONSHIPS < <(psql -t -A -F ',' -c "
+    SELECT
+        ccu.table_name  AS dim_table,
+        ccu.column_name AS dim_pk_col,
+        kcu.column_name AS jobfact_fk_col
+    FROM information_schema.referential_constraints rc
+    JOIN information_schema.key_column_usage kcu
+        ON  kcu.constraint_name = rc.constraint_name
+        AND kcu.table_schema    = rc.constraint_schema
+    JOIN information_schema.constraint_column_usage ccu
+        ON  ccu.constraint_name = rc.unique_constraint_name
+        AND ccu.table_schema    = rc.unique_constraint_schema
+    WHERE kcu.table_name = 'core_jobfact'
+")
+
+# Step 2: Delete orphaned dimension rows using the discovered relationships.
+echo "Deleting orphaned dimension rows..."
+for relationship in "${FK_RELATIONSHIPS[@]}"
+do
+    IFS=',' read -r dim_table dim_pk_col jobfact_fk_col <<< "$relationship"
+    echo "  Cleaning $dim_table ($dim_pk_col not in core_jobfact.$jobfact_fk_col)..."
+    psql -c "
+        DELETE FROM \"$dim_table\"
+        WHERE NOT EXISTS (
+            SELECT 1 FROM \"core_jobfact\"
+            WHERE \"core_jobfact\".\"$jobfact_fk_col\" = \"$dim_table\".\"$dim_pk_col\"
+        )
+    "
+done
