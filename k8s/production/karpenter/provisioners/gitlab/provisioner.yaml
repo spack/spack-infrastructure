@@ -33,7 +33,7 @@ spec:
         name: default
         group: karpenter.k8s.aws
 
-  # Terminate nodes after 5 minutes of idle time
+  # Terminate nodes after 5 minutes of under-utilization
   disruption:
-    consolidationPolicy: WhenEmpty
+    consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 5m
