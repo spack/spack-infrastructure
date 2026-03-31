@@ -159,11 +159,7 @@ class SpackJobDataDimension(models.Model):
         constraints = [
             models.UniqueConstraint(
                 name="unique-spack-job-data",
-                fields=[
-                    "stack",
-                    "job_size",
-                    "job_type"
-                ],
+                fields=["stack", "job_size", "job_type"],
             ),
         ]
 
@@ -174,6 +170,20 @@ class GitlabJobDataDimension(models.Model):
     tags = ArrayField(base_field=models.CharField(max_length=32), default=list)
     pipeline_id = models.PositiveBigIntegerField(null=True)
     parent_pipeline_id = models.PositiveBigIntegerField(null=True)
+    protected = models.BooleanField()
+    service = models.BooleanField()
+
+    @classmethod
+    def get_empty_row(cls):
+        return cls.objects.get(
+            gitlab_runner_version="",
+            ref="",
+            tags=[],
+            pipeline_id=None,
+            parent_pipeline_id=None,
+            protected=None,
+            service=None,
+        )
 
     class Meta:
         constraints = [
@@ -185,6 +195,8 @@ class GitlabJobDataDimension(models.Model):
                     "tags",
                     "pipeline_id",
                     "parent_pipeline_id",
+                    "protected",
+                    "service",
                 ],
             ),
         ]

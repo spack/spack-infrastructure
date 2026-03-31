@@ -1,10 +1,12 @@
 import re
+import typing
 from pathlib import Path
 from typing import Any
 
 import gitlab
 import gitlab.exceptions
 import yaml
+from django.db import connections
 from gitlab.v4.objects import ProjectJob
 
 from analytics.core.models.dimensions import (
@@ -138,12 +140,20 @@ def create_gitlab_job_data_dimension(
     else:
         parent_pipeline_id = job_input_data["pipeline_id"]
 
+    # Check if this job is protected. This field exists in the builds table, but nowhere else directly.
+    with connections["gitlab"].cursor() as cursor:
+        QUERY = "select protected from p_ci_builds WHERE id = %s LIMIT 1"
+        cursor.execute(QUERY, [gljob.id])
+        is_protected_job = typing.cast(bool, cursor.fetchone()[0])
+
     res, _ = GitlabJobDataDimension.objects.get_or_create(
         gitlab_runner_version=runner_version,
         ref=gljob.ref,
         tags=gljob.tag_list,
         pipeline_id=job_input_data["pipeline_id"],
         parent_pipeline_id=parent_pipeline_id,
+        protected=is_protected_job,
+        service=("service" in gljob.tag_list),
     )
 
     return res
