@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
@@ -40,7 +40,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Get Terraform Version
         id: tf_version
