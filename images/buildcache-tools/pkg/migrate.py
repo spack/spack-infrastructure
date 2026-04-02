@@ -407,16 +407,15 @@ def migrate(mirror_url: str, workdir: str, force: bool = False, parallel: int = 
         force: Determines whether to migrate already-migrate specs
         parallel: The number of concurrent threads to use in processing
     """
-    listing_file = os.path.join(workdir, "full_listing.txt")
+    listing_file = listing_file(mirror_url)
     tmp_storage_dir = os.path.join(workdir, "specfiles")
 
     if not os.path.isdir(tmp_storage_dir):
         os.makedirs(tmp_storage_dir)
 
-    if not os.path.isfile(listing_file) or force:
-        list_prefix_contents(f"{mirror_url}/", listing_file)
+    url = urllib.parse.urlparse(mirror_url)
 
-    all_catalogs = spec_catalogs_from_listing_v2(listing_file)
+    all_catalogs = spec_catalogs_from_listing_v2(url.netloc, url.path)
     target_prefix = None
 
     print(f"Looking for {mirror_url} in the catalogs...")

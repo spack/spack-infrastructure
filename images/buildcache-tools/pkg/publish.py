@@ -23,7 +23,6 @@ from pkg.common import (
     download_and_import_key,
     extract_json_from_clearsig,
     get_workdir_context,
-    list_prefix_contents,
     s3_copy_file,
     s3_create_client,
     s3_download_file,
@@ -213,6 +212,7 @@ def publish(
             6e) Try to copy metadata file from src to dst
         7) Once all threads complete, rebuild the remote mirror index
     """
+    print(workdir)
     tmp_storage_dir = os.path.join(workdir, "specfiles")
 
     if not os.path.isdir(tmp_storage_dir):
@@ -227,7 +227,7 @@ def publish(
         publish_fn = publish_spec_v2
     elif layout_version == 3:
         all_stack_specs, top_level_specs = generate_spec_catalogs_v3(
-            bucket, ref, exclude=exclude, parallel=parallel
+            bucket, ref, exclude=exclude, parallel=parallel, workdir=workdir
         )
         publish_fn = publish_spec_v3
     else:
@@ -245,7 +245,6 @@ def publish(
 
     gnu_pg_home = os.path.join(workdir, ".gnupg")
     download_and_import_key(gnu_pg_home, workdir, force)
-    publish_keys(f"s3://{bucket}/{ref}", gnu_pg_home)
 
     # Build a list of tasks for threads
     task_list = [
@@ -275,6 +274,8 @@ def publish(
                     LOGGER.error(f"Publishing failed: {result[1]}")
                 else:
                     LOGGER.info(result[1])
+
+    publish_keys(f"s3://{bucket}/{ref}", gnu_pg_home)
 
     # When all the tasks are finished, rebuild the top-level index
     LOGGER.info("Publishing complete")
@@ -500,21 +501,23 @@ def main():
         # If the cli didn't provide a working directory, we will create (and clean up)
         # a temporary directory using this workdir context
         with get_workdir_context(args.workdir) as workdir:
+            print(workdir)
             LOGGER.info(f"Publishing missing specs for {args.bucket} / {ref}")
             try:
                 publish(
                     args.bucket,
                     ref,
-                    args.exclude,
-                    args.force,
-                    args.parallel,
-                    workdir,
-                    args.version,
+                    exclude=args.exclude,
+                    force=args.force,
+                    parallel=args.parallel,
+                    workdir=workdir,
+                    layout_version=args.version,
                 )
             except Exception as e:
                 # Swallow exceptions here so we can proceed with remaining refs,
                 # but save the exceptions to raise at the end.
                 LOGGER.error(f"Error publishing specs for {args.bucket} / {ref} due to {e}")
+                raise RuntimeError('') from e
                 exceptions.append(e)
 
     end_time = datetime.now()

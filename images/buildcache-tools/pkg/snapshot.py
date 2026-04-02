@@ -76,7 +76,6 @@ def create_develop_snapshot_tag(project):
     tags = commit.refs("tag")
     snapshot_tag = None
     for t in tags:
-        print(t)
         if re.match(t.get("name", ""), "develop-.*"):
             snapshot_tag = t
             break
@@ -140,12 +139,14 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
     LOGGER.info(f"Creating snapshot for: {t.name} from {branch} using pipeline {pipeline[0].id}")
 
     # Assuming all snapshots are v3 only now
-    include_stacks = ["windows-vis"]
+    include_stacks = []
     all_specs_catalog, _ = generate_spec_catalogs_v3(bucket, branch, workdir=workdir, include=include_stacks)
 
     gnu_pg_home = os.path.join(workdir, ".gnupg")
     if not DRYRUN:
         download_and_import_key(gnu_pg_home, workdir, False)
+    else:
+        LOGGER.info("DRYRUN: download_and_import_key...")
 
     # Get the lockfile artifacts for the generate jobs
     for j in pipeline[0].jobs.list(iterator=True, scope="success"):
@@ -189,7 +190,7 @@ def create_snapshot(bucket: str, tag: github.GitTag, workdir: str, parallel: int
             def dryrun_publish(spec, bucket, source, dest, force, gpg_home, workdir):
                 LOGGER.debug(f"""
 DRYRUN: publish
-    prefix: {spec.prefix}
+    prefix: {spec.manifest_prefix}
     bucket: {bucket}
     source: {source}
     dest: {dest}
@@ -240,9 +241,12 @@ if __name__ == "__main__":
         default=DEFAULT_GITHUB_PROJECT,
         help="Github project to get/push snapshot tags",
     )
+    parser.add_argument("--workdir", action="store")
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger("boto3").setLevel(logging.ERROR)
     logging.getLogger("botocore").setLevel(logging.ERROR)
+    logging.getLogger("urllib3").setLevel(logging.ERROR)
 
     args = parser.parse_args()
 
@@ -256,10 +260,14 @@ if __name__ == "__main__":
     # Iterate all of the project tags and attempt to create a
     # snaptshot if it is needed
     py_gh_repo = GH.get_repo(args.project)
-    tempdir = WORKDIR or tempfile.mkdtemp()
+    tempdir = args.workdir or WORKDIR or tempfile.mkdtemp("snapshot")
+    if not os.path.exists(tempdir):
+        os.makedirs(tempdir)
+
+    LOGGER.info(f"workdir: {tempdir}")
     for t in py_gh_repo.get_tags():
         if args.tag and t.name not in args.tag:
-            LOGGER.debug("Skipping tag {t.name}")
+            LOGGER.debug(f"Skipping tag {t.name}")
             continue
 
         try:

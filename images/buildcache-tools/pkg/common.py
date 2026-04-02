@@ -29,6 +29,12 @@ except ImportError:
     print("Sentry Disabled")
 
 
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("boto3").setLevel(logging.ERROR)
+logging.getLogger("botocore").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
+
+
 SPACK_REPO = "https://github.com/spack/spack"
 PACKAGES_REPO = "https://github.com/spack/spack-packages"
 
@@ -40,17 +46,17 @@ SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
 TARBALL_MEDIA_TYPE = "application/vnd.spack.install.v2.tar+gzip"
 SPEC_METADATA_MEDIA_TYPE = "application/vnd.spack.spec.v5+json"
 
-REGEX_LISTING_DATA = r"^([\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2})\s+(\d+)\s+(.+)"
+REGEX_LISTING_DATA = re.compile(r"^([\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2})\s+(\d+)\s+(.+)")
 
 #: regular expressions designed to match "aws s3 ls" output
 REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(
-    rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(\.spec\.json\.sig)$"
+    rf"(.+)(/build_cache/.+-)([^\.]+)(\.spec\.json\.sig)$"
 )
 REGEX_V2_ARCHIVE_RELATIVE = re.compile(
-    rf"{TIMESTAMP_AND_SIZE}(.+)(/build_cache/.+-)([^\.]+)(\.spack)$"
+    rf"(.+)(/build_cache/.+-)([^\.]+)(\.spack)$"
 )
 REGEX_V3_SIGNED_SPECFILE_RELATIVE = re.compile(
-    rf"{TIMESTAMP_AND_SIZE}(.+)(/v3/manifests/spec/.+-)([^-\.]+)(\.spec\.manifest\.json)$"
+    rf"(.+)(/v3/manifests/spec/.+-)([^-\.]+)(\.spec\.manifest\.json)$"
 )
 
 #: Regular expression to pull spec contents out of clearsigned signature
@@ -182,38 +188,34 @@ def spec_catalogs_from_listing_v2(bucket: str, ref: str) -> Dict[str, Dict[str, 
     listing.  The returned dictionary of catalogs is keyed by unique prefix.
     """
     list_url = f"s3://{bucket}/{ref}/"
-    listing_path = list_prefix_contents(list_url)
     all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
         lambda: defaultdict(BuiltSpec)
     )
 
-    with open(listing_path) as f:
-        for line in f:
-            m = REGEX_V2_SIGNED_SPECFILE_RELATIVE.search(line)
-            if m:
-                # print("matched a specfile")
-                prefix = m.group(1)
-                middle_bit = m.group(2)
-                hash = m.group(3)
-                end_bit = m.group(4)
-                spec = all_catalogs[prefix][hash]
-                spec.hash = hash
-                spec.meta = f"{prefix}{middle_bit}{hash}{end_bit}"
-                continue
+    for date, size, key in list_prefix_contents(list_url):
+        m = REGEX_V2_SIGNED_SPECFILE_RELATIVE.search(key)
+        if m:
+            prefix = m.group(1)
+            middle_bit = m.group(2)
+            hash = m.group(3)
+            end_bit = m.group(4)
+            spec = all_catalogs[prefix][hash]
+            spec.hash = hash
+            spec.meta = f"{prefix}{middle_bit}{hash}{end_bit}"
+            continue
 
-            m = REGEX_V2_ARCHIVE_RELATIVE.search(line)
-            if m:
-                # print("matched an archive file")
-                prefix = m.group(1)
-                middle_bit = m.group(2)
-                hash = m.group(3)
-                end_bit = m.group(4)
-                spec = all_catalogs[prefix][hash]
-                spec.hash = hash
-                spec.archive = f"{prefix}{middle_bit}{hash}{end_bit}"
-                continue
+        m = REGEX_V2_ARCHIVE_RELATIVE.search(key)
+        if m:
+            prefix = m.group(1)
+            middle_bit = m.group(2)
+            hash = m.group(3)
+            end_bit = m.group(4)
+            spec = all_catalogs[prefix][hash]
+            spec.hash = hash
+            spec.archive = f"{prefix}{middle_bit}{hash}{end_bit}"
+            continue
 
-            # else it must be a public key, an index, or a hash of an index
+        # else it must be a public key, an index, or a hash of an index
 
     return all_catalogs
 
@@ -222,23 +224,20 @@ def spec_catalogs_from_listing_v2(bucket: str, ref: str) -> Dict[str, Dict[str, 
 #
 def spec_catalogs_from_listing_v3(bucket: str, ref: str) -> Dict[str, Dict[str, BuiltSpec]]:
     list_url = f"s3://{bucket}/{ref}/"
-    listing_path = list_prefix_contents(list_url)
     all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
         lambda: defaultdict(BuiltSpec)
     )
-
-    with open(listing_path) as f:
-        for line in f:
-            m = REGEX_V3_SIGNED_SPECFILE_RELATIVE.search(line)
-            if m:
-                prefix = m.group(1)
-                middle_bit = m.group(2)
-                hash = m.group(3)
-                end_bit = m.group(4)
-                spec = all_catalogs[prefix][hash]
-                spec.hash = hash
-                spec.manifest_prefix = f"{prefix}{middle_bit}{hash}{end_bit}"
-                continue
+    for date, size, key in list_prefix_contents(list_url):
+        m = REGEX_V3_SIGNED_SPECFILE_RELATIVE.search(key)
+        if m:
+            prefix = m.group(1)
+            middle_bit = m.group(2)
+            hash = m.group(3)
+            end_bit = m.group(4)
+            spec = all_catalogs[prefix][hash]
+            spec.hash = hash
+            spec.manifest_prefix = f"{prefix}{middle_bit}{hash}{end_bit}"
+            continue
 
     return all_catalogs
 
@@ -246,7 +245,7 @@ def spec_catalogs_from_listing_v3(bucket: str, ref: str) -> Dict[str, Dict[str, 
 ################################################################################
 #
 def generate_spec_catalogs_v2(
-    bucket: str, ref: str, exclude: List[str] = [], listing_path: Optional[str] = None
+    bucket: str, ref: str, exclude: List[str] = []
 ) -> tuple[Dict[str, Dict[str, BuiltSpec]], Dict[str, BuiltSpec]]:
     """Return information about specs in stacks and at the root
 
@@ -373,21 +372,21 @@ def generate_spec_catalogs_v3(
         start_time = datetime.now()
 
         try:
-            print(f"Downloading manifests for stack {stack}")
-            subprocess.run(
-                stack_manifest_sync_cmd,
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            LOGGER.debug(f"Downloading manifests for stack {stack}")
+            # subprocess.run(
+            #     stack_manifest_sync_cmd,
+            #     check=True,
+            #     stdout=subprocess.DEVNULL,
+            #     stderr=subprocess.DEVNULL,
+            # )
         except subprocess.CalledProcessError as cpe:
             error_msg = getattr(cpe, "message", cpe)
-            print(f"Failed to download manifests for {stack} due to: {error_msg}")
+            LOGGER.error(f"Failed to download manifests for {stack} due to: {error_msg}")
             continue
 
         end_time = datetime.now()
         elapsed = end_time - start_time
-        print(f"Downloaded manifests for stack {stack}, elapsed time: {elapsed}")
+        LOGGER.info(f"Downloaded manifests for stack {stack}, elapsed time: {elapsed}")
 
         for spec_hash, built_spec in all_catalogs[prefix].items():
             stack_specs[stack][spec_hash] = built_spec
@@ -453,11 +452,20 @@ def get_workdir_context(workdir: Optional[str] = None):
 
 
 listing_prefix = os.environ.get("LISTING_CACHE_PREFIX", ".")
+
+def listing_file(url: str) -> str:
+    if not listing_prefix:
+        listing_prefix = tempfile.mkdtemp()
+    # Store the listing has the checksum of the url
+    h = hashlib.sha256()
+    h.update(url.encode())
+    return os.path.join(listing_prefix, h.hexdigest())
+
 ################################################################################
 # Given a url and a file path to use for writing, get a recursive listing of
 # everything under the prefix defined by the url, and write it to disk using the
 # supplied path.
-def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: bool = False, iterator: bool = False):
+def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: bool = False, iterator: bool = True):
 
     # Auto caching of listing file
     global listing_prefix
@@ -470,7 +478,9 @@ def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: b
     h = hashlib.sha256()
     h.update(url.encode())
     output_file = os.path.join(output_prefix, h.hexdigest())
+    LOGGER.debug(f"caching listing: {url} {output_file}")
 
+    dt_format = "%Y-%m-%d %H:%M:%S"
     if not os.path.isfile(output_file) or force:
         if iterator:
             client = s3_create_client()
@@ -485,7 +495,7 @@ def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: b
                 all_objects.extend(resp.get("Contents", []))
                 obj = None
                 for obj in resp.get("Contents", []):
-                    yield obj["Key"]
+                    yield obj["LastModified"], obj["Size"], obj["Key"]
 
                 if resp.get("IsTruncated", False) and obj:
                     list_args.update({
@@ -495,13 +505,12 @@ def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: b
                     break
 
             # Write the listing in the same format used by "aws s3 ls"
-            dt_format = "%Y-%m-%d %H:%M:%S"
             msize = max([obj["Size"] for obj in all_objects])
             msize = math.ceil(math.log(msize) / math.log(10)) + 1
             with open(output_file, "w", encoding="utf=8") as fd:
                 for obj in all_objects:
                     date_time = obj["LastModified"].strftime(dt_format)
-                    size = obj["Size"]
+                    size = int(obj["Size"])
                     key = obj["Key"]
                     fd.write(f"{date_time} {size:msize} {key}\n")
 
@@ -512,13 +521,13 @@ def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: b
                 subprocess.run(list_cmd, stdout=f, stderr=subprocess.DEVNULL, check=True)
     elif iterator:
         with open(output_file, "r", encoding="utf-8") as fd:
-            for line in fd
+            for line in fd:
                 m = REGEX_LISTING_DATA.search(line)
                 if m:
-                    yield m.group(3).strip()
-
-    if not iterator:
-        return output_file
+                    datestr = m.group(1).strip()
+                    size = int(m.group(2).strip())
+                    key = m.group(3).strip()
+                    yield datetime.strptime(datestr, dt_format), size, key
 
 
 ################################################################################
