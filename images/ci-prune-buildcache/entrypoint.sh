@@ -38,11 +38,10 @@ python3 ${SCRIPT_DIR}/fetch_keeplists.py \
   --since-days "${PRUNE_SINCE_DAYS}"
 echo "Keep lists created with $(wc -l < develop_keeplist.txt) total hashes"
 
-# Prune each buildcache
-for file in *_keeplist.txt; do
-  stack="${file%_keeplist.txt}"
+prune_stack() {
+  local keeplist_file=$1
+  stack="${keeplist_file%_keeplist.txt}"
   echo "Start pruning process for $stack buildcache"
-  keeplist_file="${stack}_keeplist.txt"
 
   echo "Contents of $keeplist_file:"
   cat $keeplist_file
@@ -67,7 +66,18 @@ for file in *_keeplist.txt; do
   spack buildcache update-index "${stack}"
   echo "Updating mirror index for $stack... done!"
   echo ""
+}
 
+# Prune each stack-specific buildcache.
+for file in *_keeplist.txt; do
+  # Save the top-level develop cache for last.
+  if [[ "$file" == "develop_keeplist.txt" ]]; then
+    continue
+  fi
+  prune_stack "$file"
 done
+
+# Prune the top-level develop buildcache.
+prune_stack "develop_keeplist.txt"
 
 echo "Pruning complete!!!"
