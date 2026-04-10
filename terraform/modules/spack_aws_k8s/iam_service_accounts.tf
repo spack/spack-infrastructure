@@ -242,7 +242,7 @@ module "rotate_keys" {
             "iam:DeleteAccessKey"
           ],
           "Resource" : [
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:group/Administrators",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:group/Custodians",
             "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/*"
           ]
         }
