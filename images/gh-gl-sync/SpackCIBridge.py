@@ -178,13 +178,16 @@ class SpackCIBridge(object):
                 try:
                     merge_commit_msg = subprocess.run(
                         log_args, check=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
-                    match = self.merge_msg_regex.match(merge_commit_msg.decode("utf-8"))
+                    match = self.merge_msg_regex.match(merge_commit_msg[:128].decode("utf-8"))
                     if match and (match.group(1) == pull.head.sha or match.group(2) == pull.head.sha):
                         print("Skip pushing {0} because GitLab already has HEAD {1}".format(pr_string, pull.head.sha))
                         push = False
                 except subprocess.CalledProcessError:
                     # This occurs when it's a new PR that hasn't been pushed to GitLab yet.
                     pass
+                except UnicodeDecodeError:
+                    print(f"Failed to UTF-8 decode commit msg for {pr_string}:\n{merge_commit_msg}")
+                    continue
 
             if push:
                 # Check the PRs-to-be-pushed to see if any of them should be considered "backlogged".
@@ -281,6 +284,11 @@ class SpackCIBridge(object):
                         # If the --main-branch CLI argument wasn't passed, or if this PR doesn't target that branch,
                         # then we will push the merge commit that was automatically created by GitHub to GitLab
                         # where it will kick off a CI pipeline.
+                        if not pull.merge_commit_sha:
+                            print("PR {0} has merge conflicts. Skipping".format(pull.number))
+                            backlogged = "merge conflicts with target branch"
+                            push = False
+                            continue
                         try:
                             _durable_subprocess_run(["git", "fetch", "--depth=2147483647", "github",
                                                     f"{pull.merge_commit_sha}:{pr_string}"])
