@@ -26,3 +26,12 @@ module "spack_gitlab" {
 
   gitlab_token = var.gitlab_token
 }
+
+module "spack_github" {
+  source = "../modules/spack_github"
+
+  deployment_name  = "prod"
+  deployment_stage = "blue"
+
+  region = "us-east-1"
+}

@@ -11,6 +11,8 @@ locals {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
 data "aws_iam_policy_document" "github_oidc_assume_role" {
   for_each = local.mirror_roles
 
