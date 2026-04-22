@@ -44,5 +44,5 @@ resource "aws_iam_role" "source_mirror_sync" {
 
   name                 = "SourceMirrorSync${local.mirror_roles[each.key].role_name_suffix}"
   assume_role_policy   = each.value.json
-  max_session_duration = 3600 * 1 # only allow a max of 1 hours for a session to be active
+  max_session_duration = 3600 * 6 # only allow a max of 6 hours for a session to be active
 }
