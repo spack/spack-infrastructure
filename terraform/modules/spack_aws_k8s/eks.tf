@@ -38,24 +38,8 @@ module "eks" {
           }
         }
       }
-    },
-    # Only create github_actions access entry on production cluster, since that's
-    # the only one we run the TF drift detection job on.
-    var.deployment_name == "prod" ? {
-      github_actions_drift_detection = {
-        kubernetes_groups = []
-        principal_arn     = aws_iam_role.github_actions_readonly[0].arn
-
-        policy_associations = {
-          cluster = {
-            policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminViewPolicy"
-            access_scope = {
-              type = "cluster"
-            }
-          }
-        }
-      }
-  } : {})
+    }
+  )
 
   # NOTE: Additional configuration of these addons (like in the vpc-cni addon below) won't necessarily
   # take immediate effect, as it is configuring the addon, not anything in the cluster directly.

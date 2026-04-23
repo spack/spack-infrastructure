@@ -10,72 +10,6 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
   thumbprint_list = [data.tls_certificate.github_actions.certificates.0.sha1_fingerprint]
 }
 
-resource "aws_iam_role" "github_actions_readonly" {
-  count = var.deployment_name == "prod" ? 1 : 0
-
-  name        = "GitHubActionsReadonlyRole"
-  description = "Managed by Terraform. IAM Role that a GitHub Actions runner can assume to authenticate with AWS."
-
-  assume_role_policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Effect" : "Allow",
-        "Principal" : {
-          "Federated" : aws_iam_openid_connect_provider.github_actions[0].arn
-        },
-        "Action" : "sts:AssumeRoleWithWebIdentity",
-        "Condition" : {
-          "StringLike" : {
-            "token.actions.githubusercontent.com:sub" : "repo:spack/spack-infrastructure:ref:refs/heads/main",
-            "token.actions.githubusercontent.com:aud" : "sts.amazonaws.com"
-          }
-        }
-      },
-      {
-        "Action" : "sts:AssumeRole",
-        "Principal" : {
-          # Unfortunately, we need to do this until https://github.com/hashicorp/terraform-provider-aws/issues/27034 is resolved.
-          # This trust statement allows the role to assume itself, which is necessary for the GitHub Actions session user to run terraform plan.
-          "AWS" : "arn:aws:sts::${data.aws_caller_identity.current.account_id}:assumed-role/GitHubActionsReadonlyRole/GitHubActions"
-        },
-        "Effect" : "Allow",
-      },
-    ]
-  })
-}
-
-# The `ReadOnlyAccess` managed policy doesn't include secretsmanager, so we explicitly grant it here.
-resource "aws_iam_role_policy" "github_actions_readonly" {
-  count = var.deployment_name == "prod" ? 1 : 0
-
-  name = "read-secrets"
-  role = aws_iam_role.github_actions_readonly[0].id
-
-  policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Effect" : "Allow",
-        "Action" : [
-          "secretsmanager:GetSecretValue"
-        ],
-        "Resource" : "*"
-      }
-    ]
-  })
-}
-
-# This policy grants the GitHub Actions role read-only access to most resources in the AWS account.
-# There are some exceptions, such as secretsmanager (see inline_policy above)
-resource "aws_iam_role_policy_attachment" "github_actions_readonly" {
-  count = var.deployment_name == "prod" ? 1 : 0
-
-  role       = aws_iam_role.github_actions_readonly[0].name
-  policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
-}
-
-
 # Allow github actions run from the develop branch of spack/spack to put objects into the source mirror
 resource "aws_iam_role" "github_actions_put_to_source_mirror" {
   count = var.deployment_name == "prod" ? 1 : 0
@@ -92,10 +26,8 @@ resource "aws_iam_role" "github_actions_put_to_source_mirror" {
         }
         Condition = {
           StringEquals = {
-            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          }
-          StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:spack/spack:ref:refs/heads/develop"
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com",
+            "token.actions.githubusercontent.com:sub" = "repo:spack/spack-packages:ref:refs/heads/develop"
           }
         }
       }
