@@ -179,9 +179,6 @@ resource "aws_iam_user_policy_attachment" "tgamblin_s3" {
 
 
 # Robot IAM users
-resource "aws_iam_user" "cz_source_mirror_sync" {
-  name = "cz-source-mirror-sync"
-}
 resource "aws_iam_user" "e4s_cache" {
   name = "e4s-cache"
 }
@@ -191,17 +188,9 @@ resource "aws_iam_user" "metabase_ses_smtp_user" {
 resource "aws_iam_user" "spack_bootstrap_mirror_upload" {
   name = "spack-bootstrap-mirror-upload"
 }
-resource "aws_iam_user_policy_attachment" "cz_source_mirror_sync_put_delete" {
-  user       = aws_iam_user.cz_source_mirror_sync.name
-  policy_arn = aws_iam_policy.put_and_delete_from_spack_llnl_source_mirror.arn
-}
 resource "aws_iam_user_policy_attachment" "spack_bootstrap_mirror_upload_put_delete" {
   user       = aws_iam_user.spack_bootstrap_mirror_upload.name
   policy_arn = aws_iam_policy.put_and_delete_from_spack_llnl_bootstrap_mirror.arn
-}
-resource "aws_iam_user_policy_attachment" "tgamblin_source_mirror" {
-  user       = aws_iam_user.tgamblin.name
-  policy_arn = aws_iam_policy.put_and_delete_from_spack_llnl_source_mirror.arn
 }
 resource "aws_iam_user_policy" "e4s_cache_read_write" {
   name = "ReadWriteE4SCache"
@@ -239,35 +228,6 @@ resource "aws_iam_user_policy" "metabase_ses_sending_access" {
   })
 }
 
-
-# IAM policies (applied to users and groups)
-resource "aws_iam_policy" "put_and_delete_from_spack_llnl_source_mirror" {
-  name = "PutAndDeleteFromSpackLLNLSourceMirror"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "VisualEditor0"
-        Effect   = "Allow"
-        Action   = "s3:PutObject"
-        Resource = "arn:aws:s3:::spack-llnl-mirror/*"
-      },
-      {
-        Sid      = "VisualEditor1"
-        Effect   = "Allow"
-        Action   = "s3:DeleteObject"
-        Resource = "arn:aws:s3:::spack-llnl-mirror/*"
-      },
-      {
-        Sid      = "newstatementmay302025"
-        Effect   = "Allow"
-        Action   = "s3:ListBucket"
-        Resource = "arn:aws:s3:::spack-llnl-mirror/*"
-      }
-    ]
-  })
-}
 resource "aws_iam_policy" "put_and_delete_from_spack_llnl_bootstrap_mirror" {
   name = "PutAndDeleteFromSpackLLNLBootstrapMirror"
 
