@@ -17,6 +17,14 @@ ENV PYTHONUNBUFFERED=1
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Clone a particular commit of spack
+RUN mkdir spack                                                        && \
+  cd spack                                                             && \
+  git init                                                             && \
+  git remote add origin https://github.com/spack/spack.git             && \
+  git fetch --depth 1 origin 70a3efe51dbe487e47be5db943f04e92485928ab  && \
+  git checkout FETCH_HEAD
+
 COPY entrypoint.sh ./
 COPY fetch_keeplists.py ./
 COPY prune.py ./

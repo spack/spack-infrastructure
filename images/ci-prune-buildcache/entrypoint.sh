@@ -3,11 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-# Clone spack
-echo "Cloning spack..."
-git clone --depth 1 https://github.com/spack/spack.git
-echo "Cloning spack...done"
-
 # Configure spack
 echo "Configuring spack shell..."
 . /app/spack/share/spack/setup-env.sh
@@ -43,9 +38,8 @@ prune_stack() {
   stack="${keeplist_file%_keeplist.txt}"
   echo "Start pruning process for $stack buildcache"
 
-  echo "Contents of $keeplist_file:"
-  cat $keeplist_file
-  echo ""
+  # Store keeplist in S3 for potential future debugging
+  aws s3 cp ${keeplist_file} s3://spack-logs/pruning/${now}/${keeplist_file}
 
   # Add the mirror
   echo "Adding mirror $stack..."
