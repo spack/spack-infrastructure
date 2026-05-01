@@ -48,6 +48,25 @@ module "eks" {
     coredns = {
       # https://docs.aws.amazon.com/eks/latest/userguide/managing-coredns.html#coredns-versions
       addon_version = "v1.12.4-eksbuild.1"
+      # Based on this example of CoreDNS configuration
+      # https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/docs/faq.md#what-configuration-values-are-available-for-an-add-on
+      configuration_values = jsonencode({
+        autoScaling = {
+          enabled     = true
+          minReplicas = 2
+          maxReplicas = 10
+        },
+        resources = {
+          requests = {
+            cpu    = "200m"
+            memory = "128Mi"
+          },
+          limits = {
+            cpu    = "400m"
+            memory = "256Mi"
+          }
+        },
+      })
     }
     eks-pod-identity-agent = {
       addon_version = "v1.3.9-eksbuild.3"
