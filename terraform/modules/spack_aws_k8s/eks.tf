@@ -51,7 +51,11 @@ module "eks" {
       # Based on this example of CoreDNS configuration
       # https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/docs/faq.md#what-configuration-values-are-available-for-an-add-on
       configuration_values = jsonencode({
-        replicaCount = 4,
+        autoScaling = {
+          enabled     = true
+          minReplicas = 2
+          maxReplicas = 10
+        },
         resources = {
           requests = {
             cpu    = "200m"
@@ -61,7 +65,7 @@ module "eks" {
             cpu    = "400m"
             memory = "256Mi"
           }
-        }
+        },
       })
     }
     eks-pod-identity-agent = {
