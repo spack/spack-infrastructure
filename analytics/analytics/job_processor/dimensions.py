@@ -1,10 +1,7 @@
 import re
-from pathlib import Path
-from typing import Any
 
 import gitlab
 import gitlab.exceptions
-import yaml
 from gitlab.v4.objects import ProjectJob
 
 from analytics.core.models.dimensions import (
@@ -20,6 +17,7 @@ from analytics.core.models.dimensions import (
     SpackJobDataDimension,
     TimeDimension,
 )
+from analytics.job_processor.error_taxonomy import _assign_error_taxonomy
 from analytics.job_processor.metadata import JobMiscInfo, NodeInfo, PackageInfo
 from analytics.job_processor.utils import get_job_exit_code, get_job_retry_data
 
@@ -31,47 +29,6 @@ class UnrecognizedJobType(Exception):
     def __init__(self, job_id: int, name: str) -> None:
         message = f"Unrecognized job type for Job: ({job_id}) {name}"
         super().__init__(message)
-
-
-def _assign_error_taxonomy(job_input_data: dict[str, Any], job_trace: str):
-    if job_input_data["build_status"] != "failed":
-        raise ValueError("This function should only be called for failed jobs")
-
-    # Read taxonomy file
-    with open(Path(__file__).parent / "error_taxonomy.yaml") as f:
-        taxonomy = yaml.load(f, Loader=yaml.CSafeLoader)["taxonomy"]
-
-    error_taxonomy_version = taxonomy["version"]
-
-    # Compile matching patterns from job trace
-    matching_patterns = set()
-    for error_class, lookups in taxonomy["error_classes"].items():
-        if lookups:
-            for grep_expr in lookups.get("grep_for", []):
-                if re.compile(grep_expr).search(job_trace):
-                    matching_patterns.add(error_class)
-
-    # If the job logs matched any regexes, assign it the taxonomy
-    # with the highest priority in the "deconflict order".
-    # Otherwise, assign it a taxonomy of "other".
-    job_error_class = None
-    if len(matching_patterns):
-        for error_class in taxonomy["deconflict_order"]:
-            if error_class in matching_patterns:
-                job_error_class = error_class
-                break
-    else:
-        job_error_class = "other"
-
-        # If this job timed out or failed to be scheduled by GitLab,
-        # label it as such.
-        if job_input_data["build_failure_reason"] in (
-            "stuck_or_timeout_failure",
-            "scheduler_failure",
-        ):
-            job_error_class = job_input_data["build_failure_reason"]
-
-    return job_error_class, error_taxonomy_version
 
 
 def get_gitlab_section_timers(job_trace: str) -> dict[str, int]:
@@ -133,7 +90,10 @@ def create_gitlab_job_data_dimension(
     runner_version = rvmatch.group(1) if rvmatch is not None else ""
 
     # If a job doesn't have source_pipeline, then it exists within the parent pipeline itself.
-    if "source_pipeline" in job_input_data and "pipeline_id" in job_input_data["source_pipeline"]:
+    if (
+        "source_pipeline" in job_input_data
+        and "pipeline_id" in job_input_data["source_pipeline"]
+    ):
         parent_pipeline_id = job_input_data["source_pipeline"]["pipeline_id"]
     else:
         parent_pipeline_id = job_input_data["pipeline_id"]
