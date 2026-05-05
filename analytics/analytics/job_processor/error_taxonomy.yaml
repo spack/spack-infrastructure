@@ -18,6 +18,10 @@ taxonomy:
         - 'Job failed \(system failure\):.+TLS handshake timeout'
         - 'curl: \(6\) Could not resolve host'
 
+    dns_error:
+      grep_for:
+        - 'could not resolve host'
+
     concretization_error:
       grep_for:
         - "does not satisfy"
@@ -278,6 +282,7 @@ taxonomy:
   deconflict_order:
     # Network errors
     - 'oidc_certificate_expired'
+    - 'dns_error'
     - 'network_timeout'
     - 'network_error'
     # API Scrape erorrs
