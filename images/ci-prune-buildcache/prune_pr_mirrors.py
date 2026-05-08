@@ -170,7 +170,7 @@ if __name__ == "__main__":
     # Only go up to petabytes, anything more than than is concerning
     unit = ("", "M", "G", "T", "P")
     index = 0
-    while total_bytes > 10240:
+    while total_bytes > 10240 and index < 4:
         index += 1
         total_bytes /= 1024
 
