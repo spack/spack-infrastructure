@@ -17,6 +17,19 @@ module "build_cache_pruner" {
           "Resource" : "${module.protected_binary_mirror.bucket_arn}/develop/*"
         }
       ]
+    }),
+    jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : [
+            "s3:PutObject",
+            "s3:GetObject"
+          ],
+          "Resource" : "${module.pr_binary_mirror.logging_bucket_arn}/pruning/*"
+        }
+      ]
     })
   ]
   service_account_name      = "prune-buildcache"
