@@ -78,11 +78,10 @@ def delete_prefix(s3, bucket: str, prefix: str, dryrun: bool = True):
             {
                 "Key": o["Key"],
                 "ETag": o["ETag"],
-                "Size": o["Size"],
             } for o in resp.get("Contents", [])
         ]
 
-        total_size = sum(o["Size"] for o in objects)
+        total_size = sum(o["Size"] for o in resp.get("Contents", []))
 
         # Delete all of the listed items
         if objects:
@@ -91,7 +90,7 @@ def delete_prefix(s3, bucket: str, prefix: str, dryrun: bool = True):
             if not dryrun:
                 del_resp = s3.delete_objects(
                     Bucket=bucket,
-                    Delete=objects
+                    Delete={"Objects": objects, "Quiet": True}
                 )
 
                 # If there are errors during delete report them
@@ -146,7 +145,7 @@ if __name__ == "__main__":
     # Delete everything in the top level, these are all stale
     for prefix in list_dirs(s3, args.bucket):
         if _prno_from_prefix(prefix):
-            total_bytes += delete_prefix(s3, args.bucket, prefix)
+            total_bytes += delete_prefix(s3, args.bucket, prefix, args.dryrun)
 
     # For each repo, delete the S3 mirror prefixes not associated with open PRs
     for repo in args.repo:
@@ -166,7 +165,7 @@ if __name__ == "__main__":
                 pr_mirror_map.pop(prno)
 
         for p in pr_mirror_map.values():
-            total_bytes += delete_prefix(s3, args.bucket, p)
+            total_bytes += delete_prefix(s3, args.bucket, p, args.dryrun)
 
     # Only go up to petabytes, anything more than than is concerning
     unit = ("", "M", "G", "T", "P")
