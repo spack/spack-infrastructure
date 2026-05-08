@@ -21,7 +21,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.6
+            image: ghcr.io/spack/ci-prune-buildcache:0.0.7
             imagePullPolicy: Always
             resources:
               requests:
@@ -42,6 +42,8 @@ spec:
               value: "develop"
             - name: PRUNE_SINCE_DAYS
               value: "14"
+            - name: PR_BUILDCACHE_BUCKET
+              value: "s3://spack-binaries-prs"
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config
