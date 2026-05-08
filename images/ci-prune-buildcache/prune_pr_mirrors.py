@@ -1,8 +1,10 @@
 import argparse
 import boto3
+import os
 import sys
 import re
 
+from datetime import datetime, timedelta, timezone
 from github import Github
 from github.GithubException import GithubException
 
@@ -21,13 +23,23 @@ except ImportError:
 
 PR_BUCKET = "spack-binaries-prs"
 PR_PREFIX_RE = re.compile(r"pr([0-9]+)_.*")
+PRUNE_SINCE_DAYS = int(os.environ.get("PRUNE_SINCE_DAYS", 14))
 
 
 def open_prs(gh: Github, repo: str) -> Iterable[int]:
     """Get all of the open PR numbers for a github org/repo"""
     repo = gh.get_repo(repo, lazy=True)
+
+    dt = timedelta(days=PRUNE_SINCE_DAYS)
+    cutoff = datetime.now(tz=timezone.utc) - dt
+
     for pr in repo.get_pulls(state="open"):
         if pr.draft:
+            continue
+
+        # Caches are considered stale if the PR has been untouched
+        # for more than the pruning window
+        if pr.updated_at < cutoff:
             continue
 
         yield pr.number
@@ -107,7 +119,6 @@ def list_dirs(s3, bucket: str, prefix: str | None = None) -> Iterable[str]:
         Prefix=prefix or "",
         Delimiter="/",
     )
-    print(listing_args)
     paginator = s3.get_paginator("list_objects_v2")
     page_iter = paginator.paginate(**listing_args)
     for page in page_iter:
@@ -131,10 +142,11 @@ if __name__ == "__main__":
     session = boto3.Session()
     s3 = session.client("s3")
 
+    total_bytes = 0
     # Delete everything in the top level, these are all stale
     for prefix in list_dirs(s3, args.bucket):
         if _prno_from_prefix(prefix):
-            delete_prefix(s3, args.bucket, prefix)
+            total_bytes += delete_prefix(s3, args.bucket, prefix)
 
     # For each repo, delete the S3 mirror prefixes not associated with open PRs
     for repo in args.repo:
@@ -154,4 +166,13 @@ if __name__ == "__main__":
                 pr_mirror_map.pop(prno)
 
         for p in pr_mirror_map.values():
-            delete_prefix(s3, args.bucket, p)
+            total_bytes += delete_prefix(s3, args.bucket, p)
+
+    # Only go up to petabytes, anything more than than is concerning
+    unit = ("", "M", "G", "T", "P")
+    index = 0
+    while total_bytes > 10240:
+        index += 1
+        total_bytes /= 1024
+
+    print(f"Pruned: {total_bytes}{unit[index]}B")
