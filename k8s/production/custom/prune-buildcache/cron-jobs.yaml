@@ -5,7 +5,6 @@ metadata:
   name: prune-buildcache-v3
   namespace: custom
 spec:
-  suspend: true
   schedule: "0 0 * * 6"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
@@ -22,7 +21,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.5
+            image: ghcr.io/spack/ci-prune-buildcache:0.0.6
             imagePullPolicy: Always
             resources:
               requests:
