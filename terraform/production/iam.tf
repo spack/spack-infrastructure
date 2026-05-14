@@ -146,6 +146,12 @@ resource "aws_iam_user" "dan" {
 resource "aws_iam_user" "jacob" {
   name = "jacob"
 }
+resource "aws_iam_user" "john" {
+  name = "john"
+}
+resource "aws_iam_user" "peter" {
+  name = "peter"
+}
 resource "aws_iam_user" "krattiger1" {
   name = "krattiger1"
 }
