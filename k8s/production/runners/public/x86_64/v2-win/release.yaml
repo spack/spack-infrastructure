@@ -36,14 +36,14 @@ spec:
 
   values:
     imagePullPolicy: IfNotPresent
-    replicas: 6
+    replicas: 3
     probeTimeoutSeconds: 70
 
     # TODO: change to production when ready
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600 # six hours
-    concurrent: 20
+    concurrent: 40
     checkInterval: 30
 
     metrics:
