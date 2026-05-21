@@ -17,7 +17,7 @@ module "analytics_db" {
   engine               = "postgres"
   family               = "postgres15"
   major_engine_version = "15"
-  instance_class       = var.gitlab_db_instance_class
+  instance_class       = "db.t4g.xlarge"
 
   # Credentials
   db_name                     = "analytics"
