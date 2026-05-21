@@ -15,6 +15,18 @@ variable "flux_path" {
   type        = string
 }
 
+variable "enable_analytics_db" {
+  description = "Whether to provision the analytics PostgreSQL database."
+  type        = bool
+  default     = true
+}
+
+variable "analytics_db_instance_class" {
+  description = "AWS RDS DB instance class for the analytics PostgreSQL database."
+  type        = string
+  default     = "db.t4g.xlarge"
+}
+
 variable "gitlab_db_instance_class" {
   description = "AWS RDS DB instance class for the Spack GitLab PostgreSQL database."
   type        = string
