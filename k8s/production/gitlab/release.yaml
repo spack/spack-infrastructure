@@ -21,7 +21,7 @@ spec:
   chart:
     spec:
       chart: gitlab
-      version: 9.11.3 # gitlab@18.11.2
+      version: 10.0.0 # gitlab@19.0.0
       sourceRef:
         kind: HelmRepository
         name: gitlab
@@ -169,6 +169,11 @@ spec:
         nodeSelector:
           spack.io/node-pool: gitlab
       gitlab-exporter:
+        # The gitlab helm chart bumped the image version of gitlab-exporter they use to 16.8.0, but 16.8.0 is not
+        # published here https://gitlab.com/gitlab-org/build/CNG/container_registry/673222
+        # Once 16.8.0 is published, we can use that and remove this image tag specifier
+        image:
+          tag: 16.7.0
         nodeSelector:
           spack.io/node-pool: gitlab
 
