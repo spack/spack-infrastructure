@@ -5,8 +5,7 @@ import atexit
 import base64
 from datetime import datetime, timedelta, timezone
 import dateutil.parser
-from github import Github
-from github.GithubException import GithubException
+import github
 import json
 import os
 import re
@@ -51,8 +50,8 @@ class SpackCIBridge(object):
         self.github_project = github_project
         github_token = os.environ.get('GITHUB_TOKEN')
         self.github_repo = "https://{0}@github.com/{1}.git".format(github_token, self.github_project)
-        self.py_github = Github(github_token)
-        self.py_gh_repo = self.py_github.get_repo(self.github_project, lazy=True)
+        self.py_github = github.Github(auth=github.Auth.Token(github_token))
+        self.py_gh_repo = self.py_github.get_repo(self.github_project)
 
         self.session = Session()
         self.session.mount(
@@ -142,7 +141,7 @@ class SpackCIBridge(object):
         if commit not in self.cached_commits:
             try:
                 self.cached_commits[commit] = self.py_gh_repo.get_commit(sha=commit)
-            except GithubException as ghe:
+            except github.GithubException.GithubException as ghe:
                 print(ghe)
                 return None
         return self.cached_commits[commit]
@@ -163,7 +162,7 @@ class SpackCIBridge(object):
 
             pr_string = "pr{0}_{1}".format(pull.number, pull.head.ref)
 
-            if push and pull.updated_at < datetime.now() + timedelta(minutes=-2880):
+            if push and pull.updated_at < datetime.now(timezone.utc) + timedelta(minutes=-2880):
                 # Skip further analysis of this PR if it hasn't been updated in 48 hours.
                 # This helps us avoid wasting our rate limit on PRs with merge conflicts.
                 print("Skip pushing stale PR {0}".format(pr_string))
@@ -656,7 +655,8 @@ class SpackCIBridge(object):
         """Synchronize pull requests from GitHub as branches on GitLab."""
 
         print("Initial rate limit: {}".format(self.py_github.rate_limiting[0]))
-        reset_time = datetime.utcfromtimestamp(self.py_github.rate_limiting_resettime).strftime('%Y-%m-%d %H:%M:%S')
+        reset_time = datetime.fromtimestamp(
+            self.py_github.rate_limiting_resettime, timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         print("Rate limit will refresh at: {} UTC".format(reset_time))
 
         # Setup SSH command for communicating with GitLab.
