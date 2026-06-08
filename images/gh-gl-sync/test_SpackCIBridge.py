@@ -1,12 +1,22 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 import subprocess
-from unittest.mock import create_autospec, Mock
+from unittest.mock import create_autospec, Mock, patch
 
-import SpackCIBridge
+import github  # noqa: F401 (referenced by patch() string targets below)
 
 py_github = Mock()
 py_github.rate_limiting = (5000, 5000)
+
+# Patch github.Github and github.Auth.Token so the SpackCIBridge constructor
+# never makes real HTTP requests and doesn't require GITHUB_TOKEN to be set.
+mock_github_instance = Mock()
+mock_github_instance.get_repo.return_value = Mock()
+mock_github_instance.rate_limiting = (5000, 5000)
+patch("github.Github", return_value=mock_github_instance).start()
+patch("github.Auth.Token", return_value=Mock()).start()
+
+import SpackCIBridge  # noqa: E402
 
 
 class AttrDict(dict):
@@ -48,7 +58,7 @@ def test_durable_subprocess_run(capfd):
 
 def test_list_github_prs(capfd):
     """Test the list_github_prs method."""
-    dt = datetime.now()
+    dt = datetime.now(timezone.utc)
     github_pr_response = [
         AttrDict({
             "number": 1,
@@ -460,7 +470,7 @@ def test_pipeline_status_backlogged_by_checks(capfd):
 
     """Helper function to parameterize the test"""
     def verify_backlogged_by_checks(capfd, checks_return_value):
-        dt = datetime.now()
+        dt = datetime.now(timezone.utc)
         github_pr_response = [
             AttrDict({
                 "number": 1,
