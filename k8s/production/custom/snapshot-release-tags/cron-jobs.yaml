@@ -5,8 +5,7 @@ metadata:
   name: snapshot-release-tags
   namespace: custom
 spec:
-  suspend: true
-  schedule: "0 0 */3 * *" # 1am on Sunday
+  schedule: "0 1 */3 * *" # Every three days at 1am
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
