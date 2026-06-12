@@ -19,7 +19,7 @@ if __name__ == "__main__":
         raise Exception("GITHUB_TOKEN environment is not set")
 
     # Use the GitLab API to get the most recent successful develop pipeline.
-    gitlab_api_url = "https://gitlab.spack.io/api/v4/projects/2"
+    gitlab_api_url = "https://gitlab.spack.io/api/v4/projects/57"
     pipeline_api_url = f"{gitlab_api_url}/pipelines?ref=develop&status=success"
     request = urllib.request.Request(pipeline_api_url)
     response = urllib.request.urlopen(request)
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # Use the GitHub API to create a tag for this commit of develop.
     github_token = os.environ.get('GITHUB_TOKEN')
     py_github = Github(github_token)
-    py_gh_repo = py_github.get_repo("spack/spack", lazy=True)
+    py_gh_repo = py_github.get_repo("spack/spack-packages", lazy=True)
     print(f"Pushing ref {ref_name} for commit {sha}")
 
     # Create a ref for this sha using the date stamp
