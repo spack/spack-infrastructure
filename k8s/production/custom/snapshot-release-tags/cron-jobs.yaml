@@ -6,7 +6,7 @@ metadata:
   namespace: custom
 spec:
   suspend: true
-  schedule: "0 1 * * 0" # 1am on Sunday
+  schedule: "0 0 */3 * *" # 1am on Sunday
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
