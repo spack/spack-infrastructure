@@ -34,13 +34,24 @@ if __name__ == "__main__":
 
     sha = pipelines[0]["sha"]
 
+    # Check if this sha is already the latest snapshot
+    py_gh_repo = py_github.get_repo("spack/spack-packages", lazy=True)
+    try:
+        latest_ref = py_gh_repo.get_git_ref("snapshot/develop-latest")
+        if latest_ref.object.sha == sha:
+            print("Latest ref is already latest snapshot")
+            sys.exit(0)
+    except OSError:
+        # Failure to get the latest_ref means it doesn't exist and needs to be recreated.
+        latest_ref = None
+        pass
+
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     ref_name = f"develop-{date_str}"
 
     # Use the GitHub API to create a tag for this commit of develop.
     github_token = os.environ.get('GITHUB_TOKEN')
     py_github = Github(github_token)
-    py_gh_repo = py_github.get_repo("spack/spack-packages", lazy=True)
     print(f"Pushing ref {ref_name} for commit {sha}")
 
     # Create a ref for this sha using the date stamp
@@ -49,8 +60,11 @@ if __name__ == "__main__":
         sha=sha)
 
     # Create a ref for this sha using the `develop-latest` tag for the GH-GL sync script
-    py_gh_repo.create_git_ref(
-        ref="refs/snapshots/develop-latest",
-        sha=sha)
+    if latest_ref is not None:
+        latest_ref.edit(sha, force=True)
+    else:
+        py_gh_repo.create_git_ref(
+            ref="refs/snapshots/develop-latest",
+            sha=sha)
 
     print("Push done!")
