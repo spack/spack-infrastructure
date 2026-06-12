@@ -74,4 +74,11 @@ done
 # Prune the top-level develop buildcache.
 prune_stack "develop_keeplist.txt"
 
+echo "Pruning PR Mirrors"
+
+python3 ${SCRIPT_DIR}/prune_pr_mirrors.py \
+  -r "spack/spack" \
+  -r "spack/spack-packages" \
+  -b ${PR_BUILDCACHE_BUCKET}
+
 echo "Pruning complete!!!"
