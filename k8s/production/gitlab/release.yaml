@@ -153,7 +153,7 @@ spec:
             enabled: true
             secretName: tls-gitlab-webservice
         minReplicas: 4
-        maxReplicas: 16
+        maxReplicas: 32
         resources:
           # Prometheus queries to check for usage values
           # cpu:
