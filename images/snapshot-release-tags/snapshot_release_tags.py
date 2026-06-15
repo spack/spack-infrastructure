@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from datetime import datetime, timezone
-from github import Github, InputGitAuthor, GithubException
+from github import Auth, Github, InputGitAuthor, GithubException
 import json
 import os
 import sys
@@ -18,14 +18,48 @@ except ImportError:
     print("Running without sentry")
 
 
+def create_or_update_ref(repo, ref: str, sha: str):
+    """Create or update the sha for a ref
+
+    Return:
+        True: The ref was created or updated
+        False: The ref was already up to date
+
+    Raises:
+        GithubException for all get ref errors that are not 404 Not Found
+    """
+    try:
+        latest_ref = repo.get_git_ref(ref)
+        if latest_ref.object.sha == sha:
+            print(f"Ref {ref} is already pointing at {sha}")
+            return False
+    except GithubException as e:
+        if e.status != 404:
+            raise
+        # 404 means the ref doesn't exist and needs to be created.
+        latest_ref = None
+
+    # Update or create the ref
+    if latest_ref is not None:
+        latest_ref.edit(sha, force=True)
+    else:
+        repo.create_git_ref(
+            ref=f"refs/{ref}",
+            sha=sha)
+
+    return True
+
+
+
 if __name__ == "__main__":
     if "GITHUB_TOKEN" not in os.environ:
         raise Exception("GITHUB_TOKEN environment is not set")
 
     github_token = os.environ.get('GITHUB_TOKEN')
-    py_github = Github(github_token)
+    py_github = Github(auth=Auth.Token(github_token))
 
     # Use the GitLab API to get the most recent successful develop pipeline.
+    print("Searching for latest passing Gitlab pipeline")
     gitlab_api_url = "https://gitlab.spack.io/api/v4/projects/57"
     pipeline_api_url = f"{gitlab_api_url}/pipelines?ref=develop&status=success"
     request = urllib.request.Request(pipeline_api_url)
@@ -42,37 +76,13 @@ if __name__ == "__main__":
     sha = pipelines[0]["sha"]
     print(f"Gitlab pipeline: {sha}")
 
-    # Check if this sha is already the latest snapshot
-    py_gh_repo = py_github.get_repo("spack/spack-packages", lazy=True)
-    try:
-        latest_ref = py_gh_repo.get_git_ref("snapshots/develop-latest")
-        if latest_ref.object.sha == sha:
-            print("Latest ref is already latest snapshot")
-            sys.exit(0)
-    except GithubException:
-        # Failure to get the latest_ref means it doesn't exist and needs to be recreated.
-        latest_ref = None
-        pass
+    repo = py_github.get_repo("spack/spack-packages", lazy=True)
+    # If the latest develop snapshot is updated, also push a new date snapshot
+    if create_or_update_ref(repo, "snapshots/develop-latest", sha):
+        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        ref_name = f"snapshots/develop-{date_str}"
 
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    ref_name = f"develop-{date_str}"
-
-    # Use the GitHub API to create a tag for this commit of develop.
-    print(f"Pushing ref {ref_name} for commit {sha}")
-
-    print(f"snapshots/{ref_name}: {sha}")
-    # Create a ref for this sha using the date stamp
-    py_gh_repo.create_git_ref(
-        ref=f"refs/snapshots/{ref_name}",
-        sha=sha)
-
-    # Create a ref for this sha using the `develop-latest` tag for the GH-GL sync script
-    print(f"snapshots/develop-latest: {sha}")
-    if latest_ref is not None:
-        latest_ref.edit(sha, force=True)
-    else:
-        py_gh_repo.create_git_ref(
-            ref="refs/snapshots/develop-latest",
-            sha=sha)
+        print(f"Creating ref {ref_name} with commit {sha}")
+        create_or_update_ref(repo, ref_name, sha)
 
     print("Push done!")
