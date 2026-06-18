@@ -1,2 +1,2 @@
-PyGithub==1.58.2
+PyGithub==2.8.1
 sentry-sdk
