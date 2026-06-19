@@ -154,6 +154,23 @@ spec:
             secretName: tls-gitlab-webservice
         minReplicas: 4
         maxReplicas: 32
+        deployment:
+          # Use a startupProbe to gate liveness/readiness until Puma finishes
+          # booting.
+          startupProbe:
+            httpGet:
+              path: /-/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30  # Give Puma 5 minutes (30 * 10s) to boot
+            timeoutSeconds: 5
+          readinessProbe:
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 4   # Consider pod unready after 20 seconds (5 * 4)
         resources:
           # Prometheus queries to check for usage values
           # cpu:
