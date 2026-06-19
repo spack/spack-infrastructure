@@ -5,6 +5,15 @@ resource "aws_wafv2_ip_set" "vpc_nat_ips" {
   addresses          = [for ip in module.vpc.nat_public_ips : "${ip}/32"]
 }
 
+resource "aws_wafv2_ip_set" "allowed_ips" {
+  name               = "allowed-ips${local.suffix}"
+  scope              = "REGIONAL"
+  ip_address_version = "IPV4"
+  addresses = [
+    "128.223.202.0/24", # UO's IP block
+  ]
+}
+
 resource "aws_wafv2_web_acl" "gateway" {
   name        = "spack-gateway-waf${local.suffix}"
   scope       = "REGIONAL"
@@ -36,9 +45,31 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
+  # Allow requests from trusted IP ranges
+  rule {
+    name     = "AllowTrustedIps"
+    priority = 1
+
+    action {
+      allow {}
+    }
+
+    statement {
+      ip_set_reference_statement {
+        arn = aws_wafv2_ip_set.allowed_ips.arn
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AllowTrustedIps"
+    }
+  }
+
   rule {
     name     = "AWS-AWSManagedRulesAmazonIpReputationList"
-    priority = 1
+    priority = 2
 
     override_action {
       none {}
@@ -81,7 +112,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesCommonRuleSet"
-    priority = 2
+    priority = 3
 
     override_action {
       none {}
@@ -103,7 +134,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 3
+    priority = 4
 
     override_action {
       none {}
@@ -125,7 +156,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesBotControlRuleSet"
-    priority = 4
+    priority = 5
 
     override_action {
       none {}
@@ -147,7 +178,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesAnonymousIpList"
-    priority = 5
+    priority = 6
 
     override_action {
       none {}
@@ -170,7 +201,7 @@ resource "aws_wafv2_web_acl" "gateway" {
   # Issue a javascript-based challenge to any remaining requests
   rule {
     name     = "gitlab-challenge"
-    priority = 6
+    priority = 7
 
     action {
       challenge {}
