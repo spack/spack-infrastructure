@@ -11,6 +11,7 @@ resource "aws_wafv2_ip_set" "allowed_ips" {
   ip_address_version = "IPV4"
   addresses = [
     "128.223.202.0/24", # UO's IP block
+    "66.194.253.20/32"  # Kitware's VPN
   ]
 }
 
