@@ -156,30 +156,8 @@ resource "aws_wafv2_web_acl" "gateway" {
   }
 
   rule {
-    name     = "AWS-AWSManagedRulesBotControlRuleSet"
-    priority = 5
-
-    override_action {
-      none {}
-    }
-
-    statement {
-      managed_rule_group_statement {
-        vendor_name = "AWS"
-        name        = "AWSManagedRulesBotControlRuleSet"
-      }
-    }
-
-    visibility_config {
-      sampled_requests_enabled   = true
-      cloudwatch_metrics_enabled = true
-      metric_name                = "AWS-AWSManagedRulesBotControlRuleSet"
-    }
-  }
-
-  rule {
     name     = "AWS-AWSManagedRulesAnonymousIpList"
-    priority = 6
+    priority = 5
 
     override_action {
       none {}
@@ -196,6 +174,32 @@ resource "aws_wafv2_web_acl" "gateway" {
       sampled_requests_enabled   = true
       cloudwatch_metrics_enabled = true
       metric_name                = "AWS-AWSManagedRulesAnonymousIpList"
+    }
+  }
+
+  # BotControl is a paid rule group (charged per request inspected). It runs last among the
+  # managed rule groups so that cheaper rules (IP reputation, common, anonymous IP) can block
+  # requests before they reach it. The scope-down statement further excludes health-check and
+  # static asset requests that don't need bot inspection.
+  rule {
+    name     = "AWS-AWSManagedRulesBotControlRuleSet"
+    priority = 6
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesAnonymousIpList"
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWS-AWSManagedRulesBotControlRuleSet"
     }
   }
 
