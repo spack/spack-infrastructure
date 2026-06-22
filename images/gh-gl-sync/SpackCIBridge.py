@@ -215,8 +215,8 @@ class SpackCIBridge(object):
                 if not backlogged and self.required_label:
                     if not any(label.name == self.required_label for label in pull.labels):
                         push = False
-                        backlogged = f"Missing label '{self.required_label}'"
-                        print("Skip pushing {0} because of {1}".format(pr_string, backlogged))
+                        backlogged = "missing_label"
+                        print("Skip pushing {0} because of missing label '{1}'".format(pr_string, self.required_label))
 
                 if not backlogged:
                     check_for_deferral = not any(label.name == 'pipelines:urgent' for label in pull.labels)
@@ -603,6 +603,9 @@ class SpackCIBridge(object):
         for branch, head_sha, reason in backlog_branches:
             if reason == "stale":
                 print("Skip posting status for {} because it has not been updated recently".format(branch))
+                continue
+            elif reason == "missing_label":
+                print("Skip posting status for {} because required label is not present".format(branch))
                 continue
             elif reason == "base":
                 desc = base_backlog_desc
