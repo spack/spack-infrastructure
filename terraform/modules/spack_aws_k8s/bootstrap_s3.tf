@@ -1,8 +1,3 @@
-locals {
-  domain_suffix      = var.deployment_name == "prod" ? "" : "${var.deployment_name}."
-  bucket_name_suffix = var.deployment_name == "prod" ? "" : "-${var.deployment_name}"
-}
-
 resource "aws_s3_bucket" "bootstrap" {
   bucket = "spack-bootstrap${local.bucket_name_suffix}"
 }
