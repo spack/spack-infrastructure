@@ -5,11 +5,10 @@ import re
 import sys
 from datetime import datetime
 
-import botocore.exceptions
 import boto3.session
+import botocore.exceptions
 
 # Import to init sentry if available
-import pkg.common
 
 
 ################################################################################
@@ -108,9 +107,7 @@ def main():
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-u", "--url", default=None, help="URL of S3 mirror to validate")
-    group.add_argument(
-        "-f", "--file", default=None, help="Absolute path to local index file"
-    )
+    group.add_argument("-f", "--file", default=None, help="Absolute path to local index file")
 
     parser.add_argument(
         "-v",

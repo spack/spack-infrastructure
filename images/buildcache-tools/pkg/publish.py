@@ -2,38 +2,28 @@ import argparse
 import logging
 import os
 import re
-import shutil
-import stat
 import subprocess
 import tempfile
-
 from collections import defaultdict
-from concurrent.futures import as_completed, ThreadPoolExecutor
-from datetime import datetime, timezone, timedelta
-from typing import Callable, Dict, List, Optional
-
-import botocore.exceptions
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List
 
 import github
 
-from boto3.s3.transfer import TransferConfig
-
 from pkg.common import (
+    PROTECTED_BRANCH_REGEXES,
+    SNAPSHOT_TAG_REGEXES,
+    BuiltSpec,
+    UnexpectedURLFormatError,
     clone_spack,
     download_and_import_key,
-    extract_json_from_clearsig,
+    generate_spec_catalogs_v2,
+    generate_spec_catalogs_v3,
     get_workdir_context,
     s3_copy_file,
     s3_create_client,
     s3_download_file,
-    generate_spec_catalogs_v2,
-    generate_spec_catalogs_v3,
-    BuiltSpec,
-    MalformedManifestError,
-    NoSuchMediaTypeError,
-    UnexpectedURLFormatError,
-    SNAPSHOT_TAG_REGEXES,
-    PROTECTED_BRANCH_REGEXES,
 )
 
 GITHUB_PROJECT = "spack/spack-packages"
@@ -42,7 +32,8 @@ PROTECTED_REF_REGEXES = SNAPSHOT_TAG_REGEXES + PROTECTED_BRANCH_REGEXES
 
 LOGGER = logging.getLogger(__name__)
 
-################################################################################
+
+###############################################################################
 #
 def is_ref_protected(ref):
     """Check if given ref matches expected protected ref pattern
@@ -56,9 +47,17 @@ def is_ref_protected(ref):
     return False
 
 
-################################################################################
+###############################################################################
 #
-def publish_spec_v2(built_spec, bucket, prefix_from, prefix_to, force, gpg_home, tmpdir):
+def publish_spec_v2(
+    built_spec: BuiltSpec,
+    bucket: str,
+    prefix_from: str,
+    prefix_to: str,
+    force: bool,
+    gpg_home: str,
+    tmpdir: str,
+):
     """Publish a single spec from a stack to the root"""
     hash = built_spec.hash
     meta_suffix = built_spec.meta
@@ -89,24 +88,20 @@ def publish_spec_v2(built_spec, bucket, prefix_from, prefix_to, force, gpg_home,
         if m:
             dest_prefix = f"{prefix_to}/{m.group(1)}"
             try:
-                copy_source = {
-                    "Bucket": bucket,
-                    "Key": suffix,
-                }
+                copy_source = {"Bucket": bucket, "Key": suffix}
                 s3_copy_file(copy_source, bucket, dest_prefix)
             except Exception as error:
                 error_msg = getattr(error, "message", error)
                 error_msg = f"Failed to copy_object({suffix}) due to {error_msg}"
                 return False, error_msg
 
-    return True, f"Published {meta_suffix} and {archive_suffix} to s3://{bucket}/{ref}/"
+    return (True, f"Published {meta_suffix} and {archive_suffix} to s3://{bucket}/{prefix_to}/")
 
 
 ################################################################################
 #
 def publish_spec_v3(built_spec, bucket, prefix_from, prefix_to, force, gpg_home, tmpdir):
     """Publish a single spec from a stack to the root"""
-    spec_hash = built_spec.hash
     stack_manifest_prefix = built_spec.manifest_prefix
     stack_meta_prefix = built_spec.meta
     stack_archive_prefix = built_spec.archive
@@ -221,9 +216,7 @@ def publish(
     # Build dictionaries of specs existing at the root and within stacks
 
     if layout_version == 2:
-        all_stack_specs, top_level_specs = generate_spec_catalogs_v2(
-            bucket, ref, exclude=exclude
-        )
+        all_stack_specs, top_level_specs = generate_spec_catalogs_v2(bucket, ref, exclude=exclude)
         publish_fn = publish_spec_v2
     elif layout_version == 3:
         all_stack_specs, top_level_specs = generate_spec_catalogs_v3(
@@ -284,31 +277,22 @@ def publish(
 def publish_keys(mirror_url, gnu_pg_home, ref: str = "develop"):
     # Clone spack version appropriate to what we're publishing
     with tempfile.TemporaryDirectory() as workdir:
-        spack_root = os.environ.get("SPACK_ROOT")
-        if not spack_root:
-            clone_spack(packages_ref="develop", clone_dir=workdir)
-            spack_root = f"{workdir}/spack"
-
-        spack_exe = f"{spack_root}/bin/spack"
+        spack_exe = clone_spack(
+            # Can be useful for testing to clone a custom spack to somewhere other than "/"
+            # spack_ref="content-addressable-tarballs-2",
+            # spack_repo="https://github.com/scottwittenburg/spack.git",
+            packages_ref="develop",
+            clone_dir=workdir,
+        )
 
         gnu_pg_home = os.path.abspath(gnu_pg_home)
-        # Can be useful for testing to clone a custom spack to somewhere other than "/"
-        # clone_spack(
-        #     packages_ref=ref,
-        #     spack_ref="content-addressable-tarballs-2",
-        #     spack_repo="https://github.com/scottwittenburg/spack.git",
-        #     clone_dir=workdir,
-        # )
-        # spack_exe = f"{workdir}/spack/bin/spack"
 
         # Publish the key used for verification
         LOGGER.info(f"Publishing trusted keys to {mirror_url} ({gnu_pg_home})")
         my_env = os.environ.copy()
         my_env["SPACK_GNUPGHOME"] = gnu_pg_home
         subprocess.run(
-            [spack_exe, "gpg", "publish", "--mirror-url", mirror_url],
-            env=my_env,
-            check=True,
+            [spack_exe, "gpg", "publish", "--mirror-url", mirror_url], env=my_env, check=True
         )
 
         # Rebuild the package and key index
@@ -325,8 +309,7 @@ def publish_keys(mirror_url, gnu_pg_home, ref: str = "develop"):
 ################################################################################
 #
 def find_top_level_missing(
-    all_stack_specs: Dict[str, Dict[str, BuiltSpec]],
-    top_level_specs: Dict[str, BuiltSpec],
+    all_stack_specs: Dict[str, Dict[str, BuiltSpec]], top_level_specs: Dict[str, BuiltSpec]
 ) -> Dict[str, Dict[str, BuiltSpec]]:
     """Return a dictionary of all specs missing at the top level
 
@@ -343,9 +326,7 @@ def find_top_level_missing(
             ...
         }
     """
-    missing_at_top: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
-        lambda: defaultdict(BuiltSpec)
-    )
+    missing_at_top: Dict[str, Dict[str, BuiltSpec]] = defaultdict(lambda: defaultdict(BuiltSpec))
 
     for stack, stack_specs in all_stack_specs.items():
         for hash, built_spec in stack_specs.items():
@@ -383,7 +364,7 @@ def print_summary(missing_at_top: Dict[str, Dict[str, BuiltSpec]]):
             incomplete_pairs[hash] = nonviable_stacks
 
     if incomplete_pairs:
-        LOGGER.info(f"Stacks with incomplete pairs, by hash:")
+        LOGGER.info("Stacks with incomplete pairs, by hash:")
         for hash, stacks in incomplete_pairs.items():
             borked_stacks = ",".join(stacks)
             LOGGER.info(f"  {hash}: {borked_stacks}")
@@ -425,13 +406,10 @@ def main():
     LOGGER.info(f"Publish script started at {start_time}")
 
     parser = argparse.ArgumentParser(
-        prog="publish.py",
-        description="Publish specs from stack-specific mirrors to the root",
+        prog="publish.py", description="Publish specs from stack-specific mirrors to the root"
     )
 
-    parser.add_argument(
-        "-b", "--bucket", default="spack-binaries", help="Bucket to operate on"
-    )
+    parser.add_argument("-b", "--bucket", default="spack-binaries", help="Bucket to operate on")
     parser.add_argument(
         "-r",
         "--ref",
@@ -458,14 +436,9 @@ def main():
         action="store_true",
         help="Refetch files if they already exist",
     )
+    parser.add_argument("-p", "--parallel", default=8, type=int, help="Thread parallelism level")
     parser.add_argument(
-        "-p", "--parallel", default=8, type=int, help="Thread parallelism level"
-    )
-    parser.add_argument(
-        "-w",
-        "--workdir",
-        default=None,
-        help="A scratch directory, defaults to a tmp dir",
+        "-w", "--workdir", default=None, help="A scratch directory, defaults to a tmp dir"
     )
     parser.add_argument(
         "-v",
@@ -475,11 +448,7 @@ def main():
         help=("Target layout version to publish (either 2 or 3, defaults to 2)"),
     )
     parser.add_argument(
-        "-x",
-        "--exclude",
-        nargs="+",
-        default=[],
-        help="Optional list of stacks to exclude",
+        "-x", "--exclude", nargs="+", default=[], help="Optional list of stacks to exclude"
     )
 
     args = parser.parse_args()
@@ -517,7 +486,7 @@ def main():
                 # Swallow exceptions here so we can proceed with remaining refs,
                 # but save the exceptions to raise at the end.
                 LOGGER.error(f"Error publishing specs for {args.bucket} / {ref} due to {e}")
-                raise RuntimeError('') from e
+                raise RuntimeError("") from e
                 exceptions.append(e)
 
     end_time = datetime.now()

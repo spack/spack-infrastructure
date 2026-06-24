@@ -6,20 +6,18 @@ import os
 import re
 import subprocess
 import sys
-from concurrent.futures import as_completed, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import closing
 from datetime import datetime
 from typing import NamedTuple
 
 from pkg.common import (
-    BuiltSpec,
     TIMESTAMP_AND_SIZE,
-    TIMESTAMP_PATTERN,
-    compute_checksum,
+    BuiltSpec,
     bucket_name_from_s3_url,
     clone_spack,
+    compute_checksum,
     get_workdir_context,
-    list_prefix_contents,
     s3_copy_file,
     s3_download_file,
     s3_upload_file,
@@ -80,16 +78,12 @@ def _migrate_spec(
     # Check the listing to see if we already migrated this spec, in which case,
     # we're done.
     if not force:
-        already_migrated_pattern = (
-            rf"/v3/manifests/spec/.+{built_spec.hash}.spec.manifest.json$"
-        )
+        already_migrated_pattern = rf"/v3/manifests/spec/.+{built_spec.hash}.spec.manifest.json$"
         grep_cmd = ["grep", "-E", already_migrated_pattern, listing_path]
         grep_result = subprocess.run(grep_cmd)
         if grep_result.returncode == 0:
             mirror_url = f"s3://{bucket}/{target_prefix}"
-            return MigrationResult(
-                False, f"{built_spec.hash} previously migrated in {mirror_url}"
-            )
+            return MigrationResult(False, f"{built_spec.hash} previously migrated in {mirror_url}")
 
     signed_specfile_path = os.path.join(working_dir, f"{built_spec.hash}.spec.json.sig")
     verified_specfile_path = os.path.join(working_dir, f"{built_spec.hash}.spec.json")
@@ -122,9 +116,7 @@ def _migrate_spec(
     archive_size = None
 
     # We need to read the size of the compressed archive from the listing file
-    result = subprocess.run(
-        ["grep", "-E", built_spec.archive, listing_path], capture_output=True
-    )
+    result = subprocess.run(["grep", "-E", built_spec.archive, listing_path], capture_output=True)
     if result.returncode == 0:
         matching_line = result.stdout.decode("utf-8")
         regex = re.compile(rf"({TIMESTAMP_AND_SIZE})")
@@ -150,9 +142,7 @@ def _migrate_spec(
 
     hash_alg = bcs["hash_algorithm"]
     checksum = bcs["hash"]
-    new_layout_tarball_prefix = (
-        f"{target_prefix}/blobs/{hash_alg}/{checksum[:2]}/{checksum}"
-    )
+    new_layout_tarball_prefix = f"{target_prefix}/blobs/{hash_alg}/{checksum[:2]}/{checksum}"
 
     # This shouldn't be changing, but make sure it's there
     spec_dict["buildcache_layout_version"] = 2
@@ -160,9 +150,7 @@ def _migrate_spec(
     # Compress the spec dict and write it to disk
     with open(verified_specfile_path, "wb") as writable:
         with closing(
-            gzip.GzipFile(
-                filename="", mode="wb", compresslevel=6, mtime=0, fileobj=writable
-            )
+            gzip.GzipFile(filename="", mode="wb", compresslevel=6, mtime=0, fileobj=writable)
         ) as f_bin:
             with io.TextIOWrapper(f_bin, encoding="utf-8") as f_txt:
                 json.dump(spec_dict, f_txt, indent=0, separators=(",", ":"))
@@ -188,11 +176,13 @@ def _migrate_spec(
                 "compression": "gzip",
                 "checksumAlgorithm": specfile_checksum_alg,
                 "checksum": specfile_checksum,
-            }
-        ]
+            },
+        ],
     }
 
-    manifest_path_unsigned = os.path.join(working_dir, f"{built_spec.hash}_unsigned.spec.manifest.json")
+    manifest_path_unsigned = os.path.join(
+        working_dir, f"{built_spec.hash}_unsigned.spec.manifest.json"
+    )
     manifest_path_signed = os.path.join(working_dir, f"{built_spec.hash}.spec.manifest.json")
 
     # Create and write a manifest
@@ -217,10 +207,7 @@ def _migrate_spec(
         return MigrationResult(False, error_msg)
 
     # Copy the archive from the original prefix into the prefix under the new layout
-    copy_source = {
-        "Bucket": bucket,
-        "Key": built_spec.archive,
-    }
+    copy_source = {"Bucket": bucket, "Key": built_spec.archive}
 
     print(
         f"Copying s3://{bucket}/{built_spec.archive} to s3://{bucket}/{new_layout_tarball_prefix}"
@@ -246,9 +233,7 @@ def _migrate_spec(
         )
 
     # Upload the compressed spec dict as blog
-    new_layout_meta_prefix = (
-        f"{target_prefix}/blobs/{specfile_checksum_alg}/{specfile_checksum[:2]}/{specfile_checksum}"
-    )
+    new_layout_meta_prefix = f"{target_prefix}/blobs/{specfile_checksum_alg}/{specfile_checksum[:2]}/{specfile_checksum}"
 
     print(f"Uploading {verified_specfile_path} to s3://{bucket}/{new_layout_meta_prefix}")
 
@@ -263,9 +248,7 @@ def _migrate_spec(
         return MigrationResult(False, error_msg)
 
     # Upload the manifest
-    new_layout_manifest_prefix = (
-        f"{target_prefix}/v3/manifests/spec/{spec_name}/{spec_name}-{spec_version}-{spec_hash}.spec.manifest.json"
-    )
+    new_layout_manifest_prefix = f"{target_prefix}/v3/manifests/spec/{spec_name}/{spec_name}-{spec_version}-{spec_hash}.spec.manifest.json"
 
     print(f"Uploading {manifest_path_signed} to s3://{bucket}/{new_layout_manifest_prefix}")
 
@@ -321,7 +304,9 @@ def migrate_keys(bucket: str, target_prefix: str, listing_file: str, tmpdir: str
         key_checksum = compute_checksum(local_key_path)
         key_checksum_algo = "sha256"
         key_size = os.stat(local_key_path).st_size
-        key_blob_prefix = f"{target_prefix}/blobs/{key_checksum_algo}/{key_checksum[:2]}/{key_checksum}"
+        key_blob_prefix = (
+            f"{target_prefix}/blobs/{key_checksum_algo}/{key_checksum[:2]}/{key_checksum}"
+        )
 
         m = key_id_regex.search(original_key_prefix)
         if not m:
@@ -334,14 +319,14 @@ def migrate_keys(bucket: str, target_prefix: str, listing_file: str, tmpdir: str
         # Create and write a manifest
         key_manifest_dict = {
             "version": 3,
-            "data" : [
+            "data": [
                 {
                     "contentLength": key_size,
                     "mediaType": "application/pgp-keys",
                     "compression": "none",
                     "checksumAlgorithm": key_checksum_algo,
                     "checksum": key_checksum,
-                },
+                }
             ],
         }
 
@@ -354,7 +339,7 @@ def migrate_keys(bucket: str, target_prefix: str, listing_file: str, tmpdir: str
 
         try:
             s3_upload_file(local_key_path, bucket, key_blob_prefix)
-        except Exception as e:
+        except Exception:
             print(f"Failed to upload {local_key_path} to s3://{bucket}/{key_blob_prefix}")
             continue
 
@@ -363,7 +348,7 @@ def migrate_keys(bucket: str, target_prefix: str, listing_file: str, tmpdir: str
 
         try:
             s3_upload_file(local_manifest_path, bucket, key_manifest_prefix)
-        except Exception as e:
+        except Exception:
             print(f"Failed to upload {local_manifest_path} to s3://{bucket}/{key_manifest_prefix}")
             continue
 
@@ -440,14 +425,7 @@ def migrate(mirror_url: str, workdir: str, force: bool = False, parallel: int = 
 
     # Build a list of tasks for threads
     task_list = [
-        (
-            built_spec,
-            listing_file,
-            bucket,
-            target_prefix,
-            tmp_storage_dir,
-            force,
-        )
+        (built_spec, listing_file, bucket, target_prefix, tmp_storage_dir, force)
         for (_, built_spec) in target_catalog.items()
     ]
 
@@ -484,19 +462,13 @@ def main():
     print(f"Migrate script started at {start_time}")
 
     parser = argparse.ArgumentParser(
-        prog="migrate.py",
-        description="Migrate specs in a mirror to content addressable layout",
+        prog="migrate.py", description="Migrate specs in a mirror to content addressable layout"
     )
 
-    parser.add_argument(
-        "mirror", type=str, default=None, help="URL of mirror to migrate."
-    )
+    parser.add_argument("mirror", type=str, default=None, help="URL of mirror to migrate.")
 
     parser.add_argument(
-        "-w",
-        "--workdir",
-        default=None,
-        help="A scratch directory, defaults to a tmp dir",
+        "-w", "--workdir", default=None, help="A scratch directory, defaults to a tmp dir"
     )
 
     parser.add_argument(
@@ -507,9 +479,7 @@ def main():
         help="Refetch files if they already exist",
     )
 
-    parser.add_argument(
-        "-p", "--parallel", default=8, type=int, help="Thread parallelism level"
-    )
+    parser.add_argument("-p", "--parallel", default=8, type=int, help="Thread parallelism level")
 
     args = parser.parse_args()
     if not args.mirror:

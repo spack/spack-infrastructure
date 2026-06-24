@@ -2,28 +2,31 @@ import contextlib
 import hashlib
 import json
 import logging
+import math
 import os
 import re
-import requests
 import shutil
 import stat
 import subprocess
 import tempfile
+import urllib
 from collections import defaultdict
-from concurrent.futures import as_completed, ThreadPoolExecutor
-from datetime import datetime, timezone, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from typing import Dict, List, Optional
 
 import boto3
 import boto3.session
+import requests
 from boto3.s3.transfer import TransferConfig
 
 try:
     import sentry_sdk
+
     sentry_sdk.init(
         # This cron job only runs once weekly,
         # so just record all transactions.
-        traces_sample_rate=1.0,
+        traces_sample_rate=1.0
     )
 except ImportError:
     print("Sentry Disabled")
@@ -46,17 +49,17 @@ SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
 TARBALL_MEDIA_TYPE = "application/vnd.spack.install.v2.tar+gzip"
 SPEC_METADATA_MEDIA_TYPE = "application/vnd.spack.spec.v5+json"
 
-REGEX_LISTING_DATA = re.compile(r"^([\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2})\s+(\d+)\s+(.+)")
+REGEX_LISTING_DATA = re.compile(
+    r"^([\d]{4}-[\d]{2}-[\d]{2}\s[\d]{2}:[\d]{2}:[\d]{2})\s+(\d+)\s+(.+)"
+)
 
 #: regular expressions designed to match "aws s3 ls" output
 REGEX_V2_SIGNED_SPECFILE_RELATIVE = re.compile(
-    rf"(.+)(/build_cache/.+-)([^\.]+)(\.spec\.json\.sig)$"
+    r"(.+)(/build_cache/.+-)([^\.]+)(\.spec\.json\.sig)$"
 )
-REGEX_V2_ARCHIVE_RELATIVE = re.compile(
-    rf"(.+)(/build_cache/.+-)([^\.]+)(\.spack)$"
-)
+REGEX_V2_ARCHIVE_RELATIVE = re.compile(r"(.+)(/build_cache/.+-)([^\.]+)(\.spack)$")
 REGEX_V3_SIGNED_SPECFILE_RELATIVE = re.compile(
-    rf"(.+)(/v3/manifests/spec/.+-)([^-\.]+)(\.spec\.manifest\.json)$"
+    r"(.+)(/v3/manifests/spec/.+-)([^-\.]+)(\.spec\.manifest\.json)$"
 )
 
 #: Regular expression to pull spec contents out of clearsigned signature
@@ -84,10 +87,7 @@ SNAPSHOT_TAG_REGEXES = [
     re.compile(r"^v([\d]+)\.([\d]+)\.[\d]+$"),
 ]
 
-PROTECTED_BRANCH_REGEXES = [
-    re.compile(r"^develop$"),
-    re.compile(r"^releases/v[\d]+\.[\d]+$"),
-]
+PROTECTED_BRANCH_REGEXES = [re.compile(r"^develop$"), re.compile(r"^releases/v[\d]+\.[\d]+$")]
 
 
 LOGGER = logging.getLogger(__name__)
@@ -125,17 +125,14 @@ def download_and_import_key(gpg_home: str, tmpdir: str, force: bool) -> str | No
 
     # Trust it ultimately
     subprocess.run(
-        ["gpg", "--no-tty", "--import-ownertrust", ownertrust_path],
-        env=env,
-        check=True,
+        ["gpg", "--no-tty", "--import-ownertrust", ownertrust_path], env=env, check=True
     )
 
     return tmp_key_path
 
 
 def tag_source_branch(tag):
-    """Parse a tag and return the source branch
-    """
+    """Parse a tag and return the source branch"""
     m = SNAPSHOT_TAG_REGEXES[0].match(tag)
     if m:
         return "develop"
@@ -188,9 +185,7 @@ def spec_catalogs_from_listing_v2(bucket: str, ref: str) -> Dict[str, Dict[str, 
     listing.  The returned dictionary of catalogs is keyed by unique prefix.
     """
     list_url = f"s3://{bucket}/{ref}/"
-    all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
-        lambda: defaultdict(BuiltSpec)
-    )
+    all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(lambda: defaultdict(BuiltSpec))
 
     for date, size, key in list_prefix_contents(list_url):
         m = REGEX_V2_SIGNED_SPECFILE_RELATIVE.search(key)
@@ -224,9 +219,7 @@ def spec_catalogs_from_listing_v2(bucket: str, ref: str) -> Dict[str, Dict[str, 
 #
 def spec_catalogs_from_listing_v3(bucket: str, ref: str) -> Dict[str, Dict[str, BuiltSpec]]:
     list_url = f"s3://{bucket}/{ref}/"
-    all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
-        lambda: defaultdict(BuiltSpec)
-    )
+    all_catalogs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(lambda: defaultdict(BuiltSpec))
     for date, size, key in list_prefix_contents(list_url):
         m = REGEX_V3_SIGNED_SPECFILE_RELATIVE.search(key)
         if m:
@@ -272,9 +265,7 @@ def generate_spec_catalogs_v2(
         )
     """
     stack_prefix_regex = re.compile(rf"{ref}/(.+)")
-    stack_specs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
-        lambda: defaultdict(BuiltSpec)
-    )
+    stack_specs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(lambda: defaultdict(BuiltSpec))
     all_catalogs = spec_catalogs_from_listing_v2(bucket, ref)
     top_level_specs = all_catalogs[ref]
 
@@ -307,9 +298,7 @@ def format_blob_url(prefix: str, blob_record: Dict[str, str]) -> str:
     return f"{prefix}/blobs/{hash_algo}/{checksum[:2]}/{checksum}"
 
 
-def find_data_with_media_type(
-    data: List[Dict[str, str]], mediaType: str
-) -> Dict[str, str]:
+def find_data_with_media_type(data: List[Dict[str, str]], mediaType: str) -> Dict[str, str]:
     """Return data element with matching mediaType, or else raise"""
     for elt in data:
         if elt["mediaType"] == mediaType:
@@ -329,9 +318,7 @@ def generate_spec_catalogs_v3(
 ) -> tuple[Dict[str, Dict[str, BuiltSpec]], Dict[str, BuiltSpec]]:
     """Return information about specs in stacks and at the root"""
     stack_prefix_regex = re.compile(rf"{ref}/(.+)")
-    stack_specs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(
-        lambda: defaultdict(BuiltSpec)
-    )
+    stack_specs: Dict[str, Dict[str, BuiltSpec]] = defaultdict(lambda: defaultdict(BuiltSpec))
     all_catalogs = spec_catalogs_from_listing_v3(bucket, ref)
     top_level_specs = all_catalogs[ref]
 
@@ -373,12 +360,12 @@ def generate_spec_catalogs_v3(
 
         try:
             LOGGER.debug(f"Downloading manifests for stack {stack}")
-            # subprocess.run(
-            #     stack_manifest_sync_cmd,
-            #     check=True,
-            #     stdout=subprocess.DEVNULL,
-            #     stderr=subprocess.DEVNULL,
-            # )
+            subprocess.run(
+                stack_manifest_sync_cmd,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         except subprocess.CalledProcessError as cpe:
             error_msg = getattr(cpe, "message", cpe)
             LOGGER.error(f"Failed to download manifests for {stack} due to: {error_msg}")
@@ -396,10 +383,7 @@ def generate_spec_catalogs_v3(
         download_dir = os.path.join(tmpdir, stack)
         LOGGER.debug(f"searching {download_dir} for spec /{spec_hash}")
         find_cmd = ["find", download_dir, "-type", "f", "-name", f"*{spec_hash}*"]
-        find_result = subprocess.run(
-            find_cmd,
-            capture_output=True,
-        )
+        find_result = subprocess.run(find_cmd, capture_output=True)
 
         # Check for an error searching for the spec
         manifest_path = find_result.stdout.decode("utf-8").strip()
@@ -422,15 +406,11 @@ def generate_spec_catalogs_v3(
                 stack_specs[stack][spec_hash].manifest_path = manifest_path
                 stack_specs[stack][spec_hash].meta = format_blob_url(
                     f"{ref}/{stack}",
-                    find_data_with_media_type(
-                        manifest_dict["data"], SPEC_METADATA_MEDIA_TYPE
-                    ),
+                    find_data_with_media_type(manifest_dict["data"], SPEC_METADATA_MEDIA_TYPE),
                 )
                 stack_specs[stack][spec_hash].archive = format_blob_url(
                     f"{ref}/{stack}",
-                    find_data_with_media_type(
-                        manifest_dict["data"], TARBALL_MEDIA_TYPE
-                    ),
+                    find_data_with_media_type(manifest_dict["data"], TARBALL_MEDIA_TYPE),
                 )
             except Exception as exc:
                 LOGGER.error(f"Exception processing manifests: {exc}")
@@ -453,7 +433,9 @@ def get_workdir_context(workdir: Optional[str] = None):
 
 listing_prefix = os.environ.get("LISTING_CACHE_PREFIX", ".")
 
+
 def listing_file(url: str) -> str:
+    global listing_prefix
     if not listing_prefix:
         listing_prefix = tempfile.mkdtemp()
     # Store the listing has the checksum of the url
@@ -461,11 +443,14 @@ def listing_file(url: str) -> str:
     h.update(url.encode())
     return os.path.join(listing_prefix, h.hexdigest())
 
+
 ################################################################################
 # Given a url and a file path to use for writing, get a recursive listing of
 # everything under the prefix defined by the url, and write it to disk using the
 # supplied path.
-def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: bool = False, iterator: bool = True):
+def list_prefix_contents(
+    url: str, output_prefix: Optional[str] = None, force: bool = False, iterator: bool = True
+):
 
     # Auto caching of listing file
     global listing_prefix
@@ -485,34 +470,39 @@ def list_prefix_contents(url: str, output_prefix: Optional[str] = None, force: b
         if iterator:
             client = s3_create_client()
             purl = urllib.parse.urlparse(url)
-            prefix = re.sub("^/*", "/")
-            list_args = dict(Bucket=url.netloc, Prefix=prefix)
+            prefix = re.sub("^/*", "", purl.path)
+            list_args = dict(Bucket=purl.netloc, Prefix=prefix)
+            LOGGER.info(f"Listing v2 {list_args}")
             # Local buffer of objects to cache to a file
             all_objects = []
             while True:
                 resp = client.list_objects_v2(**list_args)
 
-                all_objects.extend(resp.get("Contents", []))
+                contents = resp.get("Contents", [])
+                all_objects.extend(contents)
                 obj = None
-                for obj in resp.get("Contents", []):
+                for obj in contents:
                     yield obj["LastModified"], obj["Size"], obj["Key"]
 
                 if resp.get("IsTruncated", False) and obj:
-                    list_args.update({
-                        "StartAfter": obj
-                    })
+                    list_args.update({"StartAfter": obj["Key"]})
                 else:
                     break
+
+            if not all_objects:
+                LOGGER.info(f"No objects found under {url}")
+                return
 
             # Write the listing in the same format used by "aws s3 ls"
             msize = max([obj["Size"] for obj in all_objects])
             msize = math.ceil(math.log(msize) / math.log(10)) + 1
+            line_format = f"{{date_time}} {{size:{msize}}} {{key}}\n"
             with open(output_file, "w", encoding="utf=8") as fd:
                 for obj in all_objects:
                     date_time = obj["LastModified"].strftime(dt_format)
                     size = int(obj["Size"])
                     key = obj["Key"]
-                    fd.write(f"{date_time} {size:msize} {key}\n")
+                    fd.write(line_format.format(date_time=date_time, size=size, key=key))
 
         else:
             LOGGER.info(f"Writing cached listfile for {url} to {output_file}")
@@ -549,7 +539,18 @@ def extract_json_from_clearsig(file_path):
 # clone the matching version of spack.
 #
 # Clones the version of spack specified by ref to the root of the file system
-def clone_spack(spack_ref: str = "develop", packages_ref: str = "develop", spack_repo: str = SPACK_REPO, packages_repo: str = PACKAGES_REPO, clone_dir: str = "/"):
+def clone_spack(
+    spack_ref: str = "develop",
+    packages_ref: str = "develop",
+    spack_repo: str = SPACK_REPO,
+    packages_repo: str = PACKAGES_REPO,
+    clone_dir: str = "/",
+):
+    # If spack is already set up don't clone a new one
+    spack_root = os.environ.get("SPACK_ROOT")
+    if spack_root:
+        return f"{spack_root}/bin/spack"
+
     spack_path = f"{clone_dir}/spack"
     packages_path = f"{clone_dir}/spack-packages"
 
@@ -597,19 +598,14 @@ def clone_spack(spack_ref: str = "develop", packages_ref: str = "develop", spack
         )
         # Configure the repo destination
         subprocess.run(
-            [
-                "spack/bin/spack",
-                "repo",
-                "set",
-                "builtin",
-                "--destination",
-                packages_path,
-            ],
+            ["spack/bin/spack", "repo", "set", "builtin", "--destination", packages_path],
             check=True,
             stdout=subprocess.DEVNULL,
         )
     finally:
         os.chdir(owd)
+
+    return f"{spack_path}/bin/spack"
 
 
 ################################################################################
@@ -625,6 +621,7 @@ def s3_download_file(bucket: str, prefix: str, save_path: str, force: bool = Fal
 
     return save_path
 
+
 ################################################################################
 # Create and return a new s3 client by first creating a Session, using that to
 # create a new "s3" resource, and return the client stored within the resources
@@ -633,6 +630,7 @@ def s3_create_client():
     session = boto3.session.Session()
     s3_resource = session.resource("s3")
     return s3_resource.meta.client
+
 
 ################################################################################
 # Copy objects between s3 buckets/prefixes
@@ -688,7 +686,7 @@ def s3_object_exists(bucket: str, key: str, client=None):
 def compute_checksum(input_file: str, buf_size: int = 65536) -> str:
     sha256 = hashlib.sha256()
 
-    with open(input_file, 'rb') as f:
+    with open(input_file, "rb") as f:
         while True:
             data = f.read(buf_size)
             if not data:
