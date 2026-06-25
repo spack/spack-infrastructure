@@ -79,6 +79,6 @@ echo "Pruning PR Mirrors"
 python3 ${SCRIPT_DIR}/prune_pr_mirrors.py \
   -r "spack/spack" \
   -r "spack/spack-packages" \
-  -b ${PR_BUILDCACHE_BUCKET}
+  -b "${PR_BUILDCACHE_BUCKET}"
 
 echo "Pruning complete!!!"

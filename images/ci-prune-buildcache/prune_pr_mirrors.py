@@ -5,6 +5,7 @@ import sys
 import re
 
 from datetime import datetime, timedelta, timezone
+import github
 from github import Github
 from github.GithubException import GithubException
 
@@ -62,52 +63,47 @@ def _prno_from_prefix(prefix):
     return None
 
 
+def delete_batch(s3, bucket, batch):
+    del_resp = s3.delete_objects(
+        Bucket=bucket,
+        Delete={"Objects": batch, "Quiet": True}
+    )
+    # If there are errors during delete report them
+    errs = del_resp.get("Errors", [])
+    if errs:
+        print("Errors: ", file=sys.stderr)
+        for err in errs:
+            print(err, file=sys.stderr)
+
+
 def delete_prefix(s3, bucket: str, prefix: str, dryrun: bool = True):
     """Delete everything under a prefix"""
 
-    print(f"Deleting: s3://{bucket}/{prefix}")
+    note = ""
+    if dryrun:
+        note = "DRYRUN: "
+    print(note + f"Deleting: s3://{bucket}/{prefix}")
     listing_args = dict(
         Bucket=bucket,
         Prefix=prefix,
     )
+
+    paginator = s3.get_paginator("list_objects_v2")
+    objects = paginator.paginate(**listing_args)
     total_size = 0
-    while True:
-        # List items under the prefix
-        resp = s3.list_objects_v2(**listing_args)
-        objects = [
-            {
-                "Key": o["Key"],
-                "ETag": o["ETag"],
-            } for o in resp.get("Contents", [])
-        ]
+    batch = []
+    for obj in objects.search("Contents"):
+        total_size += obj["Size"]
+        batch.append({k: obj[k] for k in ("Key", "ETag")})
+        if dryrun:
+            continue
 
-        total_size = sum(o["Size"] for o in resp.get("Contents", []))
+        if len(batch) == 100:
+            delete_batch(s3, bucket, batch)
+            batch = []
 
-        # Delete all of the listed items
-        if objects:
-            print(f"Deleteing {len(objects)} objects")
-
-            if not dryrun:
-                del_resp = s3.delete_objects(
-                    Bucket=bucket,
-                    Delete={"Objects": objects, "Quiet": True}
-                )
-
-                # If there are errors during delete report them
-                errs = del_resp.get("Errors", [])
-                if errs:
-                    print("Errors: ", file=sys.stderr)
-                    for err in errs:
-                        print(err, file=sys.stderr)
-            else:
-                print("-- DRYRUN -- ")
-                break
-
-        # Update listing args for pagination
-        if resp.get("IsTruncated", False) and objects:
-            listing_args.update({"StartAfter": objects[-1]["Key"]})
-        else:
-            break
+    if not dryrun and batch:
+        delete_batch(s3, bucket, batch)
 
     return total_size
 
@@ -137,12 +133,19 @@ if __name__ == "__main__":
     if not args.repo:
         args.repo = ["spack/spack", "spack/spack-packages"]
 
-    gh = Github()
+    print(f"""
+    repos: {args.repo}
+    bucket: {args.bucket}
+    dryrun: {args.dryrun}
+""")
+
+    gh = Github(os.environ.get("GITHUB_TOKEN"))
     session = boto3.Session()
     s3 = session.client("s3")
 
     total_bytes = 0
-    # Delete everything in the top level, these are all stale
+    # Delete any "top-level" PR prefixes since they should now live under
+    # "spack" or "spack-packages" prefixes.
     for prefix in list_dirs(s3, args.bucket):
         if _prno_from_prefix(prefix):
             total_bytes += delete_prefix(s3, args.bucket, prefix, args.dryrun)
@@ -150,13 +153,11 @@ if __name__ == "__main__":
     # For each repo, delete the S3 mirror prefixes not associated with open PRs
     for repo in args.repo:
         # Get the list of PR mirrors
-        pr_mirror_map = dict(
-            [
-                (
-                    _prno_from_prefix(p), p
-                ) for p in list_dirs(s3, args.bucket, _repo_s3_prefix(repo))
-            ]
-        )
+        pr_mirror_map = {
+            prno: p
+            for p in list_dirs(s3, args.bucket, _repo_s3_prefix(repo))
+            if (prno := _prno_from_prefix(p)) is not None
+        }
 
         # Search PR mirrors not associated with an open PR
         # Note: listing open PRs after getting list of mirrors to avoid races
