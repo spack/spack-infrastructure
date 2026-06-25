@@ -584,3 +584,32 @@ def test_pipeline_status_backlogged_for_draft_PR(capfd):
   pr1_readme -> shabaz"""
     assert expected_content in out
     del os.environ["GITHUB_TOKEN"]
+
+
+def test_pipeline_status_not_posted_for_missing_label(capfd):
+    """Test that post_pipeline_status posts no status when required_label is not found on the PR."""
+    open_prs = {
+        "pr_strings": ["pr1_readme"],
+        "base_shas": ["shafoo"],
+        "head_shas": ["shabaz"],
+        "backlogged": ["missing_label"]
+    }
+
+    gh_commit = Mock()
+    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
+    gh_commit.create_status.return_value = AttrDict({"state": "pending"})
+    gh_repo = Mock()
+    gh_repo.get_commit.return_value = gh_commit
+
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
+                                         gitlab_project="zack/my_test_proj",
+                                         github_project="zack/my_test_proj",
+                                         main_branch="develop")
+    bridge.py_gh_repo = gh_repo
+    os.environ["GITHUB_TOKEN"] = "my_github_token"
+
+    bridge.post_pipeline_status(open_prs, [])
+    assert gh_commit.create_status.call_count == 0
+    out, err = capfd.readouterr()
+    assert "Skip posting status for pr1_readme because required label is not present" in out
+    del os.environ["GITHUB_TOKEN"]
