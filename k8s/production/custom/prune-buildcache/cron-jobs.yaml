@@ -43,7 +43,7 @@ spec:
             - name: PRUNE_SINCE_DAYS
               value: "14"
             - name: PR_BUILDCACHE_BUCKET
-              value: "s3://spack-binaries-prs"
+              value: "spack-binaries-prs"
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config

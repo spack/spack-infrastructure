@@ -1,4 +1,5 @@
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import boto3
 import os
 import sys
@@ -27,7 +28,7 @@ PR_PREFIX_RE = re.compile(r"pr([0-9]+)_.*")
 PRUNE_SINCE_DAYS = int(os.environ.get("PRUNE_SINCE_DAYS", 14))
 
 
-def open_prs(gh: Github, repo: str) -> Iterable[int]:
+def active_prs(gh: Github, repo: str) -> Iterable[int]:
     """Get all of the open PR numbers for a github org/repo"""
     repo = gh.get_repo(repo, lazy=True)
 
@@ -36,11 +37,13 @@ def open_prs(gh: Github, repo: str) -> Iterable[int]:
 
     for pr in repo.get_pulls(state="open"):
         if pr.draft:
+            print(f"PR {pr.number}: Marking draft PR as prunable")
             continue
 
         # Caches are considered stale if the PR has been untouched
         # for more than the pruning window
         if pr.updated_at < cutoff:
+            print(f"PR {pr.number}: Marking stale PR as prunable: {pr.updated_at}")
             continue
 
         yield pr.number
@@ -91,16 +94,20 @@ def delete_prefix(s3, bucket: str, prefix: str, dryrun: bool = True):
     paginator = s3.get_paginator("list_objects_v2")
     objects = paginator.paginate(**listing_args)
     total_size = 0
+    futures = []
     batch = []
-    for obj in objects.search("Contents"):
-        total_size += obj["Size"]
-        batch.append({k: obj[k] for k in ("Key", "ETag")})
-        if dryrun:
-            continue
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        for obj in objects.search("Contents"):
+            total_size += obj["Size"]
+            batch.append({k: obj[k] for k in ("Key", "ETag")})
+            if dryrun:
+                continue
 
-        if len(batch) == 100:
-            delete_batch(s3, bucket, batch)
-            batch = []
+            if len(batch) == 100:
+                futures.append(executor.submit(delete_batch, s3, bucket, batch))
+                batch = []
+
+    _ = [f.result() for f in futures]
 
     if not dryrun and batch:
         delete_batch(s3, bucket, batch)
@@ -161,7 +168,7 @@ if __name__ == "__main__":
 
         # Search PR mirrors not associated with an open PR
         # Note: listing open PRs after getting list of mirrors to avoid races
-        for prno in open_prs(gh, repo):
+        for prno in active_prs(gh, repo):
             if prno in pr_mirror_map:
                 pr_mirror_map.pop(prno)
 
