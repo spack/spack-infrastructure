@@ -44,6 +44,11 @@ spec:
               value: "14"
             - name: PR_BUILDCACHE_BUCKET
               value: "spack-binaries-prs"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: github-public-repo-token
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config
