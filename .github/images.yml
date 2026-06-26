@@ -12,7 +12,7 @@ images:
     image: ghcr.io/spack/gitlab-clear-pipelines:0.0.1
 
   - path: ./images/gitlab-delete-stale-branches
-    image: ghcr.io/spack/gitlab-delete-stale-branches:0.0.1
+    image: ghcr.io/spack/gitlab-delete-stale-branches:0.0.2
 
   - path: ./images/gitlab-skipped-pipelines
     image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.3
