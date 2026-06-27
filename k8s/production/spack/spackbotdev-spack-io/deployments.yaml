@@ -101,9 +101,9 @@ spec:
       serviceAccountName: spackbotdev-spack-io
       containers:
       - name: worker
-        # image: "ghcr.io/spack/spackbot-workers:latest"
+        image: "ghcr.io/spack/spackbot-workers:latest"
         # Can use some other image for testing, see README.md
-        image: "ghcr.io/kwryankrattiger/spackbot-workers:0.0.1"
+        # image: "ghcr.io/kwryankrattiger/spackbot-workers:0.0.1"
         imagePullPolicy: Always
         resources:
           requests:
@@ -192,9 +192,9 @@ spec:
       serviceAccountName: spackbotdev-spack-io
       containers:
       - name: long-task-worker
-        # image: "ghcr.io/spack/spackbot-workers:latest"
+        image: "ghcr.io/spack/spackbot-workers:latest"
         # Can use some other image for testing, see README.md
-        image: "ghcr.io/kwryankrattiger/spackbot-workers:0.0.1"
+        # image: "ghcr.io/kwryankrattiger/spackbot-workers:0.0.1"
         imagePullPolicy: Always
         resources:
           requests:
