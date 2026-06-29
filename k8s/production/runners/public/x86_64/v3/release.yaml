@@ -76,6 +76,36 @@ spec:
           unset GITLAB_OIDC_TOKEN
           """
 
+          post_build_script = """
+          echo 'Executing Spack pre-build setup script'
+
+          for cmd in "${PY3:-}" python3 python; do
+            if command -v > /dev/null "$cmd"; then
+              export PY3="$(command -v "$cmd")"
+              break
+            fi
+          done
+
+          if [ -z "${PY3:-}" ]; then
+            echo "Unable to find python3 executable"
+            exit 1
+          fi
+
+          $PY3 -c "import urllib.request;urllib.request.urlretrieve('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', 'pre_build.py')"
+          $PY3 pre_build.py > envvars
+
+          . ./envvars
+          rm -f envvars
+          unset GITLAB_OIDC_TOKEN
+
+          echo 'Trusting GPG secrets'
+          k=$CI_GPG_KEY_ROOT/e4s.gpg; [[ -r $k ]] && spack gpg trust -y $k
+          k=$CI_GPG_KEY_ROOT/intermediate_ci_signing_key.gpg; [[ -r $k ]] && spack gpg trust -y $k
+          k=$CI_GPG_KEY_ROOT/spack_public_key.gpg; [[ -r $k ]] && spack gpg trust -y $k
+
+          spack buildcache push --without-build-dependencies "/${SPACK_JOB_SPEC_DAG_HASH}"
+          """
+
           output_limit = 20480
           environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1"]
           [runners.kubernetes]
