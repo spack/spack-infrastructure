@@ -98,11 +98,6 @@ spec:
           rm -f envvars
           unset GITLAB_OIDC_TOKEN
 
-          echo 'Trusting GPG secrets'
-          k=$CI_GPG_KEY_ROOT/e4s.gpg; [[ -r $k ]] && spack gpg trust -y $k
-          k=$CI_GPG_KEY_ROOT/intermediate_ci_signing_key.gpg; [[ -r $k ]] && spack gpg trust -y $k
-          k=$CI_GPG_KEY_ROOT/spack_public_key.gpg; [[ -r $k ]] && spack gpg trust -y $k
-
           spack buildcache push --without-build-dependencies "/${SPACK_JOB_SPEC_DAG_HASH}"
           """
 
