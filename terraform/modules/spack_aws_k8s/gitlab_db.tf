@@ -111,6 +111,13 @@ module "gitlab_db_proxy" {
   engine_family = "POSTGRESQL"
   debug_logging = false
 
+  # Without this, RDS Proxy pins a client session to a dedicated backend
+  # connection as soon as it sees a SET statement, which Rails' pg gem issues
+  # on every connection checkout (e.g. statement_timeout). That defeats
+  # connection multiplexing and makes the proxy pass through ~1 backend
+  # connection per Puma/Sidekiq thread instead of pooling them.
+  session_pinning_filters = ["EXCLUDE_VARIABLE_SETS"]
+
   target_db_instance     = true
   db_instance_identifier = module.gitlab_db.db_instance_identifier
 }
