@@ -246,3 +246,36 @@ resource "aws_wafv2_web_acl_association" "gateway" {
   resource_arn = data.aws_lb.gateway.arn
   web_acl_arn  = aws_wafv2_web_acl.gateway.arn
 }
+
+resource "aws_cloudwatch_log_group" "gateway_waf" {
+  # WAF requires log group names to start with "aws-waf-logs-"
+  name              = "aws-waf-logs-spack-gateway${local.suffix}"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_resource_policy" "gateway_waf" {
+  policy_name = "aws-waf-logs-spack-gateway${local.suffix}"
+  policy_document = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "delivery.logs.amazonaws.com"
+        }
+        Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "${aws_cloudwatch_log_group.gateway_waf.arn}:*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "gateway" {
+  resource_arn            = aws_wafv2_web_acl.gateway.arn
+  log_destination_configs = [aws_cloudwatch_log_group.gateway_waf.arn]
+}
