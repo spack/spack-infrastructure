@@ -30,7 +30,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 0
 
     action {
-      allow {}
+      count {}
     }
 
     statement {
@@ -52,7 +52,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 1
 
     action {
-      allow {}
+      count {}
     }
 
     statement {
@@ -73,7 +73,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 2
 
     override_action {
-      none {}
+      count {}
     }
 
     statement {
@@ -84,14 +84,14 @@ resource "aws_wafv2_web_acl" "gateway" {
         rule_action_override {
           name = "AWSManagedIPReputationList"
           action_to_use {
-            block {}
+            count {}
           }
         }
 
         rule_action_override {
           name = "AWSManagedReconnaissanceList"
           action_to_use {
-            block {}
+            count {}
           }
         }
 
@@ -116,7 +116,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 3
 
     override_action {
-      none {}
+      count {}
     }
 
     statement {
@@ -138,7 +138,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 4
 
     override_action {
-      none {}
+      count {}
     }
 
     statement {
@@ -160,7 +160,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 5
 
     override_action {
-      none {}
+      count {}
     }
 
     statement {
@@ -186,7 +186,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 6
 
     override_action {
-      none {}
+      count {}
     }
 
     statement {
@@ -209,7 +209,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 7
 
     action {
-      challenge {}
+      count {}
     }
 
     statement {
