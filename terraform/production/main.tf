@@ -24,5 +24,6 @@ module "spack_gitlab" {
 
   region = "us-east-1"
 
-  gitlab_token = var.gitlab_token
+  gitlab_token   = var.gitlab_token
+  nat_public_ips = module.spack_aws_k8s.nat_public_ips
 }

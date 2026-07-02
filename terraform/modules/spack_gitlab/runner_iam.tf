@@ -82,6 +82,16 @@ data "aws_iam_policy_document" "gitlab_oidc_assume_role" {
       variable = "${local.gitlab_domain}:sub"
       values   = each.value.conditions
     }
+
+    # Only allow role assumption from trusted sources
+    condition {
+      test     = "IpAddress"
+      variable = "aws:SourceIp"
+      values = concat(
+        [for ip in var.nat_public_ips : "${ip}/32"], # NAT gateway public IPs
+        ["128.223.202.0/24"]                         # UO's IP block
+      )
+    }
   }
 }
 
