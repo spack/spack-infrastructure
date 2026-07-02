@@ -114,6 +114,12 @@ if __name__ == "__main__":
         print("GITLAB_OIDC_TOKEN not in the environment", file=sys.stderr)
         sys.exit(0)  # this isn't an error yet.
 
+    env_vars = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+
+    if all(var in os.environ for var in env_vars):
+        print("AWS credentials already set.")
+        sys.exit(0)
+
     response = _gitlab_token_to_credentials(os.environ["GITLAB_OIDC_TOKEN"])
 
     set_env_cmd = "export "
