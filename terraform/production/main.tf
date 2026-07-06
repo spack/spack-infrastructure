@@ -12,7 +12,7 @@ module "spack_aws_k8s" {
   enable_analytics_db         = true
   analytics_db_instance_class = "db.t4g.xlarge"
 
-  gitlab_db_instance_class    = "db.t4g.xlarge"
+  gitlab_db_instance_class    = "db.m7g.4xlarge"
   gitlab_redis_instance_class = "cache.m6g.xlarge"
 
   cdash_db_instance_class = "db.m6g.large"
