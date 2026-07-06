@@ -41,6 +41,15 @@ def _durable_subprocess_run(*args, **kwargs):
             time.sleep(2 ** (1 + attempt_num))
 
 
+def _write_secret(file: str, content: str):
+    # Create the file with the oatuh token
+    with open(file, "wb") as fd:
+        fd.write(b"")
+    os.chmod(file, 0o600)
+    with open(file, "wb") as fd:
+        fd.write(content.encode())
+
+
 class SpackCIBridge(object):
 
     def __init__(self, gitlab_repo="", gitlab_host="", gitlab_project="", github_project="",
@@ -101,8 +110,44 @@ class SpackCIBridge(object):
             print("    Shutting down ssh-agent({0})".format(os.environ["SSH_AGENT_PID"]))
             _durable_subprocess_run(["ssh-agent", "-k"])
 
+    def setup_git_auth(self, ssh_key_base64, token):
+        """Configure authentication for pushing branches to gitlab
+
+        Args:
+            ssh_key_base64: Base64 encoded ssh key
+            token: OAuth token for gitlab
+        """
+        if ssh_key_base64:
+            self.setup_ssh(ssh_key_base64)
+        elif token:
+            self.setup_oauth(token)
+        else:
+            raise Exception("Failed to setup auth for pushing to git remote.")
+
+    def setup_oauth(self, token: str):
+        """Configure the origin"""
+
+        url = urllib.parse.urlparse(self.gitlab_repo)
+        if not url.scheme.startswith("http"):
+            raise Exception(f"Cannot configure oauth for {url.scheme}")
+
+        # Inject the user name and OAuth token into the URL
+        if ":" in token:
+            url = url._replace(netloc=f"{token}@" + url.netloc)
+        else:
+            url = url._replace(netloc=f"spackbot:{token}@" + url.netloc)
+
+        _write_secret(".git-credentials", urllib.parse.urlunparse(url) + "\n")
+
+        # Write the credentials to the file
+        _durable_subprocess_run(
+            [
+                "git", "config", "credential.helper", "store --file .git-credentials",
+            ],
+            stdout=subprocess.DEVNULL,
+        )
+
     def setup_ssh(self, ssh_key_base64):
-        """Start the ssh agent."""
         print("Starting ssh-agent")
         output = _durable_subprocess_run(["ssh-agent", "-s"], stdout=subprocess.PIPE).stdout
 
@@ -751,9 +796,15 @@ on a commit of the main branch that is newer than the latest commit tested by Gi
 
     args = parser.parse_args()
 
-    ssh_key_base64 = os.getenv("GITLAB_SSH_KEY_BASE64")
-    if ssh_key_base64 is None:
-        raise Exception("GITLAB_SSH_KEY_BASE64 environment is not set")
+    gl_url = urllib.parser.urlparse(args.gitlab_repo)
+
+    gitlab_ssh_key_base64 = os.getenv("GITLAB_SSH_KEY_BASE64")
+    if gl_url.scheme == "ssh" and gitlab_ssh_key_base64 is None:
+        raise Exception("Missing SSH key in GITLAB_SSH_KEY_BASE64 with ssh URL for gitlab")
+
+    gitlab_token = os.getenv("GITLAB_TOKEN")
+    if gl_url.scheme == "https" and gitlab_token is None:
+        raise Exception("Missing OAuth key in GITLAB_TOKEN with https URL for gitlab")
 
     if "GITHUB_TOKEN" not in os.environ:
         raise Exception("GITHUB_TOKEN environment is not set")
@@ -769,5 +820,5 @@ on a commit of the main branch that is newer than the latest commit tested by Gi
                            main_branch=args.main_branch,
                            prereq_checks=args.prereq_check,
                            required_label=args.required_label)
-    bridge.setup_ssh(ssh_key_base64)
+    bridge.setup_git_auth(gitlab_ssh_key_base64, gitlab_token)
     bridge.sync()
