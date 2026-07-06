@@ -9,11 +9,16 @@ module "spack_aws_k8s" {
 
   flux_path = "k8s/production/"
 
+  enable_analytics_db         = true
+  analytics_db_instance_class = "db.t4g.xlarge"
+
   gitlab_db_instance_class    = "db.t4g.xlarge"
   gitlab_redis_instance_class = "cache.m6g.xlarge"
-  cdash_db_instance_class     = "db.m6g.large"
-  opensearch_instance_type    = "r6g.xlarge.search"
-  opensearch_volume_size      = 500
+
+  cdash_db_instance_class = "db.m6g.large"
+
+  opensearch_instance_type = "r6g.xlarge.search"
+  opensearch_volume_size   = 500
 }
 
 module "spack_gitlab" {
