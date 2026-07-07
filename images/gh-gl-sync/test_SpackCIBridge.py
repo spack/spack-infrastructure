@@ -1,12 +1,22 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 import subprocess
-from unittest.mock import create_autospec, Mock
+from unittest.mock import create_autospec, Mock, patch
 
-import SpackCIBridge
+import github  # noqa: F401 (referenced by patch() string targets below)
 
 py_github = Mock()
 py_github.rate_limiting = (5000, 5000)
+
+# Patch github.Github and github.Auth.Token so the SpackCIBridge constructor
+# never makes real HTTP requests and doesn't require GITHUB_TOKEN to be set.
+mock_github_instance = Mock()
+mock_github_instance.get_repo.return_value = Mock()
+mock_github_instance.rate_limiting = (5000, 5000)
+patch("github.Github", return_value=mock_github_instance).start()
+patch("github.Auth.Token", return_value=Mock()).start()
+
+import SpackCIBridge  # noqa: E402
 
 
 class AttrDict(dict):
@@ -48,7 +58,7 @@ def test_durable_subprocess_run(capfd):
 
 def test_list_github_prs(capfd):
     """Test the list_github_prs method."""
-    dt = datetime.now()
+    dt = datetime.now(timezone.utc)
     github_pr_response = [
         AttrDict({
             "number": 1,
@@ -460,7 +470,7 @@ def test_pipeline_status_backlogged_by_checks(capfd):
 
     """Helper function to parameterize the test"""
     def verify_backlogged_by_checks(capfd, checks_return_value):
-        dt = datetime.now()
+        dt = datetime.now(timezone.utc)
         github_pr_response = [
             AttrDict({
                 "number": 1,
@@ -573,4 +583,33 @@ def test_pipeline_status_backlogged_for_draft_PR(capfd):
     expected_content = """Posting backlogged status to the following:
   pr1_readme -> shabaz"""
     assert expected_content in out
+    del os.environ["GITHUB_TOKEN"]
+
+
+def test_pipeline_status_not_posted_for_missing_label(capfd):
+    """Test that post_pipeline_status posts no status when required_label is not found on the PR."""
+    open_prs = {
+        "pr_strings": ["pr1_readme"],
+        "base_shas": ["shafoo"],
+        "head_shas": ["shabaz"],
+        "backlogged": ["missing_label"]
+    }
+
+    gh_commit = Mock()
+    gh_commit.get_combined_status.return_value = AttrDict({'statuses': []})
+    gh_commit.create_status.return_value = AttrDict({"state": "pending"})
+    gh_repo = Mock()
+    gh_repo.get_commit.return_value = gh_commit
+
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io",
+                                         gitlab_project="zack/my_test_proj",
+                                         github_project="zack/my_test_proj",
+                                         main_branch="develop")
+    bridge.py_gh_repo = gh_repo
+    os.environ["GITHUB_TOKEN"] = "my_github_token"
+
+    bridge.post_pipeline_status(open_prs, [])
+    assert gh_commit.create_status.call_count == 0
+    out, err = capfd.readouterr()
+    assert "Skip posting status for pr1_readme because required label is not present" in out
     del os.environ["GITHUB_TOKEN"]

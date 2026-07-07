@@ -20,7 +20,7 @@ spec:
     spec:
       chart: gitlab-runner
       # Note: ensure this stays in sync with the `helper_image` field below
-      version: 0.85.0 # gitlab-runner@18.8.0
+      version: 0.90.1 # gitlab-runner@19.1.1
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v2-pub-windows
@@ -36,14 +36,14 @@ spec:
 
   values:
     imagePullPolicy: IfNotPresent
-    replicas: 6
+    replicas: 3
     probeTimeoutSeconds: 70
 
     # TODO: change to production when ready
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600 # six hours
-    concurrent: 20
+    concurrent: 40
     checkInterval: 30
 
     metrics:
@@ -69,7 +69,7 @@ spec:
             exit 1
           }
 
-          $scriptPath = Join-Path $PSScriptRoot 'pre_build.py'
+          $scriptPath = Join-Path $HOME 'pre_build.py'
 
           $wc = New-Object System.Net.WebClient
           $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
@@ -100,7 +100,7 @@ spec:
             helper_memory_request = "1"
 
             cpu_request = "750m"
-            cpu_request_overwrite_max_allowed = "12"
+            cpu_request_overwrite_max_allowed = "16"
             cpu_limit_overwrite_max_allowed = "24"
 
             memory_request = "2G"
@@ -116,7 +116,7 @@ spec:
 
             # Image for windows 2022, runner helper
             image = "mcr.microsoft.com/windows/servercore:ltsc2022"
-            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v18.7.0-servercore21H2"
+            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v19.1.1-servercore21H2"
 
             ephemeral_storage_request = "500M"
             helper_ephemeral_storage_request = "500M"

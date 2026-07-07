@@ -21,15 +21,10 @@ spec:
   chart:
     spec:
       chart: gitlab
-      version: 9.8.1 # gitlab@18.8.1
+      version: 10.1.1 # gitlab@19.1.1
       sourceRef:
         kind: HelmRepository
         name: gitlab
-  dependsOn:
-    - name: cert-manager
-      namespace: cert-manager
-    - name: ingress-nginx
-      namespace: ingress-nginx
 
   valuesFrom:
     - kind: Secret
@@ -71,12 +66,21 @@ spec:
           enabled: false
         ssh: ssh.gitlab.spack.io
 
+      # ###########################
+      # These values, while often redundant, are necessary to ensure that the gitlab helm chart
+      # doesn't attempt to mount a volume that doesn't exist.
+      # See https://gitlab.com/gitlab-org/charts/gitlab/-/blob/master/templates/_certificates.tpl#L3-8
       ingress:
-        apiVersion: networking.k8s.io/v1
+        enabled: false
         configureCertmanager: false
-        class: nginx
+        class: none
         tls:
-          external: true
+          enabled: false
+
+      gatewayApi:
+        enabled: false
+        configureCertmanager: false
+      # ###########################
 
       gitlab:
         license: {}
@@ -149,9 +153,26 @@ spec:
             enabled: true
             secretName: tls-gitlab-webservice
         minReplicas: 4
-        maxReplicas: 16
+        maxReplicas: 32
+        deployment:
+          # Use a startupProbe to gate liveness/readiness until Puma finishes
+          # booting.
+          startupProbe:
+            httpGet:
+              path: /-/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30  # Give Puma 5 minutes (30 * 10s) to boot
+            timeoutSeconds: 5
+          readinessProbe:
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 4   # Consider pod unready after 20 seconds (5 * 4)
         resources:
-          # Requested values are based on the following Prometheus queries:
+          # Prometheus queries to check for usage values
           # cpu:
           #   sum(rate(container_cpu_usage_seconds_total{namespace="gitlab", pod=~"gitlab-webservice-.*"}[5m])) by (pod)
           # memory:
@@ -160,7 +181,7 @@ spec:
             cpu: 12
             memory: 20G
           requests:
-            cpu: 1250m
+            cpu: 3
             memory: 10G
         nodeSelector:
           spack.io/node-pool: gitlab
@@ -211,6 +232,8 @@ spec:
           enabled: true
           serviceMonitor:
             enabled: true
+        extraEnv:
+          AWS_REQUEST_CHECKSUM_CALCULATION: "WHEN_REQUIRED"
 
       migrations:
         nodeSelector:

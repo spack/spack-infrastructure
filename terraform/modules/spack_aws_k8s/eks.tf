@@ -38,24 +38,8 @@ module "eks" {
           }
         }
       }
-    },
-    # Only create github_actions access entry on production cluster, since that's
-    # the only one we run the TF drift detection job on.
-    var.deployment_name == "prod" ? {
-      github_actions_drift_detection = {
-        kubernetes_groups = []
-        principal_arn     = aws_iam_role.github_actions[0].arn
-
-        policy_associations = {
-          cluster = {
-            policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminViewPolicy"
-            access_scope = {
-              type = "cluster"
-            }
-          }
-        }
-      }
-  } : {})
+    }
+  )
 
   # NOTE: Additional configuration of these addons (like in the vpc-cni addon below) won't necessarily
   # take immediate effect, as it is configuring the addon, not anything in the cluster directly.
@@ -64,6 +48,25 @@ module "eks" {
     coredns = {
       # https://docs.aws.amazon.com/eks/latest/userguide/managing-coredns.html#coredns-versions
       addon_version = "v1.12.4-eksbuild.1"
+      # Based on this example of CoreDNS configuration
+      # https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/docs/faq.md#what-configuration-values-are-available-for-an-add-on
+      configuration_values = jsonencode({
+        autoScaling = {
+          enabled     = true
+          minReplicas = 2
+          maxReplicas = 10
+        },
+        resources = {
+          requests = {
+            cpu    = "200m"
+            memory = "128Mi"
+          },
+          limits = {
+            cpu    = "400m"
+            memory = "256Mi"
+          }
+        },
+      })
     }
     eks-pod-identity-agent = {
       addon_version = "v1.3.9-eksbuild.3"
@@ -206,13 +209,13 @@ resource "aws_iam_role" "eks_cluster_access" {
         "Effect" : "Allow",
         "Principal" : {
           "AWS" : [
-            "arn:aws:iam::588562868276:user/scott",
             "arn:aws:iam::588562868276:user/jacob",
+            "arn:aws:iam::588562868276:user/john",
+            "arn:aws:iam::588562868276:user/peter",
             "arn:aws:iam::588562868276:user/krattiger1",
             "arn:aws:iam::588562868276:user/mike",
             "arn:aws:iam::588562868276:user/zack",
             "arn:aws:iam::588562868276:user/dan",
-            "arn:aws:iam::588562868276:user/william",
           ]
         },
         "Action" : "sts:AssumeRole"
@@ -252,10 +255,8 @@ resource "aws_iam_role" "readonly_clusterrole" {
         "Effect" : "Allow",
         "Principal" : {
           "AWS" : [
-            "arn:aws:iam::588562868276:user/joesnyder",
             "arn:aws:iam::588562868276:user/alecscott",
             "arn:aws:iam::588562868276:user/tgamblin",
-            "arn:aws:iam::588562868276:user/vsoch",
           ]
         },
         "Action" : "sts:AssumeRole"

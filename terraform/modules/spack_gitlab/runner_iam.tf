@@ -8,7 +8,8 @@ locals {
       "conditions" = [
         "project_path:${data.gitlab_project.spack.path_with_namespace}:ref_type:branch:ref:pr*",
         "project_path:${data.gitlab_project.spack_packages.path_with_namespace}:ref_type:branch:ref:pr*",
-        "project_path:${data.gitlab_project.scott_sidecar.path_with_namespace}:ref_type:branch:ref:pr*",
+        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:branch:ref:pr*",
+        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:branch:ref:pr*",
       ],
     },
     "protected_binary_mirror" = {
@@ -23,10 +24,14 @@ locals {
         "project_path:${data.gitlab_project.spack_packages.path_with_namespace}:ref_type:branch:ref:releases/v*",
         "project_path:${data.gitlab_project.spack_packages.path_with_namespace}:ref_type:tag:ref:develop-*",
         "project_path:${data.gitlab_project.spack_packages.path_with_namespace}:ref_type:tag:ref:v*",
-        "project_path:${data.gitlab_project.scott_sidecar.path_with_namespace}:ref_type:branch:ref:develop",
-        "project_path:${data.gitlab_project.scott_sidecar.path_with_namespace}:ref_type:branch:ref:releases/v*",
-        "project_path:${data.gitlab_project.scott_sidecar.path_with_namespace}:ref_type:tag:ref:develop-*",
-        "project_path:${data.gitlab_project.scott_sidecar.path_with_namespace}:ref_type:tag:ref:v*"
+        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:branch:ref:develop",
+        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:branch:ref:releases/v*",
+        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:tag:ref:develop-*",
+        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:tag:ref:v*",
+        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:branch:ref:develop",
+        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:branch:ref:releases/v*",
+        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:tag:ref:develop-*",
+        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:tag:ref:v*",
       ],
     }
   }
@@ -76,6 +81,16 @@ data "aws_iam_policy_document" "gitlab_oidc_assume_role" {
       test     = "StringLike"
       variable = "${local.gitlab_domain}:sub"
       values   = each.value.conditions
+    }
+
+    # Only allow role assumption from trusted sources
+    condition {
+      test     = "IpAddress"
+      variable = "aws:SourceIp"
+      values = concat(
+        [for ip in var.nat_public_ips : "${ip}/32"], # NAT gateway public IPs
+        ["128.223.202.0/24"]                         # UO's IP block
+      )
     }
   }
 }
@@ -146,17 +161,32 @@ resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn_spack_packages" 
   value   = data.aws_s3_bucket.pr_mirror.arn
 }
 
-resource "gitlab_project_variable" "binary_mirror_role_arn_scott_sidecar" {
+resource "gitlab_project_variable" "binary_mirror_role_arn_experiments" {
   for_each = resource.aws_iam_role.gitlab_runner
 
-  project = data.gitlab_project.scott_sidecar.id
+  project = data.gitlab_project.spack_experiments.id
   key     = local.mirror_roles[each.key].role_arn_ci_var_name
   value   = each.value.arn
 }
 
 # pre_build.py needs access to this to request PR prefix scoped permissions
-resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn_scott_sidecar" {
-  project = data.gitlab_project.scott_sidecar.id
+resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn_experiments" {
+  project = data.gitlab_project.spack_experiments.id
+  key     = "PR_BINARY_MIRROR_BUCKET_ARN"
+  value   = data.aws_s3_bucket.pr_mirror.arn
+}
+
+resource "gitlab_project_variable" "binary_mirror_role_arn_experiments_packages" {
+  for_each = resource.aws_iam_role.gitlab_runner
+
+  project = data.gitlab_project.spack_packages_experiments.id
+  key     = local.mirror_roles[each.key].role_arn_ci_var_name
+  value   = each.value.arn
+}
+
+# pre_build.py needs access to this to request PR prefix scoped permissions
+resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn_experiments_packages" {
+  project = data.gitlab_project.spack_packages_experiments.id
   key     = "PR_BINARY_MIRROR_BUCKET_ARN"
   value   = data.aws_s3_bucket.pr_mirror.arn
 }

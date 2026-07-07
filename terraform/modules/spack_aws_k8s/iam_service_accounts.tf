@@ -17,6 +17,19 @@ module "build_cache_pruner" {
           "Resource" : "${module.protected_binary_mirror.bucket_arn}/develop/*"
         }
       ]
+    }),
+    jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : [
+            "s3:PutObject",
+            "s3:GetObject"
+          ],
+          "Resource" : "${module.pr_binary_mirror.logging_bucket_arn}/pruning/*"
+        }
+      ]
     })
   ]
   service_account_name      = "prune-buildcache"
@@ -242,7 +255,7 @@ module "rotate_keys" {
             "iam:DeleteAccessKey"
           ],
           "Resource" : [
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:group/Administrators",
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:group/Custodians",
             "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/*"
           ]
         }
@@ -253,3 +266,4 @@ module "rotate_keys" {
   service_account_name      = "clear-admin-keys"
   service_account_namespace = "custom"
 }
+

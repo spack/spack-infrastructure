@@ -12,15 +12,6 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = var.region
-
-  assume_role {
-    role_arn = "arn:aws:iam::588562868276:role/terraform-role"
-  }
-}
-
-
 provider "kubectl" {
   host                   = data.aws_eks_cluster.spack.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.spack.certificate_authority[0].data)

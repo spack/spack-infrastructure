@@ -23,7 +23,7 @@ spec:
         - --github-user=danlamanna,mvandenburgh,zackgalbreath,jjnesbitt,scottwittenburg,kwryankrattiger,alecbcs,cmelone,vsoch
         - --provider=github
         - --email-domain=*
-        - --upstream=file:///dev/null
+        - --upstream=http://kube-prometheus-stack-prometheus:9090/  # Trailing slash is important
         - --http-address=0.0.0.0:4180
         - --redirect-url=https://prometheus.spack.io/oauth2/callback
         env:

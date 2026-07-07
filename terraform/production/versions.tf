@@ -32,3 +32,11 @@ terraform {
     encrypt      = true
   }
 }
+
+provider "aws" {
+  region = "us-east-1"
+
+  assume_role {
+    role_arn = "arn:aws:iam::588562868276:role/terraform-role"
+  }
+}

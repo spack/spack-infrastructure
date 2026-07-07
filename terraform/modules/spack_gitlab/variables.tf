@@ -15,3 +15,7 @@ variable "gitlab_token" {
   type        = string
   sensitive   = true
 }
+
+variable "nat_public_ips" {
+  type = list(string)
+}
