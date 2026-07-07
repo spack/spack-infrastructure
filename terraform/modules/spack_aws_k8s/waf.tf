@@ -30,7 +30,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 0
 
     action {
-      count {}
+      allow {}
     }
 
     statement {
@@ -52,7 +52,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 1
 
     action {
-      count {}
+      allow {}
     }
 
     statement {
@@ -132,34 +132,13 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 3
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
       managed_rule_group_statement {
         vendor_name = "AWS"
         name        = "AWSManagedRulesAmazonIpReputationList"
-
-        rule_action_override {
-          name = "AWSManagedIPReputationList"
-          action_to_use {
-            count {}
-          }
-        }
-
-        rule_action_override {
-          name = "AWSManagedReconnaissanceList"
-          action_to_use {
-            count {}
-          }
-        }
-
-        rule_action_override {
-          name = "AWSManagedIPDDoSList"
-          action_to_use {
-            count {}
-          }
-        }
       }
     }
 
@@ -175,7 +154,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 4
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
@@ -197,7 +176,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 5
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
@@ -219,7 +198,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 6
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
@@ -245,7 +224,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 7
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
@@ -274,7 +253,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 8
 
     action {
-      count {}
+      challenge {}
     }
 
     statement {
