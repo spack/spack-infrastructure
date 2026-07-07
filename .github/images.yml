@@ -3,7 +3,7 @@ images:
     image: ghcr.io/spack/ci-bridge:0.0.51
 
   - path: ./images/ci-key-clear
-    image: ghcr.io/spack/ci-key-clear:0.0.4
+    image: ghcr.io/spack/ci-key-clear:0.0.5
 
   - path: ./images/gitlab-stuckpods
     image: ghcr.io/spack/stuckpods:0.0.2
@@ -42,4 +42,4 @@ images:
     image: ghcr.io/spack/retry-trigger-jobs:0.0.2
 
   - path: ./images/runner-node-certificate-controller
-    image: ghcr.io/spack/runner-node-certificate-controller:0.0.2
+    image: ghcr.io/spack/runner-node-certificate-controller:0.0.3
