@@ -5,7 +5,7 @@ argon2-cffi-bindings==21.2.0
 asgiref==3.8.1
 asttokens==3.0.0
 billiard==4.2.1
-Brotli==1.1.0
+Brotli==1.2.0
 cachetools==5.5.0
 celery==5.4.0
 certifi==2024.12.14
@@ -17,7 +17,7 @@ click-plugins==1.1.1
 click-repl==0.3.0
 dj-database-url==2.3.0
 dj-email-url==1.0.6
-Django==5.1.4
+Django==5.1.15
 django-click==2.4.0
 django-configurations==2.5.1
 django-cors-headers==4.6.0
@@ -45,7 +45,7 @@ packaging==24.2
 prompt_toolkit==3.0.48
 psycopg2-binary==2.9.10
 pure_eval==0.2.3
-pyasn1==0.6.1
+pyasn1==0.6.2
 pyasn1_modules==0.4.1
 pycparser==2.22
 pycryptodome==3.21.0
@@ -56,7 +56,7 @@ python-dateutil==2.9.0.post0
 python-gitlab==5.3.0
 PyYAML==6.0.2
 redis==5.2.1
-requests==2.32.3
+requests==2.32.4
 requests-oauthlib==2.0.0
 requests-toolbelt==1.0.0
 rich==13.9.4
@@ -64,10 +64,10 @@ rsa==4.9
 sentry-sdk==2.19.2
 six==1.17.0
 sqlparse==0.5.3
-tqdm==4.65.0
+tqdm==4.66.3
 typing_extensions==4.12.2
 tzdata==2024.2
-urllib3==2.3.0
+urllib3==2.6.3
 vine==5.1.0
 wcwidth==0.2.13
 websocket-client==1.8.0
