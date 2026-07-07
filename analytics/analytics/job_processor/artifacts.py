@@ -104,7 +104,7 @@ class JobArtifactsData:
 def get_job_artifacts_data(gljob: ProjectJob) -> JobArtifactsData:
     """Fetch the artifacts of a job to retrieve info about it."""
     with find_job_artifacts_file(gljob, "cloud-ci-pipeline.yml") as pipeline_file:
-        raw_pipeline = yaml.safe_load(pipeline_file)
+        raw_pipeline = yaml.load(pipeline_file, Loader=yaml.CSafeLoader)
 
     pipeline_vars = raw_pipeline.get("variables", {})
     job_vars = raw_pipeline.get(gljob.name, {}).get("variables", {})

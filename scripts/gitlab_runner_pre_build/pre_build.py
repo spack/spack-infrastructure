@@ -9,7 +9,7 @@ S3 bucket prefix for the relevant PR.
 import os, sys, json, base64, time
 import urllib.request, urllib.parse, urllib.error
 
-TEMPORARY_CREDENTIALS_DURATION = 3600 * 6  # 6 hours
+TEMPORARY_CREDENTIALS_DURATION = 3600 * 12  # 12 hours, max allowed by AWS
 
 
 def _token_to_sts_request(raw_jwt, decoded_jwt):

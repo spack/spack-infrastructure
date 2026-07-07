@@ -19,7 +19,7 @@ spec:
   chart:
     spec:
       chart: gitlab-runner
-      version: 0.81.0 # gitlab-runner@18.4.0
+      version: 0.90.1 # gitlab-runner@19.1.1
       sourceRef:
         kind: HelmRepository
         name: runner-x86-v2-pub
@@ -35,13 +35,13 @@ spec:
 
   values:
     imagePullPolicy: IfNotPresent
-    replicas: 6
+    replicas: 3
     probeTimeoutSeconds: 70
 
     gitlabUrl: "https://gitlab.spack.io/"
     unregisterRunners: true
     terminationGracePeriodSeconds: 21600 # six hours
-    concurrent: 20
+    concurrent: 40
     checkInterval: 30
 
     metrics:
@@ -85,7 +85,7 @@ spec:
             helper_memory_request = "512M"
 
             cpu_request = "750m"
-            cpu_request_overwrite_max_allowed = "12"
+            cpu_request_overwrite_max_allowed = "16"
             cpu_limit_overwrite_max_allowed = "24"
 
             memory_request = "2G"
@@ -149,7 +149,7 @@ spec:
               "spack.io/runner-taint=true" = "NoSchedule"
 
             [runners.kubernetes.pod_annotations]
-              "pod-cleanup.gitlab.com/ttl" = "7h"
+              "pod-cleanup.gitlab.com/ttl" = "12h"
               "fluentbit.io/exclude" = "true"
               "karpenter.sh/do-not-disrupt" = "true"
               "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
@@ -184,7 +184,7 @@ spec:
       imagePullPolicy: "if-not-present"
       locked: false
 
-      tags: "x86_64,x86_64_v2,small,medium,large,huge,public,aws,spack,service"
+      tags: "x86_64,x86_64_v2,small,medium,large,huge,public,aws,spack,service,service_noop"
       runUntagged: false
       secret: spack-group-runner-secret
 

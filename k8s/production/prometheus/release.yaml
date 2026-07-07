@@ -22,7 +22,7 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: 78.2.1 # prometheus-operator@v0.86.0, grafana@10.1.0
+      version: 87.10.1 # prometheus-operator@v0.92.1, grafana@12.7.2
       sourceRef:
         kind: HelmRepository
         name: kube-prometheus-stack
@@ -50,6 +50,10 @@ spec:
     grafana:
       nodeSelector:
         spack.io/node-pool: base
+      resources:
+        requests:
+          cpu: 100m
+          memory: 350Mi
       ingress:
         enabled: false
       persistence:
@@ -88,7 +92,6 @@ spec:
       plugins:
         # Install OpenSearch plugin
         - grafana-opensearch-datasource
-
 
 
       envValueFrom:
@@ -153,11 +156,23 @@ spec:
     kube-state-metrics:
       nodeSelector:
         spack.io/node-pool: base
+      # Recommended requests taken from here:
+      # https://github.com/kubernetes/kube-state-metrics/blob/main/README.md
+      resources:
+        requests:
+          cpu: 100m
+          memory: 250Mi
       metricLabelsAllowlist:
         - pods=[*]
         - nodes=[*]
       metricAnnotationsAllowList:
         - pods=[gitlab/ci_job_id,metrics/spack_job_spec_pkg_name,metrics/spack_job_spec_hash,metrics/spack_job_spec_pkg_version,metrics/spack_job_spec_compiler_name,metrics/spack_job_spec_compiler_version,metrics/spack_job_spec_arch,metrics/spack_job_spec_variants,metrics/spack_job_build_jobs,metrics/spack_ci_stack_name]
+
+    prometheus-node-exporter:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
 
   # Configure OpenSearch datasource
   valuesFrom:

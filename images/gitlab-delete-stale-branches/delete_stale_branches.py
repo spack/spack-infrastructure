@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import json
 import os
 import re
@@ -16,7 +17,6 @@ sentry_sdk.init(
 )
 
 
-GITLAB_API_URL = "https://gitlab.spack.io/api/v4/projects/2"
 AUTH_HEADER = {
     "PRIVATE-TOKEN": os.environ.get("GITLAB_TOKEN", None)
 }
@@ -53,23 +53,23 @@ def print_response(resp, padding=''):
     print(f"{padding}response value: {resp.text}")
 
 
-def delete_branch(branch_name):
+def delete_branch(gitlab_api_url, branch_name):
     """Delete the given branch from GitLab"""
     branch_name_encoded = urllib.parse.quote_plus(branch_name)
-    del_url = f"{GITLAB_API_URL}/repository/branches/{branch_name_encoded}"
+    del_url = f"{gitlab_api_url}/repository/branches/{branch_name_encoded}"
     print_response(requests.delete(del_url, headers=AUTH_HEADER), "      ")
 
 
-def delete_stale_branches():
-    """Delete any unprotected branches that have not been updated for 100 days"""
+def delete_stale_branches(gitlab_api_url, days):
+    """Delete any unprotected branches that have not been updated for the given number of days"""
 
     pr_branch_regex = re.compile("pr([0-9]+)")
 
     now = datetime.now(timezone.utc)
-    stale_threshold = now - timedelta(days=100)
+    stale_threshold = now - timedelta(days=days)
 
     print(f"Querying for stale branches to delete")
-    branches_url = f"{GITLAB_API_URL}/repository/branches"
+    branches_url = f"{gitlab_api_url}/repository/branches"
     branches = paginate(branches_url)
     print(f"Found {len(branches)} branches")
 
@@ -94,14 +94,30 @@ def delete_stale_branches():
         updated_at_str += "Z+0000"
         updated_at = datetime.strptime(updated_at_str, "%Y-%m-%dT%H:%M:%SZ%z")
         if updated_at < stale_threshold:
-            print(f"Deleting {branch_name} because it was last updated more than 100 days ago ({updated_at})")
-            delete_branch(branch_name)
+            print(f"Deleting {branch_name} because it was last updated more than {days} days ago ({updated_at})")
+            delete_branch(gitlab_api_url, branch_name)
         else:
-            print(f"Not deleting {branch_name} because it was updated more recently than 100 days ago ({updated_at})")
+            print(f"Not deleting {branch_name} because it was updated more recently than {days} days ago ({updated_at})")
 
 
 if __name__ == "__main__":
     if "GITLAB_TOKEN" not in os.environ:
         raise Exception("GITLAB_TOKEN environment is not set")
 
-    delete_stale_branches()
+    parser = argparse.ArgumentParser(description="Delete stale GitLab branches")
+    parser.add_argument(
+        "--projectid",
+        type=int,
+        default=2,
+        help="GitLab project ID (default: 2)",
+    )
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=100,
+        help="Number of days of inactivity before a branch is considered stale (default: 100)",
+    )
+    args = parser.parse_args()
+
+    gitlab_api_url = f"https://gitlab.spack.io/api/v4/projects/{args.projectid}"
+    delete_stale_branches(gitlab_api_url, args.days)
