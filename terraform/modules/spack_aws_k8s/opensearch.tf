@@ -63,7 +63,7 @@ resource "aws_opensearch_domain" "spack" {
     custom_endpoint                 = local.domain_endpoint_name
     custom_endpoint_certificate_arn = aws_acm_certificate.opensearch.arn
     enforce_https                   = true
-    tls_security_policy             = "Policy-Min-TLS-1-0-2019-07"
+    tls_security_policy             = "Policy-Min-TLS-1-2-2019-07"
   }
 
   ebs_options {

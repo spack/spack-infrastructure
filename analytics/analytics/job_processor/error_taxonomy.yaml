@@ -18,6 +18,10 @@ taxonomy:
         - 'Job failed \(system failure\):.+TLS handshake timeout'
         - 'curl: \(6\) Could not resolve host'
 
+    dns_error:
+      grep_for:
+        - 'could not resolve host'
+
     concretization_error:
       grep_for:
         - "does not satisfy"
@@ -113,6 +117,7 @@ taxonomy:
     spot_reclamation:
       grep_for:
         - 'node no longer exists'
+        - 'Pod was terminated in response to imminent node shutdown'
 
     pod_cleanup:
       grep_for:
@@ -203,6 +208,8 @@ taxonomy:
     pipeline_generation:
       grep_for:
         - 'Error: Pipeline generation failed'
+        - 'RuntimeError: cannot emit requirements for the solver:'
+        - 'SpackEnvironmentConfigError: Invalid environment configuration'
 
     killed:
       grep_for:
@@ -218,6 +225,7 @@ taxonomy:
 
     image_pull:
       grep_for:
+        - 'ERROR: Job failed: failed to pull image'
         - 'ERROR: Job failed.+image pull failed'
         - 'ERROR: Job failed \(system failure\): failed to pull image'
         - 'image pull failed: Back-off pulling image'
@@ -225,6 +233,7 @@ taxonomy:
     no_binary_for_spec:
       grep_for:
         - 'Error: No binary found when cache-only was specified'
+        - 'no binary available'
 
     deprecated_stack_bug:
       grep_for:
@@ -273,6 +282,7 @@ taxonomy:
   deconflict_order:
     # Network errors
     - 'oidc_certificate_expired'
+    - 'dns_error'
     - 'network_timeout'
     - 'network_error'
     # API Scrape erorrs

@@ -38,17 +38,5 @@ resource "kubectl_manifest" "prometheus_additional_datasources_secret" {
                 password: "${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["password"]}"
               jsonData:
                 postgresVersion: 14
-            - name: AnalyticsDB
-              type: postgres
-              uid: XCh6DDkSz
-              access: proxy
-              url: ${module.analytics_db.db_instance_address}
-              user: postgres
-              database: analytics
-              secureJsonData:
-                password: "${random_password.analytics_db_password.result}"
-              jsonData:
-                postgresVersion: 15
-
   YAML
 }

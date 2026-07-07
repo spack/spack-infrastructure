@@ -2,85 +2,36 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../production/prometheus/certificates.yaml
-  - ../../production/prometheus/ingress.yaml
   - ../../production/prometheus/release.yaml
   - ../../production/prometheus/oauth2-proxy.yaml
+  - ../../production/prometheus/httproutes.yaml
 
 patches:
   - target:
-      kind: Certificate
-      name: prometheus
-      namespace: monitoring
-    patch: |-
-      - op: replace
-        path: /spec/dnsNames/0
-        value: prometheus.staging.spack.io
-
-  - target:
-      kind: Certificate
-      name: grafana
-      namespace: monitoring
-    patch: |-
-      - op: replace
-        path: /spec/dnsNames/0
-        value: grafana.staging.spack.io
-
-  - target:
-      kind: Certificate
-      name: alertmanager
-      namespace: monitoring
-    patch: |-
-      - op: replace
-        path: /spec/dnsNames/0
-        value: alertmanager.staging.spack.io
-
-  - target:
-      kind: Ingress
+      kind: HTTPRoute
       name: oauth2-proxy
       namespace: monitoring
     patch: |-
       - op: replace
-        path: /spec/rules/0/host
-        value: prometheus.staging.spack.io
-      - op: replace
-        path: /spec/tls/0/hosts/0
+        path: /spec/hostnames/0
         value: prometheus.staging.spack.io
 
   - target:
-      kind: Ingress
-      name: kube-prometheus-stack-prometheus
-      namespace: monitoring
-    patch: |-
-      - op: replace
-        path: /spec/rules/0/host
-        value: prometheus.staging.spack.io
-      - op: replace
-        path: /spec/tls/0/hosts/0
-        value: prometheus.staging.spack.io
-
-  - target:
-      kind: Ingress
+      kind: HTTPRoute
       name: kube-prometheus-stack-alertmanager
       namespace: monitoring
     patch: |-
       - op: replace
-        path: /spec/rules/0/host
-        value: alertmanager.staging.spack.io
-      - op: replace
-        path: /spec/tls/0/hosts/0
+        path: /spec/hostnames/0
         value: alertmanager.staging.spack.io
 
   - target:
-      kind: Ingress
+      kind: HTTPRoute
       name: kube-prometheus-stack-grafana
       namespace: monitoring
     patch: |-
       - op: replace
-        path: /spec/rules/0/host
-        value: grafana.staging.spack.io
-      - op: replace
-        path: /spec/tls/0/hosts/0
+        path: /spec/hostnames/0
         value: grafana.staging.spack.io
 
   - target:
@@ -119,15 +70,10 @@ patches:
       namespace: monitoring
     patch: |-
       - op: replace
-        path: /spec/template/spec/containers/0/args
-        value:
-          - --github-user=danlamanna,mvandenburgh,zackgalbreath,jjnesbitt,scottwittenburg,kwryankrattiger,alecbcs,cmelone,vsoch
-          - --provider=github
-          - --email-domain=*
-          - --upstream=file:///dev/null
-          - --http-address=0.0.0.0:4180
-          - --redirect-url=https://prometheus.staging.spack.io/oauth2/callback
+        path: /spec/template/spec/containers/0/args/5
+        value: --redirect-url=https://prometheus.staging.spack.io/oauth2/callback
 
+        # OAUTH2_PROXY_CLIENT_ID
       - op: replace
         path: /spec/template/spec/containers/0/env/0/value
         value: 5346c6b5d5bea71fb115

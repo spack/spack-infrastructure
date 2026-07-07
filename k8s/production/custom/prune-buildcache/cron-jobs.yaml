@@ -5,7 +5,6 @@ metadata:
   name: prune-buildcache-v3
   namespace: custom
 spec:
-  suspend: true
   schedule: "0 0 * * 6"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
@@ -22,7 +21,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.5
+            image: ghcr.io/spack/ci-prune-buildcache:0.0.8
             imagePullPolicy: Always
             resources:
               requests:
@@ -43,6 +42,13 @@ spec:
               value: "develop"
             - name: PRUNE_SINCE_DAYS
               value: "14"
+            - name: PR_BUILDCACHE_BUCKET
+              value: "spack-binaries-prs"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gh-gl-sync
+                  key: github-public-repo-token
             envFrom:
               - configMapRef:
                   name: python-scripts-sentry-config

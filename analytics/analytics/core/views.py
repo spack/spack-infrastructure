@@ -6,7 +6,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import sentry_sdk
 
-from analytics.core.job_log_uploader import store_job_data
 from analytics.job_processor import process_job
 
 
@@ -23,7 +22,9 @@ def webhook_handler(request: HttpRequest) -> HttpResponse:
         return HttpResponse("Build job not finished. Skipping.", status=200)
 
     # Store gitlab job log and failure data in opensearch
-    store_job_data.delay(request.body)
+    # TODO: Re-enable once opensearch is fixed
+    # from analytics.core.job_log_uploader import store_job_data
+    # store_job_data.delay(request.body)
 
     # Store job data in postgres DB
     process_job.delay(request.body)

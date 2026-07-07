@@ -3,13 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-echo "Input: $@"
-
-# Clone spack
-echo "Cloning spack..."
-git clone --depth 1 https://github.com/spack/spack.git
-echo "Cloning spack...done"
-
 # Configure spack
 echo "Configuring spack shell..."
 . /app/spack/share/spack/setup-env.sh
@@ -32,30 +25,60 @@ since_date=$(date --iso-8601 -d "${PRUNE_SINCE_DAYS} days ago")
 echo "Pruning binaries older than: ${since_date}"
 
 # Create keep list from GitLab pipelines
-keeplist_file="keeplist.txt"
 echo "Fetching keep hashes from GitLab pipelines..."
-python3 ${SCRIPT_DIR}/fetch_keeplist.py \
+python3 ${SCRIPT_DIR}/fetch_keeplists.py \
   --gitlab-url "${GITLAB_URL}" \
   --project "${GITLAB_PROJECT}" \
   --ref "${PRUNE_REF}" \
-  --since-days "${PRUNE_SINCE_DAYS}" \
-  --output "${keeplist_file}"
-echo "Keep list created with $(wc -l < ${keeplist_file}) hashes"
+  --since-days "${PRUNE_SINCE_DAYS}"
+echo "Keep lists created with $(wc -l < develop_keeplist.txt) total hashes"
 
-# Add the mirror
-echo "Adding mirror..."
-spack mirror add mirror-to-prune "${BUILDCACHE_URL}"
-echo "Adding mirror...done"
+prune_stack() {
+  local keeplist_file=$1
+  stack="${keeplist_file%_keeplist.txt}"
+  echo "Start pruning process for $stack buildcache"
 
-# Run pruning with keeplist
-echo "Running buildcache prune with keeplist..."
-spack python prune.py --mirror mirror-to-prune --keeplist "${keeplist_file}"
-echo "Running buildcache prune...done"
+  # Store keeplist in S3 for potential future debugging
+  aws s3 cp ${keeplist_file} s3://spack-logs/pruning/${now}/${keeplist_file}
 
-# Update the mirror index
-echo "Updating mirror index..."
-spack buildcache update-index mirror-to-prune
-echo "Updating mirror index...done"
+  # Add the mirror
+  echo "Adding mirror $stack..."
+  if [[ "$stack" == "develop" ]]; then
+    spack mirror add "${stack}" "${BUILDCACHE_URL}"
+  else
+    spack mirror add "${stack}" "${BUILDCACHE_URL}/${stack}"
+  fi
+  echo "Adding mirror $stack... done!"
 
-echo ""
-echo "Pruning complete"
+  # Run pruning with keeplist
+  echo "Running buildcache prune for $stack..."
+  spack --debug python prune.py --mirror "${stack}" --keeplist "${keeplist_file}"
+  echo "Running buildcache prune for $stack... done!"
+
+  # Update the mirror index
+  echo "Updating mirror index for $stack..."
+  spack buildcache update-index "${stack}"
+  echo "Updating mirror index for $stack... done!"
+  echo ""
+}
+
+# Prune each stack-specific buildcache.
+for file in *_keeplist.txt; do
+  # Save the top-level develop cache for last.
+  if [[ "$file" == "develop_keeplist.txt" ]]; then
+    continue
+  fi
+  prune_stack "$file"
+done
+
+# Prune the top-level develop buildcache.
+prune_stack "develop_keeplist.txt"
+
+echo "Pruning PR Mirrors"
+
+python3 ${SCRIPT_DIR}/prune_pr_mirrors.py \
+  -r "spack/spack" \
+  -r "spack/spack-packages" \
+  -b "${PR_BUILDCACHE_BUCKET}"
+
+echo "Pruning complete!!!"
