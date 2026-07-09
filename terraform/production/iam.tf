@@ -57,6 +57,36 @@ resource "aws_iam_group_policy" "custodians_rds_snapshots" {
     ]
   })
 }
+resource "aws_iam_group_policy" "custodians_waf_logs_read_only" {
+  name  = "WafLogsReadOnly"
+  group = aws_iam_group.custodians.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ListWafLogGroups"
+        Effect = "Allow"
+        Action = [
+          "logs:DescribeLogGroups",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "ReadAndQueryWafLogs"
+        Effect = "Allow"
+        Action = [
+          "logs:GetLogEvents",
+          "logs:FilterLogEvents",
+          "logs:StartQuery",
+          "logs:StopQuery",
+          "logs:GetQueryResults",
+        ]
+        Resource = "arn:aws:logs:us-east-1:588562868276:log-group:aws-waf-logs-*:*"
+      }
+    ]
+  })
+}
 resource "aws_iam_group_policy" "custodians_ebs_snapshots" {
   name  = "EBSSnapshots"
   group = aws_iam_group.custodians.name
