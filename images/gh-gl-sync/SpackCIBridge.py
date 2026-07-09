@@ -796,7 +796,7 @@ on a commit of the main branch that is newer than the latest commit tested by Gi
 
     args = parser.parse_args()
 
-    gl_url = urllib.parser.urlparse(args.gitlab_repo)
+    gl_url = urllib.parse.urlparse(args.gitlab_repo)
 
     gitlab_ssh_key_base64 = os.getenv("GITLAB_SSH_KEY_BASE64")
     if gl_url.scheme == "ssh" and gitlab_ssh_key_base64 is None:
