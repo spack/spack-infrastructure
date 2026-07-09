@@ -115,7 +115,7 @@ spec:
 
             # Image for windows 2025, runner helper
             image = "mcr.microsoft.com/windows/servercore:ltsc2025"
-            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v19.0.2-servercore24H2"
+            helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v19.1.1-servercore24H2"
 
             ephemeral_storage_request = "500M"
             helper_ephemeral_storage_request = "500M"
