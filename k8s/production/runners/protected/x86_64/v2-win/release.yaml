@@ -113,7 +113,7 @@ spec:
             poll_timeout = 1800
             service_account = "runner"
 
-            # Image for windows 2022, runner helper
+            # Image for windows 2025, runner helper
             image = "mcr.microsoft.com/windows/servercore:ltsc2025"
             helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-v19.0.2-servercore24H2"
 
