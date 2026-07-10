@@ -223,7 +223,7 @@ spec:
       gitaly:
         resources:
           requests:
-            cpu: 15000m
+            cpu: 24
             memory: 20Gi
         nodeSelector:
           spack.io/node-pool: gitlab
