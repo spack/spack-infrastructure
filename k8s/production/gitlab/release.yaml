@@ -221,13 +221,30 @@ spec:
             app: "gitaly"
 
       gitaly:
+        # Don't automatically roll the gitaly pod when its spec changes.
+        # Gitaly is a single replica, so an automatic rolling update takes the
+        # service down for however long it takes to schedule the new pod
+        # (including node provisioning). With OnDelete, spec changes are only
+        # picked up when the pod is manually deleted, letting us control when
+        # that downtime happens.
+        statefulset:
+          strategy:
+            type: OnDelete
         resources:
           requests:
-            cpu: 15000m
+            cpu: 24000m
             memory: 20Gi
+        # Schedule onto the dedicated (tainted) gitaly node pool, so that
+        # gitaly has an entire node to itself. m5.8xlarge has 32 vCPUs,
+        # leaving headroom above the 24 vCPU request for daemonsets and
+        # system overhead.
         nodeSelector:
-          spack.io/node-pool: gitlab
-          node.kubernetes.io/instance-type: m5.4xlarge
+          spack.io/node-pool: gitaly
+          node.kubernetes.io/instance-type: m5.8xlarge
+        tolerations:
+          - key: spack.io/gitaly-taint
+            value: "true"
+            effect: NoSchedule
         metrics:
           enabled: true
           serviceMonitor:

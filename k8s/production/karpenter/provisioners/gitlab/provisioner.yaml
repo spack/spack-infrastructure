@@ -53,3 +53,57 @@ spec:
       - schedule: "0 8 * * *"
         duration: 20h
         nodes: "0"
+---
+# Dedicated node pool for the gitaly pod. Nodes in this pool are tainted so
+# that nothing except gitaly (and daemonsets) schedules onto them, ensuring
+# gitaly always has an entire node to itself.
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: gitaly
+spec:
+  template:
+    metadata:
+      # Only provision nodes for pods specifying the gitaly node pool
+      labels:
+        spack.io/node-pool: gitaly
+    spec:
+      # Keep all other pods off of gitaly's node
+      taints:
+        - key: spack.io/gitaly-taint
+          value: "true"
+          effect: NoSchedule
+
+      requirements:
+        # Always use amd64 nodes
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+
+        # Always use on-demand
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+
+        # Only provision nodes for Linux pods
+        # Needed due to https://github.com/kubernetes-sigs/karpenter/issues/1009
+        - key: "kubernetes.io/os"
+          operator: In
+          values: ["linux"]
+
+      nodeClassRef:
+        kind: EC2NodeClass
+        name: default
+        group: karpenter.k8s.aws
+
+  disruption:
+    # Never voluntarily disrupt a node while gitaly is running on it (gitaly is
+    # a single replica, so any disruption is an outage). Empty nodes (i.e.
+    # after gitaly has moved elsewhere) are reaped after 5 minutes.
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
+
+  limits:
+    # Enough for two nodes, so that a replacement node can be provisioned
+    # before the old one is terminated
+    cpu: 64
