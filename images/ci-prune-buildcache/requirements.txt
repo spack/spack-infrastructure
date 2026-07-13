@@ -17,7 +17,7 @@ PyNaCl==1.6.2
 python-dateutil==2.9.0.post0
 python-gitlab==6.5.0
 PyYAML==6.0.3
-requests==2.32.5
+requests==2.33.0
 requests-toolbelt==1.0.0
 rsa==4.7.2
 s3transfer==0.14.0
