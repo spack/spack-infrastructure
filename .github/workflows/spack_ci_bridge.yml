@@ -9,7 +9,7 @@ jobs:
   spack_ci_bridge:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7.0.0
     - name: dependencies
       run: |
         sudo apt-get update
