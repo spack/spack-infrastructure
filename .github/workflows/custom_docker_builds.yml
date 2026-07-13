@@ -25,7 +25,7 @@ jobs:
       matrix: ${{ steps.dataStep.outputs.matrix }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
 
@@ -49,7 +49,7 @@ jobs:
       matrix: ${{ fromJson(needs.check-modified-dirs.outputs.matrix) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v5.0.0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
