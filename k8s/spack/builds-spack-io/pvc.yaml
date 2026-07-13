@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: builds-spack-io-cache
+  namespace: spack
+  labels:
+    app: builds-spack-io-db
+    svc: postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs
+  resources:
+    requests:
+      storage: 100Gi
