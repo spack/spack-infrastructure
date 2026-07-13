@@ -1,0 +1,11 @@
+site_name: SPACK Test
+site_url:  ""
+markdown_extensions:
+    - mkdocs_graphviz
+
+nav:
+  - "index.md"
+  - 'Troubleshooting': 'troubleshoot.md'
+  - 'Pull request timeline': timeline.md
+  - 'AWS Structure': aws.md
+  - 'Contact Us': "https://slack.spack.io/"
