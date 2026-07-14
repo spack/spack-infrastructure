@@ -32,7 +32,7 @@ Events==0.5
 executing==2.1.0
 google-auth==2.37.0
 gunicorn==23.0.0
-idna==3.10
+idna==3.15
 kombu==5.4.2
 kubernetes==31.0.0
 markdown-it-py==3.0.0
