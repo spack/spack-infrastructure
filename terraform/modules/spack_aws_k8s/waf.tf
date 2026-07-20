@@ -79,18 +79,45 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
 
     statement {
-      byte_match_statement {
-        search_string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-        field_to_match {
-          single_header {
-            name = "user-agent"
+      and_statement {
+        # Matches the botnet's fixed browser fingerprint...
+        statement {
+          byte_match_statement {
+            search_string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+            field_to_match {
+              single_header {
+                name = "user-agent"
+              }
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+            positional_constraint = "EXACTLY"
           }
         }
-        text_transformation {
-          priority = 0
-          type     = "NONE"
+        # ...but real Chrome always sends Sec-CH-UA; requiring it to be absent
+        # keeps this rule from matching a real browser that happens to share
+        # this (aging) UA string.
+        statement {
+          not_statement {
+            statement {
+              size_constraint_statement {
+                field_to_match {
+                  single_header {
+                    name = "sec-ch-ua"
+                  }
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "NONE"
+                }
+                comparison_operator = "GE"
+                size                = 0
+              }
+            }
+          }
         }
-        positional_constraint = "EXACTLY"
       }
     }
 
