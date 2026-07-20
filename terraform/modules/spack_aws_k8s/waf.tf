@@ -73,9 +73,8 @@ resource "aws_wafv2_web_acl" "gateway" {
     name     = "BlockBotNet"
     priority = 2
 
-    # TODO: Switch this to actually block, instead of count
     action {
-      count {}
+      block {}
     }
 
     statement {
