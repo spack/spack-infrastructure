@@ -68,9 +68,68 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
+  # Block requests with this specific user agent string
+  rule {
+    name     = "BlockBotNet"
+    priority = 2
+
+    action {
+      block {}
+    }
+
+    statement {
+      and_statement {
+        # Matches the botnet's fixed browser fingerprint...
+        statement {
+          byte_match_statement {
+            search_string = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+            field_to_match {
+              single_header {
+                name = "user-agent"
+              }
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+            positional_constraint = "EXACTLY"
+          }
+        }
+        # ...but real Chrome always sends Sec-CH-UA; requiring it to be absent
+        # keeps this rule from matching a real browser that happens to share
+        # this (aging) UA string.
+        statement {
+          not_statement {
+            statement {
+              size_constraint_statement {
+                field_to_match {
+                  single_header {
+                    name = "sec-ch-ua"
+                  }
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "NONE"
+                }
+                comparison_operator = "GE"
+                size                = 0
+              }
+            }
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "BlockBotNet"
+    }
+  }
+
   rule {
     name     = "AWS-AWSManagedRulesAmazonIpReputationList"
-    priority = 2
+    priority = 3
 
     override_action {
       count {}
@@ -113,7 +172,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesCommonRuleSet"
-    priority = 3
+    priority = 4
 
     override_action {
       count {}
@@ -135,7 +194,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 4
+    priority = 5
 
     override_action {
       count {}
@@ -157,7 +216,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesAnonymousIpList"
-    priority = 5
+    priority = 6
 
     override_action {
       count {}
@@ -183,7 +242,7 @@ resource "aws_wafv2_web_acl" "gateway" {
   # static asset requests that don't need bot inspection.
   rule {
     name     = "AWS-AWSManagedRulesBotControlRuleSet"
-    priority = 6
+    priority = 7
 
     override_action {
       count {}
@@ -212,7 +271,7 @@ resource "aws_wafv2_web_acl" "gateway" {
   # Issue a javascript-based challenge to any remaining requests
   rule {
     name     = "gitlab-challenge"
-    priority = 7
+    priority = 8
 
     action {
       count {}
