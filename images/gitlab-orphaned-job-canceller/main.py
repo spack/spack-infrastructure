@@ -8,6 +8,7 @@ backing Kubernetes pod has disappeared.
 
 import argparse
 import os
+import re
 import sys
 import urllib.parse
 from datetime import datetime, timedelta, timezone
@@ -24,12 +25,13 @@ AUTH_HEADER = {"PRIVATE-TOKEN": os.environ.get("GITLAB_TOKEN", None)}
 PIPELINE_NAMESPACE = "pipeline"
 TERMINAL_POD_PHASES = {"Succeeded", "Failed"}
 
-# All of our own Kubernetes-executor runners are registered as group-level
-# runners, which GitLab reports as runner_type "group_type". Shared on-prem/
-# external runners (UO) show up as "instance_type" instead - those jobs never
-# have a pod in this cluster by design, so they must never be checked or
-# canceled here.
-KUBERNETES_RUNNER_TYPE = "group_type"
+# Our Kubernetes-executor runners are gitlab-runner Helm releases
+# named "runner-<pool>-{pub,prot}[-windows]" or "runner-spack-package-signing",
+# and gitlab-runner defaults a runner's description to its own pod hostname
+# ("<release-name>-gitlab-runner-<hash>-<suffix>").
+KUBERNETES_RUNNER_DESCRIPTION_PATTERN = re.compile(
+    r"^runner-.+-(pub|prot|signing)(-windows)?-gitlab-runner-"
+)
 
 
 def project_api_url(project):
@@ -85,12 +87,13 @@ def index_pods_by_job_id(v1):
 
 
 def is_kubernetes_executor_job(job):
-    """Only jobs picked up by one of our own group-level Kubernetes-executor
-    runners can ever have a backing pod in this cluster."""
+    """Only jobs picked up by one of our own Kubernetes-executor runners can
+    ever have a backing pod in this cluster."""
     runner = job.get("runner")
     if not runner:
         return False
-    return runner.get("runner_type") == KUBERNETES_RUNNER_TYPE
+    description = runner.get("description") or ""
+    return bool(KUBERNETES_RUNNER_DESCRIPTION_PATTERN.match(description))
 
 
 def is_orphaned(pod_index, job, grace_period):
