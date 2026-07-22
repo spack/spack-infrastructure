@@ -1,5 +1,5 @@
 locals {
-  karpenter_chart_version = "1.8.1"
+  karpenter_chart_version = "1.14.0"
 }
 
 module "karpenter" {
@@ -109,9 +109,9 @@ resource "kubectl_manifest" "karpenter_windows_node_class" {
     metadata:
       name: windows
     spec:
-      amiFamily: Windows2022
+      amiFamily: Windows2025
       amiSelectorTerms:
-        - alias: windows2022@latest
+        - alias: windows2025@latest
       role: ${module.karpenter_windows.node_iam_role_name}
       subnetSelectorTerms:
         - tags:
