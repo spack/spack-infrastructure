@@ -158,9 +158,9 @@ spec:
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
               "kubernetes.io/os" = "windows"
-              # This is required to match the helper image based on this table
+              # This is required to match the helper image (currently 24H2) based on this table:
               # https://gitlab.com/gitlab-org/gitlab-runner/-/blob/main/helpers/container/windows/version.go?ref_type=heads#L19-32
-              "node.kubernetes.io/windows-build" = "10.0.20348"
+              "node.kubernetes.io/windows-build" = "10.0.26100"
             [runners.kubernetes.node_tolerations]
               "spack.io/runner-taint=true" = "NoSchedule"
               "windows=true" = "NoSchedule"
