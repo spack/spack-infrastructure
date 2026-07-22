@@ -1,0 +1,47 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gitlab-orphaned-job-canceller
+  namespace: custom
+  labels:
+    app: gitlab-orphaned-job-canceller
+    component: orphaned-job-canceller
+spec:
+  schedule: "*/30 * * * *" # Run every 30 minutes
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 900 # terminate any running job after 15 minutes
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: gitlab-orphaned-job-canceller-job
+        spec:
+          serviceAccountName: gitlab-orphaned-job-canceller
+          restartPolicy: Never
+          containers:
+          - name: gitlab-orphaned-job-canceller
+            image: ghcr.io/spack/gitlab-orphaned-job-canceller:0.0.1
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                cpu: 20m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+            env:
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: delete-stale-branches-credentials
+                  key: gitlab-token
+            envFrom:
+            - configMapRef:
+                name: python-scripts-sentry-config
+          nodeSelector:
+            spack.io/node-pool: base
