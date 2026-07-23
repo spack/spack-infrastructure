@@ -13,9 +13,10 @@ import sys
 import urllib.parse
 from datetime import datetime, timedelta, timezone
 
-import requests
 import sentry_sdk
 from kubernetes import client, config
+from requests import Session
+from requests.adapters import HTTPAdapter, Retry
 
 sentry_sdk.init(traces_sample_rate=0.1)
 
@@ -24,6 +25,9 @@ GITLAB_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 AUTH_HEADER = {"PRIVATE-TOKEN": os.environ.get("GITLAB_TOKEN", None)}
 PIPELINE_NAMESPACE = "pipeline"
 TERMINAL_POD_PHASES = {"Succeeded", "Failed"}
+# Caps the potential for a retry storm if a job (or its runner pool) has
+# a persistent, unrelated problem.
+MAX_RETRIES = 2
 
 # Our Kubernetes-executor runners are gitlab-runner Helm releases
 # named "runner-<pool>-{pub,prot}[-windows]" or "runner-spack-package-signing",
@@ -34,6 +38,24 @@ KUBERNETES_RUNNER_DESCRIPTION_PATTERN = re.compile(
 )
 
 
+def build_session():
+    """Build a Requests session with retries and backoff for transient
+    failures talking to gitlab.spack.io, plus our GitLab auth token."""
+    session = Session()
+    session.mount(
+        "https://",
+        HTTPAdapter(
+            max_retries=Retry(
+                total=5,
+                backoff_factor=2,
+                backoff_jitter=1,
+            ),
+        ),
+    )
+    session.headers.update(AUTH_HEADER)
+    return session
+
+
 def project_api_url(project):
     """Build the API base URL for a project, given as either a numeric id
     or a namespaced path like 'spack/spack-packages'."""
@@ -41,13 +63,13 @@ def project_api_url(project):
     return f"{GITLAB_API_ROOT}/projects/{encoded}"
 
 
-def get_running_jobs(project_url):
+def get_running_jobs(session, project_url):
     """Return all jobs GitLab currently reports as running for a project."""
     results = []
     url = f"{project_url}/jobs?scope[]=running&per_page=100"
 
     while url:
-        resp = requests.get(url, headers=AUTH_HEADER)
+        resp = session.get(url)
         if resp.status_code in (401, 403):
             raise RuntimeError(
                 f"{resp.status_code} requesting {url} - check GITLAB_TOKEN permissions"
@@ -60,11 +82,44 @@ def get_running_jobs(project_url):
     return results
 
 
-def cancel_job(project_url, job_id):
+def get_job_attempt_count(session, project_url, pipeline_id, job_name):
+    """Return how many jobs (across all retries) exist in this pipeline
+    with the given job name. include_retried=true is required - without
+    it, GitLab's API hides every attempt except the latest one, which
+    would make every job look like a first attempt."""
+    count = 0
+    url = (
+        f"{project_url}/pipelines/{pipeline_id}/jobs"
+        f"?include_retried=true&per_page=100"
+    )
+
+    while url:
+        resp = session.get(url)
+        if resp.status_code in (401, 403):
+            raise RuntimeError(
+                f"{resp.status_code} requesting {url} - check GITLAB_TOKEN permissions"
+            )
+        resp.raise_for_status()
+
+        count += sum(1 for job in resp.json() if job.get("name") == job_name)
+        url = resp.links.get("next", {}).get("url")
+
+    return count
+
+
+def cancel_job(session, project_url, job_id):
     """Cancel a single job by id. Returns True on success."""
     cancel_url = f"{project_url}/jobs/{job_id}/cancel"
-    resp = requests.post(cancel_url, headers=AUTH_HEADER)
+    resp = session.post(cancel_url)
     print(f"    cancel response: {resp.status_code} {resp.text}")
+    return resp.ok
+
+
+def retry_job(session, project_url, job_id):
+    """Retry a single job by id. Returns True on success."""
+    retry_url = f"{project_url}/jobs/{job_id}/retry"
+    resp = session.post(retry_url)
+    print(f"    retry response: {resp.status_code} {resp.text}")
     return resp.ok
 
 
@@ -123,11 +178,11 @@ def is_orphaned(pod_index, job, grace_period):
     )
 
 
-def cancel_orphaned_jobs(v1, project, grace_period_minutes):
+def cancel_orphaned_jobs(session, v1, project, grace_period_minutes):
     project_url = project_api_url(project)
     grace_period = timedelta(minutes=grace_period_minutes)
 
-    running_jobs = get_running_jobs(project_url)
+    running_jobs = get_running_jobs(session, project_url)
     print(f"Checking {len(running_jobs)} running job(s) in {project}")
 
     pod_index = index_pods_by_job_id(v1)
@@ -140,9 +195,25 @@ def cancel_orphaned_jobs(v1, project, grace_period_minutes):
         orphaned = is_orphaned(pod_index, job, grace_period)
 
         if orphaned:
-            print(f"  job {job_id} ({job_name}): no live pod found, canceling")
-            if cancel_job(project_url, job_id):
+            pipeline_id = job["pipeline"]["id"]
+            attempt_count = get_job_attempt_count(session, project_url, pipeline_id, job_name)
+            eligible_for_retry = attempt_count <= MAX_RETRIES
+
+            if eligible_for_retry:
+                print(
+                    f"  job {job_id} ({job_name}): no live pod found, canceling "
+                    f"(attempt {attempt_count}/{MAX_RETRIES + 1}, would retry)"
+                )
+            else:
+                print(
+                    f"  job {job_id} ({job_name}): no live pod found, canceling "
+                    f"(attempt {attempt_count}/{MAX_RETRIES + 1}, retry cap reached)"
+                )
+
+            if cancel_job(session, project_url, job_id):
                 canceled.append(job_id)
+                if eligible_for_retry:
+                    retry_job(session, project_url, job_id)
         else:
             print(f"  job {job_id} ({job_name}): pod still present or within grace period, leaving alone")
 
@@ -176,13 +247,14 @@ def main():
         # (e.g. ~/.kube/config) so this can be run locally too.
         config.load_kube_config()
     v1 = client.CoreV1Api()
+    session = build_session()
 
     projects = [p.strip() for p in args.projects.split(",") if p.strip()]
 
     failed_projects = []
     for project in projects:
         try:
-            cancel_orphaned_jobs(v1, project, args.grace_period_minutes)
+            cancel_orphaned_jobs(session, v1, project, args.grace_period_minutes)
         except Exception as exc:
             print(f"Caught unhandled exception processing project '{project}':")
             print(exc)
