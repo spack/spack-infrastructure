@@ -214,6 +214,18 @@ def cancel_orphaned_jobs(session, v1, project, grace_period_minutes):
                 canceled.append(job_id)
                 if eligible_for_retry:
                     retry_job(session, project_url, job_id)
+                    sentry_sdk.capture_message(
+                        f"Canceled orphaned job {job_id} ({job_name}) in {project} "
+                        f"and retried it (attempt {attempt_count}/{MAX_RETRIES + 1})",
+                        level="warning",
+                    )
+                else:
+                    sentry_sdk.capture_message(
+                        f"Canceled orphaned job {job_id} ({job_name}) in {project}; "
+                        f"retry cap reached (attempt {attempt_count}/{MAX_RETRIES + 1}), "
+                        f"left canceled for investigation",
+                        level="error",
+                    )
         else:
             print(f"  job {job_id} ({job_name}): pod still present or within grace period, leaving alone")
 
