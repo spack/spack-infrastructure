@@ -3,7 +3,7 @@ module "eks" {
   version = "21.8.0"
 
   name               = local.eks_cluster_name
-  kubernetes_version = "1.34"
+  kubernetes_version = "1.35"
 
   # Give the Terraform identity admin access to the cluster
   # which will allow it to deploy resources into the cluster
@@ -47,7 +47,7 @@ module "eks" {
   addons = {
     coredns = {
       # https://docs.aws.amazon.com/eks/latest/userguide/managing-coredns.html#coredns-versions
-      addon_version = "v1.12.4-eksbuild.1"
+      addon_version = "v1.13.1-eksbuild.1"
       # Based on this example of CoreDNS configuration
       # https://github.com/terraform-aws-modules/terraform-aws-eks/blob/master/docs/faq.md#what-configuration-values-are-available-for-an-add-on
       configuration_values = jsonencode({
@@ -73,11 +73,11 @@ module "eks" {
     }
     kube-proxy = {
       # https://docs.aws.amazon.com/eks/latest/userguide/managing-kube-proxy.html#kube-proxy-versions
-      addon_version = "v1.34.0-eksbuild.4"
+      addon_version = "v1.35.0-eksbuild.2"
     }
     vpc-cni = {
       # https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html
-      addon_version = "v1.20.4-eksbuild.1"
+      addon_version = "v1.21.1-eksbuild.1"
       configuration_values = jsonencode({
         # This setting is required for Windows pods to be able to join the cluster
         enableWindowsIpam = "true"
