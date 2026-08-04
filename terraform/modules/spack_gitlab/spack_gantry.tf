@@ -69,6 +69,10 @@ module "spack_gantry_token" {
 
 resource "random_password" "spack_gantry_token" {
   length = 32
+
+  keepers = {
+    version = "2"
+  }
 }
 
 resource "gitlab_project_hook" "spack_gantry" {
