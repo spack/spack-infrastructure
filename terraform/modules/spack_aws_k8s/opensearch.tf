@@ -7,6 +7,10 @@ locals {
 resource "random_password" "opensearch_password" {
   length  = 64
   special = true
+
+  keepers = {
+    version = "2"
+  }
 }
 
 resource "aws_opensearch_domain" "spack" {
