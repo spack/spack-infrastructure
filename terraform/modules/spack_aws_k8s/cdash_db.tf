@@ -12,6 +12,10 @@ resource "aws_db_subnet_group" "cdash_db" {
 resource "random_password" "cdash_db_password" {
   length           = 32
   override_special = "!#$%&*()-_=+[]{}<>:?"
+
+  keepers = {
+    version = "2"
+  }
 }
 
 module "cdash_db" {
