@@ -30,6 +30,7 @@ spec:
     cdash:
       host: cdash.spack.io
       serviceAccountName: cdash
+      externalSecret: cdash-extra
       website:
         resources:
           requests:
