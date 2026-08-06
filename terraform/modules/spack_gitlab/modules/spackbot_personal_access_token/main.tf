@@ -1,7 +1,7 @@
 locals {
   # GitLab no longer allows tokens to be created with an indefinite expiration date,
   # so we set a long expiration date and a warning date to remind us to update it.
-  token_expiration_date = "2027-03-25"
+  token_expiration_date = "2027-08-03"
 }
 
 locals {

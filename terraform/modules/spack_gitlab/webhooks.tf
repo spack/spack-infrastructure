@@ -19,6 +19,10 @@ module "webhook_handler_token" {
 resource "random_password" "webhook_handler" {
   length  = 64
   special = false
+
+  keepers = {
+    version = "2"
+  }
 }
 
 data "aws_secretsmanager_secret_version" "gitlab_db_ro_credentials" {

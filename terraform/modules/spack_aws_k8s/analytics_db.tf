@@ -10,6 +10,10 @@ resource "random_password" "analytics_db_password" {
 
   length           = 32
   override_special = "!#$%&*()-_=+[]{}<>:?"
+
+  keepers = {
+    version = "2"
+  }
 }
 
 module "analytics_db" {
