@@ -110,6 +110,9 @@ spec:
                   [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
                       key = "spack.io/pipeline"
                       operator = "Exists"
+                  [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
+                      key = "spack.io/protected"
+                      operator = "DoesNotExist"
 
               # Weight this pod towards x86-64-v2 nodes
               [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution]]

@@ -1,5 +1,14 @@
 ---
+# Build pods for the `public` runners (and the `signing` runners) land here.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: pipeline
+
+---
+# Build pods for the `protected` runners land here, isolated from `pipeline` so that
+# public jobs never share a namespace (or the secrets in it) with protected jobs.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pipeline-protected

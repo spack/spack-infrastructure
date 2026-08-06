@@ -48,7 +48,7 @@ spec:
       enabled: true
 
     rbac:
-      serviceAccountName: runner
+      serviceAccountName: runner-protected
 
     runners:
       config: |
@@ -91,7 +91,7 @@ spec:
             memory_limit = "96G"
             memory_limit_overwrite_max_allowed = "96G"
 
-            namespace = "pipeline"
+            namespace = "pipeline-protected"
             poll_timeout = 600  # ten minutes
             service_account = "runner"
 
@@ -108,6 +108,10 @@ spec:
                   [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
                       key = "spack.io/pipeline"
                       operator = "Exists"
+                  [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
+                      key = "spack.io/protected"
+                      operator = "In"
+                      values = ["true"]
 
               # Weight this pod towards x86-64-v3 nodes
               [[runners.kubernetes.affinity.node_affinity.preferred_during_scheduling_ignored_during_execution]]
@@ -137,7 +141,7 @@ spec:
                       values = ["true"]
 
             [runners.kubernetes.node_tolerations]
-              "spack.io/runner-taint=true" = "NoSchedule"
+              "spack.io/protected-runner-taint=true" = "NoSchedule"
 
             [runners.kubernetes.pod_annotations]
               "pod-cleanup.gitlab.com/ttl" = "12h"

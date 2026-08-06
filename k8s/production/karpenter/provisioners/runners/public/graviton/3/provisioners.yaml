@@ -89,5 +89,5 @@ spec:
 
   # Resource limits for this provisioner only
   limits:
-    cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
-    memory: 15Ti # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+    cpu: 1920 # 16 vCPUs * 3 replicas * 40 concurrent jobs (public runners only)
+    memory: 7.5Ti # 64 Gi * 3 replicas * 40 concurrent jobs (public runners only)

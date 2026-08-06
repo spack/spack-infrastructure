@@ -1,14 +1,15 @@
 ---
-# Provisioner for x86_64_v2 gitlab runners
+# Provisioner for protected x86_64_v2 gitlab runners
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: glr-x86-64-v2
+  name: glr-prot-x86-64-v2
 spec:
   template:
     metadata:
       # Label all provisioned nodes as x86-64-v2
       labels:
+        spack.io/protected: "true"
         spack.io/pipeline: "true"
         spack.io/x86_64: "v2" # highest supported x86_64 microarch version
     spec:
@@ -59,9 +60,9 @@ spec:
         name: default
         group: karpenter.k8s.aws
 
-      # Taint these nodes so only pipeline pods will be scheduled on them.
+      # Taint these nodes so only protected pipeline pods will be scheduled on them.
       taints:
-        - key: spack.io/runner-taint
+        - key: spack.io/protected-runner-taint
           value: "true"
           effect: NoSchedule
 
@@ -80,5 +81,5 @@ spec:
 
   # Resource limits for this provisioner only
   limits:
-    cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
-    memory: 15Ti # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+    cpu: 1920 # 16 vCPUs * 3 replicas * 40 concurrent jobs (protected runners only)
+    memory: 7.5Ti # 64 Gi * 3 replicas * 40 concurrent jobs (protected runners only)

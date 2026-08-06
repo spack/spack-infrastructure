@@ -108,6 +108,9 @@ spec:
                   [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
                       key = "spack.io/pipeline"
                       operator = "Exists"
+                  [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
+                      key = "spack.io/protected"
+                      operator = "DoesNotExist"
 
               # Place pod close to other pipeline pods if possible ("pack" the pods tightly)
               # Docs: https://docs.gitlab.com/runner/executors/kubernetes.html#define-nodes-where-pods-are-scheduled

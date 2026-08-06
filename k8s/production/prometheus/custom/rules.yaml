@@ -13,10 +13,10 @@ spec:
      rules:
        - expr: |-
            count by(name, pod, node, namespace) (
-             irate(container_cpu_usage_seconds_total{namespace="pipeline", container="build"}[3m]) == 0 and on(pod, container)
-             delta(container_memory_usage_bytes{namespace="pipeline", container="build"}[3m]) == 0 and on (pod)
-             irate(container_network_receive_bytes_total{namespace="pipeline"}[3m]) == 0 and on (pod)
-             irate(container_network_transmit_bytes_total{namespace="pipeline"}[3m]) == 0
+             irate(container_cpu_usage_seconds_total{namespace=~"pipeline|pipeline-protected", container="build"}[3m]) == 0 and on(pod, container)
+             delta(container_memory_usage_bytes{namespace=~"pipeline|pipeline-protected", container="build"}[3m]) == 0 and on (pod)
+             irate(container_network_receive_bytes_total{namespace=~"pipeline|pipeline-protected"}[3m]) == 0 and on (pod)
+             irate(container_network_transmit_bytes_total{namespace=~"pipeline|pipeline-protected"}[3m]) == 0
            )
          record: node_namespace_pod_name:pipeline_stuck_pods_info
 

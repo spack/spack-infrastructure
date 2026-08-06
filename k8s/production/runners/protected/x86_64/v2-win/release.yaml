@@ -49,7 +49,7 @@ spec:
       enabled: true
 
     rbac:
-      serviceAccountName: runner
+      serviceAccountName: runner-protected
 
     runners:
       config: |
@@ -107,7 +107,7 @@ spec:
             memory_limit = "96G"
             memory_limit_overwrite_max_allowed = "96G"
 
-            namespace = "pipeline"
+            namespace = "pipeline-protected"
             # Allow 30 minutes for the pod to be ready. This is necessary because
             # the windows docker image can take a significantly long time to pull/boot.
             poll_timeout = 1800
@@ -157,12 +157,13 @@ spec:
               "metrics/spack_job_spec_hash" = "$SPACK_JOB_SPEC_DAG_HASH"
               "metrics/spack_spec_needs_rebuild" = "$SPACK_SPEC_NEEDS_REBUILD"
             [runners.kubernetes.node_selector]
+              "spack.io/protected" = "true"
               "kubernetes.io/os" = "windows"
               # This is required to match the helper image (currently 24H2) based on this table:
               # https://gitlab.com/gitlab-org/gitlab-runner/-/blob/main/helpers/container/windows/version.go?ref_type=heads#L19-32
               "node.kubernetes.io/windows-build" = "10.0.26100"
             [runners.kubernetes.node_tolerations]
-              "spack.io/runner-taint=true" = "NoSchedule"
+              "spack.io/protected-runner-taint=true" = "NoSchedule"
               "windows=true" = "NoSchedule"
 
             [[runners.kubernetes.volumes.secret]]
