@@ -226,6 +226,7 @@ resource "aws_iam_role" "readonly_clusterrole" {
           "AWS" : [
             "arn:aws:iam::588562868276:user/alecscott",
             "arn:aws:iam::588562868276:user/tgamblin",
+            "arn:aws:iam::588562868276:user/mike",
           ]
         },
         "Action" : "sts:AssumeRole"
