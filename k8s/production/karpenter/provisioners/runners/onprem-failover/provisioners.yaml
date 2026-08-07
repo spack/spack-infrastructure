@@ -1,0 +1,90 @@
+---
+# Provisioner for the on-prem failover gitlab runners.
+#
+# This pool backs the `runner-onprem-failover` gitlab-runner release
+# (k8s/production/runners/failover/release.yaml). It sits at zero nodes
+# whenever that runner is paused in GitLab; when an operator unpauses the
+# runner because the on-prem (uo-*) runners are down, job pods land here and
+# Karpenter provisions these instance types on demand.
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: glr-onprem-failover
+spec:
+  template:
+    metadata:
+      labels:
+        # spack.io/pipeline is required so the runner-node-certificate-controller
+        # removes the certificate-pending startup taint from these nodes.
+        # Other runner releases can't schedule here anyway: their affinities
+        # also require spack.io/x86_64 or spack.io/graviton labels, which
+        # this pool deliberately does not set.
+        spack.io/pipeline: "true"
+        spack.io/onprem-failover: "true"
+
+    spec:
+      requirements:
+      - key: "kubernetes.io/arch"
+        operator: In
+        values: ["amd64"]
+
+      # TODO: replace with the instance types that match the on-prem runner
+      # hardware (core count / memory per job) before enabling failover.
+      - key: "node.kubernetes.io/instance-type"
+        operator: In
+        values:
+          - "m6i.4xlarge"
+          - "m6i.8xlarge"
+          - "r6i.4xlarge"
+          - "r6i.8xlarge"
+
+      # Availability Zones
+      - key: "topology.kubernetes.io/zone"
+        operator: In
+        values:
+          - "us-east-1a"
+          - "us-east-1b"
+          - "us-east-1c"
+          - "us-east-1d"
+
+      # Only provision nodes for Linux pods
+      # Needed due to https://github.com/kubernetes-sigs/karpenter/issues/1009
+      - key: "kubernetes.io/os"
+        operator: In
+        values: ["linux"]
+
+      # Allow both spot and on-demand: Karpenter prefers spot when available,
+      # but this pool only runs during an on-prem outage, so fall back to
+      # on-demand rather than queueing jobs behind spot capacity.
+      - key: "karpenter.sh/capacity-type"
+        operator: In
+        values: ["spot", "on-demand"]
+
+      nodeClassRef:
+        kind: EC2NodeClass
+        name: default
+        group: karpenter.k8s.aws
+
+      # Taint these nodes so only pipeline pods will be scheduled on them.
+      taints:
+        - key: spack.io/runner-taint
+          value: "true"
+          effect: NoSchedule
+
+      startupTaints:
+        # See k8s/production/custom/runner-node-certificate-controller/
+        # for explanation of this
+        - key: "node.spack.io/certificate-pending"
+          value: "true"
+          effect: "NoSchedule"
+
+  # Terminate nodes after 5 minutes of idle time
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
+
+  # Resource limits for this provisioner only.
+  # TODO: size to the aggregate capacity of the on-prem runners being replaced.
+  limits:
+    cpu: 512
+    memory: 2Ti
