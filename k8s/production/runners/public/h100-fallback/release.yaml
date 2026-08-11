@@ -1,0 +1,160 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: runner-h100-fallback-pub
+  namespace: gitlab
+spec:
+  interval: 10m
+  url: https://charts.gitlab.io
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: runner-h100-fallback-pub
+  namespace: gitlab
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: gitlab-runner
+      version: 0.91.0 # gitlab-runner@19.2.0
+      sourceRef:
+        kind: HelmRepository
+        name: runner-h100-fallback-pub
+  dependsOn:
+    - name: gitlab
+      namespace: gitlab
+
+  valuesFrom:
+    - kind: ConfigMap
+      name: gitlab-runner-sentry-config
+      valuesKey: values.yaml
+
+  values:
+    imagePullPolicy: IfNotPresent
+    # Without this, the gitlab-runner chart's fullname helper would name the
+    # Deployment "runner-h100-fallback-pub-gitlab-runner" (it only reuses the
+    # release name verbatim when the chart name is a prefix of it).
+    fullnameOverride: runner-h100-fallback-pub
+    # Manual enable/disable switch for the H100 EC2 fallback runner.
+    # See ./README.md. 0 = disabled (default), 1 = enabled.
+    replicas: 0
+    probeTimeoutSeconds: 70
+
+    gitlabUrl: "https://gitlab.spack.io/"
+    unregisterRunners: true
+    terminationGracePeriodSeconds: 21600 # six hours
+    concurrent: 8 # one job per GPU; only ever one p5.48xlarge node
+    checkInterval: 30
+
+    metrics:
+      enabled: true
+
+    rbac:
+      serviceAccountName: runner
+
+    runners:
+      config: |
+        [[runners]]
+          # Unlike the spack/* runners (e.g. x86_64/v4), this runner
+          # intentionally has no pre_build_script exchanging
+          # GITLAB_OIDC_TOKEN for S3 binary-mirror credentials: only the
+          # spack runners push to the S3 buildcache, this HPSF GPU fallback
+          # runner does not.
+          output_limit = 20480
+          # Required for [[runners.kubernetes.pod_spec]] below (GPU resource
+          # request patch).
+          environment = ["FF_GITLAB_REGISTRY_HELPER_IMAGE=1", "FF_USE_POD_SPEC_ATTRIBUTES=true"]
+          [runners.kubernetes]
+            privileged = false
+            helper_memory_request = "512M"
+
+            # p5.48xlarge has 192 vCPU / 2048G RAM / 8x H100 total. Concurrency
+            # (see concurrent above) is gated at 8, one job per GPU. Per-job
+            # overwrite ceilings below are the box divided evenly across those
+            # 8 slots, minus headroom for the device plugin, kubelet, and other
+            # system daemonsets - even if all 8 concurrent jobs simultaneously
+            # max out their overwrite ceiling, total usage (184 vCPU / 1920G)
+            # stays under the node's real capacity.
+            cpu_request = "8"
+            cpu_request_overwrite_max_allowed = "23"
+            cpu_limit_overwrite_max_allowed = "23"
+
+            memory_request = "32G"
+            memory_request_overwrite_max_allowed = "240G"
+            memory_limit = "240G"
+            memory_limit_overwrite_max_allowed = "240G"
+
+            namespace = "pipeline"
+            poll_timeout = 600  # ten minutes
+            service_account = "runner"
+
+            [runners.kubernetes.affinity]
+              [runners.kubernetes.affinity.node_affinity]
+                [runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution]
+                  [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms]]
+                    [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
+                        key = "spack.io/h100-fallback"
+                        operator = "In"
+                        values = ["true"]
+                    [[runners.kubernetes.affinity.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms.match_expressions]]
+                        key = "spack.io/pipeline"
+                        operator = "Exists"
+
+            [runners.kubernetes.node_tolerations]
+              "spack.io/h100-fallback=true" = "NoSchedule"
+
+            # Requests one of the node's 8 GPUs for the job's build container;
+            # the device plugin assigns a distinct GPU to each concurrent pod.
+            [[runners.kubernetes.pod_spec]]
+              name = "gpu-request"
+              patch_type = "strategic"
+              patch = """
+              containers:
+                - name: build
+                  resources:
+                    limits:
+                      nvidia.com/gpu: 1
+                    requests:
+                      nvidia.com/gpu: 1
+              """
+
+            [runners.kubernetes.pod_annotations]
+              "pod-cleanup.gitlab.com/ttl" = "12h"
+              "fluentbit.io/exclude" = "true"
+              "karpenter.sh/do-not-disrupt" = "true"
+              "gitlab/ci_pipeline_url" = "$CI_PIPELINE_URL"
+              "gitlab/ci_job_url" = "$CI_JOB_URL"
+              "gitlab/ci_project_url" = "$CI_PROJECT_URL"
+              "gitlab/ci_runner_description" = "$CI_RUNNER_DESCRIPTION"
+              "gitlab/ci_job_id" = "$CI_JOB_ID"
+            [runners.kubernetes.pod_labels]
+              "spack.io/runner" = "true"
+              "gitlab/ci_job_id" = "$CI_JOB_ID"
+
+      image: "busybox:1.32.0"
+      imagePullPolicy: "if-not-present"
+      locked: false
+
+      tags: "hpsf-gpu,nvidia-h100,x86_64-nvidiagpu"
+      runUntagged: false
+      # Registered as a GitLab instance runner (not a spack group runner)
+      # Ssee ./README.md for the registration/sealing prerequisite this
+      # depends on.
+      secret: spack-instance-runner-secret
+
+      cache: {}
+      services: {}
+      helpers: {}
+
+    nodeSelector:
+      spack.io/node-pool: base # controller pod runs on the generic pool, not the GPU node
+
+    resources:
+      requests:
+        memory: 1G
+
+    podAnnotations:
+      karpenter.sh/do-not-disrupt: true

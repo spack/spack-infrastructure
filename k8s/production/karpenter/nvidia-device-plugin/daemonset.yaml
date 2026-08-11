@@ -1,0 +1,44 @@
+---
+# Exposes nvidia.com/gpu as a schedulable resource on any node labeled
+# spack.io/nvidia-gpu=true.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-device-plugin
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: nvidia-device-plugin
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: nvidia-device-plugin
+    spec:
+      priorityClassName: system-node-critical
+      nodeSelector:
+        spack.io/nvidia-gpu: "true"
+      tolerations:
+        # h100-fallback NodePool's taint (k8s/production/karpenter/provisioners/runners/x86_64/h100-fallback/provisioners.yaml)
+        - key: spack.io/h100-fallback
+          value: "true"
+          effect: NoSchedule
+      containers:
+        - name: nvidia-device-plugin-ctr
+          image: nvcr.io/nvidia/k8s-device-plugin:v0.19.3
+          env:
+            - name: FAIL_ON_INIT_ERROR
+              value: "false"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins

@@ -1,0 +1,82 @@
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: glr-h100-fallback
+spec:
+  template:
+    metadata:
+      labels:
+        # Generic label so the shared NVIDIA device plugin DaemonSet
+        # (k8s/production/karpenter/nvidia-device-plugin/daemonset.yaml)
+        # schedules onto this node.
+        spack.io/nvidia-gpu: "true"
+        # Specific label the h100-fallback GitLab Runner's node affinity
+        # requires (k8s/production/runners/public/h100-fallback/release.yaml).
+        spack.io/h100-fallback: "true"
+        # Required for k8s/production/custom/runner-node-certificate-controller
+        # to find this node and remove the certificate-pending startupTaint
+        # below - that controller only watches nodes with this label.
+        spack.io/pipeline: "true"
+
+    spec:
+      requirements:
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+
+        - key: "karpenter.k8s.aws/instance-family"
+          operator: In
+          values: ["p5"]
+
+        - key: "karpenter.k8s.aws/instance-size"
+          operator: In
+          values: ["48xlarge"]
+
+        - key: "topology.kubernetes.io/zone"
+          operator: In
+          values:
+            - "us-east-1a"
+            - "us-east-1b"
+            - "us-east-1c"
+            - "us-east-1d"
+
+        - key: "kubernetes.io/os"
+          operator: In
+          values: ["linux"]
+
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+
+      nodeClassRef:
+        kind: EC2NodeClass
+        name: nvidia-gpu-x86-64
+        group: karpenter.k8s.aws
+
+      # Taint so only the h100-fallback runner's job pods land here.
+      taints:
+        - key: spack.io/h100-fallback
+          value: "true"
+          effect: NoSchedule
+
+      startupTaints:
+        - key: "node.spack.io/certificate-pending"
+          value: "true"
+          effect: "NoSchedule"
+
+  # Terminate the node after 5 minutes of idle time.
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
+
+  # Sized to exactly one p5.48xlarge (8x H100 80GB, 192 vCPU, 2048GB RAM) so
+  # Karpenter can never provision more than one node from this pool. p5.4xlarge
+  # (the originally-intended single-GPU size) is unusable with Karpenter due to
+  # an AWS EC2 API bug where DescribeInstanceTypes intermittently reports it as
+  # having 0 GPUs - see https://github.com/aws/karpenter-provider-aws/issues/8368.
+  # p5.48xlarge isn't affected.
+  limits:
+    cpu: "192"
+    memory: 2048Gi
+    nvidia.com/gpu: "8"

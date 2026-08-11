@@ -10,6 +10,8 @@ resources:
 - ../../production/karpenter/provisioners/gitlab/provisioner.yaml
 - ../../production/karpenter/provisioners/beefy/provisioner.yaml
 - ../../production/karpenter/provisioners/base/provisioner.yaml
+- ../../production/karpenter/provisioners/runners/x86_64/h100-fallback/provisioners.yaml
+- ../../production/karpenter/nvidia-device-plugin/daemonset.yaml
 patches:
   - target:
       kind: NodePool
@@ -57,4 +59,12 @@ patches:
     patch: |-
       - op: replace
         path: /spec/template/spec/requirements/5/values
+        value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
+
+  - target:
+      kind: NodePool
+      name: glr-h100-fallback
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/requirements/3/values
         value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]

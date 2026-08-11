@@ -134,6 +134,49 @@ resource "kubectl_manifest" "karpenter_windows_node_class" {
   ]
 }
 
+resource "kubectl_manifest" "karpenter_nvidia_gpu_node_class" {
+  yaml_body = <<-YAML
+    apiVersion: karpenter.k8s.aws/v1
+    kind: EC2NodeClass
+    metadata:
+      name: nvidia-gpu-x86-64
+    spec:
+      # AL2023 automatically resolves to the Nvidia-driver AMI variant for
+      # GPU instance types (p5, p4d, g5, g6e, ...) based on the requesting
+      # NodePool's instance-type requirements - same alias as "default"
+      # above, Karpenter picks the right variant per instance type.
+      amiFamily: AL2023
+      amiSelectorTerms:
+        - alias: al2023@latest
+      userData: |
+        apiVersion: node.eks.aws/v1alpha1
+        kind: NodeConfig
+        spec:
+          kubelet:
+            config:
+              serializeImagePulls: true
+      role: ${module.karpenter.node_iam_role_name}
+      subnetSelectorTerms:
+        - tags:
+            karpenter.sh/discovery: ${module.eks.cluster_name}
+      securityGroupSelectorTerms:
+        - tags:
+            karpenter.sh/discovery: ${module.eks.cluster_name}
+      tags:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+      blockDeviceMappings:
+        - deviceName: /dev/xvda
+          ebs:
+            volumeSize: 200Gi
+            volumeType: gp3
+            deleteOnTermination: true
+  YAML
+
+  depends_on = [
+    helm_release.karpenter
+  ]
+}
+
 module "karpenter_windows" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
   version = "21.8.0"
