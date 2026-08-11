@@ -4,17 +4,15 @@ resources:
 - ../../production/runners/sealed-secrets.yaml
 - ../../production/runners/service-accounts.yaml
 - ../../production/runners/namespace.yaml
-- ../../production/runners/public/graviton/3/release.yaml
-- ../../production/runners/public/graviton/4/release.yaml
-- ../../production/runners/public/x86_64/v2/release.yaml
-- ../../production/runners/public/x86_64/v3/release.yaml
-- ../../production/runners/public/x86_64/v4/release.yaml
+# The five Linux runner types each render their public runner, their protected
+# runner, and their Karpenter NodePool from charts/spack-runner-type.
+- ../../production/runners/types/graviton3.yaml
+- ../../production/runners/types/graviton4.yaml
+- ../../production/runners/types/x86_64-v2.yaml
+- ../../production/runners/types/x86_64-v3.yaml
+- ../../production/runners/types/x86_64-v4.yaml
+# Still standalone HelmReleases.
 - ../../production/runners/public/x86_64/v2-win/release.yaml
-- ../../production/runners/protected/graviton/3/release.yaml
-- ../../production/runners/protected/graviton/4/release.yaml
-- ../../production/runners/protected/x86_64/v2/release.yaml
-- ../../production/runners/protected/x86_64/v3/release.yaml
-- ../../production/runners/protected/x86_64/v4/release.yaml
 - ../../production/runners/protected/x86_64/v2-win/release.yaml
 - ../../production/runners/signing/release.yaml
 
@@ -35,99 +33,29 @@ patches:
       - op: remove
         path: /spec/encryptedData/runner-token
 
+  # Point every runner type at the staging GitLab and move its NodePool to the
+  # staging region. `name` is a regex, so this one patch covers all five types.
+  # The NodePools are rendered by the chart, so they can no longer be patched
+  # as kustomize resources -- these values feed templates/nodepool.yaml.
   - target:
       kind: HelmRelease
-      name: runner-graviton3-pub
+      name: "runner-(x86-v[234]|graviton[34])"
       namespace: gitlab
     patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
+      - op: add
+        path: /spec/values/public/gitlabUrl
         value: https://gitlab.staging.spack.io/
-
-  - target:
-      kind: HelmRelease
-      name: runner-graviton4-pub
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
+      - op: add
+        path: /spec/values/protected/gitlabUrl
         value: https://gitlab.staging.spack.io/
+      - op: add
+        path: /spec/values/global/spack/nodePool/zones
+        value: ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"]
 
-  - target:
-      kind: HelmRelease
-      name: runner-x86-v2-pub
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
-
-  - target:
-      kind: HelmRelease
-      name: runner-x86-v3-pub
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
-
-  - target:
-      kind: HelmRelease
-      name: runner-x86-v4-pub
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
-
+  # The runners that are still standalone HelmReleases.
   - target:
       kind: HelmRelease
       name: runner-x86-v2-pub-windows
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
-
-  - target:
-      kind: HelmRelease
-      name: runner-graviton3-prot
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
-
-  - target:
-      kind: HelmRelease
-      name: runner-graviton4-prot
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
-
-  - target:
-      kind: HelmRelease
-      name: runner-x86-v2-prot
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
-
-  - target:
-      kind: HelmRelease
-      name: runner-x86-v3-prot
-      namespace: gitlab
-    patch: |-
-      - op: replace
-        path: /spec/values/gitlabUrl
-        value: https://gitlab.staging.spack.io/
-
-  - target:
-      kind: HelmRelease
-      name: runner-x86-v4-prot
       namespace: gitlab
     patch: |-
       - op: replace

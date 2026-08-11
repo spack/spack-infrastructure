@@ -1,0 +1,148 @@
+# Defaults shared by every runner type. Anything that varies between types is
+# empty here and set by the per-type HelmRelease in
+# k8s/production/runners/types/.
+
+nodePool:
+  # Render the Karpenter NodePool. Only reason to disable it is a runner type
+  # that schedules onto a NodePool owned by something else.
+  enabled: true
+
+# `global` values are the ones visible to both gitlab-runner subcharts, so this
+# is where everything shared by a runner type's public and protected runners
+# lives. See templates/_runner-config.tpl.
+global:
+  spack:
+    # Human-readable name of the microarchitecture, used in comments.
+    description: ""
+
+    # Node label that identifies this microarch, applied by the NodePool and
+    # matched by the runners' node affinity.
+    nodeLabelKey: ""
+    nodeLabelValue: ""
+
+    # Label values a job pod is allowed to land on (required node affinity).
+    schedulesOn: []
+
+    # Optional preferred node affinity, most-preferred first:
+    #   - {value: "v3", weight: 2}
+    nodePreferences: []
+    preferenceComment: ""
+
+    nodeAffinityComment: ""
+
+    # Weight of the "pack pods into one zone" pod affinity.
+    podAffinityWeight: 1
+
+    # Runner helper image override. Only the Graviton types need this.
+    helperImage: ""
+
+    nodePool:
+      name: ""
+      arch: amd64
+      # Empty means "any family for this arch", which is what the baseline
+      # x86_64_v2 pool wants.
+      instanceFamilies: []
+      instanceSizes:
+        - "medium"
+        - "large"
+        - "xlarge"
+        - "2xlarge"
+        - "3xlarge"
+        - "4xlarge"
+        - "6xlarge"
+        - "8xlarge"
+        - "10xlarge"
+        - "12xlarge"
+        - "16xlarge"
+      zones:
+        - "us-east-1a"
+        - "us-east-1b"
+        - "us-east-1c"
+        - "us-east-1d"
+      limits:
+        cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+        memory: 15Ti # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+
+# ---------------------------------------------------------------------------
+# gitlab-runner subchart values.
+#
+# The two anchors below are what keep the public and protected runners from
+# drifting apart: both aliases merge the same block, and only the genuinely
+# per-visibility keys are spelled out.
+# ---------------------------------------------------------------------------
+
+_managerCommon: &managerCommon
+  gitlabUrl: "https://gitlab.spack.io/"
+  imagePullPolicy: IfNotPresent
+  replicas: 3
+  probeTimeoutSeconds: 70
+  unregisterRunners: true
+  terminationGracePeriodSeconds: 21600 # six hours
+  concurrent: 40
+  checkInterval: 30
+  metrics:
+    enabled: true
+  rbac:
+    serviceAccountName: runner
+  nodeSelector:
+    spack.io/node-pool: base # pool for the runner
+  resources:
+    requests:
+      # Based on this prometheus query:
+      # sum by (pod) (container_memory_max_usage_bytes{namespace="gitlab", pod=~"runner-.*"})
+      memory: 1G
+  podAnnotations:
+    karpenter.sh/do-not-disrupt: true
+
+_runnersCommon: &runnersCommon
+  # Hooks in the shared config.toml. The gitlab-runner chart runs this through
+  # `tpl`, so the template is evaluated with the subchart's values.
+  #
+  # The `namespace = "pipeline"` comment on the first line is load-bearing. The
+  # chart regex-matches the *raw* text of runners.config to decide whether to
+  # inject a KUBERNETES_NAMESPACE env var (see its templates/_env_vars.tpl).
+  # Our real config only exists after the include is rendered, which the chart
+  # cannot see, so without this line the chart would inject the release
+  # namespace and job pods would be created in `gitlab` instead of `pipeline`.
+  config: |
+    # namespace = "pipeline" -- see charts/spack-runner-type/values.yaml
+    {{ include "spack.runnerConfig" . }}
+  # default image
+  image: "busybox:1.32.0"
+  imagePullPolicy: "if-not-present"
+  runUntagged: false
+  secret: spack-group-runner-secret
+  cache: {}
+  services: {}
+  helpers: {}
+
+public:
+  enabled: true
+  <<: *managerCommon
+  fullnameOverride: ""
+  spack:
+    protected: false
+    cpuLimitMax: "24"
+    # Lets jobs tagged `service` opt out of OIDC setup via CI_OIDC_REQUIRED.
+    oidcOptional: false
+    # Adds a comment noting that pod packing outranks the node preferences.
+    podAffinityNote: false
+  runners:
+    <<: *runnersCommon
+    locked: false
+    tags: ""
+
+protected:
+  enabled: true
+  <<: *managerCommon
+  fullnameOverride: ""
+  spack:
+    protected: true
+    cpuLimitMax: "32"
+    oidcOptional: false
+    podAffinityNote: false
+  runners:
+    <<: *runnersCommon
+    locked: true
+    protected: true
+    tags: ""

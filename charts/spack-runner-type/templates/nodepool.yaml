@@ -1,47 +1,48 @@
----
-# Provisioner for x86_64_v2 gitlab runners
+{{- if .Values.nodePool.enabled }}
+{{- $s := .Values.global.spack }}
+# Provisioner for {{ $s.description }} gitlab runners
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: glr-x86-64-v2
+  name: {{ required "global.spack.nodePool.name is required" $s.nodePool.name }}
+  annotations:
+    # Never let a failed HelmRelease uninstall take this NodePool with it --
+    # deleting a NodePool cascades to its NodeClaims and drains the nodes.
+    helm.sh/resource-policy: keep
 spec:
   template:
     metadata:
-      # Label all provisioned nodes as x86-64-v2
+      # Label all provisioned nodes as {{ $s.description }}
       labels:
         spack.io/pipeline: "true"
-        spack.io/x86_64: "v2" # highest supported x86_64 microarch version
+        {{ required "global.spack.nodeLabelKey is required" $s.nodeLabelKey }}: {{ required "global.spack.nodeLabelValue is required" $s.nodeLabelValue | quote }}
     spec:
       requirements:
-      # Only spin up amd64 nodes
       - key: "kubernetes.io/arch"
         operator: In
-        values: ["amd64"]
+        values: [{{ $s.nodePool.arch | quote }}]
+
+      {{- if $s.nodePool.instanceFamilies }}
+
+      # Only provision nodes from instance families verified to support
+      # {{ $s.description }}.
+      - key: "karpenter.k8s.aws/instance-family"
+        operator: In
+        values:
+{{ toYaml $s.nodePool.instanceFamilies | indent 10 }}
+      {{- end }}
 
       # Instance Size
       - key: "karpenter.k8s.aws/instance-size"
         operator: In
         values:
-          - "medium"
-          - "large"
-          - "xlarge"
-          - "2xlarge"
-          - "3xlarge"
-          - "4xlarge"
-          - "6xlarge"
-          - "8xlarge"
-          - "10xlarge"
-          - "12xlarge"
-          - "16xlarge"
+{{ toYaml $s.nodePool.instanceSizes | indent 10 }}
 
       # Availability Zones
       - key: "topology.kubernetes.io/zone"
         operator: In
         values:
-          - "us-east-1a"
-          - "us-east-1b"
-          - "us-east-1c"
-          - "us-east-1d"
+{{ toYaml $s.nodePool.zones | indent 10 }}
 
       # Only use spot instances for runners
       - key: "karpenter.sh/capacity-type"
@@ -72,7 +73,6 @@ spec:
           value: "true"
           effect: "NoSchedule"
 
-
   # Terminate nodes after 5 minutes of idle time
   disruption:
     consolidationPolicy: WhenEmpty
@@ -80,5 +80,6 @@ spec:
 
   # Resource limits for this provisioner only
   limits:
-    cpu: 3840 # 16 vCPUs * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
-    memory: 15Ti # 64 Gi * 6 replicas * 20 concurrent jobs * 2 runners (public & protected)
+    cpu: {{ $s.nodePool.limits.cpu }}
+    memory: {{ $s.nodePool.limits.memory }}
+{{- end }}

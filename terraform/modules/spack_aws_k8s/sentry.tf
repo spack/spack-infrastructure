@@ -14,8 +14,15 @@ resource "kubectl_manifest" "gitlab_runner_sentry_config_map" {
       name: gitlab-runner-sentry-config
       namespace: gitlab
     data:
+      # Merged wholesale by the runners that are still standalone HelmReleases
+      # (Windows, signing).
       values.yaml: |
         sentryDsn: ${var.deployment_name == "prod" ? local.sentry_dsns["gitlab-runner"] : ""}
+      # charts/spack-runner-type nests the gitlab-runner chart twice, so the DSN
+      # has to be injected at public.sentryDsn and protected.sentryDsn. Flux
+      # only supports a targetPath when valuesKey holds a flat scalar, which is
+      # why this cannot reuse the values.yaml key above.
+      sentryDsn: "${var.deployment_name == "prod" ? local.sentry_dsns["gitlab-runner"] : ""}"
   YAML
 }
 

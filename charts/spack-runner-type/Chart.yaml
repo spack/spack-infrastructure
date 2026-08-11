@@ -1,0 +1,25 @@
+apiVersion: v2
+name: spack-runner-type
+description: |
+  One Spack CI runner type: a Karpenter NodePool plus the public and protected
+  GitLab runners that schedule onto it.
+type: application
+
+# IMPORTANT: bump this whenever anything under this directory changes.
+# The HelmReleases source this chart from the flux-system GitRepository with the
+# default `reconcileStrategy: ChartVersion`, so source-controller only rebuilds
+# the chart artifact when the version changes. Per-runner values live in the
+# HelmReleases themselves and take effect without a version bump.
+version: 0.1.0
+
+dependencies:
+  - name: gitlab-runner
+    version: 0.91.0 # gitlab-runner@19.2.0
+    repository: https://charts.gitlab.io
+    alias: public
+    condition: public.enabled
+  - name: gitlab-runner
+    version: 0.91.0 # gitlab-runner@19.2.0
+    repository: https://charts.gitlab.io
+    alias: protected
+    condition: protected.enabled

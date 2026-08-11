@@ -1,0 +1,74 @@
+---
+# x86_64_v4 runner type: the glr-x86-64-v4 NodePool plus its public and
+# protected runners. Everything not set here comes from
+# charts/spack-runner-type/values.yaml (including gitlabUrl).
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: runner-x86-v4
+  namespace: gitlab
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: ./charts/spack-runner-type
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+  dependsOn:
+    - name: gitlab
+      namespace: gitlab
+
+  valuesFrom:
+    # See terraform/modules/spack_aws_k8s/sentry.tf
+    - kind: ConfigMap
+      name: gitlab-runner-sentry-config
+      valuesKey: sentryDsn
+      targetPath: public.sentryDsn
+    - kind: ConfigMap
+      name: gitlab-runner-sentry-config
+      valuesKey: sentryDsn
+      targetPath: protected.sentryDsn
+
+  values:
+    global:
+      spack:
+        description: x86_64_v4
+        nodeLabelKey: spack.io/x86_64
+        nodeLabelValue: "v4"
+        nodeAffinityComment: Schedule this pod on any node with x86_64 = v4
+        schedulesOn: ["v4"]
+        podAffinityWeight: 1
+        nodePool:
+          name: glr-x86-64-v4
+          arch: amd64
+          instanceFamilies:
+            - "c5"
+            - "c5n"
+            - "c6i"
+            - "m5"
+            - "m5n"
+            - "m5zn"
+            - "m6i"
+            - "r5"
+            - "r5b"
+            - "r5n"
+            - "r6i"
+            - "t3"
+            - "x2iedn"
+            - "x2iezn"
+
+    public:
+      fullnameOverride: runner-x86-v4-pub-gitlab-runner
+      spack:
+        cpuLimitMax: "24"
+      runners:
+        tags: "x86_64,x86_64_v2,x86_64_v3,x86_64_v4,avx,avx2,avx512,small,medium,large,huge,public,aws,spack"
+
+    protected:
+      fullnameOverride: runner-x86-v4-prot-gitlab-runner
+      spack:
+        cpuLimitMax: "32"
+      runners:
+        tags: "x86_64,x86_64_v2,x86_64_v3,x86_64_v4,avx,avx2,avx512,small,medium,large,huge,protected,aws,spack"

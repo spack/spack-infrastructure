@@ -45,3 +45,7 @@ private.key
 
 # PyCharm config files
 .idea
+
+# Vendored Helm subcharts. Chart.lock is committed; the tarballs are fetched
+# by source-controller (and by `helm dependency build` locally).
+charts/*/charts/
