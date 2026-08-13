@@ -40,3 +40,8 @@ provider "aws" {
     role_arn = "arn:aws:iam::588562868276:role/terraform-role"
   }
 }
+
+provider "gitlab" {
+  base_url = "https://gitlab.staging.spack.io"
+  token    = var.gitlab_token
+}
