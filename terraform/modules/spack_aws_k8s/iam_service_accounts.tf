@@ -15,6 +15,16 @@ module "build_cache_pruner" {
             "s3:DeleteObject"
           ],
           "Resource" : "${module.protected_binary_mirror.bucket_arn}/develop/*"
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:ListBucket",
+          "Resource" : module.pr_binary_mirror.bucket_arn
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:DeleteObject",
+          "Resource" : "${module.pr_binary_mirror.bucket_arn}/*"
         }
       ]
     }),
