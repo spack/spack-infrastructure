@@ -26,6 +26,18 @@
   lockFileMaintenance: {
     enabled: true,
     schedule: ["before 9am on the first day of the month"],
+    // One refresh PR across every lock file, rather than one per ecosystem.
+    groupName: "lock file maintenance",
+    commitMessagePrefix: "[deps]",
+  },
+
+  // Vulnerability alerts bypass `packageRules` grouping, so without this every
+  // advisory opens its own PR. Keep them on a single fast-tracked PR that still
+  // ignores the weekly schedule and the minimumReleaseAge delays below.
+  vulnerabilityAlerts: {
+    groupName: "security updates",
+    commitMessagePrefix: "[security]",
+    labels: ["dependencies", "security"],
   },
 
   // ---------------------------------------------------------------------------
@@ -118,12 +130,58 @@
     // Update-type specific handling
     // -------------------------------------------------------------------------
     {
-      // Major bumps of infrastructure components are rarely drop-in. Split them
-      // out of the grouped PRs so each can be reviewed and rolled back alone.
+      // Major bumps of infrastructure components are rarely drop-in, so keep
+      // them out of the minor/patch PRs. They still land as one PR per
+      // ecosystem (see the rules below) rather than one PR per dependency.
       matchUpdateTypes: ["major"],
-      groupName: null,
       dependencyDashboardApproval: true,
       minimumReleaseAge: "7 days",
+      groupName: "other major updates",
+      commitMessagePrefix: "[deps]",
+    },
+    // These re-split the catch-all above per ecosystem. They must come *after*
+    // it, since the last matching rule wins.
+    {
+      matchManagers: ["github-actions", "github-runners"],
+      matchUpdateTypes: ["major"],
+      groupName: "github actions major updates",
+      commitMessagePrefix: "[gh-actions]",
+    },
+    {
+      matchManagers: ["terraform", "terraform-version"],
+      matchUpdateTypes: ["major"],
+      groupName: "terraform major updates",
+      commitMessagePrefix: "[terraform]",
+    },
+    {
+      matchManagers: ["dockerfile", "docker-compose"],
+      matchUpdateTypes: ["major"],
+      groupName: "docker base image major updates",
+      commitMessagePrefix: "[docker]",
+    },
+    {
+      matchManagers: ["kubernetes", "kustomize"],
+      matchUpdateTypes: ["major"],
+      groupName: "kubernetes manifest image major updates",
+      commitMessagePrefix: "[k8s]",
+    },
+    {
+      matchManagers: ["flux", "helm-values", "helmv3"],
+      matchUpdateTypes: ["major"],
+      groupName: "helm chart major updates",
+      commitMessagePrefix: "[helm]",
+    },
+    {
+      matchManagers: [
+        "pip_requirements",
+        "pip-compile",
+        "pep621",
+        "poetry",
+        "pixi",
+      ],
+      matchUpdateTypes: ["major"],
+      groupName: "python major updates",
+      commitMessagePrefix: "[python]",
     },
     {
       // Let a release sit briefly before adopting it, so yanked or immediately
