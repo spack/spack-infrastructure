@@ -3,6 +3,6 @@ name = "snapshot-release-tags"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "PyGithub==2.8.1",
+    "PyGithub~=2.8.1",
     "sentry-sdk",
 ]

@@ -218,18 +218,16 @@ dependencies = [
     { name = "boto3" },
     { name = "pygithub" },
     { name = "python-gitlab" },
-    { name = "pyyaml" },
     { name = "sentry-sdk" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "awscli", specifier = "==1.42.55" },
-    { name = "boto3", specifier = "==1.40.55" },
-    { name = "pygithub", specifier = "==2.9.1" },
-    { name = "python-gitlab", specifier = "==6.5.0" },
-    { name = "pyyaml", specifier = "==6.0.3" },
-    { name = "sentry-sdk", specifier = "==2.42.1" },
+    { name = "awscli", specifier = "~=1.42.55" },
+    { name = "boto3", specifier = "~=1.40.55" },
+    { name = "pygithub", specifier = "~=2.9.1" },
+    { name = "python-gitlab", specifier = "~=6.5.0" },
+    { name = "sentry-sdk", specifier = "~=2.42.1" },
 ]
 
 [[package]]
