@@ -18,13 +18,13 @@ RUN rm -rf /var/lib/apt/lists/*
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Only copy the setup.py, it will still force all install_requires to be installed,
-# but find_packages() will find nothing (which is fine). When Docker Compose mounts the real source
-# over top of this directory, the .egg-link in site-packages resolves to the mounted directory
-# and all package modules are importable.
-COPY ./setup.py /opt/django-project/setup.py
+# Only copy the dependency metadata, so that the layer is cached independently of the source.
+# --no-install-project keeps the app itself out of site-packages; Docker Compose mounts the real
+# source over /opt/django-project and PYTHONPATH (set below) makes its modules importable.
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
+COPY ./pyproject.toml ./uv.lock /opt/django-project/
 RUN pip install --upgrade uv
-RUN uv pip install --system --editable /opt/django-project[dev]
+RUN uv sync --project /opt/django-project --frozen --no-install-project --extra dev --no-cache
 
 
 # Install spack
@@ -35,6 +35,9 @@ RUN cd /opt/spack && git checkout v0.22.0
 ENV PYTHONPATH "/opt/spack/lib/spack:$PYTHONPATH"
 ENV PYTHONPATH "/opt/spack/lib/spack/external/_vendoring:$PYTHONPATH"
 ENV PYTHONPATH "/opt/spack/lib/spack/external:$PYTHONPATH"
+
+# Make the bind-mounted project source importable
+ENV PYTHONPATH "/opt/django-project:$PYTHONPATH"
 
 
 # Use a directory name which will never be an import name, as isort considers this as first-party.

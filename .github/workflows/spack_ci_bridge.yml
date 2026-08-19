@@ -19,7 +19,9 @@ jobs:
           git                                                                  \
           openssh-client                                                       \
           python3-pip
-        sudo pip3 install -r images/gh-gl-sync/requirements.txt
+        pip3 install uv
+        uv sync --project images/gh-gl-sync --frozen
+        echo "$PWD/images/gh-gl-sync/.venv/bin" >> $GITHUB_PATH
     - name: test
       run: |
         ctest -VV -S .github/spack_ci_bridge.cmake

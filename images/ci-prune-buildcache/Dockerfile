@@ -8,14 +8,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
+# Install dependencies into the image's system prefix rather than a project .venv
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
 # Don't write .pyc files to disk
 ENV PYTHONDONTWRITEBYTECODE=1
 # Don't buffer Python output
 ENV PYTHONUNBUFFERED=1
 
 # Install Python dependencies
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN pip install --upgrade uv
+RUN uv sync --frozen --no-dev --no-cache
 
 # Clone a particular commit of spack
 RUN mkdir spack                                                        && \

@@ -1,11 +1,13 @@
 FROM python:3.11-slim
 
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
+
 WORKDIR /app
 
-COPY requirements.txt /app/requirements.txt
+COPY pyproject.toml uv.lock /app/
 
 RUN pip install --upgrade uv
-RUN uv pip install --system -r requirements.txt
+RUN uv sync --frozen --no-dev --no-cache
 
 COPY . .
 
