@@ -1,9 +1,9 @@
 images:
   - path: ./images/gh-gl-sync
-    image: ghcr.io/spack/ci-bridge:0.0.52
+    image: ghcr.io/spack/ci-bridge:0.0.53
 
   - path: ./images/ci-key-clear
-    image: ghcr.io/spack/ci-key-clear:0.0.6
+    image: ghcr.io/spack/ci-key-clear:0.0.7
 
   - path: ./images/gitlab-stuckpods
     image: ghcr.io/spack/stuckpods:0.0.2
@@ -24,22 +24,22 @@ images:
     image: ghcr.io/spack/python-aws-bash:0.0.3
 
   - path: ./images/snapshot-release-tags
-    image: ghcr.io/spack/snapshot-release-tags:0.0.7
+    image: ghcr.io/spack/snapshot-release-tags:0.0.8
 
   - path: ./images/cache-indexer
     image: ghcr.io/spack/cache-indexer:0.0.7
 
   - path: ./analytics
-    image: ghcr.io/spack/django:0.5.26
+    image: ghcr.io/spack/django:0.5.27
 
   - path: ./images/ci-prune-buildcache
-    image: ghcr.io/spack/ci-prune-buildcache:0.0.9
+    image: ghcr.io/spack/ci-prune-buildcache:0.0.10
 
   - path: ./images/protected-publish
-    image: ghcr.io/spack/protected-publish:0.0.10
+    image: ghcr.io/spack/protected-publish:0.0.11
 
   - path: ./images/retry-trigger-jobs
-    image: ghcr.io/spack/retry-trigger-jobs:0.0.3
+    image: ghcr.io/spack/retry-trigger-jobs:0.0.4
 
   - path: ./images/runner-node-certificate-controller
     image: ghcr.io/spack/runner-node-certificate-controller:0.0.3

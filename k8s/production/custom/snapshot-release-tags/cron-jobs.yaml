@@ -16,7 +16,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: snapshot-release-tags
-            image: ghcr.io/spack/snapshot-release-tags:0.0.7
+            image: ghcr.io/spack/snapshot-release-tags:0.0.8
             imagePullPolicy: IfNotPresent
             resources:
               requests:
