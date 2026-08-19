@@ -15,8 +15,8 @@ RUN apt-get update && \
 # Cleanup
 RUN rm -rf /var/lib/apt/lists/*
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Only copy the dependency metadata, so that the layer is cached independently of the source.
 # --no-install-project keeps the app itself out of site-packages; Docker Compose mounts the real
@@ -32,12 +32,12 @@ RUN git clone -c feature.manyFiles=true https://github.com/spack/spack.git /opt/
 RUN cd /opt/spack && git checkout v0.22.0
 
 # Include spack import paths for python packages. Order is important
-ENV PYTHONPATH "/opt/spack/lib/spack:$PYTHONPATH"
-ENV PYTHONPATH "/opt/spack/lib/spack/external/_vendoring:$PYTHONPATH"
-ENV PYTHONPATH "/opt/spack/lib/spack/external:$PYTHONPATH"
+ENV PYTHONPATH="/opt/spack/lib/spack"
+ENV PYTHONPATH="/opt/spack/lib/spack/external/_vendoring:${PYTHONPATH}"
+ENV PYTHONPATH="/opt/spack/lib/spack/external:${PYTHONPATH}"
 
 # Make the bind-mounted project source importable
-ENV PYTHONPATH "/opt/django-project:$PYTHONPATH"
+ENV PYTHONPATH="/opt/django-project:${PYTHONPATH}"
 
 
 # Use a directory name which will never be an import name, as isort considers this as first-party.

@@ -15,9 +15,9 @@ RUN apt-get update && \
 RUN git clone -c feature.manyFiles=true --depth 1 --branch v0.22.0 https://github.com/spack/spack.git /opt/spack
 
 # Include spack import paths for python packages. Order is important
-ENV PYTHONPATH "/opt/spack/lib/spack:$PYTHONPATH"
-ENV PYTHONPATH "/opt/spack/lib/spack/external/_vendoring:$PYTHONPATH"
-ENV PYTHONPATH "/opt/spack/lib/spack/external:$PYTHONPATH"
+ENV PYTHONPATH="/opt/spack/lib/spack"
+ENV PYTHONPATH="/opt/spack/lib/spack/external/_vendoring:${PYTHONPATH}"
+ENV PYTHONPATH="/opt/spack/lib/spack/external:${PYTHONPATH}"
 
 
 # Install dependencies into the image's system prefix rather than a project .venv
