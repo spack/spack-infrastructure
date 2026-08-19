@@ -35,7 +35,7 @@
   // advisory opens its own PR. Keep them on a single fast-tracked PR that still
   // ignores the weekly schedule and the minimumReleaseAge delays below.
   vulnerabilityAlerts: {
-    groupName: "security updates",
+    groupName: "security",
     commitMessagePrefix: "[security]",
     labels: ["dependencies", "security"],
   },
@@ -136,7 +136,7 @@
       matchUpdateTypes: ["major"],
       dependencyDashboardApproval: true,
       minimumReleaseAge: "7 days",
-      groupName: "other major updates",
+      groupName: "other major",
       commitMessagePrefix: "[deps]",
     },
     // These re-split the catch-all above per ecosystem. They must come *after*
@@ -144,31 +144,31 @@
     {
       matchManagers: ["github-actions", "github-runners"],
       matchUpdateTypes: ["major"],
-      groupName: "github actions major updates",
+      groupName: "github actions major",
       commitMessagePrefix: "[gh-actions]",
     },
     {
       matchManagers: ["terraform", "terraform-version"],
       matchUpdateTypes: ["major"],
-      groupName: "terraform major updates",
+      groupName: "terraform major",
       commitMessagePrefix: "[terraform]",
     },
     {
       matchManagers: ["dockerfile", "docker-compose"],
       matchUpdateTypes: ["major"],
-      groupName: "docker base image major updates",
+      groupName: "docker base image major",
       commitMessagePrefix: "[docker]",
     },
     {
       matchManagers: ["kubernetes", "kustomize"],
       matchUpdateTypes: ["major"],
-      groupName: "kubernetes manifest image major updates",
+      groupName: "kubernetes manifest image major",
       commitMessagePrefix: "[k8s]",
     },
     {
       matchManagers: ["flux", "helm-values", "helmv3"],
       matchUpdateTypes: ["major"],
-      groupName: "helm chart major updates",
+      groupName: "helm chart major",
       commitMessagePrefix: "[helm]",
     },
     {
@@ -180,7 +180,7 @@
         "pixi",
       ],
       matchUpdateTypes: ["major"],
-      groupName: "python major updates",
+      groupName: "python major",
       commitMessagePrefix: "[python]",
     },
     {
