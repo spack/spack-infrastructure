@@ -1,0 +1,12 @@
+[project]
+name = "ci-prune-buildcache"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "awscli==1.42.55",
+    "boto3==1.40.55",
+    "PyGithub==2.9.1",
+    "python-gitlab==6.5.0",
+    "PyYAML==6.0.3",
+    "sentry-sdk==2.42.1",
+]

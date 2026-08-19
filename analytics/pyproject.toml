@@ -1,3 +1,66 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "analytics"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+    { name = "Kitware, Inc.", email = "kitware@kitware.com" },
+]
+keywords = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python",
+]
+requires-python = ">=3.13"
+dependencies = [
+    "cachetools==5.5.0",
+    "celery[redis]==5.4.0",
+    "dj-database-url==2.3.0",
+    "dj-email-url==1.0.6",
+    "django-click==2.4.0",
+    "django-configurations[database,email]==2.5.1",
+    "django-cors-headers==4.6.0",
+    "django-extensions==3.2.3",
+    "django-girder-utils==0.13.1",
+    "django-ninja==1.3.0",
+    "django-s3-file-field[minio]==1.0.1",
+    "django==5.1.15",
+    "gunicorn==23.0.0",
+    "opensearch-dsl==2.1.0",
+    "kubernetes==31.0.0",
+    "sentry-sdk[django,pure_eval]==2.19.2",
+    "rich==13.9.4",
+    "psycopg2-binary==2.9.10",
+    "python-gitlab==5.3.0",
+    "pyyaml==6.0.2",
+    "requests==2.32.4",
+    "tqdm==4.66.3",
+    "whitenoise[brotli]==6.8.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "types-cachetools",
+    "django-debug-toolbar",
+    "ipython",
+    "tox",
+]
+
+[tool.setuptools.packages.find]
+include = ["analytics*"]
+
 [tool.black]
 line-length = 100
 target-version = ["py313"]
