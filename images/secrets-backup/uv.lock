@@ -553,8 +553,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boto3", specifier = "==1.26.68" },
-    { name = "kubernetes", specifier = "==25.3.0" },
+    { name = "boto3", specifier = "~=1.26.68" },
+    { name = "kubernetes", specifier = "~=25.3.0" },
 ]
 
 [[package]]
