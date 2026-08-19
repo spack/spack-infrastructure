@@ -50,8 +50,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boto3", specifier = "==1.40.74" },
-    { name = "sentry-sdk", specifier = "==2.44.0" },
+    { name = "boto3", specifier = "~=1.40.74" },
+    { name = "sentry-sdk", specifier = "~=2.44.0" },
 ]
 
 [[package]]
