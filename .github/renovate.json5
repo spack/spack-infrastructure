@@ -37,6 +37,7 @@
   vulnerabilityAlerts: {
     groupName: "security",
     commitMessagePrefix: "[security]",
+    commitMessageSuffix: "", // Override default
     labels: ["dependencies", "security"],
   },
 
