@@ -49,7 +49,6 @@ setup(
         "django-s3-file-field[minio]",
         "django~=5.1",
         "gunicorn",
-        "opensearch-dsl",
         "kubernetes",
         "sentry-sdk[django,pure_eval]",
         "rich",
