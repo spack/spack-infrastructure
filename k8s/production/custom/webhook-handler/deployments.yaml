@@ -94,21 +94,6 @@ spec:
                 secretKeyRef:
                   name: webhook-secrets
                   key: gitlab-db-port
-            - name: OPENSEARCH_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-endpoint
-            - name: OPENSEARCH_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-username
-            - name: OPENSEARCH_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-password
             - name: CELERY_BROKER_URL
               valueFrom:
                 secretKeyRef:
@@ -228,21 +213,6 @@ spec:
                 secretKeyRef:
                   name: webhook-secrets
                   key: gitlab-db-port
-            - name: OPENSEARCH_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-endpoint
-            - name: OPENSEARCH_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-username
-            - name: OPENSEARCH_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-password
             - name: CELERY_BROKER_URL
               valueFrom:
                 secretKeyRef:

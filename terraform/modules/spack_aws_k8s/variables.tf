@@ -42,16 +42,6 @@ variable "cdash_db_instance_class" {
   type        = string
 }
 
-variable "opensearch_instance_type" {
-  description = "The instance type for the OpenSearch domain."
-  type        = string
-}
-
-variable "opensearch_volume_size" {
-  description = "The size of the EBS volume for the OpenSearch domain."
-  type        = number
-}
-
 variable "eks_cluster_role" {
   description = "The IAM role to assume when interacting with EKS resources."
   type        = string
