@@ -15,6 +15,7 @@ shutdown_timeout = 0
   token_obtained_at = 2026-07-30T21:27:09Z
   token_expires_at = 0001-01-01T00:00:00Z
   executor = "docker"
+  environment = ["SPACK_EXTRA_MIRROR=https://uo-spack-mirror.e4s.io:9002/spack-binaries/develop"]
   pre_build_script = "  echo 'Executing Spack pre-build setup script'\n  for cmd in \"${PY3:-}\" python3 python; do\n    if command -v > /dev/null \"$cmd\"; then\n      export PY3=\"$(command -v \"$cmd\")\"\n      break\n    fi\n  done\n  if [ -z \"${PY3:-}\" ]; then\n    echo \"Unable to find python3 executable\"\n    exit 1\n  fi\n  $PY3 -c \"import urllib.request;urllib.request.urlretrieve('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', 'pre_build.py')\"\n  $PY3 pre_build.py > envvars\n  . ./envvars\n  rm -f envvars\n  unset GITLAB_OIDC_TOKEN\n  "
   [runners.cache]
     MaxUploadedArchiveSize = 0
@@ -45,6 +46,7 @@ shutdown_timeout = 0
   token_obtained_at = 2026-07-30T21:27:44Z
   token_expires_at = 0001-01-01T00:00:00Z
   executor = "docker"
+  environment = ["SPACK_EXTRA_MIRROR=https://uo-spack-mirror.e4s.io:9002/spack-binaries/develop"]
   pre_build_script = "  echo 'Executing Spack pre-build setup script'\n  for cmd in \"${PY3:-}\" python3 python; do\n    if command -v > /dev/null \"$cmd\"; then\n      export PY3=\"$(command -v \"$cmd\")\"\n      break\n    fi\n  done\n  if [ -z \"${PY3:-}\" ]; then\n    echo \"Unable to find python3 executable\"\n    exit 1\n  fi\n  $PY3 -c \"import urllib.request;urllib.request.urlretrieve('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', 'pre_build.py')\"\n  $PY3 pre_build.py > envvars\n  . ./envvars\n  rm -f envvars\n  unset GITLAB_OIDC_TOKEN\n  "
   [runners.cache]
     MaxUploadedArchiveSize = 0
