@@ -23,6 +23,10 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: sealed-secrets
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
   values:
     nodeSelector:
       spack.io/node-pool: base
