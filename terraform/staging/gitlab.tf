@@ -12,11 +12,6 @@ resource "gitlab_group" "spack" {
   visibility_level = "public"
 }
 
-import {
-  to = gitlab_group.spack
-  id = "spack"
-}
-
 resource "gitlab_project" "spack" {
   name         = "spack"
   path         = "spack"
@@ -25,11 +20,6 @@ resource "gitlab_project" "spack" {
   visibility_level = "public"
   default_branch   = "develop"
   ci_config_path   = "share/spack/gitlab/cloud_pipelines/.gitlab-ci.yml"
-}
-
-import {
-  to = gitlab_project.spack
-  id = "spack/spack"
 }
 
 resource "gitlab_project" "spack_packages" {
@@ -52,11 +42,6 @@ resource "gitlab_project" "spack_packages" {
   mirror                         = true
   only_mirror_protected_branches = true
   mirror_trigger_builds          = false
-}
-
-import {
-  to = gitlab_project.spack_packages
-  id = "spack/spack-packages"
 }
 
 # Point the buildcache mirrors at the staging buckets. The checked-in
