@@ -23,16 +23,20 @@ resource "gitlab_project" "spack_packages" {
   visibility_level = "public"
   default_branch   = "develop"
   ci_config_path   = ".ci/gitlab/.gitlab-ci.yml"
+}
 
-  # On staging, keep the protected branches (develop, releases/v*) in sync with GitHub.
-  # Production does this with the gh-gl-sync CronJob instead. Staging has no
-  # such job.
-  # Restricted to protected branches so that pulls never touch testing-branch,
-  # and with build triggers off so that a sync of thousands of upstream commits
-  # doesn't kick off a protected-branch pipeline.
-  import_url                     = var.deployment_name == "prod" ? "" : "https://github.com/spack/spack-packages.git"
-  mirror                         = var.deployment_name == "prod" ? false : true
-  only_mirror_protected_branches = var.deployment_name == "prod" ? false : true
+# On staging, keep the protected branches (develop, releases/v*) in sync with GitHub.
+# Production does this with the gh-gl-sync CronJob instead. Staging has no
+# such job.
+# Restricted to protected branches so that pulls never touch testing-branch,
+# and with build triggers off so that a sync of thousands of upstream commits
+# doesn't kick off a protected-branch pipeline.
+resource "gitlab_project_pull_mirror" "github_spack_packages" {
+  count = var.deployment_name != "prod" ? 1 : 0
+
+  project                        = gitlab_project.spack_packages.id
+  url                            = "https://github.com/spack/spack-packages.git"
+  only_mirror_protected_branches = true
   mirror_trigger_builds          = false
 }
 
