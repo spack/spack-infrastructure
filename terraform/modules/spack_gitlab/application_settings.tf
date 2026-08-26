@@ -407,6 +407,12 @@ resource "gitlab_application_settings" "this" {
   # Maximum size in bytes of the Terraform state files.
   max_terraform_state_size_bytes = 0
 
+  # Maximum size in bytes of a CI/CD configuration YAML file.
+  max_yaml_size_bytes = 52428800
+
+  # Maximum depth of nested CI/CD configuration added with the 'include' keyword.
+  max_yaml_depth = 100
+
   # A method call is only tracked when it takes longer than the given amount of milliseconds.
   metrics_method_call_threshold = 10
 
