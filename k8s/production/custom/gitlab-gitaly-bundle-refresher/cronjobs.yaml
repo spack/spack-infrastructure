@@ -23,25 +23,39 @@ spec:
                 - |
                   set -e
 
+                  # GitLab full paths of the projects to build bundle URIs for.
+                  PROJECTS="spack/spack-packages spack/spack"
+
+                  # Run a Rails snippet in the toolbox and echo its output.
+                  toolbox_rails() {
+                    kubectl exec --stdin --namespace gitlab deploy/gitlab-toolbox --container toolbox -- \
+                      /srv/gitlab/bin/rails runner "$1"
+                  }
+
                   # Enable Gitaly bundle URI feature
                   # This command is idempotent, so we can run it every time to ensure the feature is enabled
-                  kubectl exec --stdin --namespace gitlab deploy/gitlab-toolbox --container toolbox -- /srv/gitlab/bin/rails runner "Feature.enable(:gitaly_bundle_uri)"
+                  toolbox_rails "Feature.enable(:gitaly_bundle_uri)"
 
-                  # Get the hashed repository path
-                  REPO_PATH="$(kubectl exec --stdin --namespace gitlab deploy/gitlab-toolbox --container toolbox -- /srv/gitlab/bin/rails runner "puts Project.find_by_full_path('spack/spack').repository.disk_path").git"
+                  GITALY_POD="$(kubectl get pod --namespace gitlab --selector app=gitaly --output jsonpath='{.items[0].metadata.name}')"
 
-                  if [ -z "$REPO_PATH" ]; then
-                    echo "Error: Repository path not found!"
-                    exit 1
-                  fi
+                  for PROJECT in $PROJECTS; do
+                    # Get the hashed repository path. The &. guards keep a missing project from
+                    # raising, so the check below reports it instead of a Ruby backtrace.
+                    DISK_PATH="$(toolbox_rails "puts Project.find_by_full_path('$PROJECT')&.repository&.disk_path")"
 
-                  echo "Found repository path: $REPO_PATH"
+                    if [ -z "$DISK_PATH" ]; then
+                      echo "Error: repository path not found for $PROJECT!" >&2
+                      exit 1
+                    fi
 
-                  # Run Gitaly bundle-uri command
-                  kubectl exec --stdin $(kubectl get pod --namespace gitlab --selector app=gitaly --output jsonpath='{.items[0].metadata.name}') -- \
-                    gitaly bundle-uri \
-                      --config=/etc/gitaly/config.toml \
-                      --storage=default \
-                      --repository=$REPO_PATH
+                    echo "Found repository path for $PROJECT: $DISK_PATH.git"
+
+                    # Run Gitaly bundle-uri command
+                    kubectl exec --stdin "$GITALY_POD" -- \
+                      gitaly bundle-uri \
+                        --config=/etc/gitaly/config.toml \
+                        --storage=default \
+                        --repository="$DISK_PATH.git"
+                  done
           nodeSelector:
             spack.io/node-pool: base
