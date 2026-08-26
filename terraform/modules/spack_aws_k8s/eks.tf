@@ -88,7 +88,7 @@ module "eks" {
       })
     }
     aws-ebs-csi-driver = {
-      addon_version            = "v1.51.1-eksbuild.1"
+      addon_version            = "v1.64.0-eksbuild.1"
       service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
     }
   }
