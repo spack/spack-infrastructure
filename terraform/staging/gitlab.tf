@@ -53,10 +53,10 @@ resource "gitlab_project" "spack_packages" {
 # production buildcache.
 resource "gitlab_project_variable" "spack_packages_binary_mirrors" {
   for_each = {
-    PR_MIRROR_FETCH_DOMAIN        = "s3://spack-binaries-prs-staging"
-    PR_MIRROR_PUSH_DOMAIN         = "s3://spack-binaries-prs-staging"
-    PROTECTED_MIRROR_FETCH_DOMAIN = "s3://spack-binaries-staging"
-    PROTECTED_MIRROR_PUSH_DOMAIN  = "s3://spack-binaries-staging"
+    PR_MIRROR_FETCH_DOMAIN        = "s3://${module.spack_aws_k8s.pr_binary_mirror_bucket_name}"
+    PR_MIRROR_PUSH_DOMAIN         = "s3://${module.spack_aws_k8s.pr_binary_mirror_bucket_name}"
+    PROTECTED_MIRROR_FETCH_DOMAIN = "s3://${module.spack_aws_k8s.protected_binary_mirror_bucket_name}"
+    PROTECTED_MIRROR_PUSH_DOMAIN  = "s3://${module.spack_aws_k8s.protected_binary_mirror_bucket_name}"
   }
 
   project = gitlab_project.spack_packages.id
