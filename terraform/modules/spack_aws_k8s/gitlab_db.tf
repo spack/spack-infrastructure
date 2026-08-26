@@ -10,6 +10,8 @@ resource "aws_db_subnet_group" "gitlab_db" {
 resource "random_password" "gitlab_db_password" {
   length = 20
 
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+
   keepers = {
     version = "2"
   }
