@@ -23,7 +23,7 @@ spec:
       serviceAccountName: webhook-handler
       containers:
         - name: webhook-handler
-          image: ghcr.io/spack/django:0.5.25
+          image: ghcr.io/spack/django:0.5.26
           imagePullPolicy: Always
           resources:
             requests:
@@ -94,21 +94,6 @@ spec:
                 secretKeyRef:
                   name: webhook-secrets
                   key: gitlab-db-port
-            - name: OPENSEARCH_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-endpoint
-            - name: OPENSEARCH_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-username
-            - name: OPENSEARCH_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-password
             - name: CELERY_BROKER_URL
               valueFrom:
                 secretKeyRef:
@@ -146,7 +131,7 @@ spec:
       serviceAccountName: webhook-handler
       containers:
         - name: webhook-handler-worker
-          image: ghcr.io/spack/django:0.5.25
+          image: ghcr.io/spack/django:0.5.26
           command:
             [
               "celery",
@@ -228,21 +213,6 @@ spec:
                 secretKeyRef:
                   name: webhook-secrets
                   key: gitlab-db-port
-            - name: OPENSEARCH_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-endpoint
-            - name: OPENSEARCH_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-username
-            - name: OPENSEARCH_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: opensearch-secrets
-                  key: opensearch-password
             - name: CELERY_BROKER_URL
               valueFrom:
                 secretKeyRef:

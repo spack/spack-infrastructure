@@ -58,10 +58,6 @@ WSGI_APPLICATION = "analytics.wsgi.application"
 ROOT_URLCONF = "analytics.urls"
 
 # Spack specific settings
-OPENSEARCH_ENDPOINT = os.environ["OPENSEARCH_ENDPOINT"]
-OPENSEARCH_USERNAME = os.environ["OPENSEARCH_USERNAME"]
-OPENSEARCH_PASSWORD = os.environ["OPENSEARCH_PASSWORD"]
-
 GITLAB_ENDPOINT = os.environ["GITLAB_ENDPOINT"]
 GITLAB_TOKEN = os.environ["GITLAB_TOKEN"]
 

@@ -16,9 +16,6 @@ module "spack_aws_k8s" {
   gitlab_redis_instance_class = "cache.m6g.xlarge"
 
   cdash_db_instance_class = "db.m6g.large"
-
-  opensearch_instance_type = "r6g.xlarge.search"
-  opensearch_volume_size   = 500
 }
 
 module "spack_gitlab" {
