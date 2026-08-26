@@ -374,6 +374,9 @@ resource "gitlab_application_settings" "this" {
   # When instance is in maintenance mode, non-administrative users can sign in with read-only access and make read-only API requests.
   maintenance_mode = false
 
+  # Set the maintenance mode message explicity.
+  maintenance_mode_message = "Gitlab is undergoing scheduled maintenance. If you are experiencing issues, please try again later."
+
   # Use repo.maven.apache.org as a default remote repository when the package is not found in the GitLab Package Registry for Maven.
   maven_package_requests_forwarding = true
 
