@@ -309,7 +309,7 @@ resource "helm_release" "aws_load_balancer_controller" {
       requests:
         cpu: 100m
         memory: 128Mi
-    enableCertManager: true
+    enableCertManager: false
     podDisruptionBudget:
       maxUnavailable: 1
     createIngressClassResource: false  # We're using Gateway API, not Ingress
