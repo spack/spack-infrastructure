@@ -81,6 +81,34 @@ resource "gitlab_project_variable" "spack_packages_pipeline_scope" {
   raw = true
 }
 
+# pre_build.py needs access to this to request PR prefix scoped permissions
+resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn" {
+  project = gitlab_project.spack.id
+  key     = "PR_BINARY_MIRROR_BUCKET_ARN"
+  value   = data.aws_s3_bucket.pr_mirror.arn
+}
+
+# pre_build.py needs access to this to request PR prefix scoped permissions
+resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn_spack_packages" {
+  project = gitlab_project.spack_packages.id
+  key     = "PR_BINARY_MIRROR_BUCKET_ARN"
+  value   = data.aws_s3_bucket.pr_mirror.arn
+}
+
+# Configure retries
+resource "gitlab_project_variable" "retries" {
+  for_each = toset([
+    # Enable retries for artifact downloads, source fetching, and cache restoration in CI jobs
+    "ARTIFACT_DOWNLOAD_ATTEMPTS",
+    "GET_SOURCES_ATTEMPTS",
+    "RESTORE_CACHE_ATTEMPTS",
+  ])
+
+  project = gitlab_project.spack.id
+  key     = each.value
+  value   = "3"
+}
+
 ################################################################################
 # pr1_testing-branch
 #
