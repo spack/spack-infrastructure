@@ -7,7 +7,6 @@ module "spack_aws_k8s" {
   region           = "us-east-1"
   eks_cluster_role = var.eks_cluster_role
 
-  flux_path = "k8s/production/"
 
   enable_analytics_db         = true
   analytics_db_instance_class = "db.t4g.xlarge"
@@ -16,6 +15,24 @@ module "spack_aws_k8s" {
   gitlab_redis_instance_class = "cache.m6g.xlarge"
 
   cdash_db_instance_class = "db.m6g.large"
+}
+
+module "spack_flux" {
+  source = "../modules/spack_flux"
+
+  flux_path = "k8s/production/"
+
+  deployment_name  = "prod"
+  deployment_stage = "blue"
+
+  region = "us-east-1"
+
+  nat_public_ips = module.spack_aws_k8s.nat_public_ips
+}
+
+moved {
+  from = module.spack_aws_k8s.flux_bootstrap_git.this
+  to   = module.spack_flux.flux_bootstrap_git.this
 }
 
 module "spack_gitlab" {
