@@ -19,3 +19,11 @@ variable "gitlab_token" {
 variable "nat_public_ips" {
   type = list(string)
 }
+
+
+variable "pr_binary_mirror_bucket_name" {
+  type = string
+}
+variable "protected_binary_mirror_bucket_name" {
+  type = string
+}

@@ -6,32 +6,22 @@ locals {
       "role_name_suffix"     = "PRBinaryMirror${var.deployment_name == "prod" ? "" : "-${var.deployment_name}"}-${var.deployment_stage}",
       "role_arn_ci_var_name" = "PR_BINARY_MIRROR_ROLE_ARN",
       "conditions" = [
-        "project_path:${data.gitlab_project.spack.path_with_namespace}:ref_type:branch:ref:pr*",
-        "project_path:${data.gitlab_project.spack_packages.path_with_namespace}:ref_type:branch:ref:pr*",
-        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:branch:ref:pr*",
-        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:branch:ref:pr*",
+        "project_path:${gitlab_project.spack.path_with_namespace}:ref_type:branch:ref:pr*",
+        "project_path:${gitlab_project.spack_packages.path_with_namespace}:ref_type:branch:ref:pr*",
       ],
     },
     "protected_binary_mirror" = {
       "role_name_suffix"     = "ProtectedBinaryMirror${var.deployment_name == "prod" ? "" : "-${var.deployment_name}"}-${var.deployment_stage}",
       "role_arn_ci_var_name" = "PROTECTED_BINARY_MIRROR_ROLE_ARN",
       "conditions" = [
-        "project_path:${data.gitlab_project.spack.path_with_namespace}:ref_type:branch:ref:develop",
-        "project_path:${data.gitlab_project.spack.path_with_namespace}:ref_type:branch:ref:releases/v*",
-        "project_path:${data.gitlab_project.spack.path_with_namespace}:ref_type:tag:ref:develop-*",
-        "project_path:${data.gitlab_project.spack.path_with_namespace}:ref_type:tag:ref:v*",
-        "project_path:${data.gitlab_project.spack_packages.path_with_namespace}:ref_type:branch:ref:develop",
-        "project_path:${data.gitlab_project.spack_packages.path_with_namespace}:ref_type:branch:ref:releases/v*",
-        "project_path:${data.gitlab_project.spack_packages.path_with_namespace}:ref_type:tag:ref:develop-*",
-        "project_path:${data.gitlab_project.spack_packages.path_with_namespace}:ref_type:tag:ref:v*",
-        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:branch:ref:develop",
-        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:branch:ref:releases/v*",
-        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:tag:ref:develop-*",
-        "project_path:${data.gitlab_project.spack_experiments.path_with_namespace}:ref_type:tag:ref:v*",
-        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:branch:ref:develop",
-        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:branch:ref:releases/v*",
-        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:tag:ref:develop-*",
-        "project_path:${data.gitlab_project.spack_packages_experiments.path_with_namespace}:ref_type:tag:ref:v*",
+        "project_path:${gitlab_project.spack.path_with_namespace}:ref_type:branch:ref:develop",
+        "project_path:${gitlab_project.spack.path_with_namespace}:ref_type:branch:ref:releases/v*",
+        "project_path:${gitlab_project.spack.path_with_namespace}:ref_type:tag:ref:develop-*",
+        "project_path:${gitlab_project.spack.path_with_namespace}:ref_type:tag:ref:v*",
+        "project_path:${gitlab_project.spack_packages.path_with_namespace}:ref_type:branch:ref:develop",
+        "project_path:${gitlab_project.spack_packages.path_with_namespace}:ref_type:branch:ref:releases/v*",
+        "project_path:${gitlab_project.spack_packages.path_with_namespace}:ref_type:tag:ref:develop-*",
+        "project_path:${gitlab_project.spack_packages.path_with_namespace}:ref_type:tag:ref:v*",
       ],
     }
   }
@@ -134,14 +124,14 @@ resource "aws_iam_role_policy_attachment" "gitlab_runner" {
 resource "gitlab_project_variable" "binary_mirror_role_arn" {
   for_each = resource.aws_iam_role.gitlab_runner
 
-  project = data.gitlab_project.spack.id
+  project = gitlab_project.spack.id
   key     = local.mirror_roles[each.key].role_arn_ci_var_name
   value   = each.value.arn
 }
 
 # pre_build.py needs access to this to request PR prefix scoped permissions
 resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn" {
-  project = data.gitlab_project.spack.id
+  project = gitlab_project.spack.id
   key     = "PR_BINARY_MIRROR_BUCKET_ARN"
   value   = data.aws_s3_bucket.pr_mirror.arn
 }
@@ -149,44 +139,14 @@ resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn" {
 resource "gitlab_project_variable" "binary_mirror_role_arn_spack_packages" {
   for_each = resource.aws_iam_role.gitlab_runner
 
-  project = data.gitlab_project.spack_packages.id
+  project = gitlab_project.spack_packages.id
   key     = local.mirror_roles[each.key].role_arn_ci_var_name
   value   = each.value.arn
 }
 
 # pre_build.py needs access to this to request PR prefix scoped permissions
 resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn_spack_packages" {
-  project = data.gitlab_project.spack_packages.id
-  key     = "PR_BINARY_MIRROR_BUCKET_ARN"
-  value   = data.aws_s3_bucket.pr_mirror.arn
-}
-
-resource "gitlab_project_variable" "binary_mirror_role_arn_experiments" {
-  for_each = resource.aws_iam_role.gitlab_runner
-
-  project = data.gitlab_project.spack_experiments.id
-  key     = local.mirror_roles[each.key].role_arn_ci_var_name
-  value   = each.value.arn
-}
-
-# pre_build.py needs access to this to request PR prefix scoped permissions
-resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn_experiments" {
-  project = data.gitlab_project.spack_experiments.id
-  key     = "PR_BINARY_MIRROR_BUCKET_ARN"
-  value   = data.aws_s3_bucket.pr_mirror.arn
-}
-
-resource "gitlab_project_variable" "binary_mirror_role_arn_experiments_packages" {
-  for_each = resource.aws_iam_role.gitlab_runner
-
-  project = data.gitlab_project.spack_packages_experiments.id
-  key     = local.mirror_roles[each.key].role_arn_ci_var_name
-  value   = each.value.arn
-}
-
-# pre_build.py needs access to this to request PR prefix scoped permissions
-resource "gitlab_project_variable" "pr_binary_mirror_bucket_arn_experiments_packages" {
-  project = data.gitlab_project.spack_packages_experiments.id
+  project = gitlab_project.spack_packages.id
   key     = "PR_BINARY_MIRROR_BUCKET_ARN"
   value   = data.aws_s3_bucket.pr_mirror.arn
 }
@@ -217,7 +177,7 @@ resource "gitlab_project_variable" "retries" {
     "RESTORE_CACHE_ATTEMPTS",
   ])
 
-  project = data.gitlab_project.spack.id
+  project = gitlab_project.spack.id
   key     = each.value
   value   = "3"
 }
