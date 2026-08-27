@@ -6,14 +6,25 @@ module "spack_aws_k8s" {
 
   region = "us-west-2"
 
-  flux_path = "k8s/staging/"
-
   enable_analytics_db = false
 
   gitlab_db_instance_class    = "db.t4g.small"
   gitlab_redis_instance_class = "cache.t4g.small"
 
   cdash_db_instance_class = "db.t4g.small"
+}
+
+module "spack_flux" {
+  source = "../modules/spack_flux"
+
+  flux_path = "k8s/staging/"
+
+  deployment_name  = "staging"
+  deployment_stage = "blue"
+
+  region = "us-west-2"
+
+  nat_public_ips = module.spack_aws_k8s.nat_public_ips
 }
 
 module "spack_gitlab" {

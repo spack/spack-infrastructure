@@ -10,11 +10,6 @@ variable "region" {
   type = string
 }
 
-variable "flux_path" {
-  description = "Path relative to the repository root that Flux will use to sync resources"
-  type        = string
-}
-
 variable "enable_analytics_db" {
   description = "Whether to provision the analytics PostgreSQL database."
   type        = bool

@@ -10,6 +10,8 @@ resource "aws_db_subnet_group" "gitlab_db" {
 resource "random_password" "gitlab_db_password" {
   length = 20
 
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+
   keepers = {
     version = "2"
   }
@@ -22,8 +24,8 @@ module "gitlab_db" {
   identifier = "spack-gitlab${local.suffix}"
 
   engine               = "postgres"
-  family               = "postgres17"
-  major_engine_version = "17"
+  family               = "postgres18"
+  major_engine_version = "18"
   instance_class       = var.gitlab_db_instance_class
 
   db_name                     = "gitlabhq_production"
