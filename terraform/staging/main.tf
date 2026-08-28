@@ -33,6 +33,9 @@ module "spack_gitlab" {
   deployment_name  = "staging"
   deployment_stage = "blue"
 
+  pr_binary_mirror_bucket_name        = module.spack_aws_k8s.pr_binary_mirror_bucket_name
+  protected_binary_mirror_bucket_name = module.spack_aws_k8s.protected_binary_mirror_bucket_name
+
   region = "us-west-2"
 
   gitlab_token   = var.gitlab_token
