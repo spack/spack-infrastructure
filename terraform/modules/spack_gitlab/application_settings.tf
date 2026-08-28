@@ -438,7 +438,7 @@ resource "gitlab_application_settings" "this" {
   npm_package_requests_forwarding = true
 
   # Define a list of trusted domains or IP addresses to which local requests are allowed when local requests for hooks and services are disabled.
-  outbound_local_requests_whitelist = ["pipeline-webhook-service.custom.svc.cluster.local", "webhook-handler.custom.svc.cluster.local", "spack-gantry.spack.svc.cluster.local"]
+  outbound_local_requests_whitelist = ["webhook-handler.custom.svc.cluster.local", "spack-gantry.spack.svc.cluster.local"]
 
   # List of package registry metadata to sync.
   package_metadata_purl_types = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17]
