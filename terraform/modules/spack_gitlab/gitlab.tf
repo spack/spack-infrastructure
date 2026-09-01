@@ -5,20 +5,59 @@ resource "gitlab_group" "spack" {
   visibility_level = "public"
 }
 
+# NOTE: On a fresh deployment, this project (and the other projects in this
+# module) requires a one-time manual step before it can fully converge.
+#
+# We set initialize_with_readme = true because otherwise the project is created
+# with no branches at all, including the default branch. However, GitLab creates
+# that initial branch as a protected branch, and the pull mirror is configured
+# with mirror_overwrites_diverged_branches = true so that the default branch can
+# be force-overwritten from upstream. The README commit guarantees the branch is
+# diverged from upstream, so the mirror must overwrite it, and it cannot do that
+# while the branch is protected.
+#
+# So the first apply will fail. To resolve it, go into the project's settings in
+# the GitLab UI, delete the branch protection rule on the default branch, and
+# then re-run the apply.
 resource "gitlab_project" "spack" {
   name         = "spack"
   path         = "spack"
   namespace_id = gitlab_group.spack.id
+
+  # This setting is required so that the repo creates the default branch.
+  # It will be wiped when the mirror happens, due to the
+  # mirror_overwrites_diverged_branches setting on the pull mirror.
+  initialize_with_readme = true
 
   visibility_level = "public"
   default_branch   = "develop"
   ci_config_path   = "share/spack/gitlab/cloud_pipelines/.gitlab-ci.yml"
 }
 
+# On staging, keep the protected branches (develop, releases/v*) in sync with GitHub.
+# Production does this with the gh-gl-sync CronJob instead. Staging has no
+# such job.
+resource "gitlab_project_pull_mirror" "github_spack" {
+  count = var.deployment_name != "prod" ? 1 : 0
+
+  project                             = gitlab_project.spack.id
+  url                                 = "https://github.com/spack/spack.git"
+  only_mirror_protected_branches      = false
+  mirror_trigger_builds               = false
+  mirror_overwrites_diverged_branches = true
+}
+
+
+# NOTE: See the above comment about intended failure on first apply.
 resource "gitlab_project" "spack_packages" {
   name         = "spack-packages"
   path         = "spack-packages"
   namespace_id = gitlab_group.spack.id
+
+  # This setting is required so that the repo creates the default branch.
+  # It will be wiped when the mirror happens, due to the
+  # mirror_overwrites_diverged_branches setting on the pull mirror.
+  initialize_with_readme = true
 
   visibility_level = "public"
   default_branch   = "develop"
@@ -34,10 +73,11 @@ resource "gitlab_project" "spack_packages" {
 resource "gitlab_project_pull_mirror" "github_spack_packages" {
   count = var.deployment_name != "prod" ? 1 : 0
 
-  project                        = gitlab_project.spack_packages.id
-  url                            = "https://github.com/spack/spack-packages.git"
-  only_mirror_protected_branches = true
-  mirror_trigger_builds          = false
+  project                             = gitlab_project.spack_packages.id
+  url                                 = "https://github.com/spack/spack-packages.git"
+  only_mirror_protected_branches      = false
+  mirror_trigger_builds               = false
+  mirror_overwrites_diverged_branches = true
 }
 
 # Point the buildcache mirrors at the staging buckets. The checked-in
