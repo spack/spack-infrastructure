@@ -15,6 +15,13 @@ resource "random_password" "gitlab_db_password" {
   keepers = {
     version = "2"
   }
+
+  lifecycle {
+    ignore_changes = [
+      override_special,
+      keepers,
+    ]
+  }
 }
 
 module "gitlab_db" {
