@@ -10,12 +10,6 @@ variable "region" {
   type = string
 }
 
-variable "enable_analytics_db" {
-  description = "Whether to provision the analytics PostgreSQL database."
-  type        = bool
-  default     = true
-}
-
 variable "analytics_db_instance_class" {
   description = "AWS RDS DB instance class for the analytics PostgreSQL database."
   type        = string

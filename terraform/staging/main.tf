@@ -6,7 +6,7 @@ module "spack_aws_k8s" {
 
   region = "us-west-2"
 
-  enable_analytics_db = false
+  analytics_db_instance_class = "db.t4g.small"
 
   gitlab_db_instance_class    = "db.t4g.small"
   gitlab_redis_instance_class = "cache.t4g.small"
