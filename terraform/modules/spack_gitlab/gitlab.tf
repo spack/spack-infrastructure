@@ -31,7 +31,7 @@ resource "gitlab_project" "spack" {
 
   visibility_level = "public"
   default_branch   = "develop"
-  ci_config_path   = "share/spack/gitlab/cloud_pipelines/.gitlab-ci.yml"
+  ci_config_path   = ".ci/gitlab-ci.yml"
 }
 
 # On staging, keep the protected branches (develop, releases/v*) in sync with GitHub.
