@@ -27,6 +27,7 @@ module "cdash_db" {
   engine               = "postgres"
   family               = "postgres18"
   major_engine_version = "18"
+  engine_version       = "18.6"
   instance_class       = var.cdash_db_instance_class
 
   db_name                     = local.cdash_db_name

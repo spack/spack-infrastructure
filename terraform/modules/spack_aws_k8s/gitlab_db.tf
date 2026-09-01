@@ -33,6 +33,7 @@ module "gitlab_db" {
   engine               = "postgres"
   family               = "postgres18"
   major_engine_version = "18"
+  engine_version       = "18.6"
   instance_class       = var.gitlab_db_instance_class
 
   db_name                     = "gitlabhq_production"
