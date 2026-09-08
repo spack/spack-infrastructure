@@ -305,9 +305,6 @@ resource "gitlab_application_settings" "this" {
   # Enable Gitpod integration.
   gitpod_enabled = false
 
-  # The Gitpod instance URL for integration.
-  gitpod_url = "https://gitpod.io/"
-
   # Comma-separated list of IP addresses and CIDRs always allowed for inbound traffic.
   globally_allowed_ips = ""
 
