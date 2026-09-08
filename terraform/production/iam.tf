@@ -252,17 +252,6 @@ moved {
   to   = aws_iam_user.human["tgamblin"]
 }
 
-# TODO: can we remove these?
-resource "aws_iam_user_policy_attachment" "tgamblin_route53" {
-  user       = aws_iam_user.human["tgamblin"].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonRoute53FullAccess"
-}
-resource "aws_iam_user_policy_attachment" "tgamblin_s3" {
-  user       = aws_iam_user.human["tgamblin"].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-}
-
-
 # Robot IAM users
 resource "aws_iam_user" "e4s_cache" {
   name = "e4s-cache"
