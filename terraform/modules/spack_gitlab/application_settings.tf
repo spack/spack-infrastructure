@@ -2,6 +2,12 @@
 #
 # Values were captured from the production GitLab instance on 2026-08-12.
 resource "gitlab_application_settings" "this" {
+  lifecycle {
+    ignore_changes = [
+      git_rate_limit_users_alertlist
+    ]
+  }
+
   # Require administrators to enable Admin Mode by re-authenticating for administrative tasks.
   admin_mode = false
 
