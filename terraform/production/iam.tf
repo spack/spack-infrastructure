@@ -111,83 +111,99 @@ resource "aws_iam_group_policy_attachment" "e4s_cache_allow_bucket_list" {
   group      = aws_iam_group.e4s_cache.name
   policy_arn = aws_iam_policy.allow_group_to_see_bucket_list_in_the_console.arn
 }
-resource "aws_iam_user_group_membership" "alecscott" {
-  user = aws_iam_user.human["alecscott"].name
-  groups = [
-    aws_iam_group.eks_users.name,
-  ]
-}
-resource "aws_iam_user_group_membership" "dan" {
-  user = aws_iam_user.human["dan"].name
-  groups = [
-    aws_iam_group.eks_users.name,
-  ]
-}
 resource "aws_iam_user_group_membership" "e4s_cache" {
   user = aws_iam_user.e4s_cache.name
   groups = [
     aws_iam_group.e4s_cache.name,
   ]
 }
-resource "aws_iam_user_group_membership" "jacob" {
-  user = aws_iam_user.human["jacob"].name
-  groups = [
-    aws_iam_group.custodians.name,
-  ]
-}
-resource "aws_iam_user_group_membership" "krattiger1" {
-  user = aws_iam_user.human["krattiger1"].name
-  groups = [
-    aws_iam_group.eks_users.name,
-  ]
-}
-resource "aws_iam_user_group_membership" "krattiger1_eks_user" {
-  user = aws_iam_user.human["krattiger1-eks-user"].name
-  groups = [
-    aws_iam_group.eks_users.name,
-  ]
-}
-resource "aws_iam_user_group_membership" "mike" {
-  user = aws_iam_user.human["mike"].name
-  groups = [
-    aws_iam_group.custodians.name,
-    aws_iam_group.eks_users.name,
-  ]
-}
-resource "aws_iam_user_group_membership" "tgamblin" {
-  user = aws_iam_user.human["tgamblin"].name
-  groups = [
-    aws_iam_group.eks_users.name,
-  ]
-}
-resource "aws_iam_user_group_membership" "zack" {
-  user = aws_iam_user.human["zack"].name
-  groups = [
-    aws_iam_group.custodians.name,
-    aws_iam_group.eks_users.name,
-  ]
-}
 
+# ############################
+# Human IAM user definitions
+# ############################
 
-# Human IAM users
 locals {
-  human_iam_users = [
-    "dan",
+  custodians = [
     "jacob",
-    "john",
-    "peter",
+    "mike",
+    "zack",
+  ]
+  eks_users = [
+    "alecscott",
+    "dan",
     "krattiger1",
     "krattiger1-eks-user",
     "mike",
-    "zack",
-    "alecscott",
-    "lpeyrala",
     "tgamblin",
+    "zack",
   ]
+  # These users aren't in any groups.
+  extra_users = [
+    "john",
+    "peter",
+    "lpeyrala",
+  ]
+
+  all_human_users = distinct(concat(local.custodians, local.eks_users, local.extra_users))
+
+  human_user_groups = {
+    for user in distinct(concat(local.custodians, local.eks_users)) :
+    user => concat(
+      contains(local.custodians, user) ? [aws_iam_group.custodians.name] : [],
+      contains(local.eks_users, user) ? [aws_iam_group.eks_users.name] : [],
+    )
+  }
+}
+
+resource "aws_iam_user_group_membership" "human" {
+  for_each = local.human_user_groups
+
+  user   = aws_iam_user.human[each.key].name
+  groups = each.value
+}
+
+moved {
+  from = aws_iam_user_group_membership.alecscott
+  to   = aws_iam_user_group_membership.human["alecscott"]
+}
+
+moved {
+  from = aws_iam_user_group_membership.dan
+  to   = aws_iam_user_group_membership.human["dan"]
+}
+
+moved {
+  from = aws_iam_user_group_membership.jacob
+  to   = aws_iam_user_group_membership.human["jacob"]
+}
+
+moved {
+  from = aws_iam_user_group_membership.krattiger1
+  to   = aws_iam_user_group_membership.human["krattiger1"]
+}
+
+moved {
+  from = aws_iam_user_group_membership.krattiger1_eks_user
+  to   = aws_iam_user_group_membership.human["krattiger1-eks-user"]
+}
+
+moved {
+  from = aws_iam_user_group_membership.mike
+  to   = aws_iam_user_group_membership.human["mike"]
+}
+
+moved {
+  from = aws_iam_user_group_membership.tgamblin
+  to   = aws_iam_user_group_membership.human["tgamblin"]
+}
+
+moved {
+  from = aws_iam_user_group_membership.zack
+  to   = aws_iam_user_group_membership.human["zack"]
 }
 
 resource "aws_iam_user" "human" {
-  for_each = toset(local.human_iam_users)
+  for_each = toset(local.all_human_users)
   name     = each.value
 
   lifecycle {
