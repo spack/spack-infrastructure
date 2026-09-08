@@ -112,13 +112,13 @@ resource "aws_iam_group_policy_attachment" "e4s_cache_allow_bucket_list" {
   policy_arn = aws_iam_policy.allow_group_to_see_bucket_list_in_the_console.arn
 }
 resource "aws_iam_user_group_membership" "alecscott" {
-  user = aws_iam_user.alecscott.name
+  user = aws_iam_user.human["alecscott"].name
   groups = [
     aws_iam_group.eks_users.name,
   ]
 }
 resource "aws_iam_user_group_membership" "dan" {
-  user = aws_iam_user.dan.name
+  user = aws_iam_user.human["dan"].name
   groups = [
     aws_iam_group.eks_users.name,
   ]
@@ -130,38 +130,38 @@ resource "aws_iam_user_group_membership" "e4s_cache" {
   ]
 }
 resource "aws_iam_user_group_membership" "jacob" {
-  user = aws_iam_user.jacob.name
+  user = aws_iam_user.human["jacob"].name
   groups = [
     aws_iam_group.custodians.name,
   ]
 }
 resource "aws_iam_user_group_membership" "krattiger1" {
-  user = aws_iam_user.krattiger1.name
+  user = aws_iam_user.human["krattiger1"].name
   groups = [
     aws_iam_group.eks_users.name,
   ]
 }
 resource "aws_iam_user_group_membership" "krattiger1_eks_user" {
-  user = aws_iam_user.krattiger1_eks_user.name
+  user = aws_iam_user.human["krattiger1-eks-user"].name
   groups = [
     aws_iam_group.eks_users.name,
   ]
 }
 resource "aws_iam_user_group_membership" "mike" {
-  user = aws_iam_user.mike.name
+  user = aws_iam_user.human["mike"].name
   groups = [
     aws_iam_group.custodians.name,
     aws_iam_group.eks_users.name,
   ]
 }
 resource "aws_iam_user_group_membership" "tgamblin" {
-  user = aws_iam_user.tgamblin.name
+  user = aws_iam_user.human["tgamblin"].name
   groups = [
     aws_iam_group.eks_users.name,
   ]
 }
 resource "aws_iam_user_group_membership" "zack" {
-  user = aws_iam_user.zack.name
+  user = aws_iam_user.human["zack"].name
   groups = [
     aws_iam_group.custodians.name,
     aws_iam_group.eks_users.name,
@@ -170,46 +170,95 @@ resource "aws_iam_user_group_membership" "zack" {
 
 
 # Human IAM users
-resource "aws_iam_user" "dan" {
-  name = "dan"
+locals {
+  human_iam_users = [
+    "dan",
+    "jacob",
+    "john",
+    "peter",
+    "krattiger1",
+    "krattiger1-eks-user",
+    "mike",
+    "zack",
+    "alecscott",
+    "lpeyrala",
+    "tgamblin",
+  ]
 }
-resource "aws_iam_user" "jacob" {
-  name = "jacob"
+
+resource "aws_iam_user" "human" {
+  for_each = toset(local.human_iam_users)
+  name     = each.value
+
+  lifecycle {
+    ignore_changes = [
+      tags
+    ]
+  }
 }
-resource "aws_iam_user" "john" {
-  name = "john"
+
+moved {
+  from = aws_iam_user.dan
+  to   = aws_iam_user.human["dan"]
 }
-resource "aws_iam_user" "peter" {
-  name = "peter"
+
+moved {
+  from = aws_iam_user.jacob
+  to   = aws_iam_user.human["jacob"]
 }
-resource "aws_iam_user" "krattiger1" {
-  name = "krattiger1"
+
+moved {
+  from = aws_iam_user.john
+  to   = aws_iam_user.human["john"]
 }
-resource "aws_iam_user" "krattiger1_eks_user" {
-  name = "krattiger1-eks-user"
+
+moved {
+  from = aws_iam_user.peter
+  to   = aws_iam_user.human["peter"]
 }
-resource "aws_iam_user" "mike" {
-  name = "mike"
+
+moved {
+  from = aws_iam_user.krattiger1
+  to   = aws_iam_user.human["krattiger1"]
 }
-resource "aws_iam_user" "zack" {
-  name = "zack"
+
+moved {
+  from = aws_iam_user.krattiger1_eks_user
+  to   = aws_iam_user.human["krattiger1-eks-user"]
 }
-resource "aws_iam_user" "alecscott" {
-  name = "alecscott"
+
+moved {
+  from = aws_iam_user.mike
+  to   = aws_iam_user.human["mike"]
 }
-resource "aws_iam_user" "lpeyrala" {
-  name = "lpeyrala"
+
+moved {
+  from = aws_iam_user.zack
+  to   = aws_iam_user.human["zack"]
 }
-resource "aws_iam_user" "tgamblin" {
-  name = "tgamblin"
+
+moved {
+  from = aws_iam_user.alecscott
+  to   = aws_iam_user.human["alecscott"]
 }
+
+moved {
+  from = aws_iam_user.lpeyrala
+  to   = aws_iam_user.human["lpeyrala"]
+}
+
+moved {
+  from = aws_iam_user.tgamblin
+  to   = aws_iam_user.human["tgamblin"]
+}
+
 # TODO: can we remove these?
 resource "aws_iam_user_policy_attachment" "tgamblin_route53" {
-  user       = aws_iam_user.tgamblin.name
+  user       = aws_iam_user.human["tgamblin"].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonRoute53FullAccess"
 }
 resource "aws_iam_user_policy_attachment" "tgamblin_s3" {
-  user       = aws_iam_user.tgamblin.name
+  user       = aws_iam_user.human["tgamblin"].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
