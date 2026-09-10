@@ -154,40 +154,91 @@ resource "gitlab_project_variable" "retries" {
 }
 
 ################################################################################
-# pr1_testing-branch
+# testing-branch sync
 #
-# A stable branch of spack-packages to run staging pipelines against. Its
-# contents are an unmodified copy of the default branch; everything that makes a
-# staging pipeline differ from a production one comes from the project variables
-# above.
-#
-# The branch is cut from whatever the default branch currently points at rather
-# than from a pinned commit, so once the mirror above advances develop, the next
-# apply recreates the branch on top of it. Anything pushed to the branch by hand
-# is lost when that happens.
+# A tiny project whose only content is a scheduled job that force-pushes
+# spack-packages' default branch onto pr1_testing-branch. It lives here rather
+# than in spack-packages because that project's ci_config_path points at the
+# mirrored .ci/gitlab/.gitlab-ci.yml, and a schedule cannot override it.
 ################################################################################
 
-data "gitlab_branch" "spack_packages_develop" {
+resource "gitlab_project" "testing_branch_sync" {
   count = var.deployment_name != "prod" ? 1 : 0
 
-  project = gitlab_project.spack_packages.id
-  name    = gitlab_project.spack_packages.default_branch
+  name         = "testing-branch-sync"
+  path         = "testing-branch-sync"
+  namespace_id = gitlab_group.spack.id
+
+  initialize_with_readme = true
+  default_branch         = "main"
+  visibility_level       = "public"
 }
 
-resource "gitlab_branch" "spack_packages_testing" {
+resource "tls_private_key" "testing_branch_sync" {
   count = var.deployment_name != "prod" ? 1 : 0
 
-  project = gitlab_project.spack_packages.id
+  algorithm = "ED25519"
+}
 
-  # The name is load-bearing. It has to match /^pr[\d]+_.*$/ for .base-job in
-  # .ci/gitlab/.gitlab-ci.yml to emit any jobs at all -- those rules have no
-  # fallback, so any other name produces an empty pipeline -- and it has to
-  # start with "pr" to match the ref:pr* condition on the PR binary mirror role
-  # in the spack_gitlab module, or the jobs cannot assume it.
-  name = "pr1_testing-branch"
+# No expires_at, so this never needs rotating.
+resource "gitlab_deploy_key" "testing_branch_sync" {
+  count = var.deployment_name != "prod" ? 1 : 0
 
-  # Resolving develop to a commit is what makes the branch follow it: `ref`
-  # forces replacement when it changes, whereas the name "develop" would leave
-  # the branch wherever it was first cut.
-  ref = one(data.gitlab_branch.spack_packages_develop[0].commit).id
+  project  = gitlab_project.spack_packages.id
+  title    = "testing-branch-sync"
+  key      = tls_private_key.testing_branch_sync[0].public_key_openssh
+  can_push = true
+}
+
+# Base64-encoded because a masked CI variable cannot contain newlines, and an
+# OpenSSH private key is multi-line. The job decodes it.
+resource "gitlab_project_variable" "testing_branch_sync_key" {
+  count = var.deployment_name != "prod" ? 1 : 0
+
+  project = gitlab_project.testing_branch_sync[0].id
+  key     = "SYNC_SSH_KEY"
+  value   = base64encode(tls_private_key.testing_branch_sync[0].private_key_openssh)
+  masked  = true
+}
+
+resource "gitlab_repository_file" "testing_branch_sync_ci" {
+  count = var.deployment_name != "prod" ? 1 : 0
+
+  project        = gitlab_project.testing_branch_sync[0].id
+  branch         = gitlab_project.testing_branch_sync[0].default_branch
+  file_path      = ".gitlab-ci.yml"
+  encoding       = "text"
+  commit_message = "Managed by Terraform"
+  author_name    = "Terraform"
+  author_email   = "terraform@spack.io"
+
+  # The group runners register with runUntagged: false, so the job has to
+  # name tags. These match the public x86_64 runners.
+  content = <<-YAML
+    sync-testing-branch:
+      tags: [x86_64, small, public, spack, aws]
+      image: python:3.12-alpine  # Needs python3
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+      script:
+        - apk add --no-cache git openssh-client
+        - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+        - echo "$SYNC_SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
+        - chmod 600 ~/.ssh/id_ed25519
+        - ssh-keyscan ${local.gitlab_ssh_host} >> ~/.ssh/known_hosts
+        - git clone --depth 1 --branch ${gitlab_project.spack_packages.default_branch}
+            "ssh://git@${local.gitlab_ssh_host}/${gitlab_project.spack_packages.path_with_namespace}.git" repo
+        - cd repo
+        - git push --force origin HEAD:refs/heads/pr1_testing-branch
+  YAML
+}
+
+resource "gitlab_pipeline_schedule" "testing_branch_sync" {
+  count = var.deployment_name != "prod" ? 1 : 0
+
+  project       = gitlab_project.testing_branch_sync[0].id
+  description   = "Force-push spack-packages develop onto pr1_testing-branch"
+  ref           = "refs/heads/${gitlab_project.testing_branch_sync[0].default_branch}"
+  cron          = "0 */6 * * *" # Run the testing branch sync job every 6 hours
+  cron_timezone = "Etc/UTC"
 }
