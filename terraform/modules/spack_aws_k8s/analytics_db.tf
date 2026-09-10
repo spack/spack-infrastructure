@@ -1,13 +1,9 @@
 resource "aws_db_subnet_group" "analytics_db" {
-  count = var.enable_analytics_db ? 1 : 0
-
   name       = "spack-analytics${local.suffix}"
   subnet_ids = module.vpc.private_subnets
 }
 
 resource "random_password" "analytics_db_password" {
-  count = var.enable_analytics_db ? 1 : 0
-
   length           = 32
   override_special = "!#$%&*()-_=+[]{}<>:?"
 
@@ -17,8 +13,6 @@ resource "random_password" "analytics_db_password" {
 }
 
 module "analytics_db" {
-  count = var.enable_analytics_db ? 1 : 0
-
   source  = "terraform-aws-modules/rds/aws"
   version = "6.10.0"
 
@@ -33,11 +27,11 @@ module "analytics_db" {
   db_name                     = "analytics"
   username                    = "postgres"
   port                        = "5432"
-  password                    = random_password.analytics_db_password[0].result
+  password                    = random_password.analytics_db_password.result
   manage_master_user_password = false
 
   publicly_accessible  = false
-  db_subnet_group_name = aws_db_subnet_group.analytics_db[0].name
+  db_subnet_group_name = aws_db_subnet_group.analytics_db.name
 
   maintenance_window              = "Sun:00:00-Sun:03:00"
   backup_window                   = "03:00-06:00"
@@ -61,8 +55,6 @@ module "analytics_db" {
 }
 
 resource "kubectl_manifest" "webhook_analytics_db_secrets" {
-  count = var.enable_analytics_db ? 1 : 0
-
   yaml_body = <<-YAML
     apiVersion: v1
     kind: Secret
@@ -70,7 +62,29 @@ resource "kubectl_manifest" "webhook_analytics_db_secrets" {
       name: webhook-handler-db
       namespace: custom
     stringData:
-      analytics-postgresql-host: "${module.analytics_db[0].db_instance_address}"
-      analytics-postgresql-password: "${random_password.analytics_db_password[0].result}"
+      analytics-postgresql-host: "${module.analytics_db.db_instance_address}"
+      analytics-postgresql-password: "${random_password.analytics_db_password.result}"
   YAML
+}
+
+# These resources were previously gated behind an enable_analytics_db flag
+# (count = 0/1) and live at indexed addresses in the production state.
+moved {
+  from = aws_db_subnet_group.analytics_db[0]
+  to   = aws_db_subnet_group.analytics_db
+}
+
+moved {
+  from = random_password.analytics_db_password[0]
+  to   = random_password.analytics_db_password
+}
+
+moved {
+  from = module.analytics_db[0]
+  to   = module.analytics_db
+}
+
+moved {
+  from = kubectl_manifest.webhook_analytics_db_secrets[0]
+  to   = kubectl_manifest.webhook_analytics_db_secrets
 }
