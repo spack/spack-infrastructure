@@ -6,3 +6,4 @@ resources:
   - gitlab-setting-updater
   - prune-buildcache
   - webhook-handler
+  - runner-node-certificate-controller
