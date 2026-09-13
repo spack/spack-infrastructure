@@ -92,6 +92,7 @@ spec:
 
           # Ensure windows paths are used
           [runners.feature_flags]
+            FF_USE_ADAPTIVE_REQUEST_CONCURRENCY = true
             FF_USE_POWERSHELL_PATH_RESOLVER = true
 
           [runners.kubernetes]
