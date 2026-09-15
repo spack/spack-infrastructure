@@ -56,19 +56,6 @@ def get_job_retry_data(
         )
         job: tuple[str | None] | None = cursor.fetchone()
 
-        # For jobs earlier than Nov 12 2025, the retry config may exist in the old table
-        # TODO: Remove once sufficient time has passed.
-        if job is None:
-            cursor.execute(
-                """
-                SELECT bm.config_options->>'retry'
-                FROM p_ci_builds_metadata bm
-                WHERE bm.build_id = %(job_id)s
-                """,
-                {"job_id": job_id},
-            )
-            job = cursor.fetchone()
-
         # A value of tuple[None] means the retry config for this job is set to empty,
         # while a value of None means no retry config was found at all.
         if job is None or job[0] is None:
@@ -114,8 +101,8 @@ def get_job_exit_code(job_id: int) -> int | None:
         cursor.execute(
             """
             SELECT exit_code
-            FROM p_ci_builds_metadata
-            WHERE build_id = %(job_id)s
+            FROM p_ci_builds
+            WHERE id = %(job_id)s
             """,
             {"job_id": job_id},
         )
