@@ -192,6 +192,15 @@ spec:
       gitlab-shell:
         service:
           type: LoadBalancer
+          annotations:
+            # Places the load balancer fronting gitlab-shell in the public
+            # subnets, so that ssh.gitlab[.staging].spack.io resolves to
+            # addresses reachable from outside the VPC and git clones over SSH
+            # work.
+            #
+            # terraform/modules/spack_gitlab/gitlab_ssh_dns.tf reads the load balancer
+            # hostname from this Service's status and points the DNS record at it.
+            service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
         resources:
           requests:
             cpu: 100m
