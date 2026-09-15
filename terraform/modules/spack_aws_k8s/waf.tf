@@ -20,8 +20,9 @@ resource "aws_wafv2_web_acl" "gateway" {
   scope       = "REGIONAL"
   description = "WAF protection for the spack Gateway ALB"
 
+  # Only the allowlisted IPs below may reach the gateway; everything else is blocked
   default_action {
-    allow {}
+    block {}
   }
 
   # Allow requests originating from inside the cluster VPC
@@ -30,7 +31,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 0
 
     action {
-      count {}
+      allow {}
     }
 
     statement {
@@ -46,13 +47,13 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
-  # Allow requests from trusted IP ranges
+  # Allow requests from trusted IP ranges (UO and Kitware VPN)
   rule {
     name     = "AllowTrustedIps"
     priority = 1
 
     action {
-      count {}
+      allow {}
     }
 
     statement {
