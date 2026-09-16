@@ -11,7 +11,7 @@ resource "aws_wafv2_ip_set" "allowed_ips" {
   ip_address_version = "IPV4"
   addresses = [
     "128.223.202.0/24", # UO's IP block
-    "66.194.253.20/32",  # Kitware's VPN
+    "66.194.253.20/32", # Kitware's VPN
     # LLNL IPs for CSP
     "128.115.0.0/16",
     "128.15.0.0/16",
@@ -73,9 +73,13 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
-  # Allow unauthenticated access to GitLab's OIDC discovery document. AWS STS fetches
-  # this from outside our allowlisted IP ranges when validating AssumeRoleWithWebIdentity
-  # calls from CI runners, so it must be reachable by the public internet.
+  # Allow unauthenticated access to GitLab's OIDC discovery document and the
+  # JWKS it points to. AWS STS fetches both from outside our allowlisted IP
+  # ranges when validating AssumeRoleWithWebIdentity calls from CI runners:
+  # first the discovery document (to learn the jwks_uri), then the JWKS itself
+  # (to get the signing keys needed to verify the token). Allowing only the
+  # discovery document still leaves STS unable to complete verification, since
+  # the JWKS fetch is the second, required step -- this must allow both.
   rule {
     name     = "AllowOidcDiscovery"
     priority = 2
@@ -102,16 +106,33 @@ resource "aws_wafv2_web_acl" "gateway" {
           }
         }
         statement {
-          byte_match_statement {
-            search_string = "/.well-known/openid-configuration"
-            field_to_match {
-              uri_path {}
+          or_statement {
+            statement {
+              byte_match_statement {
+                search_string = "/.well-known/openid-configuration"
+                field_to_match {
+                  uri_path {}
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+                positional_constraint = "EXACTLY"
+              }
             }
-            text_transformation {
-              priority = 0
-              type     = "LOWERCASE"
+            statement {
+              byte_match_statement {
+                search_string = "/oauth/discovery/keys"
+                field_to_match {
+                  uri_path {}
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+                positional_constraint = "EXACTLY"
+              }
             }
-            positional_constraint = "EXACTLY"
           }
         }
       }
