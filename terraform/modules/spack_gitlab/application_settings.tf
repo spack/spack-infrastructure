@@ -2,6 +2,12 @@
 #
 # Values were captured from the production GitLab instance on 2026-08-12.
 resource "gitlab_application_settings" "this" {
+  lifecycle {
+    ignore_changes = [
+      git_rate_limit_users_alertlist
+    ]
+  }
+
   # Require administrators to enable Admin Mode by re-authenticating for administrative tasks.
   admin_mode = false
 
@@ -282,7 +288,11 @@ resource "gitlab_application_settings" "this" {
   git_rate_limit_users_allowlist = []
 
   # Maximum duration (in minutes) of a session for Git operations when 2FA is enabled.
-  git_two_factor_session_expiry = 15
+  # This requires the `two_factor_for_cli` feature flag to be enaled, which we don't use.
+  # Setting it to anything besides `0` will cause terraform to be perpetually out of sync,
+  # as the gitlab API doesn't expose this field in the response of the application_settings
+  # endpoint, so it will be unmarshalled to the default int value in Go, which is `0`.
+  git_two_factor_session_expiry = 0
 
   # Default Gitaly timeout, in seconds.
   gitaly_timeout_default = 55
@@ -298,9 +308,6 @@ resource "gitlab_application_settings" "this" {
 
   # Enable Gitpod integration.
   gitpod_enabled = false
-
-  # The Gitpod instance URL for integration.
-  gitpod_url = "https://gitpod.io/"
 
   # Comma-separated list of IP addresses and CIDRs always allowed for inbound traffic.
   globally_allowed_ips = ""
