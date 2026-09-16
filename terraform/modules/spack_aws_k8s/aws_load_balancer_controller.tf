@@ -433,7 +433,9 @@ resource "kubectl_manifest" "gateway_lb_config" {
         - key: routing.http2.enabled
           value: "true"
         - key: access_logs.s3.enabled
-          value: "false"
+          value: "true"
+        - key: access_logs.s3.bucket
+          value: ${aws_s3_bucket.gateway_access_logs.id}
       listenerConfigurations:
         - protocolPort: HTTPS:443
           defaultCertificate: ${aws_acm_certificate.gateway.arn}
@@ -448,6 +450,8 @@ resource "kubectl_manifest" "gateway_lb_config" {
     kubectl_manifest.aws_lbc_gateway_crds,
     kubectl_manifest.gateway_api_namespace,
     aws_acm_certificate_validation.gateway,
+    # ELB writes a test object when access logging is enabled, so the bucket policy must exist first
+    aws_s3_bucket_policy.gateway_access_logs,
   ]
 }
 
@@ -519,4 +523,60 @@ resource "aws_route53_record" "gateway_wildcard" {
     zone_id                = data.aws_lb.gateway.zone_id
     evaluate_target_health = true
   }
+}
+
+# Access logs for the gateway ALB
+resource "aws_s3_bucket" "gateway_access_logs" {
+  bucket = "spack-gateway-access-logs${local.bucket_name_suffix}"
+}
+
+resource "aws_s3_bucket_public_access_block" "gateway_access_logs" {
+  bucket = aws_s3_bucket.gateway_access_logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Lifecycle rule that deletes access logs older than 3 months
+resource "aws_s3_bucket_lifecycle_configuration" "gateway_access_logs" {
+  bucket = aws_s3_bucket.gateway_access_logs.id
+
+  rule {
+    id = "DeleteObjectsOlderThan60Days"
+
+    filter {} # Empty filter; all objects in bucket should be affected
+
+    expiration {
+      days = 60 # per LLNL policy
+    }
+
+    status = "Enabled"
+  }
+}
+
+# The regional Elastic Load Balancing account delivers the logs, so it needs write access.
+# https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html
+data "aws_elb_service_account" "current" {}
+
+resource "aws_s3_bucket_policy" "gateway_access_logs" {
+  bucket = aws_s3_bucket.gateway_access_logs.id
+
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "AllowELBAccessLogDelivery",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : data.aws_elb_service_account.current.arn
+        },
+        "Action" : "s3:PutObject",
+        "Resource" : "${aws_s3_bucket.gateway_access_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.gateway_access_logs]
 }
