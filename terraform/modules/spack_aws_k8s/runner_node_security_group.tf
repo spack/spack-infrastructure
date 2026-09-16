@@ -30,15 +30,11 @@ resource "aws_vpc_security_group_egress_rule" "runner_nodes_all" {
   cidr_ipv4         = "0.0.0.0/0"
 }
 
-# Node-to-node traffic within the runner fleet itself (kube-proxy, CNI, same-node
-# pod networking). Mirrors the equivalent self-referencing rule on the shared
-# node SG (see node_security_group_additional_rules in eks.tf).
-resource "aws_vpc_security_group_ingress_rule" "runner_nodes_self_all" {
-  security_group_id            = aws_security_group.runner_nodes.id
-  description                  = "Node to node all ports/protocols"
-  ip_protocol                  = "-1"
-  referenced_security_group_id = aws_security_group.runner_nodes.id
-}
+# There is intentionally no self-referencing rule. Nothing on one runner node
+# needs to connect to another (CoreDNS runs on the shared node SG, and traffic
+# between pods on the same node never passes through a security group), and
+# omitting it keeps CI job pods on different runner nodes from reaching each
+# other.
 
 # Cluster workloads on the shared node SG need to reach runner nodes: Prometheus
 # scrapes each node's kubelet (cAdvisor) and node exporter directly, and the
