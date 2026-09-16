@@ -73,10 +73,61 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
+  # Allow unauthenticated access to GitLab's OIDC discovery document. AWS STS fetches
+  # this from outside our allowlisted IP ranges when validating AssumeRoleWithWebIdentity
+  # calls from CI runners, so it must be reachable by the public internet.
+  rule {
+    name     = "AllowOidcDiscovery"
+    priority = 2
+
+    action {
+      allow {}
+    }
+
+    statement {
+      and_statement {
+        statement {
+          byte_match_statement {
+            search_string = "gitlab.${local.domain_suffix}spack.io"
+            field_to_match {
+              single_header {
+                name = "host"
+              }
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "EXACTLY"
+          }
+        }
+        statement {
+          byte_match_statement {
+            search_string = "/.well-known/openid-configuration"
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "EXACTLY"
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AllowOidcDiscovery"
+    }
+  }
+
   # Block requests with this specific user agent string
   rule {
     name     = "BlockBotNet"
-    priority = 2
+    priority = 3
 
     action {
       block {}
@@ -134,7 +185,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesAmazonIpReputationList"
-    priority = 3
+    priority = 4
 
     override_action {
       count {}
@@ -177,7 +228,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesCommonRuleSet"
-    priority = 4
+    priority = 5
 
     override_action {
       count {}
@@ -199,7 +250,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 5
+    priority = 6
 
     override_action {
       count {}
@@ -221,7 +272,7 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesAnonymousIpList"
-    priority = 6
+    priority = 7
 
     override_action {
       count {}
@@ -247,7 +298,7 @@ resource "aws_wafv2_web_acl" "gateway" {
   # static asset requests that don't need bot inspection.
   rule {
     name     = "AWS-AWSManagedRulesBotControlRuleSet"
-    priority = 7
+    priority = 8
 
     override_action {
       count {}
@@ -276,7 +327,7 @@ resource "aws_wafv2_web_acl" "gateway" {
   # Issue a javascript-based challenge to any remaining requests
   rule {
     name     = "gitlab-challenge"
-    priority = 8
+    priority = 9
 
     action {
       count {}
