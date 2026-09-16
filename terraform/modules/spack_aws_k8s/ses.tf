@@ -39,9 +39,9 @@ resource "aws_iam_user_policy" "ses_user" {
 }
 
 locals {
-  gitlab_email_domain      = "gitlab.${local.ses_email_domain}"
-  smtp_secret_name         = "gitlab-ses-secrets"
-  smtp_secret_password_key = "smtp-password"
+  gitlab_email_domain             = "gitlab.${local.ses_email_domain}"
+  gitlab_smtp_secret_name         = "gitlab-ses-secrets"
+  gitlab_smtp_secret_password_key = "smtp-password"
 }
 
 resource "kubectl_manifest" "ses_config_map" {
@@ -62,8 +62,8 @@ resource "kubectl_manifest" "ses_config_map" {
             address: email-smtp.${data.aws_region.current.region}.amazonaws.com
             user_name: ${aws_iam_access_key.ses_user.id}
             password:
-              secret: ${local.smtp_secret_name}
-              key: ${local.smtp_secret_password_key}
+              secret: ${local.gitlab_smtp_secret_name}
+              key: ${local.gitlab_smtp_secret_password_key}
             port: 465
             tls: true
   YAML
@@ -74,9 +74,82 @@ resource "kubectl_manifest" "ses_secrets" {
     apiVersion: v1
     kind: Secret
     metadata:
-      name: ${local.smtp_secret_name}
+      name: ${local.gitlab_smtp_secret_name}
       namespace: ${kubectl_manifest.gitlab_namespace.name}
     data:
-      ${local.smtp_secret_password_key}: ${base64encode("${aws_iam_access_key.ses_user.ses_smtp_password_v4}")}
+      ${local.gitlab_smtp_secret_password_key}: ${base64encode("${aws_iam_access_key.ses_user.ses_smtp_password_v4}")}
+  YAML
+}
+
+
+# SMTP credentials used by Metabase to send email through SES. Metabase is only
+# deployed in production, and the IAM user name is account-global, so this is
+# gated to the prod deployment.
+resource "aws_iam_user" "metabase_ses_smtp_user" {
+  count = var.deployment_name == "prod" ? 1 : 0
+
+  name = "metabase-ses-smtp-user.20230503-153955"
+}
+
+resource "aws_iam_user_policy" "metabase_ses_sending_access" {
+  count = var.deployment_name == "prod" ? 1 : 0
+
+  name = "AmazonSesSendingAccess"
+  user = aws_iam_user.metabase_ses_smtp_user[0].name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "ses:SendRawEmail"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_access_key" "metabase_ses_smtp_user" {
+  count = var.deployment_name == "prod" ? 1 : 0
+
+  user = aws_iam_user.metabase_ses_smtp_user[0].name
+}
+
+locals {
+  metabase_email_domain             = "metabase.${local.ses_email_domain}"
+  metabase_smtp_secret_name         = "metabase-ses-secrets"
+  metabase_smtp_secret_password_key = "smtp-password"
+}
+
+resource "kubectl_manifest" "metabase_ses_config_map" {
+  count = var.deployment_name == "prod" ? 1 : 0
+
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: metabase-ses-config
+      namespace: monitoring
+    data:
+      MB_EMAIL_FROM_ADDRESS: admin@${local.metabase_email_domain}
+      MB_EMAIL_REPLY_TO: '["noreply@${local.metabase_email_domain}"]'
+      MB_EMAIL_SMTP_HOST: email-smtp.${data.aws_region.current.region}.amazonaws.com
+      MB_EMAIL_SMTP_USERNAME: ${aws_iam_access_key.metabase_ses_smtp_user[0].id}
+      MB_EMAIL_SMTP_PORT: "465"
+      MB_EMAIL_SMTP_SECURITY: ssl
+  YAML
+}
+
+resource "kubectl_manifest" "metabase_ses_secrets" {
+  count = var.deployment_name == "prod" ? 1 : 0
+
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: ${local.metabase_smtp_secret_name}
+      namespace: monitoring
+    data:
+      ${local.metabase_smtp_secret_password_key}: ${base64encode("${aws_iam_access_key.metabase_ses_smtp_user[0].ses_smtp_password_v4}")}
   YAML
 }

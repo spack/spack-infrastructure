@@ -218,9 +218,6 @@ resource "aws_iam_user_policy_attachment" "tgamblin_s3" {
 resource "aws_iam_user" "e4s_cache" {
   name = "e4s-cache"
 }
-resource "aws_iam_user" "metabase_ses_smtp_user" {
-  name = "metabase-ses-smtp-user.20230503-153955"
-}
 resource "aws_iam_user" "spack_bootstrap_mirror_upload" {
   name = "spack-bootstrap-mirror-upload"
 }
@@ -245,20 +242,6 @@ resource "aws_iam_user_policy" "e4s_cache_read_write" {
         Effect   = "Allow"
         Action   = "s3:*Object"
         Resource = ["arn:aws:s3:::cache.e4s.io/*"]
-      }
-    ]
-  })
-}
-resource "aws_iam_user_policy" "metabase_ses_sending_access" {
-  name = "AmazonSesSendingAccess"
-  user = aws_iam_user.metabase_ses_smtp_user.name
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = "ses:SendRawEmail"
-        Resource = "*"
       }
     ]
   })
