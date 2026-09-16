@@ -69,25 +69,5 @@ resource "aws_vpc_security_group_ingress_rule" "runner_nodes_cluster_api" {
   referenced_security_group_id = module.eks.cluster_security_group_id
 }
 
-# IMPORTANT: CoreDNS pods run on nodes carrying the *original* shared node SG
-# (base/gitlab/beefy node pools aren't changing), not the new runner SG. Without
-# this rule, runner pods would be unable to resolve DNS at all -- breaking every
-# package download, not just Redis access. This is the one change that touches
-# the existing shared node SG rather than the new one.
-resource "aws_vpc_security_group_ingress_rule" "shared_node_sg_dns_from_runners_udp" {
-  security_group_id            = module.eks.node_security_group_id
-  description                  = "CoreDNS UDP from runner node SG"
-  ip_protocol                  = "udp"
-  from_port                    = 53
-  to_port                      = 53
-  referenced_security_group_id = aws_security_group.runner_nodes.id
-}
-
-resource "aws_vpc_security_group_ingress_rule" "shared_node_sg_dns_from_runners_tcp" {
-  security_group_id            = module.eks.node_security_group_id
-  description                  = "CoreDNS TCP from runner node SG"
-  ip_protocol                  = "tcp"
-  from_port                    = 53
-  to_port                      = 53
-  referenced_security_group_id = aws_security_group.runner_nodes.id
-}
+# Rules that let runner nodes reach the rest of the cluster (the API server and
+# CoreDNS) live on the shared security groups, in eks.tf.

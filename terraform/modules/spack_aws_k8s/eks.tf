@@ -139,6 +139,25 @@ module "eks" {
       type        = "ingress"
       self        = true # Only apply this rule to other nodes in this security group
     }
+    # CoreDNS runs on nodes in this security group, not on CI runner nodes, which use their own
+    # security group (see runner_node_security_group.tf). Without these rules runner pods can't
+    # resolve DNS at all.
+    ingress_runner_nodes_coredns_tcp = {
+      description              = "Runner nodes to CoreDNS TCP"
+      protocol                 = "tcp"
+      from_port                = 53
+      to_port                  = 53
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.runner_nodes.id
+    }
+    ingress_runner_nodes_coredns_udp = {
+      description              = "Runner nodes to CoreDNS UDP"
+      protocol                 = "udp"
+      from_port                = 53
+      to_port                  = 53
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.runner_nodes.id
+    }
   }
 
   security_group_additional_rules = {
