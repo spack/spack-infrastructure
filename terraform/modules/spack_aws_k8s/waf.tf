@@ -34,8 +34,50 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
 
     statement {
-      ip_set_reference_statement {
-        arn = aws_wafv2_ip_set.vpc_nat_ips.arn
+      # Only for hosts that workloads in the cluster reach through their public URLs: GitLab (runner
+      # managers and CI jobs) and CDash (CI job build reports). CI jobs run untrusted code and leave
+      # through the same NAT gateways, so allowing every host would let them reach internal
+      # dashboards such as Grafana, Prometheus, Alertmanager and Metabase.
+      and_statement {
+        statement {
+          ip_set_reference_statement {
+            arn = aws_wafv2_ip_set.vpc_nat_ips.arn
+          }
+        }
+        statement {
+          or_statement {
+            statement {
+              byte_match_statement {
+                search_string = "gitlab.${local.domain_suffix}spack.io"
+                field_to_match {
+                  single_header {
+                    name = "host"
+                  }
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+                positional_constraint = "EXACTLY"
+              }
+            }
+            statement {
+              byte_match_statement {
+                search_string = "cdash.${local.domain_suffix}spack.io"
+                field_to_match {
+                  single_header {
+                    name = "host"
+                  }
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+                positional_constraint = "EXACTLY"
+              }
+            }
+          }
+        }
       }
     }
 
