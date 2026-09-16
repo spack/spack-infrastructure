@@ -66,9 +66,11 @@ spec:
           operator: In
           values: ["linux"]
 
+      # Runner node class, which uses the runner node security group; see
+      # terraform/modules/spack_aws_k8s/runner_nodes.tf
       nodeClassRef:
         kind: EC2NodeClass
-        name: default
+        name: runner
         group: karpenter.k8s.aws
 
       # Taint these nodes so only pipeline pods will be scheduled on them.
