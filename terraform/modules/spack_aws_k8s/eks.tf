@@ -140,6 +140,21 @@ module "eks" {
       self        = true # Only apply this rule to other nodes in this security group
     }
   }
+
+  security_group_additional_rules = {
+    # CI runner nodes use their own security group (see runner_node_security_group.tf), so they
+    # aren't covered by the module's rule allowing the node security group to reach the API server.
+    # Inside the VPC the cluster endpoint resolves to the control plane's private ENIs, so without
+    # this rule runner nodes can't join the cluster.
+    ingress_runner_nodes_api = {
+      description              = "Runner nodes to cluster API"
+      protocol                 = "tcp"
+      from_port                = 443
+      to_port                  = 443
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.runner_nodes.id
+    }
+  }
 }
 
 resource "aws_iam_role" "ebs_csi_driver" {
