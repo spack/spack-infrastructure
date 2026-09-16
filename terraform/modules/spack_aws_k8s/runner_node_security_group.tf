@@ -1,0 +1,93 @@
+# Dedicated security group for CI runner nodes.
+#
+# Runner nodes execute arbitrary user-submitted pipeline code and, prior to this
+# change, shared the same security group as every other node in the cluster
+# (module.eks.node_security_group_id) -- including network-level access to the
+# GitLab Redis instance (see gitlab_redis.tf), which has no AUTH configured.
+# CI jobs have no legitimate need to reach Redis; giving runner nodes their own
+# security group (excluded from gitlab_redis.tf's security_group_ids) removes
+# that path without touching the broad internet egress CI jobs actually need
+# (package/source mirrors are effectively unbounded and can't be allow-listed).
+resource "aws_security_group" "runner_nodes" {
+  name        = "${local.eks_cluster_name}-runner-node-sg"
+  description = "Security group for Karpenter-provisioned CI runner nodes, isolated from the shared node SG"
+  vpc_id      = module.vpc.vpc_id
+
+  tags = {
+    Name                     = "${local.eks_cluster_name}-runner-node-sg"
+    "karpenter.sh/discovery" = "${local.eks_cluster_name}-runners"
+  }
+}
+
+# CI jobs fetch source tarballs/patches from hundreds of distinct, constantly
+# changing hosts (package mirrors, forges, etc.) -- a default-deny egress
+# allow-list isn't practical here, so egress stays fully open, matching the
+# existing shared node SG's behavior.
+resource "aws_vpc_security_group_egress_rule" "runner_nodes_all" {
+  security_group_id = aws_security_group.runner_nodes.id
+  description       = "Allow all egress"
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+# Node-to-node traffic within the runner fleet itself (kube-proxy, CNI, same-node
+# pod networking). Mirrors the equivalent self-referencing rule on the shared
+# node SG (see node_security_group_additional_rules in eks.tf).
+resource "aws_vpc_security_group_ingress_rule" "runner_nodes_self_all" {
+  security_group_id            = aws_security_group.runner_nodes.id
+  description                  = "Node to node all ports/protocols"
+  ip_protocol                  = "-1"
+  referenced_security_group_id = aws_security_group.runner_nodes.id
+}
+
+# The EKS control plane needs to reach kubelet/webhook ports on every node it
+# manages, regardless of which security group that node carries. These mirror
+# the equivalent rules the terraform-aws-modules/eks module auto-generates for
+# the shared node security group -- verify against `terraform plan` /
+# `aws ec2 describe-security-groups` on the existing node SG if this drifts
+# from what the module actually creates on your provider version.
+locals {
+  runner_node_cluster_ports = {
+    kubelet       = 10250
+    https         = 443
+    webhook_6443  = 6443
+    webhook_8443  = 8443
+    webhook_9443  = 9443
+    webhook_4443  = 4443
+    webhook_10251 = 10251
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "runner_nodes_cluster_api" {
+  for_each = local.runner_node_cluster_ports
+
+  security_group_id            = aws_security_group.runner_nodes.id
+  description                  = "Cluster API to node ${each.value}/tcp (${each.key})"
+  ip_protocol                  = "tcp"
+  from_port                    = each.value
+  to_port                      = each.value
+  referenced_security_group_id = module.eks.cluster_security_group_id
+}
+
+# IMPORTANT: CoreDNS pods run on nodes carrying the *original* shared node SG
+# (base/gitlab/beefy node pools aren't changing), not the new runner SG. Without
+# this rule, runner pods would be unable to resolve DNS at all -- breaking every
+# package download, not just Redis access. This is the one change that touches
+# the existing shared node SG rather than the new one.
+resource "aws_vpc_security_group_ingress_rule" "shared_node_sg_dns_from_runners_udp" {
+  security_group_id            = module.eks.node_security_group_id
+  description                  = "CoreDNS UDP from runner node SG"
+  ip_protocol                  = "udp"
+  from_port                    = 53
+  to_port                      = 53
+  referenced_security_group_id = aws_security_group.runner_nodes.id
+}
+
+resource "aws_vpc_security_group_ingress_rule" "shared_node_sg_dns_from_runners_tcp" {
+  security_group_id            = module.eks.node_security_group_id
+  description                  = "CoreDNS TCP from runner node SG"
+  ip_protocol                  = "tcp"
+  from_port                    = 53
+  to_port                      = 53
+  referenced_security_group_id = aws_security_group.runner_nodes.id
+}

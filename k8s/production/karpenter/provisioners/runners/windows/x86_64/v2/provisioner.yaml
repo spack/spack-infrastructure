@@ -41,7 +41,7 @@ spec:
 
       nodeClassRef:
         kind: EC2NodeClass
-        name: windows
+        name: windows-runners
         group: karpenter.k8s.aws
 
       taints:
