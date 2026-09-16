@@ -102,6 +102,53 @@ resource "kubectl_manifest" "karpenter_node_class" {
   ]
 }
 
+# Linux nodes for GitLab CI job pods. Identical to the default node class, except that nodes get
+# the runner node security group instead of the shared node security group; see runner_nodes.tf.
+resource "kubectl_manifest" "karpenter_runner_node_class" {
+  yaml_body = <<-YAML
+    apiVersion: karpenter.k8s.aws/v1
+    kind: EC2NodeClass
+    metadata:
+      name: runner
+    spec:
+      amiFamily: AL2023
+      amiSelectorTerms:
+        - alias: al2023@latest
+      userData: |
+        apiVersion: node.eks.aws/v1alpha1
+        kind: NodeConfig
+        spec:
+          kubelet:
+            config:
+              # The Amazon Linux 2023 AMI overrides the default kubelet config to disable
+              # serializeImagePulls in order to improve performance.
+              # This is not ideal for our use case, where we frequently create many pods at once
+              # when start a CI pipeline, because it can cause us to hit the container registry's
+              # max QPS, so we override it here.
+              serializeImagePulls: true
+      role: ${module.karpenter.node_iam_role_name}
+      subnetSelectorTerms:
+        - tags:
+            karpenter.sh/discovery: ${module.eks.cluster_name}
+      securityGroupSelectorTerms:
+        - id: ${aws_security_group.runner_nodes.id}
+      tags:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+      blockDeviceMappings:
+        - deviceName: /dev/xvda
+          ebs:
+            volumeSize: 200Gi
+            volumeType: gp3
+            deleteOnTermination: true
+  YAML
+
+  depends_on = [
+    helm_release.karpenter
+  ]
+}
+
+# Windows nodes are only used for GitLab CI job pods, so they get the runner node security group;
+# see runner_nodes.tf.
 resource "kubectl_manifest" "karpenter_windows_node_class" {
   yaml_body = <<-YAML
     apiVersion: karpenter.k8s.aws/v1
@@ -117,8 +164,7 @@ resource "kubectl_manifest" "karpenter_windows_node_class" {
         - tags:
             karpenter.sh/discovery: ${module.eks.cluster_name}
       securityGroupSelectorTerms:
-        - tags:
-            karpenter.sh/discovery: ${module.eks.cluster_name}
+        - id: ${aws_security_group.runner_nodes.id}
       tags:
         karpenter.sh/discovery: ${module.eks.cluster_name}
       blockDeviceMappings:

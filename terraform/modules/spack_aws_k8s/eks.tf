@@ -139,6 +139,35 @@ module "eks" {
       type        = "ingress"
       self        = true # Only apply this rule to other nodes in this security group
     }
+    # CoreDNS runs on nodes in this security group. This is the only access that CI runner nodes
+    # have to other nodes; see runner_nodes.tf.
+    ingress_runner_nodes_coredns_tcp = {
+      description              = "Runner nodes to CoreDNS TCP"
+      protocol                 = "tcp"
+      from_port                = 53
+      to_port                  = 53
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.runner_nodes.id
+    }
+    ingress_runner_nodes_coredns_udp = {
+      description              = "Runner nodes to CoreDNS UDP"
+      protocol                 = "udp"
+      from_port                = 53
+      to_port                  = 53
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.runner_nodes.id
+    }
+  }
+
+  security_group_additional_rules = {
+    ingress_runner_nodes_api = {
+      description              = "Runner nodes to cluster API"
+      protocol                 = "tcp"
+      from_port                = 443
+      to_port                  = 443
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.runner_nodes.id
+    }
   }
 }
 
