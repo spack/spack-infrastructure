@@ -64,13 +64,18 @@ module "postgres_security_group" {
   description = "Security group for RDS PostgreSQL database"
   vpc_id      = module.vpc.vpc_id
 
-  ingress_with_cidr_blocks = [
+  # Only allow cluster workloads and the GitLab RDS proxy. CI runner nodes use a separate security
+  # group and must not be able to reach the databases; see runner_node_security_group.tf.
+  ingress_with_source_security_group_id = [
     {
-      from_port   = 5432
-      to_port     = 5432
-      protocol    = "tcp"
-      description = "PostgreSQL access from within VPC"
-      cidr_blocks = module.vpc.vpc_cidr_block
+      rule                     = "postgresql-tcp"
+      description              = "PostgreSQL access from EKS nodes"
+      source_security_group_id = module.eks.node_security_group_id
+    },
+    {
+      rule                     = "postgresql-tcp"
+      description              = "PostgreSQL access from the GitLab RDS proxy"
+      source_security_group_id = module.gitlab_db_proxy_sg.security_group_id
     },
   ]
 }
@@ -132,11 +137,13 @@ module "gitlab_db_proxy_sg" {
 
   revoke_rules_on_delete = true
 
-  ingress_with_cidr_blocks = [
+  # Only allow cluster workloads. CI runner nodes use a separate security group and must not be able
+  # to reach the database; see runner_node_security_group.tf.
+  ingress_with_source_security_group_id = [
     {
-      description = "Private subnet PostgreSQL access"
-      rule        = "postgresql-tcp"
-      cidr_blocks = join(",", module.vpc.private_subnets_cidr_blocks)
+      description              = "PostgreSQL access from EKS nodes"
+      rule                     = "postgresql-tcp"
+      source_security_group_id = module.eks.node_security_group_id
     }
   ]
 

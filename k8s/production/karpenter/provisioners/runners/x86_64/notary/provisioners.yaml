@@ -12,6 +12,8 @@ spec:
         spack.io/notary: "true"
         spack.io/pipeline: "true"
         spack.io/x86_64: "v3" # highest supported x86_64 microarch version
+        # Keep CI job nodes out of LoadBalancer Service target groups, such as the gitlab-shell NLB.
+        node.kubernetes.io/exclude-from-external-load-balancers: "true"
 
     spec:
       requirements:
@@ -90,7 +92,7 @@ spec:
 
       nodeClassRef:
         kind: EC2NodeClass
-        name: default
+        name: runners
         group: karpenter.k8s.aws
 
       # Taint these nodes so only notary pods will be scheduled on them.
