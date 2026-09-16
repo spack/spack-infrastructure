@@ -40,6 +40,18 @@ resource "aws_vpc_security_group_ingress_rule" "runner_nodes_self_all" {
   referenced_security_group_id = aws_security_group.runner_nodes.id
 }
 
+# Cluster workloads on the shared node SG need to reach runner nodes: Prometheus
+# scrapes each node's kubelet (cAdvisor) and node exporter directly, and the
+# analytics job processor reads CI job CPU/memory usage from those metrics.
+# metrics-server also scrapes kubelets. This only allows connections *into*
+# runner nodes; it doesn't let runner pods reach anything on the shared node SG.
+resource "aws_vpc_security_group_ingress_rule" "runner_nodes_from_shared_nodes" {
+  security_group_id            = aws_security_group.runner_nodes.id
+  description                  = "Shared node SG to runner nodes, e.g. metrics scrapes"
+  ip_protocol                  = "-1"
+  referenced_security_group_id = module.eks.node_security_group_id
+}
+
 # The EKS control plane needs to reach kubelet/webhook ports on every node it
 # manages, regardless of which security group that node carries. These mirror
 # the equivalent rules the terraform-aws-modules/eks module auto-generates for
