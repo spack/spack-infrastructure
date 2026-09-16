@@ -7,13 +7,16 @@ resources:
 - ../../production/karpenter/provisioners/runners/x86_64/v3/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/x86_64/v4/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/windows/x86_64/v2/provisioner.yaml
+- ../../production/karpenter/provisioners/runners/protected
 - ../../production/karpenter/provisioners/gitlab/provisioner.yaml
 - ../../production/karpenter/provisioners/beefy/provisioner.yaml
 - ../../production/karpenter/provisioners/base/provisioner.yaml
+# Target names are regular expressions, so each patch also applies to the protected copy of its
+# NodePool (see production/karpenter/provisioners/runners/protected/).
 patches:
   - target:
       kind: NodePool
-      name: glr-x86-64-v2
+      name: glr-x86-64-v2(-prot)?
     patch: |-
       - op: replace
         path: /spec/template/spec/requirements/2/values
@@ -21,7 +24,7 @@ patches:
 
   - target:
       kind: NodePool
-      name: glr-x86-64-v3
+      name: glr-x86-64-v3(-prot)?
     patch: |-
       - op: replace
         path: /spec/template/spec/requirements/3/values
@@ -29,7 +32,7 @@ patches:
 
   - target:
       kind: NodePool
-      name: glr-x86-64-v4
+      name: glr-x86-64-v4(-prot)?
     patch: |-
       - op: replace
         path: /spec/template/spec/requirements/3/values
@@ -37,7 +40,7 @@ patches:
 
   - target:
       kind: NodePool
-      name: glr-graviton3
+      name: glr-graviton3(-prot)?
     patch: |-
       - op: replace
         path: /spec/template/spec/requirements/3/values
@@ -45,7 +48,7 @@ patches:
 
   - target:
       kind: NodePool
-      name: glr-graviton4
+      name: glr-graviton4(-prot)?
     patch: |-
       - op: replace
         path: /spec/template/spec/requirements/3/values
@@ -53,7 +56,7 @@ patches:
 
   - target:
       kind: NodePool
-      name: x86-64-v2-win
+      name: x86-64-v2-win(-prot)?
     patch: |-
       - op: replace
         path: /spec/template/spec/requirements/5/values

@@ -138,6 +138,12 @@ spec:
 
             [runners.kubernetes.node_tolerations]
               "spack.io/runner-taint=true" = "NoSchedule"
+              "spack.io/protected-taint=true" = "NoSchedule"
+
+            # Only run on protected runner nodes, which public job pods can't be scheduled on.
+            # See k8s/production/karpenter/provisioners/runners/protected/
+            [runners.kubernetes.node_selector]
+              "spack.io/protected" = "true"
 
             [runners.kubernetes.pod_annotations]
               "pod-cleanup.gitlab.com/ttl" = "12h"

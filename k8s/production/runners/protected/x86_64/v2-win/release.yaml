@@ -160,8 +160,12 @@ spec:
               # This is required to match the helper image (currently 24H2) based on this table:
               # https://gitlab.com/gitlab-org/gitlab-runner/-/blob/main/helpers/container/windows/version.go?ref_type=heads#L19-32
               "node.kubernetes.io/windows-build" = "10.0.26100"
+              # Only run on protected runner nodes, which public job pods can't be scheduled on.
+              # See k8s/production/karpenter/provisioners/runners/protected/
+              "spack.io/protected" = "true"
             [runners.kubernetes.node_tolerations]
               "spack.io/runner-taint=true" = "NoSchedule"
+              "spack.io/protected-taint=true" = "NoSchedule"
               "windows=true" = "NoSchedule"
 
             [[runners.kubernetes.volumes.secret]]

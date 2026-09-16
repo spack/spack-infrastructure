@@ -1,0 +1,31 @@
+# NodePools for protected CI jobs.
+#
+# Protected runners only take jobs from protected branches and tags, and mount the intermediate CI
+# signing key. Public runners take jobs from pull requests, which run untrusted code. To keep the two
+# from sharing a host, protected jobs get their own copies of the public runner NodePools, named with
+# a "-prot" suffix. The copies add:
+#   * the spack.io/protected label, which protected runners require, and
+#   * the spack.io/protected-taint taint, which only protected runners tolerate.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+nameSuffix: -prot
+resources:
+  - ../x86_64/v2/provisioners.yaml
+  - ../x86_64/v3/provisioners.yaml
+  - ../x86_64/v4/provisioners.yaml
+  - ../graviton/3/provisioners.yaml
+  - ../graviton/4/provisioners.yaml
+  - ../windows/x86_64/v2/provisioner.yaml
+patches:
+  - target:
+      kind: NodePool
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/labels/spack.io~1protected
+        value: "true"
+      - op: add
+        path: /spec/template/spec/taints/-
+        value:
+          key: spack.io/protected-taint
+          value: "true"
+          effect: NoSchedule
