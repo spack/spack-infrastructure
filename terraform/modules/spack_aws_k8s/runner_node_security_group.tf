@@ -3,11 +3,12 @@
 # Runner nodes execute arbitrary user-submitted pipeline code and, prior to this
 # change, shared the same security group as every other node in the cluster
 # (module.eks.node_security_group_id) -- including network-level access to the
-# GitLab Redis instance (see gitlab_redis.tf), which has no AUTH configured.
-# CI jobs have no legitimate need to reach Redis; giving runner nodes their own
-# security group (excluded from gitlab_redis.tf's security_group_ids) removes
-# that path without touching the broad internet egress CI jobs actually need
-# (package/source mirrors are effectively unbounded and can't be allow-listed).
+# GitLab Redis instance (see gitlab_redis.tf), which has no AUTH configured, the
+# Postgres databases (see gitlab_db.tf), and pods on every other node. CI jobs
+# have no legitimate need to reach any of those; giving runner nodes their own
+# security group, which those resources don't trust, removes those paths without
+# touching the broad internet egress CI jobs actually need (package/source
+# mirrors are effectively unbounded and can't be allow-listed).
 resource "aws_security_group" "runner_nodes" {
   name        = "${local.eks_cluster_name}-runner-node-sg"
   description = "Security group for Karpenter-provisioned CI runner nodes, isolated from the shared node SG"
