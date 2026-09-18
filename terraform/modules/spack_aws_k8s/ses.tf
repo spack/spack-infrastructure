@@ -14,6 +14,25 @@ resource "aws_route53_record" "ses_verification" {
   records = [aws_ses_domain_identity.ses_domain_identity.verification_token]
 }
 
+locals {
+  ses_vdm_configuration_set_name = "spack-gitlab-vdm${local.suffix}"
+}
+
+resource "aws_sesv2_configuration_set" "vdm" {
+  configuration_set_name = local.ses_vdm_configuration_set_name
+
+  vdm_options {
+    dashboard_options {
+      engagement_metrics = "ENABLED"
+    }
+  }
+}
+
+resource "aws_sesv2_email_identity" "ses_domain_identity_vdm" {
+  email_identity         = aws_ses_domain_identity.ses_domain_identity.domain
+  configuration_set_name = aws_sesv2_configuration_set.vdm.configuration_set_name
+}
+
 resource "aws_iam_user" "ses_user" {
   name = "ses-smtp-user-${var.deployment_name}-${var.deployment_stage}"
 }
