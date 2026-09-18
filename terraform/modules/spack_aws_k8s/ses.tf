@@ -45,13 +45,19 @@ resource "aws_iam_user_policy" "ses_user" {
   name = "AmazonSesSendingAccess"
   user = aws_iam_user.ses_user.name
 
+  # These credentials can only be used from inside our VPC.
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
       {
         "Effect" : "Allow",
         "Action" : "ses:SendRawEmail",
-        "Resource" : "*"
+        "Resource" : "*",
+        "Condition" : {
+          "IpAddress" : {
+            "aws:SourceIp" : [for ip in module.vpc.nat_public_ips : "${ip}/32"]
+          }
+        }
       }
     ]
   })
@@ -116,6 +122,7 @@ resource "aws_iam_user_policy" "metabase_ses_sending_access" {
   name = "AmazonSesSendingAccess"
   user = aws_iam_user.metabase_ses_smtp_user[0].name
 
+  # Same aws:SourceIp restriction as ses_user's policy above.
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -123,6 +130,11 @@ resource "aws_iam_user_policy" "metabase_ses_sending_access" {
         Effect   = "Allow"
         Action   = "ses:SendRawEmail"
         Resource = "*"
+        Condition = {
+          IpAddress = {
+            "aws:SourceIp" = [for ip in module.vpc.nat_public_ips : "${ip}/32"]
+          }
+        }
       }
     ]
   })
