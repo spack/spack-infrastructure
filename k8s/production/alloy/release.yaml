@@ -1,0 +1,265 @@
+# Grafana Alloy ships pod logs and Kubernetes events to Loki (see ../loki/).
+#
+# Two releases of the same chart:
+#   - alloy-logs:   DaemonSet that tails container log files from /var/log/pods on its node.
+#   - alloy-events: single-replica Deployment that watches the Kubernetes events API. This
+#                   can't live in the DaemonSet, since every replica would ship a copy of
+#                   every event.
+#
+# The `grafana` HelmRepository is defined in ../loki/release.yaml.
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: alloy-logs
+  namespace: monitoring
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: alloy
+      version: 1.12.1 # alloy@v1.19.2
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+  values:
+    alloy:
+      enableReporting: false
+
+      # Positions file (how far into each log file we've read). Kept on the host so
+      # an Alloy restart resumes where it left off instead of re-shipping every
+      # log file on the node.
+      storagePath: /var/lib/alloy
+
+      mounts:
+        varlog: true
+        extra:
+          - name: alloy-data
+            mountPath: /var/lib/alloy
+
+      # Container log files under /var/log/pods are 0640 root:root, so this has to
+      # run as root. It doesn't need any capabilities to read files it owns.
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          memory: 512Mi
+
+      configMap:
+        content: |-
+          // Pods scheduled on this node.
+          discovery.kubernetes "pods" {
+            role = "pod"
+            selectors {
+              role  = "pod"
+              field = "spec.nodeName=" + sys.env("K8S_NODE_NAME")
+            }
+          }
+
+          discovery.relabel "pods" {
+            targets = discovery.kubernetes.pods.targets
+
+            // CI job logs are stored by GitLab (job traces). They're also high
+            // volume and contain untrusted output, so keep them out of Loki.
+            // Runner nodes aren't covered by this DaemonSet anyway (it doesn't
+            // tolerate spack.io/runner-taint), this is just a backstop.
+            rule {
+              source_labels = ["__meta_kubernetes_namespace"]
+              regex         = "pipeline"
+              action        = "drop"
+            }
+
+            // Skip pods that haven't started yet / have no containers running.
+            rule {
+              source_labels = ["__meta_kubernetes_pod_phase"]
+              regex         = "Pending|Succeeded|Failed|Unknown"
+              action        = "drop"
+            }
+
+            rule {
+              source_labels = ["__meta_kubernetes_namespace"]
+              target_label  = "namespace"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_name"]
+              target_label  = "pod"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_name"]
+              target_label  = "container"
+            }
+            rule {
+              source_labels = [
+                "__meta_kubernetes_pod_label_app_kubernetes_io_name",
+                "__meta_kubernetes_pod_label_app",
+                "__meta_kubernetes_pod_controller_name",
+              ]
+              regex        = "^;*([^;]+)(;.*)?$"
+              target_label = "app"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+              separator     = "/"
+              target_label  = "job"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+              separator     = "/"
+              replacement   = "/var/log/pods/*$1/*.log"
+              target_label  = "__path__"
+            }
+          }
+
+          local.file_match "pods" {
+            path_targets = discovery.relabel.pods.output
+          }
+
+          loki.source.file "pods" {
+            targets    = local.file_match.pods.targets
+            forward_to = [loki.process.pods.receiver]
+          }
+
+          loki.process "pods" {
+            // Parse the CRI log format (timestamp, stream, flags) written by containerd.
+            stage.cri {}
+
+            // One stream per log file would be very high cardinality.
+            stage.label_drop {
+              values = ["filename"]
+            }
+
+            forward_to = [loki.write.default.receiver]
+          }
+
+          loki.write "default" {
+            endpoint {
+              url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+            }
+          }
+
+    controller:
+      type: daemonset
+      nodeSelector:
+        kubernetes.io/os: linux
+      # Deliberately does NOT tolerate spack.io/runner-taint: runner nodes are in a
+      # separate security group that can't reach Loki (see
+      # terraform/modules/spack_aws_k8s/runner_node_security_group.tf), and the only
+      # interesting workloads there are CI jobs, which we skip anyway.
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+      volumes:
+        extra:
+          - name: alloy-data
+            hostPath:
+              path: /var/lib/alloy-logs
+              type: DirectoryOrCreate
+
+    # Read-only access to pod metadata is all this needs. The chart default also
+    # grants cluster-wide read on Secrets and ConfigMaps. (The chart concatenates
+    # `rules` and `clusterRules` into one ClusterRole and renders invalid YAML if
+    # either is empty, hence the split.)
+    rbac:
+      rules:
+        - apiGroups: [""]
+          resources: ["pods"]
+          verbs: ["get", "list", "watch"]
+      clusterRules:
+        - apiGroups: [""]
+          resources: ["namespaces"]
+          verbs: ["get", "list", "watch"]
+
+    service:
+      enabled: true
+    serviceMonitor:
+      enabled: true
+
+    crds:
+      create: false
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: alloy-events
+  namespace: monitoring
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: alloy
+      version: 1.12.1 # alloy@v1.19.2
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+  values:
+    alloy:
+      enableReporting: false
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 473
+        runAsGroup: 473
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 256Mi
+
+      configMap:
+        content: |-
+          loki.source.kubernetes_events "events" {
+            log_format = "json"
+            forward_to = [loki.write.default.receiver]
+          }
+
+          loki.write "default" {
+            endpoint {
+              url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+            }
+          }
+
+    controller:
+      type: deployment
+      replicas: 1
+      nodeSelector:
+        spack.io/node-pool: base
+
+    # See the note on alloy-logs' rbac values.
+    rbac:
+      rules:
+        - apiGroups: [""]
+          resources: ["events"]
+          verbs: ["get", "list", "watch"]
+      clusterRules:
+        - apiGroups: [""]
+          resources: ["namespaces"]
+          verbs: ["get", "list", "watch"]
+
+    service:
+      enabled: true
+    serviceMonitor:
+      enabled: true
+
+    crds:
+      create: false

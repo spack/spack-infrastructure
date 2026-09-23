@@ -1,0 +1,21 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../production/loki/release.yaml
+
+patches:
+  - target:
+      kind: HelmRelease
+      name: loki
+      namespace: monitoring
+    patch: |-
+      - op: replace
+        path: /spec/values/loki/storage/bucketNames/chunks
+        value: spack-loki-staging
+      - op: replace
+        path: /spec/values/loki/storage/bucketNames/ruler
+        value: spack-loki-staging
+      - op: replace
+        path: /spec/values/loki/storage/s3/region
+        value: us-west-2

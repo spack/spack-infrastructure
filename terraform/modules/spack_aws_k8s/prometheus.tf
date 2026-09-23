@@ -23,5 +23,11 @@ resource "kubectl_manifest" "prometheus_additional_datasources_secret" {
                 password: "${jsondecode(data.aws_secretsmanager_secret_version.gitlab_db_ro_credentials.secret_string)["password"]}"
               jsonData:
                 postgresVersion: 14
+            - name: Loki
+              type: loki
+              access: proxy
+              url: http://loki.monitoring.svc.cluster.local:3100
+              jsonData:
+                maxLines: 1000
   YAML
 }
