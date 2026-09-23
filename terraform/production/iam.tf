@@ -218,13 +218,6 @@ resource "aws_iam_user_policy_attachment" "tgamblin_s3" {
 resource "aws_iam_user" "e4s_cache" {
   name = "e4s-cache"
 }
-resource "aws_iam_user" "spack_bootstrap_mirror_upload" {
-  name = "spack-bootstrap-mirror-upload"
-}
-resource "aws_iam_user_policy_attachment" "spack_bootstrap_mirror_upload_put_delete" {
-  user       = aws_iam_user.spack_bootstrap_mirror_upload.name
-  policy_arn = aws_iam_policy.put_and_delete_from_spack_llnl_bootstrap_mirror.arn
-}
 resource "aws_iam_user_policy" "e4s_cache_read_write" {
   name = "ReadWriteE4SCache"
   user = aws_iam_user.e4s_cache.name
@@ -242,28 +235,6 @@ resource "aws_iam_user_policy" "e4s_cache_read_write" {
         Effect   = "Allow"
         Action   = "s3:*Object"
         Resource = ["arn:aws:s3:::cache.e4s.io/*"]
-      }
-    ]
-  })
-}
-
-resource "aws_iam_policy" "put_and_delete_from_spack_llnl_bootstrap_mirror" {
-  name = "PutAndDeleteFromSpackLLNLBootstrapMirror"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "VisualEditor0"
-        Effect   = "Allow"
-        Action   = "s3:PutObject"
-        Resource = "arn:aws:s3:::spack-llnl-mirror/bootstrap/*"
-      },
-      {
-        Sid      = "VisualEditor1"
-        Effect   = "Allow"
-        Action   = "s3:DeleteObject"
-        Resource = "arn:aws:s3:::spack-llnl-mirror/bootstrap/*"
       }
     ]
   })
