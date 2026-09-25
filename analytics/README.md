@@ -73,6 +73,41 @@ The Django server must be informed about the changes:
 Since most of Django's environment variables contain additional content, use the values from
 the appropriate `dev/.env.docker-compose*` file as a baseline for overrides.
 
+## Pipeline status page
+
+A read-only page that summarises a GitHub PR's GitLab CI pipeline, at
+`/pipelines/spack/spack-packages/pull/<number>/`. It exists because GitLab's own
+pipeline page is slow for Spack's pipelines. It reads GitLab's database directly (the
+`gitlab` database connection) and never touches the analytics database.
+
+Locally, with the stack running, visit <http://localhost:8000/pipelines/>. Note that the
+page needs pipeline data in the local GitLab database to show anything, which means a
+pipeline must have run on a branch named `pr<number>_<something>`.
+
+In production this is deployed as its own internet-facing service, separate from the
+webhook handler. Its security posture is documented in
+[`k8s/production/custom/pipeline-status/README.md`](../k8s/production/custom/pipeline-status/README.md);
+read that before changing the allowlist of projects or the settings module it uses.
+
+### Frontend assets
+
+Tailwind, DaisyUI and Alpine are vendored under
+`analytics/pipeline_status/static/pipeline_status/` rather than loaded from a CDN, so
+that the page can run under a strict Content-Security-Policy. The stylesheet is
+compiled ahead of time and committed.
+
+**After changing the CSS classes used in any `pipeline_status` template, rebuild it:**
+
+```sh
+./analytics/pipeline_status/tailwind/build.sh
+```
+
+That script downloads a pinned, standalone Tailwind binary and the DaisyUI package on
+first run (no node/npm required) and rewrites `static/pipeline_status/app.css`. Commit
+the result. Classes that are chosen in Python rather than written in a template need to
+live somewhere the build scans — see the `@source` directives in
+`analytics/pipeline_status/tailwind/input.css`.
+
 ## Testing
 ### Initial Setup
 tox is used to execute all tests.

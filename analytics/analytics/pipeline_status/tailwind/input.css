@@ -1,0 +1,33 @@
+/*
+ * Source stylesheet for the pipeline status page.
+ *
+ * The compiled result is committed at
+ * analytics/pipeline_status/static/pipeline_status/app.css. Rebuild it with
+ * ./build.sh in this directory after changing any template's classes.
+ *
+ * It is compiled ahead of time rather than generated in the browser so that the page
+ * needs no third-party origins and no 'unsafe-inline' scripts -- see
+ * analytics/pipeline_status/middleware.py.
+ */
+
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+}
+
+/* Only the page's own templates contain class names; keep Tailwind from scanning the
+   rest of the Python project looking for them. */
+@source "../templates";
+
+/* The status badge modifiers (badge-success, badge-error, ...) are chosen in Python
+   rather than written in a template, so Tailwind would not otherwise see them.
+   Scanning the file that holds them keeps one source of truth, instead of repeating
+   the list here as a safelist. */
+@source "../templatetags/pipeline_status_extras.py";
+
+/* Alpine marks elements x-cloak so they stay hidden until it has initialised and can
+   evaluate their x-show. Without this rule they flash on first paint. */
+[x-cloak] {
+  display: none !important;
+}

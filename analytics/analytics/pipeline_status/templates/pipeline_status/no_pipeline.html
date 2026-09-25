@@ -1,0 +1,34 @@
+{% extends "pipeline_status/base.html" %}
+
+{% block title %}No pipeline for PR #{{ pr_number }}{% endblock %}
+
+{% block content %}
+  <div class="card bg-base-100 shadow-sm">
+    <div class="card-body">
+      <div class="text-sm text-base-content/60">{{ project_path }}</div>
+      <h1 class="card-title text-xl">No pipeline found for PR #{{ pr_number }}</h1>
+
+      <p class="max-w-2xl text-sm text-base-content/70">
+        Nothing has run in GitLab for this pull request yet. That is a normal state, and
+        usually means one of:
+      </p>
+      <ul class="ml-5 list-disc space-y-1 text-sm text-base-content/70">
+        <li>
+          the PR was opened in the last few minutes &mdash; the job that mirrors PRs to
+          GitLab runs every five minutes;
+        </li>
+        <li>
+          its pipeline is <a class="link" href="https://github.com/spack/spack-infrastructure/blob/main/docs/deferred_pipelines.md">deferred</a>
+          because the PR is based on a commit of <code class="font-mono">develop</code>
+          newer than the last one CI has tested; or
+        </li>
+        <li>the PR number does not exist in <span class="font-mono">{{ project_path }}</span>.</li>
+      </ul>
+
+      <div class="card-actions mt-4 gap-2">
+        <a class="btn btn-sm" href="{{ github_url }}">Open PR on GitHub</a>
+        <a class="btn btn-sm btn-ghost" href="{% url 'pipeline-status:index' %}">Look up another PR</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

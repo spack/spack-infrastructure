@@ -124,3 +124,7 @@ dmypy.json
 
 # Editor settings
 .vscode
+
+# Tailwind build tooling, downloaded on demand by pipeline_status/tailwind/build.sh
+analytics/pipeline_status/tailwind/.bin/
+analytics/pipeline_status/tailwind/node_modules/

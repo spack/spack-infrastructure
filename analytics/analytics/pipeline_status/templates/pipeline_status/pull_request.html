@@ -1,0 +1,193 @@
+{% extends "pipeline_status/base.html" %}
+{% load pipeline_status_extras %}
+
+{% block title %}PR #{{ pr_number }} &middot; {{ pipeline.root.status|humanize_status }}{% endblock %}
+
+{% block content %}
+  {# ---------- Header ---------- #}
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <div class="text-sm text-base-content/60">{{ project_path }}</div>
+      <h1 class="text-2xl font-bold">Pull request #{{ pr_number }}</h1>
+      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <a class="link" href="{{ github_url }}">GitHub PR</a>
+        <span class="text-base-content/30">|</span>
+        <a class="link" href="{{ gitlab_project_url }}/-/pipelines/{{ pipeline.root.id }}">
+          GitLab pipeline #{{ pipeline.root.id }}
+        </a>
+        <span class="text-base-content/30">|</span>
+        <a
+          class="link font-mono"
+          href="{{ gitlab_project_url }}/-/commit/{{ pipeline.sha }}"
+        >{{ pipeline.sha|slice:":8" }}</a>
+        <span class="text-base-content/30">|</span>
+        <span class="font-mono text-base-content/70">{{ pipeline.ref }}</span>
+      </div>
+    </div>
+
+    {# ---------- Auto-refresh ---------- #}
+    <div x-data="autoRefresh({{ refresh_seconds }})" class="flex items-center gap-2 text-sm">
+      <label class="flex cursor-pointer items-center gap-2">
+        <input type="checkbox" class="toggle toggle-sm" x-model="enabled" @change="toggle()" />
+        <span>Auto-refresh</span>
+      </label>
+      <span class="font-mono text-base-content/50" x-show="enabled" x-cloak>
+        <span x-text="remaining"></span>s
+      </span>
+    </div>
+  </div>
+
+  {# ---------- Pipeline status ---------- #}
+  <div class="card mt-5 bg-base-100 shadow-sm">
+    <div class="card-body gap-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="badge badge-lg {{ pipeline.root.status|status_badge_class }}">
+          {{ pipeline.root.status|humanize_status }}
+        </span>
+        {% if pipeline.is_running %}
+          <span class="loading loading-spinner loading-sm text-base-content/40"></span>
+        {% endif %}
+        <span class="text-sm text-base-content/70">
+          {{ pipeline.root.elapsed_seconds|duration }}
+          {% if pipeline.is_running %}elapsed{% endif %}
+        </span>
+        {% if pipeline.child_pipelines %}
+          <span class="text-sm text-base-content/50">
+            across {{ pipeline.child_pipelines|length|add:"1" }} pipelines
+          </span>
+        {% endif %}
+      </div>
+
+      {# ---------- Job counts ---------- #}
+      <div class="stats stats-vertical w-full border border-base-300 sm:stats-horizontal">
+        <div class="stat">
+          <div class="stat-title">Jobs</div>
+          <div class="stat-value text-2xl">{{ pipeline.total_jobs }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Failed</div>
+          <div class="stat-value text-2xl {% if pipeline.failed_job_count %}text-error{% endif %}">
+            {{ pipeline.failed_job_count }}
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">In progress</div>
+          <div class="stat-value text-2xl">{{ pipeline.in_progress_job_count }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Succeeded</div>
+          <div class="stat-value text-2xl">{{ pipeline.job_status_counts.success|default:"0" }}</div>
+        </div>
+      </div>
+
+      {# Full breakdown, for the states the four tiles above don't name. #}
+      <div class="flex flex-wrap gap-2">
+        {% for status, count in pipeline.job_status_counts.items %}
+          <span class="badge badge-sm {{ status|status_badge_class }}">
+            {{ status|humanize_status }}: {{ count }}
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---------- Failed jobs ---------- #}
+  {% if pipeline.failed_jobs %}
+    <div class="card mt-5 bg-base-100 shadow-sm" x-data="jobFilter">
+      <div class="card-body">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="card-title text-lg">
+            Failed jobs
+            <span class="badge badge-error">{{ pipeline.blocking_failed_jobs|length }}</span>
+            {% if pipeline.allowed_failed_jobs %}
+              <span class="badge badge-ghost badge-sm">
+                + {{ pipeline.allowed_failed_jobs|length }} allowed to fail
+              </span>
+            {% endif %}
+          </h2>
+
+          <div class="flex items-center gap-2">
+            <input
+              type="search"
+              placeholder="Filter by job or stage"
+              class="input input-sm w-64"
+              x-model="query"
+              aria-label="Filter failed jobs"
+            />
+            <button type="button" class="btn btn-sm btn-ghost" x-show="query" x-cloak @click="clear()">
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {% if pipeline.failed_jobs_truncated %}
+          <div role="alert" class="alert alert-warning mt-2">
+            <span>
+              Showing the first {{ pipeline.failed_jobs|length }} failed jobs. There are
+              more &mdash; see the pipeline in GitLab for the full list.
+            </span>
+          </div>
+        {% endif %}
+
+        <div class="mt-2 overflow-x-auto">
+          <table class="table table-zebra table-sm">
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Stage</th>
+                <th>Reason</th>
+                <th class="text-right">Duration</th>
+                <th>Pipeline</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for job in pipeline.failed_jobs %}
+                {# The searchable text lives in a data attribute rather than in the
+                   Alpine expression, so job names never reach evaluated code. #}
+                <tr
+                  x-show="matches($el)"
+                  data-search="{{ job.name|lower }} {{ job.stage|default:''|lower }} {{ job.failure_reason|lower }}"
+                >
+                  <td class="max-w-md">
+                    <a
+                      class="link link-hover font-mono text-xs"
+                      href="{{ gitlab_project_url }}/-/jobs/{{ job.id }}"
+                    >{{ job.name }}</a>
+                    {% if job.is_trigger_job %}
+                      <span class="badge badge-ghost badge-xs align-middle">trigger</span>
+                    {% endif %}
+                    {% if job.allow_failure %}
+                      <span class="badge badge-ghost badge-xs align-middle">allowed</span>
+                    {% endif %}
+                  </td>
+                  <td class="whitespace-nowrap text-xs">{{ job.stage|default:"—" }}</td>
+                  <td class="text-xs">{{ job.failure_reason|humanize_status }}</td>
+                  <td class="whitespace-nowrap text-right font-mono text-xs">
+                    {{ job.elapsed_seconds|duration }}
+                  </td>
+                  <td class="whitespace-nowrap text-xs">
+                    {% if job.pipeline_id == pipeline.root.id %}
+                      <span class="text-base-content/50">parent</span>
+                    {% else %}
+                      <a
+                        class="link link-hover"
+                        href="{{ gitlab_project_url }}/-/pipelines/{{ job.pipeline_id }}"
+                      >#{{ job.pipeline_id }}</a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div role="alert" class="alert alert-success mt-5">
+      <span>
+        No failed jobs
+        {% if pipeline.is_running %}yet &mdash; this pipeline is still running{% endif %}.
+      </span>
+    </div>
+  {% endif %}
+{% endblock %}

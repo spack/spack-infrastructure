@@ -22,6 +22,7 @@ from analytics.core.views import webhook_handler
 
 urlpatterns = [
     path("", webhook_handler),
+    path("pipelines/", include("analytics.pipeline_status.urls")),
 ]
 
 if settings.DEBUG:

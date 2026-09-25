@@ -1,0 +1,37 @@
+---
+# Attaching to spack-gateway puts this on the internet-facing ALB, behind the same WAF
+# and the *.spack.io wildcard certificate as every other service on that gateway.
+#
+# The rules below match only the paths the status page actually serves. That is on
+# purpose: the same Django project also serves an unauthenticated, CSRF-exempt GitLab
+# webhook at "/", and although the public deployment's urlconf does not contain it,
+# not routing "/" here means a settings mistake alone could not expose it.
+#
+# Consequently https://ci.spack.io/ itself is not routed. The entry point is
+# https://ci.spack.io/pipelines/.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: pipeline-status
+  namespace: custom
+spec:
+  parentRefs:
+    - name: spack-gateway
+      namespace: gateway-api
+  hostnames:
+    - ci.spack.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /pipelines
+        # Vendored CSS/JS, served by whitenoise from within the image.
+        - path:
+            type: PathPrefix
+            value: /static
+        - path:
+            type: Exact
+            value: /robots.txt
+      backendRefs:
+        - name: pipeline-status
+          port: 80

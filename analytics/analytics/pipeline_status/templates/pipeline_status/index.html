@@ -1,0 +1,64 @@
+{% extends "pipeline_status/base.html" %}
+
+{% block title %}Spack pipeline status{% endblock %}
+
+{% block content %}
+  <div class="card bg-base-100 shadow-sm">
+    <div class="card-body">
+      <h1 class="card-title text-xl">Find a pull request's pipeline</h1>
+      <p class="max-w-2xl text-sm text-base-content/70">
+        Spack mirrors every GitHub pull request to GitLab as a branch named
+        <code class="rounded bg-base-200 px-1 font-mono">pr&lt;number&gt;_&lt;branch&gt;</code>,
+        and runs CI there. Enter a PR number to see that pipeline's status and any jobs
+        that failed.
+      </p>
+
+      {% if error %}
+        <div role="alert" class="alert alert-error mt-2">
+          <span>{{ error }}</span>
+        </div>
+      {% endif %}
+
+      <form method="get" class="mt-4 flex flex-wrap items-end gap-4">
+        <div class="flex flex-col gap-1">
+          <label for="project" class="text-sm font-medium">Repository</label>
+          <select id="project" name="project" class="select w-64">
+            {% for project in projects %}
+              <option
+                value="{{ project }}"
+                {% if project == submitted_project or project == default_project %}selected{% endif %}
+              >
+                {{ project }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="pr_number" class="text-sm font-medium">PR number</label>
+          <input
+            id="pr_number"
+            name="pr_number"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            required
+            placeholder="12345"
+            value="{{ submitted_pr_number }}"
+            class="input w-40"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Show pipeline</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="mt-4 text-sm text-base-content/60">
+    <p>
+      Not seeing a pipeline? Pipelines are deliberately deferred while a PR is ahead of
+      the last tested <code class="font-mono">develop</code> commit, and the mirror job
+      runs every five minutes.
+    </p>
+  </div>
+{% endblock %}

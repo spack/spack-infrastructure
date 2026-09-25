@@ -1,0 +1,159 @@
+---
+# The pipeline status page. This is the only internet-facing part of the analytics
+# Django project, and it is deliberately a separate Deployment from webhook-handler
+# rather than another route on it:
+#
+#   * public traffic cannot starve GitLab webhook processing, and vice versa;
+#   * it runs the analytics.settings.public settings module, whose urlconf does not
+#     contain the webhook handler at all; and
+#   * it holds no credentials for the analytics database and never runs migrations --
+#     it only ever reads GitLab's database.
+#
+# See k8s/production/custom/pipeline-status/README.md.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pipeline-status
+  namespace: custom
+  labels:
+    app: pipeline-status
+    svc: web
+spec:
+  selector:
+    matchLabels:
+      app: pipeline-status
+      svc: web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: pipeline-status
+        svc: web
+    spec:
+      restartPolicy: Always
+      # No ServiceAccount is needed: unlike webhook-handler, this deployment never
+      # talks to the Kubernetes API, so it gets no token to leak.
+      automountServiceAccountToken: false
+      containers:
+        - name: pipeline-status
+          image: ghcr.io/spack/django:0.6.0
+          imagePullPolicy: Always
+          # Bypass the image's entrypoint, which runs `manage.py migrate`. This
+          # deployment does not own -- or have credentials for -- the analytics
+          # database. Static assets are already collected into the image at build time.
+          command:
+            - gunicorn
+            - --bind
+            - 0.0.0.0:8080
+            - --workers
+            - "4"
+            - --access-logfile
+            - "-"
+            - analytics.wsgi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512M
+            limits:
+              cpu: "1"
+              memory: 1G
+          ports:
+            - containerPort: 8080
+          # Probes set Host, because kubelet would otherwise send the pod IP and be
+          # rejected by ALLOWED_HOSTS, and X-Forwarded-Proto so that the public
+          # settings' HTTPS redirect does not fire. The internal service name is used
+          # rather than the public one so that staging needs no patch here. The index
+          # page touches no database.
+          readinessProbe:
+            httpGet:
+              path: /pipelines/
+              port: 8080
+              httpHeaders:
+                - name: Host
+                  value: pipeline-status.custom.svc.cluster.local
+                - name: X-Forwarded-Proto
+                  value: https
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /pipelines/
+              port: 8080
+              httpHeaders:
+                - name: Host
+                  value: pipeline-status.custom.svc.cluster.local
+                - name: X-Forwarded-Proto
+                  value: https
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: analytics.settings.public
+            # The public hostname, plus the in-cluster service name that the
+            # health probes above send.
+            - name: ALLOWED_HOSTS
+              value: ci.spack.io,pipeline-status.custom.svc.cluster.local
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: secret-key
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: sentry-dsn
+            # GitLab's database, which is all this deployment reads. These should be
+            # the credentials of a read-only role -- see README.md.
+            - name: GITLAB_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: gitlab-db-user
+            - name: GITLAB_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: gitlab-db-host
+            - name: GITLAB_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: gitlab-db-name
+            - name: GITLAB_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: gitlab-db-password
+            - name: GITLAB_DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-secrets
+                  key: gitlab-db-port
+            # The remaining variables exist only because the shared settings modules
+            # read them at import. This deployment never opens the analytics database,
+            # never enqueues a Celery task and never calls the GitLab API, so they are
+            # deliberately inert rather than real credentials.
+            - name: DB_NAME
+              value: unused
+            - name: DB_HOST
+              value: unused.invalid
+            - name: DB_USER
+              value: unused
+            - name: DB_PASS
+              value: unused
+            - name: CELERY_BROKER_URL
+              value: redis://unused.invalid
+            - name: GITLAB_ENDPOINT
+              # Used only to build links back to GitLab in the rendered page.
+              value: https://gitlab.spack.io
+            - name: GITLAB_TOKEN
+              value: unused
+            - name: PROMETHEUS_URL
+              value: http://unused.invalid
+      nodeSelector:
+        spack.io/node-pool: base

@@ -1,0 +1,48 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../production/custom/pipeline-status/deployments.yaml
+  - ../../../production/custom/pipeline-status/services.yaml
+  - ../../../production/custom/pipeline-status/httproutes.yaml
+patches:
+  # Staging serves the same page from ci.staging.spack.io with a single, smaller
+  # replica. The GitLab database connection comes from the webhook-secrets Secret,
+  # which Terraform populates with staging-specific values, so it needs no patch.
+  #
+  # These are merge patches rather than positional JSON patches so that they keep
+  # working when the production manifest's env list changes order.
+  - patch: |-
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: pipeline-status
+        namespace: custom
+      spec:
+        hostnames:
+          - ci.staging.spack.io
+
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: pipeline-status
+        namespace: custom
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: pipeline-status
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 256M
+                  limits:
+                    cpu: 500m
+                    memory: 512M
+                env:
+                  # The health probes address the service by its in-cluster name,
+                  # which is identical in both environments, so only the public
+                  # hostname changes.
+                  - name: ALLOWED_HOSTS
+                    value: ci.staging.spack.io,pipeline-status.custom.svc.cluster.local
