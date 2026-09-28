@@ -111,108 +111,67 @@ resource "aws_iam_group_policy_attachment" "e4s_cache_allow_bucket_list" {
   group      = aws_iam_group.e4s_cache.name
   policy_arn = aws_iam_policy.allow_group_to_see_bucket_list_in_the_console.arn
 }
-resource "aws_iam_user_group_membership" "alecscott" {
-  user = aws_iam_user.alecscott.name
-  groups = [
-    aws_iam_group.eks_users.name,
-  ]
-}
-resource "aws_iam_user_group_membership" "dan" {
-  user = aws_iam_user.dan.name
-  groups = [
-    aws_iam_group.eks_users.name,
-  ]
-}
 resource "aws_iam_user_group_membership" "e4s_cache" {
   user = aws_iam_user.e4s_cache.name
   groups = [
     aws_iam_group.e4s_cache.name,
   ]
 }
-resource "aws_iam_user_group_membership" "jacob" {
-  user = aws_iam_user.jacob.name
-  groups = [
-    aws_iam_group.custodians.name,
+
+# ############################
+# Human IAM user definitions
+# ############################
+
+locals {
+  custodians = [
+    "jacob",
+    "mike",
+    "zack",
   ]
-}
-resource "aws_iam_user_group_membership" "krattiger1" {
-  user = aws_iam_user.krattiger1.name
-  groups = [
-    aws_iam_group.eks_users.name,
+  eks_users = [
+    "alecscott",
+    "dan",
+    "krattiger1",
+    "krattiger1-eks-user",
+    "mike",
+    "tgamblin",
+    "zack",
   ]
-}
-resource "aws_iam_user_group_membership" "krattiger1_eks_user" {
-  user = aws_iam_user.krattiger1_eks_user.name
-  groups = [
-    aws_iam_group.eks_users.name,
+  # These users aren't in any groups.
+  extra_users = [
+    "john",
+    "peter",
+    "lpeyrala",
   ]
-}
-resource "aws_iam_user_group_membership" "mike" {
-  user = aws_iam_user.mike.name
-  groups = [
-    aws_iam_group.custodians.name,
-    aws_iam_group.eks_users.name,
-  ]
-}
-resource "aws_iam_user_group_membership" "tgamblin" {
-  user = aws_iam_user.tgamblin.name
-  groups = [
-    aws_iam_group.eks_users.name,
-  ]
-}
-resource "aws_iam_user_group_membership" "zack" {
-  user = aws_iam_user.zack.name
-  groups = [
-    aws_iam_group.custodians.name,
-    aws_iam_group.eks_users.name,
-  ]
+
+  all_human_users = distinct(concat(local.custodians, local.eks_users, local.extra_users))
+
+  human_user_groups = {
+    for user in distinct(concat(local.custodians, local.eks_users)) :
+    user => concat(
+      contains(local.custodians, user) ? [aws_iam_group.custodians.name] : [],
+      contains(local.eks_users, user) ? [aws_iam_group.eks_users.name] : [],
+    )
+  }
 }
 
+resource "aws_iam_user_group_membership" "human" {
+  for_each = local.human_user_groups
 
-# Human IAM users
-resource "aws_iam_user" "dan" {
-  name = "dan"
-}
-resource "aws_iam_user" "jacob" {
-  name = "jacob"
-}
-resource "aws_iam_user" "john" {
-  name = "john"
-}
-resource "aws_iam_user" "peter" {
-  name = "peter"
-}
-resource "aws_iam_user" "krattiger1" {
-  name = "krattiger1"
-}
-resource "aws_iam_user" "krattiger1_eks_user" {
-  name = "krattiger1-eks-user"
-}
-resource "aws_iam_user" "mike" {
-  name = "mike"
-}
-resource "aws_iam_user" "zack" {
-  name = "zack"
-}
-resource "aws_iam_user" "alecscott" {
-  name = "alecscott"
-}
-resource "aws_iam_user" "lpeyrala" {
-  name = "lpeyrala"
-}
-resource "aws_iam_user" "tgamblin" {
-  name = "tgamblin"
-}
-# TODO: can we remove these?
-resource "aws_iam_user_policy_attachment" "tgamblin_route53" {
-  user       = aws_iam_user.tgamblin.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonRoute53FullAccess"
-}
-resource "aws_iam_user_policy_attachment" "tgamblin_s3" {
-  user       = aws_iam_user.tgamblin.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  user   = aws_iam_user.human[each.key].name
+  groups = each.value
 }
 
+resource "aws_iam_user" "human" {
+  for_each = toset(local.all_human_users)
+  name     = each.value
+
+  lifecycle {
+    ignore_changes = [
+      tags
+    ]
+  }
+}
 
 # Robot IAM users
 resource "aws_iam_user" "e4s_cache" {
