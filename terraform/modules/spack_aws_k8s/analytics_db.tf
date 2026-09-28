@@ -18,9 +18,10 @@ module "analytics_db" {
 
   identifier = "spack-analytics${local.suffix}"
 
-  engine               = "postgres"
-  family               = "postgres15"
-  major_engine_version = "15"
+  engine = "postgres"
+  # TODO: remove this once we're on postgres 18 in prod.
+  family               = var.deployment_name == "prod" ? "postgres15" : "postgres18"
+  major_engine_version = var.deployment_name == "prod" ? "15" : "18"
   instance_class       = var.analytics_db_instance_class
 
   # Credentials
