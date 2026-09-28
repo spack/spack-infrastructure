@@ -613,7 +613,7 @@ resource "gitlab_application_settings" "this" {
   spam_check_endpoint_enabled = false
 
   # Enable pipeline suggestion banner.
-  suggest_pipeline_enabled = true
+  suggest_pipeline_enabled = false
 
   # Maximum time for web terminal websocket connection (in seconds).
   terminal_max_session_time = 0
