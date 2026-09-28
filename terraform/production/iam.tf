@@ -162,46 +162,6 @@ resource "aws_iam_user_group_membership" "human" {
   groups = each.value
 }
 
-moved {
-  from = aws_iam_user_group_membership.alecscott
-  to   = aws_iam_user_group_membership.human["alecscott"]
-}
-
-moved {
-  from = aws_iam_user_group_membership.dan
-  to   = aws_iam_user_group_membership.human["dan"]
-}
-
-moved {
-  from = aws_iam_user_group_membership.jacob
-  to   = aws_iam_user_group_membership.human["jacob"]
-}
-
-moved {
-  from = aws_iam_user_group_membership.krattiger1
-  to   = aws_iam_user_group_membership.human["krattiger1"]
-}
-
-moved {
-  from = aws_iam_user_group_membership.krattiger1_eks_user
-  to   = aws_iam_user_group_membership.human["krattiger1-eks-user"]
-}
-
-moved {
-  from = aws_iam_user_group_membership.mike
-  to   = aws_iam_user_group_membership.human["mike"]
-}
-
-moved {
-  from = aws_iam_user_group_membership.tgamblin
-  to   = aws_iam_user_group_membership.human["tgamblin"]
-}
-
-moved {
-  from = aws_iam_user_group_membership.zack
-  to   = aws_iam_user_group_membership.human["zack"]
-}
-
 resource "aws_iam_user" "human" {
   for_each = toset(local.all_human_users)
   name     = each.value
@@ -211,61 +171,6 @@ resource "aws_iam_user" "human" {
       tags
     ]
   }
-}
-
-moved {
-  from = aws_iam_user.dan
-  to   = aws_iam_user.human["dan"]
-}
-
-moved {
-  from = aws_iam_user.jacob
-  to   = aws_iam_user.human["jacob"]
-}
-
-moved {
-  from = aws_iam_user.john
-  to   = aws_iam_user.human["john"]
-}
-
-moved {
-  from = aws_iam_user.peter
-  to   = aws_iam_user.human["peter"]
-}
-
-moved {
-  from = aws_iam_user.krattiger1
-  to   = aws_iam_user.human["krattiger1"]
-}
-
-moved {
-  from = aws_iam_user.krattiger1_eks_user
-  to   = aws_iam_user.human["krattiger1-eks-user"]
-}
-
-moved {
-  from = aws_iam_user.mike
-  to   = aws_iam_user.human["mike"]
-}
-
-moved {
-  from = aws_iam_user.zack
-  to   = aws_iam_user.human["zack"]
-}
-
-moved {
-  from = aws_iam_user.alecscott
-  to   = aws_iam_user.human["alecscott"]
-}
-
-moved {
-  from = aws_iam_user.lpeyrala
-  to   = aws_iam_user.human["lpeyrala"]
-}
-
-moved {
-  from = aws_iam_user.tgamblin
-  to   = aws_iam_user.human["tgamblin"]
 }
 
 # Robot IAM users
