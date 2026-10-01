@@ -4,9 +4,23 @@ data "aws_iam_role" "terraform" {
   name = "terraform-role"
 }
 
+# IAM Roles
+resource "aws_iam_role" "binary_cache_maintainer" {
+  name = "BinaryCacheMaintainerRole"
+
+  managed_policy_arns = [aws_iam_policy.binary_cache_full_access.arn]
+}
+
+
 # IAM Groups
 resource "aws_iam_group" "custodians" {
   name = "Custodians"
+}
+resource "aws_iam_group" "binary_cache_maintainers" {
+  name = "BinaryCacheMaintainers"
+}
+resource "aws_iam_group" "binary_cache_observers" {
+  name = "BinaryCacheObservers"
 }
 resource "aws_iam_group" "e4s_cache" {
   name = "e4s-cache"
@@ -107,6 +121,33 @@ resource "aws_iam_group_policy" "custodians_ebs_snapshots" {
     ]
   })
 }
+resource "aws_iam_group_policy" "binary_cache_observer_access" {
+  name  = "BinaryCacheObserverAccess"
+  group = aws_iam_group.binary_cache_observers.name
+
+  policy_arn = aws_iam_policy.binary_cache_read_only_access.arn
+}
+resource "aws_iam_group_policy" "binary_cache_maintainers_access" {
+  name  = "BinaryCacheMaintainersAccess"
+  group = aws_iam_group.binary_cache_maintainers.name
+
+  policy_arn = aws_iam_policy.binary_cache_read_only_access.arn
+}
+resource "aws_iam_group_policy" "binary_cache_maintainers_assume_maintainer_role" {
+  name  = "AssumeBinaryCacheMaintainerRole"
+  group = aws_iam_group.binary_cache_maintainers.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "sts:AssumeRole"
+        Resource = aws_iam_role.binary_cache_maintainer.arn
+      }
+    ]
+  })
+}
 resource "aws_iam_group_policy_attachment" "e4s_cache_allow_bucket_list" {
   group      = aws_iam_group.e4s_cache.name
   policy_arn = aws_iam_policy.allow_group_to_see_bucket_list_in_the_console.arn
@@ -128,6 +169,14 @@ locals {
     "mike",
     "zack",
   ]
+  binary_cache_maintainers = [
+    "krattiger1",
+    "tgamblin",
+    "zack",
+  ]
+  binary_cache_observers = [
+    "annehaley",
+  ]
   eks_users = [
     "alecscott",
     "dan",
@@ -144,7 +193,7 @@ locals {
     "lpeyrala",
   ]
 
-  all_human_users = distinct(concat(local.custodians, local.eks_users, local.extra_users))
+  all_human_users = distinct(concat(local.custodians, local.binary_cache_maintainers, local.binary_cache_observers, local.eks_users, local.extra_users))
 
   human_user_groups = {
     for user in distinct(concat(local.custodians, local.eks_users)) :

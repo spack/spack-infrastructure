@@ -46,3 +46,50 @@ module "protected_binary_mirror" {
   cdn_domain      = "binaries.${var.deployment_name == "prod" ? "" : "${var.deployment_name}."}spack.io"
   cache_policy_id = aws_cloudfront_cache_policy.min_ttl_zero.id
 }
+
+resource "aws_iam_policy" "binary_cache_read_only_access" {
+  name = "BinaryCacheReadOnlyAccess"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "BinaryCacheReadOnlyAccess"
+        Action   = [
+            "s3:Get*",
+            "s3:List*",
+            "s3:Describe*",
+            "s3-object-lambda:Get*",
+            "s3-object-lambda:List*"
+        ]
+        Effect   = "Allow"
+        Resource = [
+          module.protected_binary_mirror.bucket_arn,
+        ]
+      }
+    ]
+  })
+}
+
+
+resource "aws_iam_policy" "binary_cache_full_access" {
+  name = "BinaryCacheReadOnlyAccess"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "BinaryCacheReadOnlyAccess"
+        Action   = [
+            "s3:*",
+            "s3-object-lambda:*",
+        ]
+        Effect   = "Allow"
+        Resource = [
+          module.protected_binary_mirror.bucket_arn,
+          module.pr_binary_mirror.bucket_arn
+        ]
+      }
+    ]
+  })
+}
