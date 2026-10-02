@@ -29,9 +29,14 @@ if __name__ == "__main__":
         default=None,
         help="file containing newline-delimited list of package hashes to keep (optional)",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="report what would be pruned without deleting anything",
+    )
     args = parser.parse_args()
 
     mirror = require_mirror_name(args.mirror)
     keeplist: Optional[str] = args.keeplist
 
-    prune_buildcache(mirror=mirror, keeplist=keeplist)
+    prune_buildcache(mirror=mirror, keeplist=keeplist, dry_run=args.dry_run)
