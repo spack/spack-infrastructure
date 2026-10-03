@@ -47,49 +47,118 @@ module "protected_binary_mirror" {
   cache_policy_id = aws_cloudfront_cache_policy.min_ttl_zero.id
 }
 
-resource "aws_iam_policy" "binary_cache_read_only_access" {
-  name = "BinaryCacheReadOnlyAccess"
+
+# Permissions on the mirror buckets live here, next to the buckets themselves.
+# The IAM groups/roles that consume them are declared in the root module and
+# reference these via the binary_cache_*_policy_arn outputs.
+#
+# Read-only access is split per bucket so that the groups can compose it:
+# observers get the protected mirror only, maintainers get both.
+
+resource "aws_iam_policy" "protected_binary_cache_read_only" {
+  name = "ProtectedBinaryCacheReadOnly${local.suffix}"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "BinaryCacheReadOnlyAccess"
-        Action   = [
-            "s3:Get*",
-            "s3:List*",
-            "s3:Describe*",
-            "s3-object-lambda:Get*",
-            "s3-object-lambda:List*"
+        # Bucket-level actions authorize against the bucket ARN, not the object ARN.
+        Sid    = "ListProtectedBinaryMirror"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:ListBucketVersions",
+          "s3:ListBucketMultipartUploads",
+          "s3:GetBucketLocation",
         ]
-        Effect   = "Allow"
         Resource = [
           module.protected_binary_mirror.bucket_arn,
         ]
-      }
+      },
+      {
+        Sid    = "ReadProtectedBinaryMirrorObjects"
+        Effect = "Allow"
+        Action = [
+          "s3:Get*",
+          "s3:List*",
+        ]
+        Resource = [
+          "${module.protected_binary_mirror.bucket_arn}/*",
+        ]
+      },
     ]
   })
 }
 
-
-resource "aws_iam_policy" "binary_cache_full_access" {
-  name = "BinaryCacheReadOnlyAccess"
+resource "aws_iam_policy" "pr_binary_cache_read_only" {
+  name = "PRBinaryCacheReadOnly${local.suffix}"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "BinaryCacheReadOnlyAccess"
-        Action   = [
-            "s3:*",
-            "s3-object-lambda:*",
+        Sid    = "ListPRBinaryMirror"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:ListBucketVersions",
+          "s3:ListBucketMultipartUploads",
+          "s3:GetBucketLocation",
         ]
-        Effect   = "Allow"
+        Resource = [
+          module.pr_binary_mirror.bucket_arn,
+        ]
+      },
+      {
+        Sid    = "ReadPRBinaryMirrorObjects"
+        Effect = "Allow"
+        Action = [
+          "s3:Get*",
+          "s3:List*",
+        ]
+        Resource = [
+          "${module.pr_binary_mirror.bucket_arn}/*",
+        ]
+      },
+    ]
+  })
+}
+
+resource "aws_iam_policy" "binary_cache_full_access" {
+  name = "BinaryCacheFullAccess${local.suffix}"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # Deliberately not s3:* on the bucket ARN, which would also grant
+        # DeleteBucket and PutBucketPolicy on the mirrors.
+        Sid    = "ListBinaryMirrors"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:ListBucketVersions",
+          "s3:ListBucketMultipartUploads",
+          "s3:GetBucketLocation",
+        ]
         Resource = [
           module.protected_binary_mirror.bucket_arn,
-          module.pr_binary_mirror.bucket_arn
+          module.pr_binary_mirror.bucket_arn,
         ]
-      }
+      },
+      {
+        Sid    = "AllBinaryMirrorObjectActions"
+        Effect = "Allow"
+        Action = [
+          "s3:*Object*",
+          "s3:AbortMultipartUpload",
+          "s3:RestoreObject",
+        ]
+        Resource = [
+          "${module.protected_binary_mirror.bucket_arn}/*",
+          "${module.pr_binary_mirror.bucket_arn}/*",
+        ]
+      },
     ]
   })
 }

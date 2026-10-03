@@ -8,7 +8,28 @@ data "aws_iam_role" "terraform" {
 resource "aws_iam_role" "binary_cache_maintainer" {
   name = "BinaryCacheMaintainerRole"
 
-  managed_policy_arns = [aws_iam_policy.binary_cache_full_access.arn]
+  # Role assumption needs a grant on both sides: the BinaryCacheMaintainers group
+  # is given sts:AssumeRole on this role below, and this trust policy names the
+  # users allowed to make that call.
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "sts:AssumeRole"
+        Principal = {
+          AWS = [
+            for user in local.binary_cache_maintainers :
+            aws_iam_user.human[user].arn
+          ]
+        }
+      }
+    ]
+  })
+}
+resource "aws_iam_role_policy_attachment" "binary_cache_maintainer_full_access" {
+  role       = aws_iam_role.binary_cache_maintainer.name
+  policy_arn = module.spack_aws_k8s.binary_cache_full_access_policy_arn
 }
 
 
@@ -121,17 +142,21 @@ resource "aws_iam_group_policy" "custodians_ebs_snapshots" {
     ]
   })
 }
-resource "aws_iam_group_policy" "binary_cache_observer_access" {
-  name  = "BinaryCacheObserverAccess"
-  group = aws_iam_group.binary_cache_observers.name
-
-  policy_arn = aws_iam_policy.binary_cache_read_only_access.arn
+# The mirror bucket policies themselves are declared alongside the buckets in
+# modules/spack_aws_k8s/binary_mirrors.tf and surfaced here as module outputs.
+# Observers read the protected mirror only.
+resource "aws_iam_group_policy_attachment" "binary_cache_observers_protected_read_only" {
+  group      = aws_iam_group.binary_cache_observers.name
+  policy_arn = module.spack_aws_k8s.protected_binary_cache_read_only_policy_arn
 }
-resource "aws_iam_group_policy" "binary_cache_maintainers_access" {
-  name  = "BinaryCacheMaintainersAccess"
-  group = aws_iam_group.binary_cache_maintainers.name
-
-  policy_arn = aws_iam_policy.binary_cache_read_only_access.arn
+# Maintainers read both mirrors; writes require assuming the role below.
+resource "aws_iam_group_policy_attachment" "binary_cache_maintainers_protected_read_only" {
+  group      = aws_iam_group.binary_cache_maintainers.name
+  policy_arn = module.spack_aws_k8s.protected_binary_cache_read_only_policy_arn
+}
+resource "aws_iam_group_policy_attachment" "binary_cache_maintainers_pr_read_only" {
+  group      = aws_iam_group.binary_cache_maintainers.name
+  policy_arn = module.spack_aws_k8s.pr_binary_cache_read_only_policy_arn
 }
 resource "aws_iam_group_policy" "binary_cache_maintainers_assume_maintainer_role" {
   name  = "AssumeBinaryCacheMaintainerRole"
@@ -196,9 +221,11 @@ locals {
   all_human_users = distinct(concat(local.custodians, local.binary_cache_maintainers, local.binary_cache_observers, local.eks_users, local.extra_users))
 
   human_user_groups = {
-    for user in distinct(concat(local.custodians, local.eks_users)) :
+    for user in distinct(concat(local.custodians, local.binary_cache_maintainers, local.binary_cache_observers, local.eks_users)) :
     user => concat(
       contains(local.custodians, user) ? [aws_iam_group.custodians.name] : [],
+      contains(local.binary_cache_maintainers, user) ? [aws_iam_group.binary_cache_maintainers.name] : [],
+      contains(local.binary_cache_observers, user) ? [aws_iam_group.binary_cache_observers.name] : [],
       contains(local.eks_users, user) ? [aws_iam_group.eks_users.name] : [],
     )
   }
