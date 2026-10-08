@@ -20,7 +20,7 @@ spec:
       containers:
       - args:
         # Note: all of these args are duplicated in the kustomization config.
-        - --github-user=danlamanna,mvandenburgh,zackgalbreath,jjnesbitt,scottwittenburg,kwryankrattiger,alecbcs,cmelone,vsoch
+        - --github-user=danlamanna,zackgalbreath,jjnesbitt,scottwittenburg,kwryankrattiger,alecbcs,cmelone,vsoch
         - --provider=github
         - --email-domain=*
         - --upstream=http://kube-prometheus-stack-prometheus:9090/  # Trailing slash is important

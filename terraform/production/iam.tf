@@ -125,7 +125,6 @@ resource "aws_iam_user_group_membership" "e4s_cache" {
 locals {
   custodians = [
     "jacob",
-    "mike",
     "zack",
   ]
   eks_users = [
@@ -133,7 +132,6 @@ locals {
     "dan",
     "krattiger1",
     "krattiger1-eks-user",
-    "mike",
     "tgamblin",
     "zack",
   ]
