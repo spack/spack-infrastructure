@@ -22,7 +22,7 @@ RUN mkdir spack                                                        && \
   cd spack                                                             && \
   git init                                                             && \
   git remote add origin https://github.com/spack/spack.git             && \
-  git fetch --depth 1 origin 70a3efe51dbe487e47be5db943f04e92485928ab  && \
+  git fetch --depth 1 origin c7c444853df6d525e7823c7cc730225a20bd5650  && \
   git checkout FETCH_HEAD
 
 COPY entrypoint.sh ./
