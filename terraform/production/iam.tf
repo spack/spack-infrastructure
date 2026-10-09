@@ -4,9 +4,44 @@ data "aws_iam_role" "terraform" {
   name = "terraform-role"
 }
 
+# IAM Roles
+resource "aws_iam_role" "binary_cache_maintainer" {
+  name = "BinaryCacheMaintainerRole"
+
+  # Role assumption needs a grant on both sides: the BinaryCacheMaintainers group
+  # is given sts:AssumeRole on this role below, and this trust policy names the
+  # users allowed to make that call.
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "sts:AssumeRole"
+        Principal = {
+          AWS = [
+            for user in local.binary_cache_maintainers :
+            aws_iam_user.human[user].arn
+          ]
+        }
+      }
+    ]
+  })
+}
+resource "aws_iam_role_policy_attachment" "binary_cache_maintainer_full_access" {
+  role       = aws_iam_role.binary_cache_maintainer.name
+  policy_arn = module.spack_aws_k8s.binary_cache_full_access_policy_arn
+}
+
+
 # IAM Groups
 resource "aws_iam_group" "custodians" {
   name = "Custodians"
+}
+resource "aws_iam_group" "binary_cache_maintainers" {
+  name = "BinaryCacheMaintainers"
+}
+resource "aws_iam_group" "binary_cache_observers" {
+  name = "BinaryCacheObservers"
 }
 resource "aws_iam_group" "e4s_cache" {
   name = "e4s-cache"
@@ -107,6 +142,37 @@ resource "aws_iam_group_policy" "custodians_ebs_snapshots" {
     ]
   })
 }
+# The mirror bucket policies themselves are declared alongside the buckets in
+# modules/spack_aws_k8s/binary_mirrors.tf and surfaced here as module outputs.
+# Observers read the protected mirror only.
+resource "aws_iam_group_policy_attachment" "binary_cache_observers_protected_read_only" {
+  group      = aws_iam_group.binary_cache_observers.name
+  policy_arn = module.spack_aws_k8s.protected_binary_cache_read_only_policy_arn
+}
+# Maintainers read both mirrors; writes require assuming the role below.
+resource "aws_iam_group_policy_attachment" "binary_cache_maintainers_protected_read_only" {
+  group      = aws_iam_group.binary_cache_maintainers.name
+  policy_arn = module.spack_aws_k8s.protected_binary_cache_read_only_policy_arn
+}
+resource "aws_iam_group_policy_attachment" "binary_cache_maintainers_pr_read_only" {
+  group      = aws_iam_group.binary_cache_maintainers.name
+  policy_arn = module.spack_aws_k8s.pr_binary_cache_read_only_policy_arn
+}
+resource "aws_iam_group_policy" "binary_cache_maintainers_assume_maintainer_role" {
+  name  = "AssumeBinaryCacheMaintainerRole"
+  group = aws_iam_group.binary_cache_maintainers.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "sts:AssumeRole"
+        Resource = aws_iam_role.binary_cache_maintainer.arn
+      }
+    ]
+  })
+}
 resource "aws_iam_group_policy_attachment" "e4s_cache_allow_bucket_list" {
   group      = aws_iam_group.e4s_cache.name
   policy_arn = aws_iam_policy.allow_group_to_see_bucket_list_in_the_console.arn
@@ -127,6 +193,14 @@ locals {
     "jacob",
     "zack",
   ]
+  binary_cache_maintainers = [
+    "krattiger1",
+    "tgamblin",
+    "zack",
+  ]
+  binary_cache_observers = [
+    "annehaley",
+  ]
   eks_users = [
     "alecscott",
     "dan",
@@ -142,12 +216,14 @@ locals {
     "lpeyrala",
   ]
 
-  all_human_users = distinct(concat(local.custodians, local.eks_users, local.extra_users))
+  all_human_users = distinct(concat(local.custodians, local.binary_cache_maintainers, local.binary_cache_observers, local.eks_users, local.extra_users))
 
   human_user_groups = {
-    for user in distinct(concat(local.custodians, local.eks_users)) :
+    for user in distinct(concat(local.custodians, local.binary_cache_maintainers, local.binary_cache_observers, local.eks_users)) :
     user => concat(
       contains(local.custodians, user) ? [aws_iam_group.custodians.name] : [],
+      contains(local.binary_cache_maintainers, user) ? [aws_iam_group.binary_cache_maintainers.name] : [],
+      contains(local.binary_cache_observers, user) ? [aws_iam_group.binary_cache_observers.name] : [],
       contains(local.eks_users, user) ? [aws_iam_group.eks_users.name] : [],
     )
   }
