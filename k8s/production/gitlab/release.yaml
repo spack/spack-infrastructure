@@ -224,7 +224,7 @@ spec:
         nodeSelector:
           spack.io/node-pool: gitlab
 
-        replicas: 8
+        replicas: 2
         antiAffinityLabels:
           matchLabels:
             app: "gitaly"
