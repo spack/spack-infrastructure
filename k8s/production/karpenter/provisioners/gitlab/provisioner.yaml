@@ -48,8 +48,16 @@ spec:
       # │ │ │ │ │
       # * * * * *
       #
-      # Only deprovision between 4AM and 8AM UTC
-      # (apply this in reverse by disallowing deprovisioning from 8AM to 4AM UTC)
+      # Only consolidate underutilized or drifted nodes between 4AM and 8AM UTC
+      # (apply this in reverse by disallowing it from 8AM to 4AM UTC).
+      # These evict running GitLab pods, which can cause 503s (#1366).
       - schedule: "0 8 * * *"
         duration: 20h
         nodes: "0"
+        reasons: ["Underutilized", "Drifted"]
+
+      # Empty nodes (only daemonsets left) can be removed at any time, since
+      # no GitLab pods are evicted. Without this, nodes added during a
+      # webservice/sidekiq HPA scale-up sit idle until the 4AM window.
+      - nodes: "20%"
+        reasons: ["Empty"]
