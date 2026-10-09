@@ -178,8 +178,8 @@ spec:
           # memory
           #   sum by (pod) (container_memory_working_set_bytes{namespace="gitlab", pod=~"gitlab-webservice-.*", container!=""})
           limits:
-            cpu: 12
-            memory: 20G
+            cpu: 3
+            memory: 10G
           requests:
             cpu: 1500m
             memory: 5G
