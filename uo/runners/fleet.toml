@@ -1,0 +1,175 @@
+# Compact source of truth for University of Oregon GitLab runner fleet.
+# Expand to full <host>.config.toml with:  python3 generate.py
+# Only per-host / per-runner variation lives here; all fleet-wide boilerplate
+# (docker image, cache, pre_build_script, session server, connection_max_age
+# default) is in generate.py. A host may set `connection_max_age = ""` to omit
+# it (the single-runner hosts do).
+
+[hosts.athena]
+concurrent = 7
+runners = [
+  { name = "uo-athena-cpu-large-1", id = 187681, limit = 3 },
+  { name = "uo-athena-cpu-small-medium-1", id = 187682, limit = 4 },
+]
+
+[hosts.delphi]
+concurrent = 3
+connection_max_age = ""
+runners = [
+  { name = "uo-delphi-cpu-small-medium-1", id = 187683, limit = 3 },
+]
+
+[hosts.gilgamesh]
+concurrent = 4
+connection_max_age = ""
+runners = [
+  { name = "uo-gilgamesh-cpu-small-medium-1", id = 187684, limit = 4 },
+]
+
+[hosts.godzilla]
+concurrent = 3
+connection_max_age = ""
+runners = [
+  { name = "uo-godzilla-cpu-small-1", id = 187685, limit = 3 },
+]
+
+[hosts.grace1]
+concurrent = 9
+runners = [
+  { name = "uo-grace1-cpu-large-1", id = 187686, limit = 3 },
+  { name = "uo-grace1-cpu-small-medium-1", id = 187687, limit = 6 },
+]
+
+[hosts.grace2]
+concurrent = 9
+runners = [
+  { name = "uo-grace2-cpu-large-1", id = 187688, limit = 3 },
+  { name = "uo-grace2-cpu-small-medium-1", id = 187690, limit = 6 },
+]
+
+[hosts.hopper1]
+concurrent = 8
+runners = [
+  { name = "uo-hopper1-cpu-large-1", id = 187703, limit = 4 },
+  { name = "uo-hopper1-cpu-small-medium-1", id = 187704, limit = 4 },
+]
+
+[hosts.hopper2]
+concurrent = 8
+runners = [
+  { name = "uo-hopper2-cpu-large-1", id = 187705, limit = 4 },
+  { name = "uo-hopper2-cpu-small-medium-1", id = 187706, limit = 4 },
+]
+
+[hosts.illyad]
+concurrent = 3
+connection_max_age = ""
+runners = [
+  { name = "uo-illyad-small-medium-large-1", id = 187699, limit = 3 },
+]
+
+[hosts.instinct]
+concurrent = 8
+runners = [
+  { name = "uo-instinct-cpu-small-medium-1", id = 187722, limit = 8 },
+  { name = "uo-instinct-cpu-large-1", id = 187723, limit = 4 },
+]
+
+[hosts.jupiter]
+concurrent = 6
+runners = [
+  { name = "uo-jupiter-cpu-small-medium-1", id = 187695, limit = 3 },
+  { name = "uo-jupiter-cpu-large-1", id = 187696, limit = 3 },
+]
+
+[hosts.mothra]
+concurrent = 6
+runners = [
+  { name = "uo-mothra-cpu-small-medium-1", id = 187709, limit = 5 },
+  { name = "uo-mothra-cpu-large-1", id = 187710, limit = 4 },
+]
+
+[hosts.odyssey]
+concurrent = 10
+runners = [
+  { name = "uo-odyssey-public-cpu-small-medium-1", id = 187697, limit = 5, environment = ["SPACK_EXTRA_MIRROR=https://uo-spack-mirror.e4s.io:9002"] },
+  { name = "uo-odyssey-public-cpu-large-1", id = 187698, limit = 5, environment = ["SPACK_EXTRA_MIRROR=https://uo-spack-mirror.e4s.io:9002"] },
+]
+
+[hosts.omnia]
+concurrent = 8
+runners = [
+  { name = "uo-omnia-cpu-large-1", id = 187714, limit = 4 },
+  { name = "uo-omnia-cpu-small-medium-1", id = 187713, limit = 6 },
+]
+
+[hosts.pegasus]
+concurrent = 4
+runners = [
+  { name = "uo-pegasus-cpu-small-medium-1", id = 187733, limit = 4 },
+  { name = "uo-pegasus-cpu-large-1", id = 187734, limit = 2 },
+]
+
+[hosts.phoenix]
+concurrent = 10
+runners = [
+  { name = "uo-phoenix-public-cpu-large-1", id = 187691, limit = 5, environment = ["SPACK_EXTRA_MIRROR=https://uo-spack-mirror.e4s.io:9002"] },
+  { name = "uo-phoenix-public-cpu-small-medium-1", id = 187692, limit = 5, environment = ["SPACK_EXTRA_MIRROR=https://uo-spack-mirror.e4s.io:9002"] },
+]
+
+[hosts.picard]
+concurrent = 6
+runners = [
+  { name = "uo-picard-cpu-large-1", id = 187701, limit = 4 },
+  { name = "uo-picard-cpu-small-medium-1", id = 187702, limit = 4 },
+]
+
+[hosts.reptar]
+concurrent = 6
+runners = [
+  { name = "uo-reptar-cpu-small-medium-1", id = 187707, limit = 4 },
+  { name = "uo-reptar-cpu-large-1", id = 187708, limit = 4 },
+]
+
+[hosts.roberta]
+concurrent = 8
+runners = [
+  { name = "uo-roberta-cpu-large-1", id = 187712, limit = 4 },
+  { name = "uo-roberta-cpu-small-medium-1", id = 187711, limit = 8 },
+]
+
+[hosts.saturn]
+concurrent = 6
+runners = [
+  { name = "uo-saturn-cpu-small-medium-1", id = 187715, limit = 5 },
+  { name = "uo-saturn-cpu-large-1", id = 187716, limit = 3 },
+]
+
+[hosts.spark1]
+concurrent = 3
+runners = [
+  { name = "uo-spark1-cpu-small-medium-1", id = 187718, limit = 3 },
+  { name = "uo-spark1-cpu-large-1", id = 187719, limit = 2 },
+]
+
+[hosts.spark2]
+concurrent = 3
+runners = [
+  { name = "uo-spark2-cpu-small-medium-1", id = 187720, limit = 3 },
+  { name = "uo-spark2-cpu-large-1", id = 187721, limit = 2 },
+]
+
+[hosts.stravinsky]
+concurrent = 12
+runners = [
+  { name = "uo-stravinsky-public-cpu-large-1", id = 187693, limit = 7, environment = ["SPACK_EXTRA_MIRROR=https://uo-spack-mirror.e4s.io:9002"] },
+  { name = "uo-stravinsky-public-cpu-small-medium-1", id = 187694, limit = 5, environment = ["SPACK_EXTRA_MIRROR=https://uo-spack-mirror.e4s.io:9002"] },
+]
+
+[hosts.voltar]
+concurrent = 6
+runners = [
+  { name = "uo-voltar-cpu-small-medium-1", id = 187724, limit = 6 },
+  { name = "uo-voltar-cpu-large-1", id = 187725, limit = 4 },
+]
+
