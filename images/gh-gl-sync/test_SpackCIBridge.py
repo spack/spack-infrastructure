@@ -270,6 +270,22 @@ def test_ssh_agent():
     del os.environ["SSH_AGENT_PID"]
 
 
+def test_oauth():
+    bridge = SpackCIBridge.SpackCIBridge(gitlab_repo="https://gitlab.spack.io")
+
+    # Credential without a user name
+    bridge.setup_oauth("glpat-deadbeef")
+    with open(".git-credentials", "r", encoding="utf-8") as fd:
+        cred = fd.read().strip()
+    assert cred == "https://spackbot:glpat-deadbeef@gitlab.spack.io"
+
+    # Credential with a user name
+    bridge.setup_oauth("someuser:glpat-deadbeef")
+    with open(".git-credentials", "r", encoding="utf-8") as fd:
+        cred = fd.read().strip()
+    assert cred == "https://someuser:glpat-deadbeef@gitlab.spack.io"
+
+
 def test_get_pipeline_api_template():
     """Test that pipeline_api_template get constructed properly."""
     bridge = SpackCIBridge.SpackCIBridge(gitlab_host="https://gitlab.spack.io", gitlab_project="zack/my_test_proj")
