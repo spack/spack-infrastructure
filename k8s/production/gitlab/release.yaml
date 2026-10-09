@@ -175,8 +175,10 @@ spec:
           # The `container!=""` filter is required to avoid double counting metrics.
           # cpu:
           #   sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="gitlab", pod=~"gitlab-webservice-.*", container!=""}[5m]))
+          #   max(quantile_over_time(0.95, sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="gitlab", pod=~"gitlab-webservice-.*", container!=""}[5m]))[7d:5m]))
           # memory
           #   sum by (pod) (container_memory_working_set_bytes{namespace="gitlab", pod=~"gitlab-webservice-.*", container!=""})
+          #   max(max_over_time(sum by (pod) (container_memory_working_set_bytes{namespace="gitlab", pod=~"gitlab-webservice-.*", container!=""})[7d:5m]))
           limits:
             cpu: 3
             memory: 10G
