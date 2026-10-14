@@ -1,0 +1,281 @@
+#!/usr/bin/env -S uv run
+"""
+GitLab Orphaned Job Canceller
+
+Cancels GitLab CI jobs that GitLab still reports as "running" but whose
+backing Kubernetes pod has disappeared.
+"""
+
+import argparse
+import os
+import re
+import sys
+import urllib.parse
+from datetime import datetime, timedelta, timezone
+
+import sentry_sdk
+from kubernetes import client, config
+from requests import Session
+from requests.adapters import HTTPAdapter, Retry
+
+sentry_sdk.init(traces_sample_rate=0.1)
+
+GITLAB_API_ROOT = "https://gitlab.spack.io/api/v4"
+GITLAB_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+AUTH_HEADER = {"PRIVATE-TOKEN": os.environ.get("GITLAB_TOKEN", None)}
+PIPELINE_NAMESPACE = "pipeline"
+TERMINAL_POD_PHASES = {"Succeeded", "Failed"}
+# Caps the potential for a retry storm if a job (or its runner pool) has
+# a persistent, unrelated problem.
+MAX_RETRIES = 2
+
+# Our Kubernetes-executor runners are gitlab-runner Helm releases
+# named "runner-<pool>-{pub,prot}[-windows]" or "runner-spack-package-signing",
+# and gitlab-runner defaults a runner's description to its own pod hostname
+# ("<release-name>-gitlab-runner-<hash>-<suffix>").
+KUBERNETES_RUNNER_DESCRIPTION_PATTERN = re.compile(
+    r"^runner-.+-(pub|prot|signing)(-windows)?-gitlab-runner-"
+)
+
+
+def build_session():
+    """Build a Requests session with retries and backoff for transient
+    failures talking to gitlab.spack.io, plus our GitLab auth token."""
+    session = Session()
+    session.mount(
+        "https://",
+        HTTPAdapter(
+            max_retries=Retry(
+                total=5,
+                backoff_factor=2,
+                backoff_jitter=1,
+            ),
+        ),
+    )
+    session.headers.update(AUTH_HEADER)
+    return session
+
+
+def project_api_url(project):
+    """Build the API base URL for a project, given as either a numeric id
+    or a namespaced path like 'spack/spack-packages'."""
+    encoded = urllib.parse.quote_plus(str(project))
+    return f"{GITLAB_API_ROOT}/projects/{encoded}"
+
+
+def get_running_jobs(session, project_url):
+    """Return all jobs GitLab currently reports as running for a project."""
+    results = []
+    url = f"{project_url}/jobs?scope[]=running&per_page=100"
+
+    while url:
+        resp = session.get(url)
+        if resp.status_code in (401, 403):
+            raise RuntimeError(
+                f"{resp.status_code} requesting {url} - check GITLAB_TOKEN permissions"
+            )
+        resp.raise_for_status()
+
+        results.extend(resp.json())
+        url = resp.links.get("next", {}).get("url")
+
+    return results
+
+
+def get_job_attempt_count(session, project_url, pipeline_id, job_name):
+    """Return how many jobs (across all retries) exist in this pipeline
+    with the given job name. include_retried=true is required - without
+    it, GitLab's API hides every attempt except the latest one, which
+    would make every job look like a first attempt."""
+    count = 0
+    url = (
+        f"{project_url}/pipelines/{pipeline_id}/jobs"
+        f"?include_retried=true&per_page=100"
+    )
+
+    while url:
+        resp = session.get(url)
+        if resp.status_code in (401, 403):
+            raise RuntimeError(
+                f"{resp.status_code} requesting {url} - check GITLAB_TOKEN permissions"
+            )
+        resp.raise_for_status()
+
+        count += sum(1 for job in resp.json() if job.get("name") == job_name)
+        url = resp.links.get("next", {}).get("url")
+
+    return count
+
+
+def cancel_job(session, project_url, job_id):
+    """Cancel a single job by id. Returns True on success."""
+    cancel_url = f"{project_url}/jobs/{job_id}/cancel"
+    resp = session.post(cancel_url)
+    print(f"    cancel response: {resp.status_code} {resp.text}")
+    return resp.ok
+
+
+def retry_job(session, project_url, job_id):
+    """Retry a single job by id. Returns True on success."""
+    retry_url = f"{project_url}/jobs/{job_id}/retry"
+    resp = session.post(retry_url)
+    print(f"    retry response: {resp.status_code} {resp.text}")
+    return resp.ok
+
+
+def index_pods_by_job_id(v1):
+    """List every pod in the pipeline namespace once and index them by the
+    gitlab/ci_job_id annotation the gitlab-runner Kubernetes executor sets.
+    This is checked as an annotation rather than a label selector because
+    at least one runner fleet (the Windows public/protected runners) is
+    missing this key from its pod_labels config, even though every fleet
+    consistently sets it as a pod annotation - and annotations aren't
+    queryable via the Kubernetes API's label selectors, so we have to list
+    and filter client-side instead."""
+    index = {}
+    for pod in v1.list_namespaced_pod(PIPELINE_NAMESPACE).items:
+        annotations = pod.metadata.annotations or {}
+        job_id = annotations.get("gitlab/ci_job_id")
+        if job_id:
+            index.setdefault(job_id, []).append(pod)
+    return index
+
+
+def is_kubernetes_executor_job(job):
+    """Only jobs picked up by one of our own Kubernetes-executor runners can
+    ever have a backing pod in this cluster."""
+    runner = job.get("runner")
+    if not runner:
+        return False
+    description = runner.get("description") or ""
+    return bool(KUBERNETES_RUNNER_DESCRIPTION_PATTERN.match(description))
+
+
+def is_orphaned(pod_index, job, grace_period):
+    """A running job is orphaned if it's running on one of our own
+    Kubernetes-executor runners, has been running longer than the grace
+    period (to avoid racing normal pod-scheduling delays), and its backing
+    pod either no longer exists, or has already reached a terminal phase
+    without GitLab having found out."""
+    if not is_kubernetes_executor_job(job):
+        return False
+
+    started_at = job.get("started_at")
+    if not started_at:
+        return False
+
+    started = datetime.strptime(started_at, GITLAB_TIME_FORMAT).replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) - started < grace_period:
+        return False
+
+    pods = pod_index.get(str(job["id"]), [])
+    if not pods:
+        return True
+
+    return all(
+        (pod.status.phase if pod.status else None) in TERMINAL_POD_PHASES
+        for pod in pods
+    )
+
+
+def cancel_orphaned_jobs(session, v1, project, grace_period_minutes):
+    project_url = project_api_url(project)
+    grace_period = timedelta(minutes=grace_period_minutes)
+
+    running_jobs = get_running_jobs(session, project_url)
+    print(f"Checking {len(running_jobs)} running job(s) in {project}")
+
+    pod_index = index_pods_by_job_id(v1)
+
+    canceled = []
+    for job in running_jobs:
+        job_id = job["id"]
+        job_name = job.get("name", "?")
+
+        orphaned = is_orphaned(pod_index, job, grace_period)
+
+        if orphaned:
+            pipeline_id = job["pipeline"]["id"]
+            attempt_count = get_job_attempt_count(session, project_url, pipeline_id, job_name)
+            eligible_for_retry = attempt_count <= MAX_RETRIES
+
+            if eligible_for_retry:
+                print(
+                    f"  job {job_id} ({job_name}): no live pod found, canceling "
+                    f"(attempt {attempt_count}/{MAX_RETRIES + 1}, would retry)"
+                )
+            else:
+                print(
+                    f"  job {job_id} ({job_name}): no live pod found, canceling "
+                    f"(attempt {attempt_count}/{MAX_RETRIES + 1}, retry cap reached)"
+                )
+
+            if cancel_job(session, project_url, job_id):
+                canceled.append(job_id)
+                if eligible_for_retry:
+                    retry_job(session, project_url, job_id)
+                    sentry_sdk.capture_message(
+                        f"Canceled orphaned job {job_id} ({job_name}) in {project} "
+                        f"and retried it (attempt {attempt_count}/{MAX_RETRIES + 1})",
+                        level="warning",
+                    )
+                else:
+                    sentry_sdk.capture_message(
+                        f"Canceled orphaned job {job_id} ({job_name}) in {project}; "
+                        f"retry cap reached (attempt {attempt_count}/{MAX_RETRIES + 1}), "
+                        f"left canceled for investigation",
+                        level="error",
+                    )
+        else:
+            print(f"  job {job_id} ({job_name}): pod still present or within grace period, leaving alone")
+
+    return canceled
+
+
+def main():
+    if "GITLAB_TOKEN" not in os.environ:
+        raise SystemExit("GITLAB_TOKEN environment is not set")
+
+    parser = argparse.ArgumentParser(
+        description="Cancel GitLab CI jobs whose backing pod has disappeared out from under them"
+    )
+    parser.add_argument(
+        "--projects",
+        default="spack/spack,spack/spack-packages",
+        help="Comma-separated list of project ids or paths to check",
+    )
+    parser.add_argument(
+        "--grace-period-minutes",
+        default=30,
+        type=int,
+        help="Ignore jobs started more recently than this many minutes ago",
+    )
+    args = parser.parse_args()
+
+    try:
+        config.load_incluster_config()
+    except config.ConfigException:
+        # Not running inside a pod - fall back to the local kubeconfig
+        # (e.g. ~/.kube/config) so this can be run locally too.
+        config.load_kube_config()
+    v1 = client.CoreV1Api()
+    session = build_session()
+
+    projects = [p.strip() for p in args.projects.split(",") if p.strip()]
+
+    failed_projects = []
+    for project in projects:
+        try:
+            cancel_orphaned_jobs(session, v1, project, args.grace_period_minutes)
+        except Exception as exc:
+            print(f"Caught unhandled exception processing project '{project}':")
+            print(exc)
+            failed_projects.append(project)
+
+    if failed_projects:
+        print(f"Failed to fully process project(s): {', '.join(failed_projects)}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
