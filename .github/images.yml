@@ -27,7 +27,7 @@ images:
     image: ghcr.io/spack/snapshot-release-tags:0.0.6
 
   - path: ./images/cache-indexer
-    image: ghcr.io/spack/cache-indexer:0.0.6
+    image: ghcr.io/spack/cache-indexer:0.0.7
 
   - path: ./analytics
     image: ghcr.io/spack/django:0.5.27
