@@ -86,6 +86,40 @@ spec:
           $env:GITLAB_OIDC_TOKEN = $null
           """
 
+          post_build_script = """
+          Write-Output 'Executing Spack pre-build setup script'
+
+          $py=(get-command -ErrorAction SilentlyContinue python)
+          if ( -not $py ) {
+            Write-Output 'Python was not found on the system. Add it to the PATH or install.'
+            exit 1
+          }
+
+          $scriptPath = Join-Path $HOME 'pre_build.py'
+
+          $wc = New-Object System.Net.WebClient
+          $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
+
+          & python $scriptPath | Out-File -FilePath 'envvars.ps1' -Encoding utf8
+          if ($LASTEXITCODE -ne 0) {
+            Write-Output "Prebuild script pre_build.py failed with exit code $LASTEXITCODE. See error above for more info"
+            exit 1
+          }
+
+          ./envvars.ps1
+
+          Remove-Item $scriptPath -Force
+          Remove-Item 'envvars.ps1' -Force
+
+          $env:GITLAB_OIDC_TOKEN = $null
+
+          Write-Output 'Trusting GPG secrets'
+          If (Test-Path -path C:\\key\intermediate_ci_signing_key.gpg) { spack.ps1 gpg trust -y C:\\key\intermediate_ci_signing_key.gpg }
+          If (Test-Path -path C:\\key\spack_public_key.gpg) { spack.ps1 gpg trust -y C:\\key\spack_public_key.gpg }
+
+          spack.ps1 buildcache push --without-build-dependencies buildcache-destination "/${SPACK_JOB_SPEC_DAG_HASH}"
+          """
+
           shell = "powershell"
           executor = "kubernetes"
           output_limit = 20480
