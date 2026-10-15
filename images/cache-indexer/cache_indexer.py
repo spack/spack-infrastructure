@@ -18,7 +18,7 @@ sentry_sdk.init(
 REF_REGEXES = [
     re.compile(r"^develop-[\d]+-[\d]+-[\d]+$"), # dev snapshot mirrors
     re.compile(r"^develop$"),                   # main develop mirror
-    re.compile(r"^v[\d]+\.[\d]+\.[\d]+$"),      # mirrors for point releases
+    re.compile(r"^v[\d]+\.[\d]+(\.[\d]+)?$"),   # mirrors for point releases
 ]
 
 # Stacks or other "subdirectories" to ignore under *any* ref
@@ -29,7 +29,7 @@ SUBREF_IGNORE_REGEXES = [
 
 # Regex and path to find modern index manifest
 ROOT_PATTERN = r"v[\d]+"
-INDEX_PATH = r"manifests/index/index.manifest.json"
+INDEX_PATH = r"manifests/index/(\S*\/)*index.manifest.json"
 
 INDEX_MEDIA_TYPE_PREFIX = "application/vnd.spack.db"
 
@@ -91,11 +91,23 @@ def build_json(bucket_name, index_paths):
 
     for p in index_paths:
         parts = p.split("/")
-        ref = get_matching_ref(parts[0])
+        if parts[0] == "releases":
+            ref_part = parts[1]
+            mirror_part = "/".join(parts[5:-1]) if parts[2] == "v3" else parts[2]
+        elif parts[0] == "develop":
+            ref_part = parts[0]
+            mirror_part = "/".join(parts[4:-1]) if parts[1] == "v3" else parts[1]
+        else:
+            ref_part = parts[0]
+            mirror_part = parts[1]
+        if mirror_part == "index.manifest.json":
+            # Parent manifest, ignore
+            continue
+        ref = get_matching_ref(ref_part)
         if ref:
             if ref not in json_data:
                 json_data[ref] = []
-            mirror_label = get_label(parts[1])
+            mirror_label = get_label(mirror_part)
             if mirror_label:
                 try:
                     json_data[ref].append({
