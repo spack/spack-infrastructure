@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: metabase
-          image: metabase/metabase:v0.63.1
+          image: metabase/metabase:v0.64.1
           imagePullPolicy: "IfNotPresent"
           resources:
             requests:
@@ -27,12 +27,20 @@ spec:
           envFrom:
             - configMapRef:
                 name: metabase-config
+            # SMTP settings for sending email through SES, managed by terraform
+            - configMapRef:
+                name: metabase-ses-config
           env:
             - name: MB_DB_PASS
               valueFrom:
                 secretKeyRef:
                   name: metabase-postgresql-password
                   key: postgresql-password
+            - name: MB_EMAIL_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: metabase-ses-secrets
+                  key: smtp-password
           livenessProbe:
             httpGet:
               path: /

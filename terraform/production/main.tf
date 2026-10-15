@@ -8,7 +8,6 @@ module "spack_aws_k8s" {
   eks_cluster_role = var.eks_cluster_role
 
 
-  enable_analytics_db         = true
   analytics_db_instance_class = "db.t4g.xlarge"
 
   gitlab_db_instance_class    = "db.m7g.4xlarge"

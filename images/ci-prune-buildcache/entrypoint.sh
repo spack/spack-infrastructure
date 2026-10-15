@@ -18,6 +18,12 @@ echo "  GITLAB_PROJECT: ${GITLAB_PROJECT}"
 echo "  BUILDCACHE_URL: ${BUILDCACHE_URL}"
 echo "  PRUNE_REF: ${PRUNE_REF}"
 echo "  PRUNE_SINCE_DAYS: ${PRUNE_SINCE_DAYS}"
+echo "  PRUNE_DRY_RUN: ${PRUNE_DRY_RUN:=false}"
+
+dry_run_args=()
+if [[ "${PRUNE_DRY_RUN}" == "true" ]]; then
+  dry_run_args=(--dry-run)
+fi
 
 # Calculate date range
 now=$(date --iso-8601)
@@ -52,13 +58,15 @@ prune_stack() {
 
   # Run pruning with keeplist
   echo "Running buildcache prune for $stack..."
-  spack --debug python prune.py --mirror "${stack}" --keeplist "${keeplist_file}"
+  spack --debug python prune.py --mirror "${stack}" --keeplist "${keeplist_file}" "${dry_run_args[@]}"
   echo "Running buildcache prune for $stack... done!"
 
-  # Update the mirror index
-  echo "Updating mirror index for $stack..."
-  spack buildcache update-index "${stack}"
-  echo "Updating mirror index for $stack... done!"
+  # Update the mirror index (nothing was deleted on a dry run, so leave the index alone)
+  if [[ "${PRUNE_DRY_RUN}" != "true" ]]; then
+    echo "Updating mirror index for $stack..."
+    spack buildcache update-index "${stack}"
+    echo "Updating mirror index for $stack... done!"
+  fi
   echo ""
 }
 
@@ -76,7 +84,12 @@ prune_stack "develop_keeplist.txt"
 
 echo "Pruning PR Mirrors"
 
-python3 ${SCRIPT_DIR}/prune_pr_mirrors.py \
+pr_dry_run_args=()
+if [[ "${PRUNE_DRY_RUN}" == "true" ]]; then
+  pr_dry_run_args=(--dryrun)
+fi
+
+python3 ${SCRIPT_DIR}/prune_pr_mirrors.py "${pr_dry_run_args[@]}" \
   -r "spack/spack" \
   -r "spack/spack-packages" \
   -b "${PR_BUILDCACHE_BUCKET}"

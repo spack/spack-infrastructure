@@ -134,6 +134,90 @@ resource "kubectl_manifest" "karpenter_windows_node_class" {
   ]
 }
 
+resource "kubectl_manifest" "karpenter_runner_node_class" {
+  # EC2NodeClass for CI runner NodePools, isolated to the dedicated runner
+  # security group (see runner_node_security_group.tf) rather than the
+  # "default" EC2NodeClass's shared node security group, which has network
+  # access to the GitLab Redis instance that CI runner pods don't need.
+  # Otherwise identical to "default" above.
+  yaml_body = <<-YAML
+    apiVersion: karpenter.k8s.aws/v1
+    kind: EC2NodeClass
+    metadata:
+      name: runners
+    spec:
+      amiFamily: AL2023
+      amiSelectorTerms:
+        - alias: al2023@latest
+      userData: |
+        apiVersion: node.eks.aws/v1alpha1
+        kind: NodeConfig
+        spec:
+          kubelet:
+            config:
+              # The Amazon Linux 2023 AMI overrides the default kubelet config to disable
+              # serializeImagePulls in order to improve performance.
+              # This is not ideal for our use case, where we frequently create many pods at once
+              # when start a CI pipeline, because it can cause us to hit the container registry's
+              # max QPS, so we override it here.
+              serializeImagePulls: true
+      role: ${module.karpenter.node_iam_role_name}
+      subnetSelectorTerms:
+        - tags:
+            karpenter.sh/discovery: ${module.eks.cluster_name}
+      securityGroupSelectorTerms:
+        - tags:
+            karpenter.sh/discovery: ${aws_security_group.runner_nodes.tags["karpenter.sh/discovery"]}
+      tags:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+      blockDeviceMappings:
+        - deviceName: /dev/xvda
+          ebs:
+            volumeSize: 200Gi
+            volumeType: gp3
+            deleteOnTermination: true
+  YAML
+
+  depends_on = [
+    helm_release.karpenter,
+    aws_security_group.runner_nodes
+  ]
+}
+
+resource "kubectl_manifest" "karpenter_windows_runner_node_class" {
+  # Windows equivalent of karpenter_runner_node_class above.
+  yaml_body = <<-YAML
+    apiVersion: karpenter.k8s.aws/v1
+    kind: EC2NodeClass
+    metadata:
+      name: windows-runners
+    spec:
+      amiFamily: Windows2025
+      amiSelectorTerms:
+        - alias: windows2025@latest
+      role: ${module.karpenter_windows.node_iam_role_name}
+      subnetSelectorTerms:
+        - tags:
+            karpenter.sh/discovery: ${module.eks.cluster_name}
+      securityGroupSelectorTerms:
+        - tags:
+            karpenter.sh/discovery: ${aws_security_group.runner_nodes.tags["karpenter.sh/discovery"]}
+      tags:
+        karpenter.sh/discovery: ${module.eks.cluster_name}
+      blockDeviceMappings:
+        - deviceName: /dev/sda1
+          ebs:
+            volumeSize: 200Gi
+            volumeType: gp3
+            deleteOnTermination: true
+  YAML
+
+  depends_on = [
+    helm_release.karpenter,
+    aws_security_group.runner_nodes
+  ]
+}
+
 module "karpenter_windows" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
   version = "21.8.0"

@@ -10,6 +10,17 @@ spec:
   hostnames:
     - gitlab.spack.io
   rules:
+    # Serve our own robots.txt directly from the ALB instead of GitLab's default.
+    - matches:
+        - path:
+            type: Exact
+            value: /robots.txt
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: gateway.k8s.aws
+            kind: ListenerRuleConfiguration
+            name: gitlab-robots-txt
     - matches:
         - path:
             type: PathPrefix
@@ -17,3 +28,19 @@ spec:
       backendRefs:
         - name: gitlab-webservice-default
           port: 8181  # Point to the gitlab-workhorse port
+
+---
+apiVersion: gateway.k8s.aws/v1beta1
+kind: ListenerRuleConfiguration
+metadata:
+  name: gitlab-robots-txt
+  namespace: gitlab
+spec:
+  actions:
+    - type: fixed-response
+      fixedResponseConfig:
+        statusCode: 200
+        contentType: text/plain
+        messageBody: |
+          User-agent: *
+          Disallow: /

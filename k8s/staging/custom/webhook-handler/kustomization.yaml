@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../production/custom/webhook-handler/deployments.yaml
+  - ../../../production/custom/webhook-handler/services.yaml
+  - ../../../production/custom/webhook-handler/service-accounts.yaml
+patches:
+  # Staging sees a small fraction of production's job volume; run single
+  # replicas with much smaller resource requests. Everything else (GitLab
+  # endpoint, DB hosts, celery broker) comes from the webhook-secrets and
+  # webhook-handler-db Secrets, which Terraform populates with
+  # staging-specific values.
+  - target:
+      kind: Deployment
+      name: webhook-handler
+      namespace: custom
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 500m
+            memory: 1G
+          limits:
+            cpu: 1
+            memory: 2G
+  - target:
+      kind: Deployment
+      name: webhook-handler-worker
+      namespace: custom
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 500m
+            memory: 1G
+          limits:
+            cpu: 1
+            memory: 1.5G
