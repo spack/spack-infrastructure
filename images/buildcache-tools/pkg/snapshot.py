@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import contextlib
 import json
 import logging
 import os
@@ -19,6 +20,7 @@ from pkg.common import (
     clone_spack,
     download_and_import_key,
     generate_spec_catalogs_v3,
+    get_workdir_context,
     s3_object_exists,
     tag_source_branch,
 )
@@ -31,7 +33,6 @@ GL = Gitlab("https://gitlab.spack.io")
 DEFAULT_GITLAB_PROJECT = os.environ.get("SNAPSHOT_GITLAB_REPO", "spack/spack-packages")
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-GH = Github(auth=github.Auth.Token(GITHUB_TOKEN))
 DEFAULT_GITHUB_PROJECT = os.environ.get("SNAPSHOT_GITHUB_REPO", "spack/spack-packages")
 
 LOGGER = logging.getLogger("snapshot.__main__" if __name__ == "__main__" else "snapshot")
@@ -55,7 +56,7 @@ def gl_last_successful_pipeline(project, branch):
     return None
 
 
-def create_develop_snapshot_tag(project):
+def create_develop_snapshot_tag(py_gh_repo: github.Repository):
     global DRYRUN
     gl_project = GL.projects.get(DEFAULT_GITLAB_PROJECT, lazy=True)
 
@@ -83,9 +84,8 @@ def create_develop_snapshot_tag(project):
     tag_msg = f"Snapshot release {date_str}"
 
     # Use the GitHub API to create a tag for this commit of develop.
-    py_gh_repo = GH.get_repo(project, lazy=True)
     spackbot_author = InputGitAuthor("spackbot", "noreply@spack.io")
-    LOGGER.info(f"Pushing tag {tag_name} for commit {sha} ({project})")
+    LOGGER.info(f"Pushing tag {tag_name} for commit {sha} ({py_gh_repo.full_name})")
 
     if not DRYRUN:
         try:
@@ -109,7 +109,18 @@ def load_stacks(
     include_stacks: List[str],
     exclude_stacks: List[str],
 ) -> Dict[str, str]:
-    """Create a snapshot mirror associated with a ref and branch"""
+    """Create a snapshot mirror associated with a ref and branch.
+
+    Args:
+        branch: Branch CI was run.
+        ref: Git ref in remote with CI pipeline run on branch.
+        workdir: working dir to write stack environments to.
+        include_stacks: Stacks to include when loading from CI. Empty list means all.
+        exclude_stacks: Stacks to exclude when loading from CI. Empty list means none.
+
+    Returns:
+        Mapping from stack name to local stack concrete environment.
+    """
     gl_project = DEFAULT_GITLAB_PROJECT
     if isinstance(gl_project, str):
         gl_project = GL.projects.get(gl_project, lazy=True)
@@ -175,46 +186,58 @@ def create_snapshot_view(
     )
 
     snapshot_mirror = "snapshot_mirror"
-    spack_create_mirror = [
-        spack_exe,
-        "mirror",
-        "add",
-        "--name",
-        ref_name,
-        "--signed",
-        "--type",
-        "binary",
-        snapshot_mirror,
-        f"s3://{bucket}/{branch}/"
-    ]
+    snapshots = {
+        ref_name: list(stacks.values())
+    }
 
-    # Update the view
-    spack_view_command = [
-        spack_exe,
-        "buildcache",
-        "update-index",
-        "--force",  # Override whatever was in the snapshot view before
-        snapshot_mirror,
-    ] + list(stacks.values())
+    if False:
+        for stack, stack_env in stacks.items():
+            stack_snapshot = "/".join(ref_name, stack) if ref_name != branch_name else stack
+            snapshots[stack_snapshot]: [stack_env]
 
-    if DRYRUN:
-        print(spack_create_mirror)
-        print(spack_view_command)
-    else:
-        try:
-            subprocess.run(spack_create_mirror, check=True)
-            subprocess.run(spack_view_command, check=True)
-        finally:
-            # Cleanup the mirror
-            subprocess.run(
-                [
-                    spack_exe,
-                    "mirror",
-                    "remove",
-                    snapshot_mirror,
-                ],
-                check=True
-            )
+    for name in snapshots:
+        snapshot_safename = name.replace("/", "-")
+
+        spack_create_mirror = [
+            spack_exe,
+            "mirror",
+            "add",
+            "--name",
+            name,
+            "--signed",
+            "--type",
+            "binary",
+            snapshot_safename,
+            f"s3://{bucket}/{branch}/"
+        ]
+
+        # Update the view
+        spack_view_command = [
+            spack_exe,
+            "buildcache",
+            "update-index",
+            "--force",  # Override whatever was in the snapshot view before
+            snapshot_safename,
+        ] + snapshots[name]
+
+        if DRYRUN:
+            print(spack_create_mirror)
+            print(spack_view_command)
+        else:
+            try:
+                subprocess.run(spack_create_mirror, check=True)
+                subprocess.run(spack_view_command, check=True)
+            finally:
+                # Cleanup the mirror
+                subprocess.run(
+                    [
+                        spack_exe,
+                        "mirror",
+                        "remove",
+                        snapshot_safename,
+                    ],
+                    check=True
+                )
 
 
 def create_snapshot(
@@ -294,7 +317,7 @@ DRYRUN: publish
         if DRYRUN:
             LOGGER.info("DRYRUN: Skipping key publish")
         else:
-            publish_keys(mirror_url, gnu_pg_home)
+            publish_keys(mirror_url, gnu_pg_home, workdir=workdir)
 
     return True
 
@@ -352,64 +375,67 @@ if __name__ == "__main__":
     print(f"View: {args.view}")
 
     # Create a new develop snapshot if one is created
+    gh_host = Github(auth=github.Auth.Token(GITHUB_TOKEN))
+    py_gh_repo = gh_host.get_repo(args.project)
     if not args.tag:
-        create_develop_snapshot_tag(args.project)
+        create_develop_snapshot_tag(py_gh_repo)
 
     # Iterate all of the project tags and attempt to create a
     # snaptshot if it is needed
-    py_gh_repo = GH.get_repo(args.project)
-    tempdir = args.workdir or WORKDIR or tempfile.mkdtemp("snapshot")
-    if not os.path.exists(tempdir):
-        os.makedirs(tempdir)
+    if workdir := args.workdir or WORKDIR:
+        if not os.path.exists(workdir):
+            os.makedirs(workdir)
 
     # Get all of the snapshots and tags
     snapshot_refs = list(py_gh_repo.get_git_matching_refs("snapshots")) + list(
         py_gh_repo.get_git_matching_refs("tags")
     )
 
-    LOGGER.info(f"workdir: {tempdir}")
-    for ref in snapshot_refs:
-        # /refs/snapshots/develop-12-01-01
-        # /refs/tags/v2026.06.0
-        # /refs/heads/develop
-        _, ref_type, ref_name = ref.ref.split("/", 2)
+    with get_workdir_context(workdir) as tempdir:
+        LOGGER.info(f"workdir: {tempdir}")
+        for ref in snapshot_refs:
+            # /refs/snapshots/develop-12-01-01
+            # /refs/tags/v2026.06.0
+            # /refs/heads/develop
+            _, ref_type, ref_name = ref.ref.split("/", 2)
 
-        if args.tag and ref_name not in args.tag:
-            LOGGER.debug(f"Skipping tag {ref_name}")
-            continue
-
-        try:
-            # Get the source branch for this tag
-            if ref_type == "tags":
-                branch = tag_source_branch(ref_name)
-            else:  # If it isn't a tag it is a develop snapshot
-                branch = "develop"
-
-            if not branch:
-                LOGGER.warning(
-                    f"Skipping snapshot for {ref_type}/{ref_name}, cannot determine base branch"
-                )
+            if args.tag and ref_name not in args.tag:
+                LOGGER.debug(f"Skipping tag {ref_name}")
                 continue
 
-            # Get the stacks from the pipeline
-            stacks = load_stacks(branch, ref, tempdir, args.include_stack, args.exclude_stack)
+            try:
+                # Get the source branch for this tag
+                if ref_type == "tags":
+                    branch = tag_source_branch(ref_name)
+                else:  # If it isn't a tag it is a develop snapshot
+                    branch = "develop"
 
-            # Download the reputational signing key
-            gnu_pg_home = os.path.join(tempdir, ".gnupg")
-            if not DRYRUN:
-                download_and_import_key(gnu_pg_home, tempdir, False)
-            else:
-                LOGGER.info("DRYRUN: download_and_import_key...")
+                if not branch:
+                    LOGGER.warning(
+                        f"Skipping snapshot for {ref_type}/{ref_name}, cannot determine base branch"
+                    )
+                    continue
 
-            if args.view:
-                # publish(args.bucket, branch, verify=False, workdir=tempdir)
-                create_snapshot_view(args.bucket, stacks, branch, ref_name, tempdir)
+                # Get the stacks from the pipeline
+                stacks = load_stacks(branch, ref, tempdir, args.include_stack, args.exclude_stack)
 
-            if args.copy:
-                if create_snapshot(args.bucket, stacks, branch, ref_name, tempdir, gnu_pg_home):
-                    # Now use publish to create the top level mirror if the snapshot exists
-                    # Don't re-verify everything, it was already done by create_snapshot
-                    publish(args.bucket, ref_name, verify=False, workdir=tempdir)
-        except Exception as e:
-            raise Exception from e
-            LOGGER.error(f"Failed to create snapshot for {ref_name}: {e}")
+                # Download the reputational signing key
+                gnu_pg_home = os.path.join(tempdir, ".gnupg")
+                if not DRYRUN:
+                    download_and_import_key(gnu_pg_home, tempdir, False)
+                else:
+                    LOGGER.info("DRYRUN: download_and_import_key...")
+
+                if args.view:
+                    # publish(args.bucket, branch, verify=False, workdir=tempdir)
+                    create_snapshot_view(args.bucket, stacks, branch, ref_name, tempdir)
+                    publish_keys(f"s3://{args.bucket}/{branch}", gnu_pg_home, workdir=tempdir, dryrun=args.dryrun)
+
+                if args.copy:
+                    if create_snapshot(args.bucket, stacks, branch, ref_name, tempdir, gnu_pg_home):
+                        # Now use publish to create the top level mirror if the snapshot exists
+                        # Don't re-verify everything, it was already done by create_snapshot
+                        publish(args.bucket, ref_name, verify=False, workdir=tempdir)
+            except Exception as e:
+                raise Exception from e
+                LOGGER.error(f"Failed to create snapshot for {ref_name}: {e}")

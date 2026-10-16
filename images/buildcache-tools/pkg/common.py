@@ -46,6 +46,7 @@ TIMESTAMP_PATTERN = "%Y-%m-%d %H:%M:%S"
 
 SPACK_PUBLIC_KEY_LOCATION = "https://spack.github.io/keys"
 SPACK_PUBLIC_KEY_NAME = "spack-public-binary-key.pub"
+SPACK_PUBLIC_KEY_ID = "2C8DD3224EF3573A42BD221FA8E0CA3C1C2ADA2F"
 TARBALL_MEDIA_TYPE = "application/vnd.spack.install.v2.tar+gzip"
 SPEC_METADATA_MEDIA_TYPE = "application/vnd.spack.spec.v5+json"
 
@@ -93,7 +94,7 @@ PROTECTED_BRANCH_REGEXES = [re.compile(r"^develop$"), re.compile(r"^releases/v[\
 LOGGER = logging.getLogger(__name__)
 
 
-def download_and_import_key(gpg_home: str, tmpdir: str, force: bool) -> str | None:
+def download_and_import_key(gpg_home: str, tmpdir: str, force: bool, key_id: str | None = None) -> str | None:
     """Download spack public signing key and import it"""
     if os.path.isdir(gpg_home):
         if force is True:
@@ -105,7 +106,7 @@ def download_and_import_key(gpg_home: str, tmpdir: str, force: bool) -> str | No
     os.makedirs(gpg_home, mode=mode_owner_rwe)
 
     public_key_url = f"{SPACK_PUBLIC_KEY_LOCATION}/{SPACK_PUBLIC_KEY_NAME}"
-    public_key_id = "2C8DD3224EF3573A42BD221FA8E0CA3C1C2ADA2F"
+    public_key_id = key_id or SPACK_PUBLIC_KEY_ID
 
     # Fetch the public key and write it to a file to be imported
     tmp_key_path = os.path.join(tmpdir, SPACK_PUBLIC_KEY_NAME)
@@ -450,7 +451,12 @@ def listing_file(url: str) -> str:
 # supplied path.
 def list_prefix_contents(
     url: str, output_prefix: Optional[str] = None, force: bool = False, iterator: bool = True
-):
+) -> tuple[datetime, int, str]:
+    """List the contents in am s3 prefix.
+
+    Returns:
+        tuple(LastModified, Size, Key)
+    """
 
     # Auto caching of listing file
     global listing_prefix
@@ -545,67 +551,68 @@ def clone_spack(
     spack_repo: str = SPACK_REPO,
     packages_repo: str = PACKAGES_REPO,
     clone_dir: str = "/",
+    force: bool = False,
 ):
     # If spack is already set up don't clone a new one
     spack_root = os.environ.get("SPACK_ROOT")
     if spack_root:
         return f"{spack_root}/bin/spack"
 
-    spack_path = f"{clone_dir}/spack"
-    packages_path = f"{clone_dir}/spack-packages"
+    repos = {
+        f"{clone_dir}/spack": (spack_repo, spack_ref),
+        f"{clone_dir}/spack-packages": (packages_repo, packages_ref),
+    }
 
-    if os.path.isdir(spack_path):
-        shutil.rmtree(spack_path)
+    for repo_path in [spack_path, packages_path]:
+        if os.path.isdir(repo_path):
+            if force:
+                shutil.rmtree(repo_path)
+            else:
+                continue
 
-    if os.path.isdir(packages_path):
-        shutil.rmtree(packages_path)
+        remote = repos[repo_path][0]
+        ref = repos[repo_path][1]
 
-    owd = os.getcwd()
+        with contextlib.chdir(repo_path):
+            subprocess.run(
+                [
+                    "git",
+                    "init",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "remote",
+                    "add",
+                    "origin",
+                    f"{remote}",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "fetch",
+                    f"{ref}",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
 
-    try:
-        os.chdir(clone_dir)
-        subprocess.run(
-            [
-                "git",
-                "clone",
-                "--depth",
-                "1",
-                "--single-branch",
-                "--branch",
-                f"{spack_ref}",
-                f"{spack_repo}",
-                spack_path,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=True,
-        )
-        subprocess.run(
-            [
-                "git",
-                "clone",
-                "--depth",
-                "1",
-                "--single-branch",
-                "--branch",
-                f"{packages_ref}",
-                f"{packages_repo}",
-                packages_path,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=True,
-        )
-        # Configure the repo destination
-        subprocess.run(
-            ["spack/bin/spack", "repo", "set", "builtin", "--destination", packages_path],
-            check=True,
-            stdout=subprocess.DEVNULL,
-        )
-    finally:
-        os.chdir(owd)
-
-    return f"{spack_path}/bin/spack"
+    # Configure the builtin repo destination to clone
+    subprocess.run(
+        [f"{clone_dir}/spack/bin/spack", "repo", "set", "builtin", "--destination", packages_path],
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
+    return f"{clone_dir}/spack/bin/spack"
 
 
 ################################################################################
@@ -638,9 +645,7 @@ def s3_copy_file(copy_source: Dict[str, str], bucket: str, dest_prefix: str, cli
     if client:
         s3_client = client
     else:
-        session = boto3.session.Session()
-        s3_resource = session.resource("s3")
-        s3_client = s3_resource.meta.client
+        s3_client = s3_create_client()
 
     config = TransferConfig(
         multipart_threshold=MULTIPART_THRESHOLD,
@@ -658,9 +663,7 @@ def s3_upload_file(file_path: str, bucket: str, prefix: str, client=None):
     if client:
         s3_client = client
     else:
-        session = boto3.session.Session()
-        s3_resource = session.resource("s3")
-        s3_client = s3_resource.meta.client
+        s3_client = s3_create_client()
 
     with open(file_path, "rb") as fd:
         s3_client.upload_fileobj(fd, bucket, prefix)
@@ -679,6 +682,18 @@ def s3_object_exists(bucket: str, key: str, client=None):
         return True
     except Exception:
         return False
+
+
+def s3_object_delete(bucket: str, key: str, client=None) -> bool:
+    """Delete an object."""
+
+    if client:
+        s3_client = client
+    else:
+        s3_client = s3_create_client()
+
+    resp = s3_client.delete_object(Bucket=bucket, Key=key)
+    return resp.get("DeleteMarker", False)
 
 
 ################################################################################

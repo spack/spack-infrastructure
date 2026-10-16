@@ -1,9 +1,11 @@
 import argparse
+import contextlib
 import logging
 import os
 import re
 import subprocess
 import tempfile
+import urllib.parse
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
@@ -13,6 +15,7 @@ import github
 
 from pkg.common import (
     PROTECTED_BRANCH_REGEXES,
+    SPACK_PUBLIC_KEY_ID,
     SNAPSHOT_TAG_REGEXES,
     BuiltSpec,
     UnexpectedURLFormatError,
@@ -21,9 +24,11 @@ from pkg.common import (
     generate_spec_catalogs_v2,
     generate_spec_catalogs_v3,
     get_workdir_context,
+    list_prefix_contents,
     s3_copy_file,
     s3_create_client,
     s3_download_file,
+    s3_object_delete,
 )
 
 GITHUB_PROJECT = "spack/spack-packages"
@@ -274,34 +279,70 @@ def publish(
     LOGGER.info("Publishing complete")
 
 
-def publish_keys(mirror_url, gnu_pg_home, ref: str = "develop"):
+def publish_keys(mirror_url: str, gnu_pg_home: str, key_ids: list[str] | str | None = None, workdir: str | None = None, dryrun: bool = False):
+    # Delete all of the signing keys in the mirror that are not the reputational key
+    if key_ids is None:
+        public_key_ids = [SPACK_PUBLIC_KEY_ID]
+    elif isinstance(key_ids, str):
+        public_key_ids = [key_ids]
+    else:
+        public_key_ids = key_ids
+
+    url = urllib.parse.urlparse(mirror_url)
+    for _, _, key_manifest in list_prefix_contents(f"{mirror_url}/v3/manifests/key/"):
+        if not key_manifest.endswith("key.manifest.json"):
+            continue
+
+        # Extract the key id from the path
+        # some/mirror.prefix/v3/manifests/key/<key_id>.key.manifest.json
+        key_id = key_manifest.rsplit("/", 1)[-1]
+        key_id = key_id.split(".", 1)[0]
+        LOGGER.info(f"Found key: {key_id}")
+        # Delete all of the keys from the mirror that are not jj
+        if key_id not in public_key_ids:
+            if dryrun:
+                print(f"Delete: s3://{url.netloc}/{key_manifest}")
+            else:
+                s3_object_delete(url.netloc, key_manifest)
+
     # Clone spack version appropriate to what we're publishing
-    with tempfile.TemporaryDirectory() as workdir:
+    with get_workdir_context(workdir) as tempdir:
         spack_exe = clone_spack(
             # Can be useful for testing to clone a custom spack to somewhere other than "/"
-            # spack_ref="content-addressable-tarballs-2",
+            spack_ref="dbd3112a92ff1f1b2ede3917ae876477e66b9904", # Pinned commit from v2026.10.0 release
             # spack_repo="https://github.com/scottwittenburg/spack.git",
-            packages_ref="develop",
-            clone_dir=workdir,
+            clone_dir=os.path.join(tempdir, "checkout"),
         )
 
         gnu_pg_home = os.path.abspath(gnu_pg_home)
 
         # Publish the key used for verification
         LOGGER.info(f"Publishing trusted keys to {mirror_url} ({gnu_pg_home})")
+        my_env_updates = {"SPACK_GNUPGHOME": gnu_pg_home}
         my_env = os.environ.copy()
-        my_env["SPACK_GNUPGHOME"] = gnu_pg_home
-        subprocess.run(
-            [spack_exe, "gpg", "publish", "--mirror-url", mirror_url], env=my_env, check=True
-        )
+        my_env.update(my_env_updates)
 
-        # Rebuild the package and key index
-        LOGGER.info(f"Rebuilding index at {mirror_url}")
-        subprocess.run(
-            [spack_exe, "buildcache", "update-index", "--keys", mirror_url],
-            stdout=subprocess.DEVNULL,
-            check=True,
-        )
+        publish_keys_cmd = [spack_exe, "gpg", "publish", "--mirror-url", mirror_url]
+        update_key_index_cmd = [spack_exe, "buildcache", "update-index", "--keys", mirror_url]
+
+
+        if dryrun:
+            print("PUBLISH KEYS:")
+            for k, v in my_env_updates.items():
+                print(f"    {k}={v}")
+            print(" ".join(publish_keys_cmd))
+            print(" ".join(update_key_index_cmd))
+        else:
+            subprocess.run(
+                publish_keys_cmd, env=my_env, check=True
+            )
+            # Rebuild the package and key index
+            LOGGER.info(f"Rebuilding index at {mirror_url}")
+            subprocess.run(
+                update_key_index_cmd,
+                stdout=subprocess.DEVNULL,
+                check=True,
+            )
 
 
 ################################################################################
