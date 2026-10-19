@@ -32,7 +32,7 @@ spec:
               - configMapRef:
                   name: python-scripts-sentry-config
             args:
-              - "snapshot"
+              - "pkg.snapshot"
               - "--bucket"
               - "spack-binaries"
               - "--project"
