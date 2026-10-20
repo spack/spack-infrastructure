@@ -27,11 +27,11 @@ spec:
           imagePullPolicy: Always
           resources:
             requests:
-              cpu: 4
-              memory: 5G
+              cpu: 250m
+              memory: 512M
             limits:
-              cpu: 5
-              memory: 6G
+              cpu: 1
+              memory: 1G
           ports:
             - containerPort: 8080
           env:
@@ -104,7 +104,7 @@ spec:
             - name: ALLOWED_HOSTS
               value: "webhook-handler.custom.svc.cluster.local"
       nodeSelector:
-        spack.io/node-pool: beefy
+        spack.io/node-pool: base
 
 ---
 apiVersion: apps/v1
@@ -146,11 +146,11 @@ spec:
           imagePullPolicy: Always
           resources:
             requests:
-              cpu: 3
-              memory: 2G
+              cpu: 1
+              memory: 2.5G
             limits:
               cpu: 3.5
-              memory: 2.5G
+              memory: 3G
           env:
             - name: DJANGO_SETTINGS_MODULE
               value: "analytics.settings.production"
@@ -223,4 +223,4 @@ spec:
             - name: ALLOWED_HOSTS
               value: "webhook-handler.custom.svc.cluster.local"
       nodeSelector:
-        spack.io/node-pool: beefy
+        spack.io/node-pool: base
