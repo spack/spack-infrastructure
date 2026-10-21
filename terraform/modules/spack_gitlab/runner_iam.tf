@@ -113,6 +113,34 @@ resource "aws_iam_role_policy_attachment" "gitlab_runner" {
   policy_arn = each.value.arn
 }
 
+data "aws_iam_policy_document" "gitlab_runner_list_bucket" {
+  for_each = local.mirror_roles
+
+  statement {
+    effect  = "Allow"
+    actions = ["s3:ListBucket"]
+
+    resources = [
+      each.key == "protected_binary_mirror" ? data.aws_s3_bucket.protected_mirror.arn : data.aws_s3_bucket.pr_mirror.arn,
+    ]
+  }
+}
+
+resource "aws_iam_policy" "gitlab_runner_list_bucket" {
+  for_each = data.aws_iam_policy_document.gitlab_runner_list_bucket
+
+  name        = "ListBinariesIn${local.mirror_roles[each.key].role_name_suffix}"
+  description = "Managed by Terraform. IAM Policy that allows listing S3 buckets for binary mirrors."
+  policy      = each.value.json
+}
+
+resource "aws_iam_role_policy_attachment" "gitlab_runner_list_bucket" {
+  for_each = aws_iam_policy.gitlab_runner_list_bucket
+
+  role       = aws_iam_role.gitlab_runner[each.key].name
+  policy_arn = each.value.arn
+}
+
 resource "gitlab_project_variable" "binary_mirror_role_arn" {
   for_each = resource.aws_iam_role.gitlab_runner
 
