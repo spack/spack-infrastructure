@@ -19,6 +19,9 @@ ENV PYTHONPATH="/opt/spack/lib/spack"
 ENV PYTHONPATH="/opt/spack/lib/spack/external/_vendoring:${PYTHONPATH}"
 ENV PYTHONPATH="/opt/spack/lib/spack/external:${PYTHONPATH}"
 
+# Make the project source (copied into /app below) importable
+ENV PYTHONPATH="/app:${PYTHONPATH}"
+
 
 # Install dependencies into the image's system prefix rather than a project .venv
 ENV UV_PROJECT_ENVIRONMENT=/usr/local
