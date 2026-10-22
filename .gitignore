@@ -45,3 +45,7 @@ private.key
 
 # PyCharm config files
 .idea
+
+# Python tooling artifacts
+.coverage
+.venv/
