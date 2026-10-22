@@ -110,3 +110,5 @@ spec:
           subPath: litestream-config.yaml
       nodeSelector:
         spack.io/node-pool: base
+        # Single replica with a local SQLite database (replicated by litestream)
+        karpenter.sh/capacity-type: on-demand
