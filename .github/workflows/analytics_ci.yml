@@ -15,16 +15,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
+          version: "0.13.5"
           python-version: "3.13"
 
       - name: Install requirements
-        run: pip install .[dev]
+        run: uv sync --frozen --extra dev
 
       - name: Lint code
-        run: tox -e lint
+        run: uv run tox -e lint
 
   check-migrations:
     services:
@@ -57,17 +58,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
+          version: "0.13.5"
           python-version: "3.13"
 
       - name: Install requirements
-        run: pip install .[dev]
+        run: uv sync --frozen --extra dev
 
       - name: Provide default env vars for django
         run: cat ./dev/.env.docker-compose >> $GITHUB_ENV
 
       # This runs on pull requests and blocks until any necessary migrations have been created
       - name: Check for Migrations
-        run: ./manage.py makemigrations --check --noinput
+        run: uv run ./manage.py makemigrations --check --noinput
