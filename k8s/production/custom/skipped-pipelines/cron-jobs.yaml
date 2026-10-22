@@ -14,7 +14,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: skipped-pipelines
-            image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.3
+            image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.4
             imagePullPolicy: IfNotPresent
             resources:
               requests:

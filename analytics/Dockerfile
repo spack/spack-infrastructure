@@ -15,17 +15,24 @@ RUN apt-get update && \
 RUN git clone -c feature.manyFiles=true --depth 1 --branch v0.22.0 https://github.com/spack/spack.git /opt/spack
 
 # Include spack import paths for python packages. Order is important
-ENV PYTHONPATH "/opt/spack/lib/spack:$PYTHONPATH"
-ENV PYTHONPATH "/opt/spack/lib/spack/external/_vendoring:$PYTHONPATH"
-ENV PYTHONPATH "/opt/spack/lib/spack/external:$PYTHONPATH"
+ENV PYTHONPATH="/opt/spack/lib/spack"
+ENV PYTHONPATH="/opt/spack/lib/spack/external/_vendoring:${PYTHONPATH}"
+ENV PYTHONPATH="/opt/spack/lib/spack/external:${PYTHONPATH}"
 
+# Make the project source (copied into /app below) importable
+ENV PYTHONPATH="/app:${PYTHONPATH}"
+
+
+# Install dependencies into the image's system prefix rather than a project .venv
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
 
 WORKDIR /app
 
-COPY requirements.txt /app/requirements.txt
+COPY pyproject.toml uv.lock /app/
 
-RUN pip install --upgrade uv
-RUN uv pip install --system -r requirements.txt
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
+# --no-install-project: the app itself is not installed, it's run from /app below
+RUN uv sync --frozen --no-install-project --no-cache
 
 COPY . .
 
