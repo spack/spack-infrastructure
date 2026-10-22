@@ -21,11 +21,6 @@ def webhook_handler(request: HttpRequest) -> HttpResponse:
     if job_input_data["build_status"] not in ["success", "failed"]:
         return HttpResponse("Build job not finished. Skipping.", status=200)
 
-    # Store gitlab job log and failure data in opensearch
-    # TODO: Re-enable once opensearch is fixed
-    # from analytics.core.job_log_uploader import store_job_data
-    # store_job_data.delay(request.body)
-
     # Store job data in postgres DB
     process_job.delay(request.body)
 

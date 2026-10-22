@@ -38,7 +38,6 @@ dependencies = [
     "django-s3-file-field[minio]==1.0.1",
     "django==5.1.15",
     "gunicorn==23.0.0",
-    "opensearch-dsl==2.1.0",
     "kubernetes==31.0.0",
     "sentry-sdk[django,pure_eval]==2.19.2",
     "rich==13.9.4",

@@ -11,6 +11,8 @@ spec:
       labels:
         spack.io/pipeline: "true"
         spack.io/graviton: "4"
+        # Keep CI job nodes out of LoadBalancer Service target groups, such as the gitlab-shell NLB.
+        node.kubernetes.io/exclude-from-external-load-balancers: "true"
 
     spec:
       requirements:
@@ -66,7 +68,7 @@ spec:
 
       nodeClassRef:
         kind: EC2NodeClass
-        name: default
+        name: runners
         group: karpenter.k8s.aws
 
       # Taint these nodes so only pipeline pods will be scheduled on them.

@@ -13,21 +13,6 @@ resource "kubectl_manifest" "prometheus_additional_datasources_secret" {
       values.yaml: |-
         grafana:
           additionalDataSources:
-            - name: OpenSearch
-              editable: "false"
-              type: grafana-opensearch-datasource
-              url: "https://${aws_opensearch_domain.spack.endpoint}"
-              version: "1"
-              access: proxy
-              basicAuth: "true"
-              basicAuthUser: ${local.opensearch_master_user_name}
-              secureJsonData:
-                basicAuthPassword: "${random_password.opensearch_password.result}"
-              jsonData:
-                database: "gitlab-job-failures-*"
-                timeField: timestamp
-                flavor: opensearch
-                version: "1.3.0"
             - name: PostgreSQL
               type: postgres
               access: proxy

@@ -6,17 +6,25 @@ module "spack_aws_k8s" {
 
   region = "us-west-2"
 
-  flux_path = "k8s/staging/"
-
-  enable_analytics_db = false
+  analytics_db_instance_class = "db.t4g.small"
 
   gitlab_db_instance_class    = "db.t4g.small"
   gitlab_redis_instance_class = "cache.t4g.small"
 
   cdash_db_instance_class = "db.t4g.small"
+}
 
-  opensearch_instance_type = "t3.small.search"
-  opensearch_volume_size   = 100
+module "spack_flux" {
+  source = "../modules/spack_flux"
+
+  flux_path = "k8s/staging/"
+
+  deployment_name  = "staging"
+  deployment_stage = "blue"
+
+  region = "us-west-2"
+
+  nat_public_ips = module.spack_aws_k8s.nat_public_ips
 }
 
 module "spack_gitlab" {
@@ -24,6 +32,9 @@ module "spack_gitlab" {
 
   deployment_name  = "staging"
   deployment_stage = "blue"
+
+  pr_binary_mirror_bucket_name        = module.spack_aws_k8s.pr_binary_mirror_bucket_name
+  protected_binary_mirror_bucket_name = module.spack_aws_k8s.protected_binary_mirror_bucket_name
 
   region = "us-west-2"
 

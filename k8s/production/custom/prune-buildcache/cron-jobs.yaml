@@ -5,7 +5,8 @@ metadata:
   name: prune-buildcache-v3
   namespace: custom
 spec:
-  schedule: "0 0 * * 6"
+  # Run at midnight UTC on every even-numbered day of the month.
+  schedule: "0 0 2-30/2 * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
@@ -21,7 +22,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.9
+            image: ghcr.io/spack/ci-prune-buildcache:0.0.11
             imagePullPolicy: Always
             resources:
               requests:

@@ -14,17 +14,6 @@ services:
     ports:
       - 3000:3000
 
-  elasticsearch:
-    image: elasticsearch:7.14.0
-    environment:
-      ES_JAVA_OPTS: "-Xms250m -Xmx750m"
-      discovery.type: single-node
-      xpack.security.enabled: "true"
-      ELASTIC_PASSWORD: elastic
-    ports:
-      - ${DOCKER_OPENSEARCH_PORT-9200}:9200
-      - ${DOCKER_OPENSEARCH_PORT-9300}:9300
-
   redis:
     image: redis:latest
     ports:

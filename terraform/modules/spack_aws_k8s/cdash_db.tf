@@ -25,8 +25,8 @@ module "cdash_db" {
   identifier = "spack-cdash-postgres${local.suffix}"
 
   engine               = "postgres"
-  family               = "postgres17"
-  major_engine_version = "17"
+  family               = "postgres18"
+  major_engine_version = "18"
   instance_class       = var.cdash_db_instance_class
 
   db_name                     = local.cdash_db_name

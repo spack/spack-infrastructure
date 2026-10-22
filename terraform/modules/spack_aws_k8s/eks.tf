@@ -88,7 +88,7 @@ module "eks" {
       })
     }
     aws-ebs-csi-driver = {
-      addon_version            = "v1.51.1-eksbuild.1"
+      addon_version            = "v1.64.0-eksbuild.1"
       service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
     }
   }
@@ -139,6 +139,40 @@ module "eks" {
       type        = "ingress"
       self        = true # Only apply this rule to other nodes in this security group
     }
+    # CoreDNS runs on nodes in this security group, not on CI runner nodes, which use their own
+    # security group (see runner_node_security_group.tf). Without these rules runner pods can't
+    # resolve DNS at all.
+    ingress_runner_nodes_coredns_tcp = {
+      description              = "Runner nodes to CoreDNS TCP"
+      protocol                 = "tcp"
+      from_port                = 53
+      to_port                  = 53
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.runner_nodes.id
+    }
+    ingress_runner_nodes_coredns_udp = {
+      description              = "Runner nodes to CoreDNS UDP"
+      protocol                 = "udp"
+      from_port                = 53
+      to_port                  = 53
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.runner_nodes.id
+    }
+  }
+
+  security_group_additional_rules = {
+    # CI runner nodes use their own security group (see runner_node_security_group.tf), so they
+    # aren't covered by the module's rule allowing the node security group to reach the API server.
+    # Inside the VPC the cluster endpoint resolves to the control plane's private ENIs, so without
+    # this rule runner nodes can't join the cluster.
+    ingress_runner_nodes_api = {
+      description              = "Runner nodes to cluster API"
+      protocol                 = "tcp"
+      from_port                = 443
+      to_port                  = 443
+      type                     = "ingress"
+      source_security_group_id = aws_security_group.runner_nodes.id
+    }
   }
 }
 
@@ -182,7 +216,6 @@ resource "aws_iam_role" "eks_cluster_access" {
             "arn:aws:iam::588562868276:user/john",
             "arn:aws:iam::588562868276:user/peter",
             "arn:aws:iam::588562868276:user/krattiger1",
-            "arn:aws:iam::588562868276:user/mike",
             "arn:aws:iam::588562868276:user/zack",
             "arn:aws:iam::588562868276:user/dan",
           ]
@@ -226,7 +259,6 @@ resource "aws_iam_role" "readonly_clusterrole" {
           "AWS" : [
             "arn:aws:iam::588562868276:user/alecscott",
             "arn:aws:iam::588562868276:user/tgamblin",
-            "arn:aws:iam::588562868276:user/mike",
           ]
         },
         "Action" : "sts:AssumeRole"

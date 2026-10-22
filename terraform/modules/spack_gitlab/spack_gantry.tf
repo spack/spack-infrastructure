@@ -76,7 +76,9 @@ resource "random_password" "spack_gantry_token" {
 }
 
 resource "gitlab_project_hook" "spack_gantry" {
-  project                 = data.gitlab_project.spack.id
+  depends_on = [gitlab_application_settings.this]
+
+  project                 = gitlab_project.spack.id
   url                     = "http://spack-gantry.spack.svc.cluster.local/v1/collect"
   job_events              = true
   push_events             = false

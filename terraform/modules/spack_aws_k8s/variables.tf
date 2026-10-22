@@ -10,17 +10,6 @@ variable "region" {
   type = string
 }
 
-variable "flux_path" {
-  description = "Path relative to the repository root that Flux will use to sync resources"
-  type        = string
-}
-
-variable "enable_analytics_db" {
-  description = "Whether to provision the analytics PostgreSQL database."
-  type        = bool
-  default     = true
-}
-
 variable "analytics_db_instance_class" {
   description = "AWS RDS DB instance class for the analytics PostgreSQL database."
   type        = string
@@ -40,16 +29,6 @@ variable "gitlab_redis_instance_class" {
 variable "cdash_db_instance_class" {
   description = "AWS RDS DB instance class for the Spack CDash PostgreSQL database."
   type        = string
-}
-
-variable "opensearch_instance_type" {
-  description = "The instance type for the OpenSearch domain."
-  type        = string
-}
-
-variable "opensearch_volume_size" {
-  description = "The size of the EBS volume for the OpenSearch domain."
-  type        = number
 }
 
 variable "eks_cluster_role" {

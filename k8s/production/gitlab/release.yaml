@@ -21,7 +21,7 @@ spec:
   chart:
     spec:
       chart: gitlab
-      version: 10.2.4 # gitlab@19.2.4
+      version: 10.4.3 # gitlab@19.4.3
       sourceRef:
         kind: HelmRepository
         name: gitlab
@@ -172,17 +172,19 @@ spec:
             successThreshold: 1
             failureThreshold: 4   # Consider pod unready after 20 seconds (5 * 4)
         resources:
-          # Prometheus queries to check for usage values
+          # The `container!=""` filter is required to avoid double counting metrics.
           # cpu:
-          #   sum(rate(container_cpu_usage_seconds_total{namespace="gitlab", pod=~"gitlab-webservice-.*"}[5m])) by (pod)
-          # memory:
-          #   sum by (pod) (container_memory_max_usage_bytes{namespace="gitlab", pod=~"gitlab-webservice-.*"})
+          #   sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="gitlab", pod=~"gitlab-webservice-.*", container!=""}[5m]))
+          #   max(quantile_over_time(0.95, sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="gitlab", pod=~"gitlab-webservice-.*", container!=""}[5m]))[7d:5m]))
+          # memory
+          #   sum by (pod) (container_memory_working_set_bytes{namespace="gitlab", pod=~"gitlab-webservice-.*", container!=""})
+          #   max(max_over_time(sum by (pod) (container_memory_working_set_bytes{namespace="gitlab", pod=~"gitlab-webservice-.*", container!=""})[7d:5m]))
           limits:
-            cpu: 12
-            memory: 20G
-          requests:
             cpu: 3
             memory: 10G
+          requests:
+            cpu: 1500m
+            memory: 5G
         nodeSelector:
           spack.io/node-pool: gitlab
       gitlab-exporter:
@@ -192,6 +194,15 @@ spec:
       gitlab-shell:
         service:
           type: LoadBalancer
+          annotations:
+            # Places the load balancer fronting gitlab-shell in the public
+            # subnets, so that ssh.gitlab[.staging].spack.io resolves to
+            # addresses reachable from outside the VPC and git clones over SSH
+            # work.
+            #
+            # terraform/modules/spack_gitlab/gitlab_ssh_dns.tf reads the load balancer
+            # hostname from this Service's status and points the DNS record at it.
+            service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
         resources:
           requests:
             cpu: 100m
@@ -215,7 +226,7 @@ spec:
         nodeSelector:
           spack.io/node-pool: gitlab
 
-        replicas: 8
+        replicas: 2
         antiAffinityLabels:
           matchLabels:
             app: "gitaly"

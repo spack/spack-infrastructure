@@ -174,31 +174,6 @@ module "spackbot_dev" {
   service_account_namespace = "spack"
 }
 
-module "fluent_bit" {
-  source = "../iam_service_account"
-
-  deployment_name  = var.deployment_name
-  deployment_stage = var.deployment_stage
-
-  service_account_iam_policies = [
-    jsonencode({
-      "Version" : "2012-10-17",
-      "Statement" : [
-        {
-          "Action" : [
-            "es:ESHttp*"
-          ],
-          "Resource" : aws_opensearch_domain.spack.arn,
-          "Effect" : "Allow"
-        }
-      ]
-    })
-  ]
-
-  service_account_name      = "fluent-bit"
-  service_account_namespace = "fluent-bit"
-}
-
 module "notary" {
   source = "../iam_service_account"
 

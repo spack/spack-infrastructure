@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from analytics.core.job_log_uploader import store_job_data
 from analytics.core.models.dimensions import (
     JobResultDimension,
     PackageDimension,
@@ -59,11 +58,6 @@ def test_process_job_unnecessary_jobs(request, job_json_string, unnecessary):
     result = JobResultDimension.objects.first()
     assert result is not None
     assert result.unnecessary == unnecessary
-
-
-@pytest.mark.django_db
-def test_upload_job_logs(build_json_string):
-    store_job_data(build_json_string)
 
 
 @pytest.mark.django_db
