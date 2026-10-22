@@ -15,8 +15,9 @@ spec:
       app: spack-gantry
   serviceName: spack-gantry
 
-  # Litestream only supports a single node so this must always be "1".
-  replicas: 1
+  # Litestream only supports a single node so this must never exceed "1".
+  # Gantry is currently disabled; set back to 1 to re-enable.
+  replicas: 0
 
   # Persistent volume is recommended for better durability guarantees between restarts.
   volumeClaimTemplates:
