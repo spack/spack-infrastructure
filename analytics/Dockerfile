@@ -30,7 +30,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock /app/
 
-RUN pip install --upgrade uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
 # --no-install-project: the app itself is not installed, it's run from /app below
 RUN uv sync --frozen --no-install-project --no-cache
 

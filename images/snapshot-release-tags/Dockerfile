@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock /app/
 
-RUN pip install --upgrade uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
 RUN uv sync --frozen --no-dev --no-cache
 
 COPY . .

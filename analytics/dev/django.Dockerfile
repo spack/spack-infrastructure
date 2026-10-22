@@ -23,7 +23,7 @@ ENV PYTHONUNBUFFERED=1
 # source over /opt/django-project and PYTHONPATH (set below) makes its modules importable.
 ENV UV_PROJECT_ENVIRONMENT=/usr/local
 COPY ./pyproject.toml ./uv.lock /opt/django-project/
-RUN pip install --upgrade uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
 RUN uv sync --project /opt/django-project --frozen --no-install-project --extra dev --no-cache
 
 

@@ -5,7 +5,7 @@ ENV UV_PROJECT_ENVIRONMENT=/usr/local
 WORKDIR /scripts/
 
 COPY pyproject.toml uv.lock ./
-RUN pip install --upgrade uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
 RUN uv sync --frozen --no-dev --no-cache
 COPY backup.py ./
 

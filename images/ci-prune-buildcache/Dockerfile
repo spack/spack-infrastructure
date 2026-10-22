@@ -17,7 +17,7 @@ ENV PYTHONUNBUFFERED=1
 
 # Install Python dependencies
 COPY pyproject.toml uv.lock ./
-RUN pip install --upgrade uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
 RUN uv sync --frozen --no-dev --no-cache
 
 # Clone a particular commit of spack
