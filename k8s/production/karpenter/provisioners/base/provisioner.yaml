@@ -13,10 +13,12 @@ spec:
 
     spec:
       requirements:
-        # Always use on-demand
+        # Prefer spot, falling back to on-demand when spot capacity is unavailable.
+        # Pods that can't tolerate interruption select
+        # karpenter.sh/capacity-type: on-demand.
         - key: "karpenter.sh/capacity-type"
           operator: In
-          values: ["on-demand"]
+          values: ["spot", "on-demand"]
 
         # Only provision nodes for Linux pods
         # Needed due to https://github.com/kubernetes-sigs/karpenter/issues/1009

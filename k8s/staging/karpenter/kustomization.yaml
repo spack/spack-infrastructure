@@ -8,6 +8,7 @@ resources:
 - ../../production/karpenter/provisioners/runners/x86_64/v4/provisioners.yaml
 - ../../production/karpenter/provisioners/runners/windows/x86_64/v2/provisioner.yaml
 - ../../production/karpenter/provisioners/gitlab/provisioner.yaml
+- ../../production/karpenter/provisioners/gitaly/provisioner.yaml
 - ../../production/karpenter/provisioners/base/provisioner.yaml
 patches:
   - target:

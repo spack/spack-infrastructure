@@ -237,8 +237,12 @@ spec:
             cpu: 15000m
             memory: 20Gi
         nodeSelector:
-          spack.io/node-pool: gitlab
-          node.kubernetes.io/instance-type: m5.4xlarge
+          spack.io/node-pool: gitaly
+        tolerations:
+          - key: spack.io/gitaly
+            operator: Equal
+            value: "true"
+            effect: NoSchedule
         metrics:
           enabled: true
           serviceMonitor:
@@ -249,6 +253,8 @@ spec:
       migrations:
         nodeSelector:
           spack.io/node-pool: gitlab
+          # Don't risk a spot interruption partway through a database migration
+          karpenter.sh/capacity-type: on-demand
 
     postgresql:
       install: false
