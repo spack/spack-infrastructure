@@ -45,8 +45,9 @@ module "protected_binary_mirror" {
 
   # Referencing the bucket through its policy makes log delivery wait until
   # the bucket allows it.
-  logging_bucket_name      = aws_s3_bucket_policy.logs.bucket
-  enable_s3_access_logging = false
+  logging_bucket_name       = aws_s3_bucket_policy.logs.bucket
+  enable_s3_access_logging  = false
+  enable_cloudfront_logging = var.deployment_name == "prod"
 
   cdn_domain      = "binaries.${var.deployment_name == "prod" ? "" : "${var.deployment_name}."}spack.io"
   cache_policy_id = aws_cloudfront_cache_policy.min_ttl_zero.id
