@@ -84,3 +84,59 @@ resource "aws_cloudfront_distribution" "binary_mirror" {
 
   wait_for_deployment = true
 }
+
+# CloudFront standard logging (v2), delivered to S3 via CloudWatch vended logs.
+# Log delivery for CloudFront distributions must be configured in us-east-1,
+# regardless of where the destination bucket lives.
+resource "aws_cloudwatch_log_delivery_source" "cloudfront" {
+  count = var.cloudfront_logging_destination_arn != null ? 1 : 0
+
+  region       = "us-east-1"
+  name         = "${var.bucket_name}-cloudfront"
+  log_type     = "ACCESS_LOGS"
+  resource_arn = aws_cloudfront_distribution.binary_mirror.arn
+}
+
+resource "aws_cloudwatch_log_delivery_destination" "cloudfront" {
+  count = var.cloudfront_logging_destination_arn != null ? 1 : 0
+
+  region        = "us-east-1"
+  name          = "${var.bucket_name}-cloudfront-s3"
+  output_format = "json"
+
+  delivery_destination_configuration {
+    destination_resource_arn = var.cloudfront_logging_destination_arn
+  }
+}
+
+resource "aws_cloudwatch_log_delivery" "cloudfront" {
+  count = var.cloudfront_logging_destination_arn != null ? 1 : 0
+
+  region                   = "us-east-1"
+  delivery_source_name     = aws_cloudwatch_log_delivery_source.cloudfront[0].name
+  delivery_destination_arn = aws_cloudwatch_log_delivery_destination.cloudfront[0].arn
+
+  # Only the fields needed for traffic analysis; cookies, query strings and
+  # referrers are left out on purpose. asn and c-country are v2-only fields.
+  record_fields = [
+    "date",
+    "time",
+    "x-edge-location",
+    "c-ip",
+    "asn",
+    "c-country",
+    "cs-method",
+    "cs-uri-stem",
+    "sc-status",
+    "sc-bytes",
+    "time-taken",
+    "cs(User-Agent)",
+    "x-edge-result-type",
+    "sc-range-start",
+    "sc-range-end",
+  ]
+
+  s3_delivery_configuration {
+    suffix_path = "{DistributionId}/{yyyy}/{MM}/{dd}"
+  }
+}

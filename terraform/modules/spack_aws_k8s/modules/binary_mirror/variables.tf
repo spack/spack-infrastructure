@@ -14,6 +14,12 @@ variable "logging_bucket_name" {
   default     = null
 }
 
+variable "cloudfront_logging_destination_arn" {
+  description = "S3 bucket ARN plus key prefix (e.g. arn:aws:s3:::spack-logs/cloudfront) to receive CloudFront access logs. Null disables CloudFront access logging."
+  type        = string
+  default     = null
+}
+
 variable "cdn_domain" {
   description = "The domain name of the CDN that points to the bucket."
   type        = string
