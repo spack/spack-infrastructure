@@ -37,7 +37,7 @@ module "build_cache_pruner" {
             "s3:PutObject",
             "s3:GetObject"
           ],
-          "Resource" : "${module.pr_binary_mirror.logging_bucket_arn}/pruning/*"
+          "Resource" : "${aws_s3_bucket.logs.arn}/pruning/*"
         }
       ]
     })

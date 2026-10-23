@@ -29,8 +29,10 @@ module "pr_binary_mirror" {
 
   bucket_name = "spack-binaries-prs${local.bucket_name_suffix}"
 
-  enable_logging      = true
-  logging_bucket_name = "spack-logs${local.bucket_name_suffix}"
+  # Referencing the bucket through its policy makes log delivery wait until
+  # the bucket allows it.
+  logging_bucket_name      = aws_s3_bucket_policy.logs.bucket
+  enable_s3_access_logging = true
 
   cdn_domain      = "binaries-prs.${var.deployment_name == "prod" ? "" : "${var.deployment_name}."}spack.io"
   cache_policy_id = aws_cloudfront_cache_policy.min_ttl_zero.id
@@ -41,7 +43,10 @@ module "protected_binary_mirror" {
 
   bucket_name = "spack-binaries${local.bucket_name_suffix}"
 
-  enable_logging = false
+  # Referencing the bucket through its policy makes log delivery wait until
+  # the bucket allows it.
+  logging_bucket_name      = aws_s3_bucket_policy.logs.bucket
+  enable_s3_access_logging = false
 
   cdn_domain      = "binaries.${var.deployment_name == "prod" ? "" : "${var.deployment_name}."}spack.io"
   cache_policy_id = aws_cloudfront_cache_policy.min_ttl_zero.id
