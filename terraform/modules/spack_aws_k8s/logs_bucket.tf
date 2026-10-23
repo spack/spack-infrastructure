@@ -1,17 +1,15 @@
-resource "aws_s3_bucket" "logging" {
-  count = var.enable_logging ? 1 : 0
-
-  bucket = var.logging_bucket_name
+# Bucket that receives access logs for the binary mirrors (S3 server access
+# logs and CloudFront access logs), as well as buildcache pruning output.
+resource "aws_s3_bucket" "logs" {
+  bucket = "spack-logs${local.bucket_name_suffix}"
 
   tags = {
-    Name = var.logging_bucket_name
+    Name = "spack-logs${local.bucket_name_suffix}"
   }
 }
 
-resource "aws_s3_bucket_policy" "logging" {
-  count = var.enable_logging ? 1 : 0
-
-  bucket = var.logging_bucket_name
+resource "aws_s3_bucket_policy" "logs" {
+  bucket = aws_s3_bucket.logs.id
 
   policy = jsonencode({
     "Version" : "2012-10-17",
@@ -23,7 +21,7 @@ resource "aws_s3_bucket_policy" "logging" {
           "Service" : "logging.s3.amazonaws.com"
         },
         "Action" : "s3:PutObject",
-        "Resource" : "${aws_s3_bucket.logging[0].arn}/*"
+        "Resource" : "${aws_s3_bucket.logs.arn}/*"
       },
       {
         # CloudFront standard logging (v2) writes through CloudWatch vended logs.
@@ -35,7 +33,7 @@ resource "aws_s3_bucket_policy" "logging" {
           "Service" : "delivery.logs.amazonaws.com"
         },
         "Action" : "s3:PutObject",
-        "Resource" : "${aws_s3_bucket.logging[0].arn}/cloudfront/*",
+        "Resource" : "${aws_s3_bucket.logs.arn}/cloudfront/*",
         "Condition" : {
           "StringEquals" : {
             "s3:x-amz-acl" : "bucket-owner-full-control",
@@ -50,10 +48,8 @@ resource "aws_s3_bucket_policy" "logging" {
   })
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "logging" {
-  count = var.enable_logging ? 1 : 0
-
-  bucket = aws_s3_bucket.logging[0].id
+resource "aws_s3_bucket_lifecycle_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
 
   # Previously created by hand on spack-logs; managed here now so that adding
   # the CloudFront rule below doesn't wipe it out.
@@ -86,11 +82,18 @@ resource "aws_s3_bucket_lifecycle_configuration" "logging" {
   }
 }
 
-resource "aws_s3_bucket_logging" "binary_mirror" {
-  count = var.enable_logging ? 1 : 0
+# These resources used to live in the pr_binary_mirror module.
+moved {
+  from = module.pr_binary_mirror.aws_s3_bucket.logging[0]
+  to   = aws_s3_bucket.logs
+}
 
-  bucket = aws_s3_bucket.binary_mirror.id
+moved {
+  from = module.pr_binary_mirror.aws_s3_bucket_policy.logging[0]
+  to   = aws_s3_bucket_policy.logs
+}
 
-  target_bucket = aws_s3_bucket.logging[0].id
-  target_prefix = "S3 Logs/"
+moved {
+  from = module.pr_binary_mirror.aws_s3_bucket_lifecycle_configuration.logging[0]
+  to   = aws_s3_bucket_lifecycle_configuration.logs
 }

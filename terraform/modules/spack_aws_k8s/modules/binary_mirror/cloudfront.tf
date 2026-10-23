@@ -89,7 +89,7 @@ resource "aws_cloudfront_distribution" "binary_mirror" {
 # Log delivery for CloudFront distributions must be configured in us-east-1,
 # regardless of where the destination bucket lives.
 resource "aws_cloudwatch_log_delivery_source" "cloudfront" {
-  count = var.cloudfront_logging_destination_arn != null ? 1 : 0
+  count = var.enable_cloudfront_logging ? 1 : 0
 
   region       = "us-east-1"
   name         = "${var.bucket_name}-cloudfront"
@@ -98,19 +98,19 @@ resource "aws_cloudwatch_log_delivery_source" "cloudfront" {
 }
 
 resource "aws_cloudwatch_log_delivery_destination" "cloudfront" {
-  count = var.cloudfront_logging_destination_arn != null ? 1 : 0
+  count = var.enable_cloudfront_logging ? 1 : 0
 
   region        = "us-east-1"
   name          = "${var.bucket_name}-cloudfront-s3"
   output_format = "json"
 
   delivery_destination_configuration {
-    destination_resource_arn = var.cloudfront_logging_destination_arn
+    destination_resource_arn = "arn:aws:s3:::${var.logging_bucket_name}/cloudfront"
   }
 }
 
 resource "aws_cloudwatch_log_delivery" "cloudfront" {
-  count = var.cloudfront_logging_destination_arn != null ? 1 : 0
+  count = var.enable_cloudfront_logging ? 1 : 0
 
   region                   = "us-east-1"
   delivery_source_name     = aws_cloudwatch_log_delivery_source.cloudfront[0].name
