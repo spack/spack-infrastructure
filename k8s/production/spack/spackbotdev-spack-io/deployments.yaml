@@ -76,6 +76,7 @@ spec:
               key: github_webhook_secret
       nodeSelector:
         spack.io/node-pool: base
+        kubernetes.io/arch: amd64 # image is amd64-only
 
 ---
 apiVersion: apps/v1
@@ -165,6 +166,7 @@ spec:
           defaultMode: 0600
       nodeSelector:
         spack.io/node-pool: base
+        kubernetes.io/arch: amd64 # image is amd64-only
 
 ---
 apiVersion: apps/v1
@@ -254,3 +256,4 @@ spec:
           defaultMode: 0600
       nodeSelector:
         spack.io/node-pool: base
+        kubernetes.io/arch: amd64 # image is amd64-only

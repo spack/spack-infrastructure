@@ -115,8 +115,8 @@ spec:
                   storage: 200Gi
         resources:
           requests:
-            cpu: 2000m
-            memory: 50G
+            cpu: 500m
+            memory: 12G
 
         # These three values allow prometheus to pick up ServiceMonitors from *any* namespace,
         # not just the "monitoring" namespace.
@@ -132,7 +132,7 @@ spec:
             static_configs:
               - targets: ["gitlab.spack.io"]
         nodeSelector:
-          spack.io/node-pool: beefy
+          spack.io/node-pool: base
 
     prometheusOperator:
       resources:
