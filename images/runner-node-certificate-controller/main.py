@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 
 import sentry_sdk
 from kubernetes import client, config
-from kubernetes.client.exceptions import ApiException
 
 TAINT_KEY = "node.spack.io/certificate-pending"
 
@@ -75,45 +74,9 @@ def verify_node_certificates(
 
     print(f"  ✅ Found approved CSRs for node: {', '.join(approved_csrs)}")
 
-    # Test 2: Verify node can make API calls by checking kubelet endpoints
-    print("  🔍 Testing kubelet API responsiveness...")
-
-    kubelet_test_passed = False
-
-    # Test multiple endpoints with increasing complexity
-    test_endpoints = [
-        f"/api/v1/nodes/{node_name}/proxy/metrics/cadvisor",
-        f"/api/v1/nodes/{node_name}/proxy/stats/summary",
-        f"/api/v1/nodes/{node_name}/proxy/healthz",
-    ]
-
-    api_client = client.ApiClient()
-
-    for endpoint in test_endpoints:
-        try:
-            api_client.call_api(endpoint, "GET", response_type="str")
-            endpoint_name = endpoint.split("/")[-1]
-            print(f"  ✅ Node kubelet {endpoint_name} accessible")
-            kubelet_test_passed = True
-            break
-        except ApiException:
-            continue
-
-    # Fallback test: basic connectivity test
-    if not kubelet_test_passed:
-        print("  🔍 Testing basic API server connectivity from control plane...")
-        if is_node_ready(v1_client, node_name):
-            print("  ✅ Node is reporting Ready status (indicates API connectivity)")
-            kubelet_test_passed = True
-        else:
-            print("  ❌ All kubelet API tests failed")
-            return False
-
-    if kubelet_test_passed:
-        print("  ✅ Node kubelet API is responsive (at least one test passed)")
-    else:
-        print("  ❌ Node kubelet API is not responsive")
-        return False
+    # Kubelet connectivity is covered by the Ready check in main(). We don't
+    # probe kubelet endpoints directly because that requires nodes/proxy,
+    # which would let this service account exec into pods on any node.
 
     node = v1_client.read_node_status(name=node_name)
     if node.status and node.status.conditions:
