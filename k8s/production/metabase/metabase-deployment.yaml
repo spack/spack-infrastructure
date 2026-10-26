@@ -41,6 +41,15 @@ spec:
                 secretKeyRef:
                   name: metabase-ses-secrets
                   key: smtp-password
+          # Metabase can take a few minutes to start on a busy node; hold off
+          # liveness/readiness checks until it is up.
+          startupProbe:
+            httpGet:
+              path: /
+              port: 3000
+            timeoutSeconds: 1
+            periodSeconds: 10
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /
