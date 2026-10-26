@@ -1,5 +1,7 @@
 ---
 # Provisioner for beefy pods
+# DEPRECATED: all workloads have moved to the base NodePool. Remove this file (and its
+# reference in k8s/staging/karpenter/kustomization.yaml) once it has no nodes left.
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:

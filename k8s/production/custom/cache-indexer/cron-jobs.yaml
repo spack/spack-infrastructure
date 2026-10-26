@@ -9,6 +9,10 @@ spec:
   jobTemplate:
     spec:
       template:
+        metadata:
+          annotations:
+            # This is a long-running job, so we don't want to disrupt it
+            karpenter.sh/do-not-disrupt: "true"
         spec:
           serviceAccountName: index-binary-caches
           restartPolicy: Never

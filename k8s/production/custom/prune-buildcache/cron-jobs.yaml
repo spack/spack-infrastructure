@@ -26,12 +26,12 @@ spec:
             imagePullPolicy: Always
             resources:
               requests:
-                cpu: "4" # at least 4 cores to allow for meaningful parallelism
-                memory: 12G  # based on testing
+                cpu: "2" # observed peak ~1.2 cores; limit allows bursting for parallelism
+                memory: 4G  # observed peak ~1.1G; limit allows headroom for larger prunes
                 ephemeral-storage: "50G" # based on testing
               limits:
                 cpu: "6"
-                memory: 16G
+                memory: 6G  # observed 30-day peak ~1.2G
             env:
             - name: GITLAB_URL
               value: "https://gitlab.spack.io"
@@ -54,4 +54,4 @@ spec:
               - configMapRef:
                   name: python-scripts-sentry-config
           nodeSelector:
-            spack.io/node-pool: beefy
+            spack.io/node-pool: base

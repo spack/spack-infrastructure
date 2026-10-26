@@ -13,33 +13,50 @@ spec:
 
     spec:
       requirements:
-      - key: "node.kubernetes.io/instance-type"
-        operator: In
-        values:
-          - "t3.small"
-          - "t3.medium"
-          - "m4.xlarge"
+        # Always use on-demand
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
 
-      # Always use on-demand
-      - key: "karpenter.sh/capacity-type"
-        operator: In
-        values: ["on-demand"]
+        # Only provision nodes for Linux pods
+        # Needed due to https://github.com/kubernetes-sigs/karpenter/issues/1009
+        - key: "kubernetes.io/os"
+          operator: In
+          values: ["linux"]
 
-      # Only provision nodes for Linux pods
-      # Needed due to https://github.com/kubernetes-sigs/karpenter/issues/1009
-      - key: "kubernetes.io/os"
-        operator: In
-        values: ["linux"]
+        # Pods with amd64-only images must set a kubernetes.io/arch nodeSelector
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64", "arm64"]
+
+        # Exclude burstable (T-family) and other special-purpose instance types
+        - key: "karpenter.k8s.aws/instance-category"
+          operator: In
+          values: ["c", "m", "r"]
+
+        - key: "karpenter.k8s.aws/instance-generation"
+          operator: Gt
+          values: ["5"]
+
+        # Cap node size to limit the blast radius of a single node being disrupted
+        - key: "karpenter.k8s.aws/instance-cpu"
+          operator: Lt
+          values: ["33"]
 
       nodeClassRef:
         kind: EC2NodeClass
         name: default
         group: karpenter.k8s.aws
 
-  # Terminate nodes after 5 minutes of idle time
   disruption:
-    consolidationPolicy: WhenEmpty
+    consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 5m
+    budgets:
+      # Karpenter's default budget, which is dropped once any budget is specified
+      - nodes: "10%"
+      # Only consolidate one underutilized node at a time
+      - nodes: "1"
+        reasons: ["Underutilized"]
 
   limits:
-    cpu: 128 # Limit to 64 t3.small nodes (2 vCPUs each)
+    cpu: 128

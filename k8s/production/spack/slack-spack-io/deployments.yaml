@@ -58,3 +58,4 @@ spec:
               key: google_captcha_secret
       nodeSelector:
         spack.io/node-pool: base
+        kubernetes.io/arch: amd64 # image is amd64-only
