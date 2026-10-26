@@ -12,6 +12,10 @@ spec:
       activeDeadlineSeconds: 14400 # terminate any running job after 4 hours
       backoffLimit: 0
       template:
+        metadata:
+          annotations:
+            # This is a long-running job, so we don't want to disrupt it
+            karpenter.sh/do-not-disrupt: "true"
         spec:
           serviceAccountName: protected-publish
           restartPolicy: Never

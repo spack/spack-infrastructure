@@ -31,7 +31,7 @@ spec:
                 ephemeral-storage: "50G" # based on testing
               limits:
                 cpu: "6"
-                memory: 16G
+                memory: 6G  # observed 30-day peak ~1.2G
             env:
             - name: GITLAB_URL
               value: "https://gitlab.spack.io"
