@@ -78,6 +78,23 @@
       enabled: false,
     },
     {
+      // Metabase is bumped by hand.
+      matchPackageNames: ["metabase/metabase"],
+      enabled: false,
+    },
+    {
+      // The kube-prometheus-stack chart is bumped by hand.
+      matchManagers: ["flux", "helm-values", "helmv3"],
+      matchPackageNames: ["kube-prometheus-stack"],
+      enabled: false,
+    },
+    {
+      // GitLab and its runner charts are upgraded by hand, in lockstep.
+      matchManagers: ["flux", "helm-values", "helmv3"],
+      matchPackageNames: ["gitlab", "gitlab-runner"],
+      enabled: false,
+    },
+    {
       // Ports the ignore block from the previous Dependabot config.
       matchManagers: ["github-actions"],
       matchUpdateTypes: ["patch"],
