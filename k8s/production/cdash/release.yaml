@@ -46,6 +46,7 @@ spec:
       serviceAccountName: cdash
       externalSecret: cdash-extra
       website:
+        replicas: 1
         resources:
           requests:
             memory: 512Mi
