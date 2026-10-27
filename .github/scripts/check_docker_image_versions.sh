@@ -51,5 +51,6 @@ while read image; do
 done <<< $(cat $IMAGES_FILE | yq ".images" -o json | jq -c ".[]")
 
 if [ "$FAILED" -eq "1" ]; then
+    echoerr "Run ./.github/scripts/bump_image_versions.sh to bump the affected images."
     exit 1
 fi
