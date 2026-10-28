@@ -172,6 +172,8 @@ spec:
 
     nodeSelector:
       spack.io/node-pool: base # pool for the runner
+      # Interrupting the manager aborts every job it is running
+      karpenter.sh/capacity-type: on-demand
 
     resources:
       requests:

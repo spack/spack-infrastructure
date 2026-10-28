@@ -141,6 +141,9 @@ spec:
               - targets: ["gitlab.spack.io"]
         nodeSelector:
           spack.io/node-pool: base
+          # Single replica; an interruption leaves a gap in metrics while the
+          # 200Gi volume re-attaches
+          karpenter.sh/capacity-type: on-demand
 
     prometheusOperator:
       resources:

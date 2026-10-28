@@ -14,6 +14,10 @@ spec:
       labels:
         app: metabase-postgres
     spec:
+      nodeSelector:
+        spack.io/node-pool: base
+        # Single database instance on an EBS volume
+        karpenter.sh/capacity-type: on-demand
       containers:
         - name: postgres
           image: postgres:14.0
