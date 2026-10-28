@@ -42,6 +42,9 @@ spec:
         app: gitlab-runner-pod-cleanup
     spec:
       serviceAccountName: pod-cleanup-sa
+      nodeSelector:
+        spack.io/node-pool: base
+        kubernetes.io/arch: amd64 # image is amd64-only
       containers:
         - name: gitlab-runner-pod-cleanup
           image: registry.gitlab.com/gitlab-org/ci-cd/gitlab-runner-pod-cleanup:latest
