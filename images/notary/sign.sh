@@ -150,6 +150,14 @@ for FILE in $( find $INPUTDIR -type f ); do
     rm ${FILE}
     verified=$((verified + 1))
 
+    # The primary key is kept offline and never used for signing here, so a
+    # signature from it means the key may be compromised. Stop before
+    # anything is signed or uploaded so the manifest is left as evidence.
+    if [[ " ${signers[*]} " == *" ${SIGNING_KEY_ID} "* ]]; then
+        echo "ERROR: ${FILE} is signed by the reputational primary key ${SIGNING_KEY_ID} (not a subkey)" >&2
+        exit 1
+    fi
+
     # Already signed by the reputational key, so don't sign it again. Leaving
     # it out of /tmp/output/ keeps the upload from rewriting it in the mirror.
     # Only a file that is one signed message with one good signature by the
