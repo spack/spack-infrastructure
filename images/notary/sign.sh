@@ -68,19 +68,48 @@ gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${UO_INT
 #   good        number of good signatures (GOODSIG: valid, and the key is
 #               neither expired nor revoked)
 #   signers     fingerprints of the keys that made the signatures (VALIDSIG)
+#   primaries   fingerprints of those keys' primary keys, in the same order
+#   untrusted   fingerprints of those keys that are revoked or expired,
+#               other than the reputational key's subkeys
+#   retired     fingerprints of those keys that are subkeys of the
+#               reputational key and are revoked or expired
+# gpg --verify still succeeds for revoked and expired keys. It reports
+# EXPKEYSIG rather than REVKEYSIG for a key that is both, so KEYREVOKED is
+# checked too.
 parse_status() {
-    messages=0 signatures=0 good=0 signers=()
-    local tag keyword fpr rest
+    messages=0 signatures=0 good=0 signers=() primaries=() untrusted=() retired=()
+    local tag keyword fpr rest signer="" primary="" is_revoked=0 is_expired=0
     while read -r tag keyword fpr rest; do
         [[ $tag == "[GNUPG:]" ]] || continue
         case $keyword in
             PLAINTEXT) messages=$((messages + 1)) ;;
-            NEWSIG) signatures=$((signatures + 1)) ;;
+            NEWSIG)
+                classify_signature "${signer}" "${primary}" ${is_revoked} ${is_expired}
+                signer="" primary="" is_revoked=0 is_expired=0
+                signatures=$((signatures + 1)) ;;
             GOODSIG) good=$((good + 1)) ;;
-            # [GNUPG:] VALIDSIG <signing key fpr> ...
-            VALIDSIG) signers+=("$fpr") ;;
+            # [GNUPG:] VALIDSIG <signing key fpr> ... <primary key fpr>
+            VALIDSIG) signer=$fpr primary=${rest##* }; signers+=("$fpr"); primaries+=("${primary}") ;;
+            REVKEYSIG|KEYREVOKED) is_revoked=1 ;;
+            EXPKEYSIG) is_expired=1 ;;
         esac
     done < "$1"
+    classify_signature "${signer}" "${primary}" ${is_revoked} ${is_expired}
+}
+
+
+# Adds the signature parse_status just read to untrusted or retired: $1 is the
+# key that made it, $2 that key's primary key, and $3 and $4 are 1 if the key
+# is revoked or expired. The reputational primary key's own signatures are
+# handled separately.
+classify_signature() {
+    local signer=${1:-unknown} primary=$2 is_revoked=$3 is_expired=$4
+    (( is_revoked || is_expired )) || return 0
+    if [[ $primary == "${SIGNING_KEY_ID}" && $signer != "${SIGNING_KEY_ID}" ]]; then
+        retired+=("${signer}")
+    else
+        untrusted+=("${signer}")
+    fi
 }
 
 
@@ -142,6 +171,7 @@ to_verify=$(( $(find $INPUTDIR -type f | wc -l) ))
 echo "Verifying ${to_verify} manifests"
 checked=0
 already_signed=0
+left_retired=0
 for FILE in $( find $INPUTDIR -type f ); do
     checked=$((checked + 1))
     progress "Verifying" ${checked} ${to_verify}
@@ -179,18 +209,55 @@ for FILE in $( find $INPUTDIR -type f ); do
         continue
     fi
 
+    # A revoked key may have been compromised and signed anything, and
+    # signing the manifest again would give that a valid signature from the
+    # reputational key. Don't sign it, for the same reason as above. This
+    # holds whatever the revocation's reason, and for an expired key too,
+    # since a signature's date is chosen by whoever holds the key and can't
+    # show it was made before the key was retired. So when rotating an
+    # intermediate CI key, revoke it or let it expire only once everything
+    # it signed has been signed here.
+    if (( ${#untrusted[@]} > 0 )); then
+        reject ${output} "${FILE} is signed by revoked or expired key ${untrusted[*]}"
+        continue
+    fi
+
+    # Signed by a subkey of the reputational key that has since been revoked
+    # or has expired: leave it as it is. Signing it again with the current
+    # subkey would vouch for it anew, and manifests signed by retired
+    # reputational subkeys are dealt with outside this job, so the first
+    # MAX_REPORTED are listed for that. A file with anything besides the one
+    # signed message can't be left as it is, since older clients read the
+    # raw file, nor cleaned up by signing it again, so it's rejected.
+    if (( ${#retired[@]} > 0 )); then
+        if ! (( single_block && messages == 1 && signatures == 1 )); then
+            reject ${output} "${FILE} is signed by revoked or expired reputational subkey ${retired[*]} and has content outside its signed message"
+            continue
+        fi
+        left_retired=$((left_retired + 1))
+        if (( left_retired <= MAX_REPORTED )); then
+            echo "Leaving ${FILE} as it is: signed by revoked or expired reputational subkey ${retired[*]}"
+        fi
+        rm ${output}
+        continue
+    fi
+
     # Already signed by the reputational key, so don't sign it again. Leaving
     # it out of /tmp/output/ keeps the upload from rewriting it in the mirror.
-    # Only a file that is one signed message with one good signature by the
-    # subkey counts. Anything else is signed again, from the text gpg
-    # verified, which also drops any text outside the signed message.
+    # Only a file that is one signed message with one good signature by one
+    # of the reputational key's subkeys counts: the current one, or an older
+    # one that is neither revoked nor expired, which clients trust just the
+    # same since the exported public key includes it. Anything else is signed
+    # again, from the text gpg verified, which also drops any text outside
+    # the signed message.
     if (( single_block && messages == 1 && signatures == 1 && good == 1 )) \
-        && [[ ${signers[0]:-} == "${SIGNING_SUBKEY_ID}" ]]; then
+        && [[ ${primaries[0]:-} == "${SIGNING_KEY_ID}" && ${signers[0]:-} != "${SIGNING_KEY_ID}" ]]; then
         already_signed=$((already_signed + 1))
         rm ${output}
     fi
 done
-echo "Checked ${checked} manifests: ${already_signed} already signed by the reputational key, ${rejected} rejected"
+echo "Checked ${checked} manifests: ${already_signed} already signed by the reputational key," \
+    "${left_retired} signed by a revoked or expired reputational subkey and left as they are, ${rejected} rejected"
 
 
 to_sign=$(( $(find $VERIFYDIR -type f | wc -l) ))
@@ -211,8 +278,8 @@ for FILE in $( find $VERIFYDIR -type f ); do
     # preserve path structure within /tmp/verified when writing output to /tmp/output/
     output="${OUTPUTDIR}/${FILE#$VERIFYDIR}"
     mkdir -p $(dirname -- $output)
-    # Sign with the subkey explicitly ("!" disables gpg's own key selection) so
-    # signing always matches the already-signed check above
+    # Sign with the current subkey explicitly ("!" disables gpg's own key
+    # selection), so new signatures never come from an older subkey
     if ! gpg --no-tty --local-user "${SIGNING_SUBKEY_ID}!" --output ${output} --clearsign ${FILE} 2> ${WORKINGDIR}/sign.err; then
         reject ${output} "failed to sign ${FILE}" ${WORKINGDIR}/sign.err
         continue
