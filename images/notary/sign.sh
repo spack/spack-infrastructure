@@ -171,6 +171,14 @@ for FILE in $( find $INPUTDIR -type f ); do
     if single_clearsigned_block ${FILE}; then single_block=1; fi
     rm ${FILE}
 
+    # The primary key is kept offline and never used for signing here, so a
+    # signature from it means the key may be compromised. Don't sign it, so
+    # the copy in the mirror is left as it is, as evidence.
+    if [[ " ${signers[*]} " == *" ${SIGNING_KEY_ID} "* ]]; then
+        reject ${output} "${FILE} is signed by the reputational primary key ${SIGNING_KEY_ID} (not a subkey)"
+        continue
+    fi
+
     # Already signed by the reputational key, so don't sign it again. Leaving
     # it out of /tmp/output/ keeps the upload from rewriting it in the mirror.
     # Only a file that is one signed message with one good signature by the
