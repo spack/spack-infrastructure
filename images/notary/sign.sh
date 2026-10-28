@@ -68,19 +68,28 @@ gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${UO_INT
 #   good        number of good signatures (GOODSIG: valid, and the key is
 #               neither expired nor revoked)
 #   signers     fingerprints of the keys that made the signatures (VALIDSIG)
+#   revoked     fingerprints of those keys that are revoked. gpg --verify
+#               still succeeds for these, and reports EXPKEYSIG rather than
+#               REVKEYSIG for a key that is both expired and revoked, so
+#               KEYREVOKED is checked too.
 parse_status() {
-    messages=0 signatures=0 good=0 signers=()
-    local tag keyword fpr rest
+    messages=0 signatures=0 good=0 signers=() revoked=()
+    local tag keyword fpr rest signer="" is_revoked=0
     while read -r tag keyword fpr rest; do
         [[ $tag == "[GNUPG:]" ]] || continue
         case $keyword in
             PLAINTEXT) messages=$((messages + 1)) ;;
-            NEWSIG) signatures=$((signatures + 1)) ;;
+            NEWSIG)
+                if (( is_revoked )); then revoked+=("${signer:-unknown}"); fi
+                signer="" is_revoked=0
+                signatures=$((signatures + 1)) ;;
             GOODSIG) good=$((good + 1)) ;;
             # [GNUPG:] VALIDSIG <signing key fpr> ...
-            VALIDSIG) signers+=("$fpr") ;;
+            VALIDSIG) signer=$fpr; signers+=("$fpr") ;;
+            REVKEYSIG|KEYREVOKED) is_revoked=1 ;;
         esac
     done < "$1"
+    if (( is_revoked )); then revoked+=("${signer:-unknown}"); fi
 }
 
 
@@ -155,6 +164,15 @@ for FILE in $( find $INPUTDIR -type f ); do
     # anything is signed or uploaded so the manifest is left as evidence.
     if [[ " ${signers[*]} " == *" ${SIGNING_KEY_ID} "* ]]; then
         echo "ERROR: ${FILE} is signed by the reputational primary key ${SIGNING_KEY_ID} (not a subkey)" >&2
+        exit 1
+    fi
+
+    # A revoked key may have been compromised, and signing the manifest again
+    # would give whatever it signed a valid signature from the reputational
+    # key. Stop instead, for the same reason as above. This applies to every
+    # key, including the intermediate CI keys.
+    if (( ${#revoked[@]} > 0 )); then
+        echo "ERROR: ${FILE} is signed by revoked key ${revoked[*]}" >&2
         exit 1
     fi
 
