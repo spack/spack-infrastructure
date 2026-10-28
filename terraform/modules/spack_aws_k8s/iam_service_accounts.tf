@@ -63,6 +63,11 @@ module "cache_indexer" {
         },
         {
           "Effect" : "Allow",
+          "Action" : "s3:ListBucket",
+          "Resource" : module.protected_binary_mirror.bucket_arn,
+        },
+        {
+          "Effect" : "Allow",
           "Action" : ["s3:PutObject", "s3:DeleteObject"],
           "Resource" : "${module.protected_binary_mirror.bucket_arn}/cache_spack_io_index.json",
         }
