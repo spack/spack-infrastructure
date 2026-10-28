@@ -58,15 +58,41 @@ gpg --no-tty --import $SIGNING_PUBLIC_KEY
 gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${UO_INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${SIGNING_KEY_ID}:6:")
 
 
+# Print "<label>: <count>/<total>" every PROGRESS_INTERVAL files and after the
+# last one, so long jobs show how far along they are without a line per file
+PROGRESS_INTERVAL=1000
+progress() {
+    local label=$1 count=$2 total=$3
+    if (( count % PROGRESS_INTERVAL == 0 || count == total )); then
+        echo "${label}: ${count}/${total} ($(( count * 100 / total ))%), ${SECONDS}s elapsed"
+    fi
+}
+
+
 # Check downloaded spec files,  die if not signed/verified
+#
+# Only problems are logged per file: lines for each of the ~100k manifests a
+# job can download would push the job log past the runner's output limit and
+# hide the error that stops it.
+to_verify=$(( $(find $INPUTDIR -type f | wc -l) ))
+echo "Verifying ${to_verify} manifests"
+verified=0
 for FILE in $( find $INPUTDIR -type f ); do
     # preserve path structure within /tmp/input/ when writing output to /tmp/verified/
     output="${VERIFYDIR}/${FILE#$INPUTDIR}"
-    echo "VERIFY: ${FILE} -> ${output}"
     mkdir -p $(dirname -- $output)
-    gpg --verify --no-tty --quiet --output ${output} ${FILE}
+    # gpg prints a few lines per file to stderr even with --quiet, so keep them
+    # and only show them when verification fails
+    if ! gpg --verify --no-tty --quiet --output ${output} ${FILE} 2> ${WORKINGDIR}/verify.err; then
+        cat ${WORKINGDIR}/verify.err >&2
+        echo "ERROR: failed to verify the signature on ${FILE}" >&2
+        exit 1
+    fi
     rm ${FILE}
+    verified=$((verified + 1))
+    progress "Verified" ${verified} ${to_verify}
 done
+echo "Verified ${verified} manifests"
 
 
 # Import the private key for signing
@@ -74,13 +100,20 @@ gpg --no-tty --import <(aws-encryption-cli --decrypt -S -w "key=${KMS_KEY_ARN}" 
 
 
 # Sign Keys with reputational key
+to_sign=$(( $(find $VERIFYDIR -type f | wc -l) ))
+echo "Signing ${to_sign} manifests"
+signed=0
 for FILE in $( find $VERIFYDIR -type f ); do
     # preserve path structure within /tmp/verified when writing output to /tmp/output/
     output="${OUTPUTDIR}/${FILE#$VERIFYDIR}"
-    echo "SIGN: ${FILE} -> ${output}"
     mkdir -p $(dirname -- $output)
-    gpg --no-tty --output ${output} --clearsign ${FILE}
+    if ! gpg --no-tty --output ${output} --clearsign ${FILE}; then
+        echo "ERROR: failed to sign ${FILE}" >&2
+        exit 1
+    fi
     rm ${FILE}
+    signed=$((signed + 1))
+    progress "Signed" ${signed} ${to_sign}
 done
 
 
