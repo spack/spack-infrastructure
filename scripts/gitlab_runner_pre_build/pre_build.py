@@ -40,8 +40,6 @@ def _token_to_sts_request(raw_jwt, decoded_jwt):
                         "Action": "*",
                         # scope the actions down the pr prefix
                         "Resource": [
-                            # TODO: remove first resource after transition is complete
-                            f"{os.environ['PR_BINARY_MIRROR_BUCKET_ARN']}/{os.environ['CI_COMMIT_REF_NAME']}/*",
                             f"{os.environ['PR_BINARY_MIRROR_BUCKET_ARN']}/{os.environ['CI_PROJECT_NAME']}/{os.environ['CI_COMMIT_REF_NAME']}/*",
                         ],
                     },
@@ -53,9 +51,6 @@ def _token_to_sts_request(raw_jwt, decoded_jwt):
                         "Condition": {
                             "StringLike": {
                                 "s3:prefix": [
-                                    # TODO: remove first two prefixes after transition is complete
-                                    f"{os.environ['CI_COMMIT_REF_NAME']}",
-                                    f"{os.environ['CI_COMMIT_REF_NAME']}/*",
                                     f"{os.environ['CI_PROJECT_NAME']}/{os.environ['CI_COMMIT_REF_NAME']}",
                                     f"{os.environ['CI_PROJECT_NAME']}/{os.environ['CI_COMMIT_REF_NAME']}/*",
                                 ]
