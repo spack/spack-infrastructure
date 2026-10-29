@@ -107,6 +107,11 @@ module "protected_publish" {
           "Effect" : "Allow",
           "Action" : "s3:PutObject",
           "Resource" : "${module.protected_binary_mirror.bucket_arn}/*"
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:ListBucket",
+          "Resource" : module.protected_binary_mirror.bucket_arn
         }
       ]
     })
