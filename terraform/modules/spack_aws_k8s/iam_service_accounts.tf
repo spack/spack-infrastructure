@@ -19,7 +19,10 @@ module "build_cache_pruner" {
         {
           "Effect" : "Allow",
           "Action" : "s3:ListBucket",
-          "Resource" : module.pr_binary_mirror.bucket_arn
+          "Resource" : [
+            module.protected_binary_mirror.bucket_arn,
+            module.pr_binary_mirror.bucket_arn,
+          ]
         },
         {
           "Effect" : "Allow",
