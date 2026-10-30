@@ -175,6 +175,9 @@ resource "aws_iam_user" "human" {
 resource "aws_iam_user" "e4s_cache" {
   name = "e4s-cache"
 }
+resource "aws_iam_user" "uo_cache" {
+  name = "uo-cache"
+}
 resource "aws_iam_user_policy" "e4s_cache_read_write" {
   name = "ReadWriteE4SCache"
   user = aws_iam_user.e4s_cache.name
@@ -192,6 +195,25 @@ resource "aws_iam_user_policy" "e4s_cache_read_write" {
         Effect   = "Allow"
         Action   = "s3:*Object"
         Resource = ["arn:aws:s3:::cache.e4s.io/*"]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_user_policy" "uo_cache_list_binary_mirrors" {
+  name = "ListBinaryMirrors"
+  user = aws_iam_user.uo_cache.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ListBinaryMirrorBuckets"
+        Effect = "Allow"
+        Action = ["s3:ListBucket"]
+        Resource = [
+          "arn:aws:s3:::${module.spack_aws_k8s.protected_binary_mirror_bucket_name}",
+          "arn:aws:s3:::${module.spack_aws_k8s.pr_binary_mirror_bucket_name}",
+        ]
       }
     ]
   })
