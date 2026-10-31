@@ -161,7 +161,7 @@ spec:
               read_only = true
 
       # default image
-      image: "busybox:1.32.0"
+      image: "busybox:1.36.1"
       imagePullPolicy: "if-not-present"
 
       locked: true
