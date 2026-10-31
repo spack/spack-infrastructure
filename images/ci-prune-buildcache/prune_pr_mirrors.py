@@ -131,7 +131,7 @@ def list_dirs(s3, bucket: str, prefix: str | None = None) -> Iterable[str]:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--dryrun", action="store_true")
+    parser.add_argument("-n", "--dry-run", dest="dryrun"action="store_true")
     parser.add_argument("-r", "--repo", action="append")
     parser.add_argument("-b", "--bucket", default=PR_BUCKET)
 
