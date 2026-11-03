@@ -19,7 +19,10 @@ module "build_cache_pruner" {
         {
           "Effect" : "Allow",
           "Action" : "s3:ListBucket",
-          "Resource" : module.pr_binary_mirror.bucket_arn
+          "Resource" : [
+            module.protected_binary_mirror.bucket_arn,
+            module.pr_binary_mirror.bucket_arn,
+          ]
         },
         {
           "Effect" : "Allow",
@@ -37,7 +40,7 @@ module "build_cache_pruner" {
             "s3:PutObject",
             "s3:GetObject"
           ],
-          "Resource" : "${module.pr_binary_mirror.logging_bucket_arn}/pruning/*"
+          "Resource" : "${aws_s3_bucket.logs.arn}/pruning/*"
         }
       ]
     })
@@ -60,6 +63,11 @@ module "cache_indexer" {
           "Effect" : "Allow",
           "Action" : "s3:GetObject",
           "Resource" : "${module.protected_binary_mirror.bucket_arn}/*",
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:ListBucket",
+          "Resource" : module.protected_binary_mirror.bucket_arn,
         },
         {
           "Effect" : "Allow",
@@ -99,6 +107,11 @@ module "protected_publish" {
           "Effect" : "Allow",
           "Action" : "s3:PutObject",
           "Resource" : "${module.protected_binary_mirror.bucket_arn}/*"
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : "s3:ListBucket",
+          "Resource" : module.protected_binary_mirror.bucket_arn
         }
       ]
     })

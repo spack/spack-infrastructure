@@ -3,15 +3,20 @@ variable "bucket_name" {
   type        = string
 }
 
-variable "enable_logging" {
-  description = "Whether or not this bucket has logging enabled."
+variable "logging_bucket_name" {
+  description = "The name of the S3 bucket that receives this mirror's logs. Its policy must allow both S3 server access logging and CloudFront log delivery under cloudfront/."
+  type        = string
+}
+
+variable "enable_s3_access_logging" {
+  description = "Whether or not S3 server access logs for this bucket are delivered to the logging bucket."
   type        = bool
 }
 
-variable "logging_bucket_name" {
-  description = "The name of the S3 bucket used for logging."
-  type        = string
-  default     = null
+variable "enable_cloudfront_logging" {
+  description = "Whether or not CloudFront access logs are delivered to the logging bucket, under the cloudfront/ prefix."
+  type        = bool
+  default     = false
 }
 
 variable "cdn_domain" {

@@ -301,7 +301,7 @@ resource "helm_release" "aws_load_balancer_controller" {
       annotations:
         eks.amazonaws.com/role-arn: ${aws_iam_role.aws_load_balancer_controller.arn}
     nodeSelector:
-      spack.io/node-pool: beefy
+      spack.io/node-pool: base
     resources:
       limits:
         cpu: 500m

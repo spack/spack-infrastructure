@@ -1,0 +1,59 @@
+---
+# Provisioner for the gitaly pod. Gitaly is a single stateful pod holding every
+# repository, so it gets its own on-demand node that nothing else schedules on.
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: gitaly
+spec:
+  template:
+    metadata:
+      # Only provision nodes for pods specifying the gitaly node pool
+      labels:
+        spack.io/node-pool: gitaly
+    spec:
+      requirements:
+        - key: "node.kubernetes.io/instance-type"
+          operator: In
+          values: ["m5.4xlarge"]
+
+        # Never use spot; an interruption takes down all of GitLab
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+
+        # Only provision nodes for Linux pods
+        # Needed due to https://github.com/kubernetes-sigs/karpenter/issues/1009
+        - key: "kubernetes.io/os"
+          operator: In
+          values: ["linux"]
+
+      # Keep everything except gitaly (and daemonsets) off this node
+      taints:
+        - key: spack.io/gitaly
+          value: "true"
+          effect: NoSchedule
+
+      # Expiration ignores disruption budgets, so it would restart gitaly at an
+      # arbitrary time. AMI updates still roll out through drift (below).
+      expireAfter: Never
+
+      nodeClassRef:
+        kind: EC2NodeClass
+        name: default
+        group: karpenter.k8s.aws
+
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
+    budgets:
+      # Only replace a drifted node between 4AM and 8AM UTC
+      # (apply this in reverse by disallowing it from 8AM to 4AM UTC).
+      # Replacing the node restarts gitaly, which takes GitLab down briefly.
+      - schedule: "0 8 * * *"
+        duration: 20h
+        nodes: "0"
+        reasons: ["Drifted"]
+
+  limits:
+    cpu: 16

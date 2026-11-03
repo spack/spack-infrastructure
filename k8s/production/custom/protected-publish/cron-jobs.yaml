@@ -12,12 +12,16 @@ spec:
       activeDeadlineSeconds: 14400 # terminate any running job after 4 hours
       backoffLimit: 0
       template:
+        metadata:
+          annotations:
+            # This is a long-running job, so we don't want to disrupt it
+            karpenter.sh/do-not-disrupt: "true"
         spec:
           serviceAccountName: protected-publish
           restartPolicy: Never
           containers:
           - name: protected-publish
-            image: ghcr.io/spack/protected-publish:0.0.9
+            image: ghcr.io/spack/protected-publish:0.0.13
             imagePullPolicy: IfNotPresent
             resources:
               requests:

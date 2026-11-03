@@ -1,10 +1,12 @@
 FROM python:3.11-slim
 
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
+
 WORKDIR /scripts/
 
-COPY requirements.txt ./
+COPY pyproject.toml uv.lock ./
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
+RUN uv sync --frozen --no-dev --no-cache
 COPY backup.py ./
-RUN pip install --upgrade uv
-RUN uv pip install --system --no-cache-dir -r requirements.txt
 
 ENTRYPOINT [ "python", "./backup.py"]

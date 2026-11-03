@@ -22,7 +22,7 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: 91.4.0 # prometheus-operator@v0.94.0, grafana@13.2.4
+      version: 92.3.0 # prometheus-operator@v0.94.1, grafana@13.5.0
       sourceRef:
         kind: HelmRepository
         name: kube-prometheus-stack
@@ -113,10 +113,18 @@ spec:
               resources:
                 requests:
                   storage: 200Gi
+        # Memory scales with the number of active series, which tracks CI load.
+        # 30-day peak was ~26.6G (8.9M head series); quiet periods use ~3G.
         resources:
           requests:
-            cpu: 2000m
-            memory: 50G
+            cpu: 1500m
+            memory: 32G
+          limits:
+            memory: 40G
+        podMetadata:
+          annotations:
+            # Restarting Prometheus means a WAL replay and a gap in metrics
+            karpenter.sh/do-not-disrupt: "true"
 
         # These three values allow prometheus to pick up ServiceMonitors from *any* namespace,
         # not just the "monitoring" namespace.
@@ -132,7 +140,10 @@ spec:
             static_configs:
               - targets: ["gitlab.spack.io"]
         nodeSelector:
-          spack.io/node-pool: beefy
+          spack.io/node-pool: base
+          # Single replica; an interruption leaves a gap in metrics while the
+          # 200Gi volume re-attaches
+          karpenter.sh/capacity-type: on-demand
 
     prometheusOperator:
       resources:

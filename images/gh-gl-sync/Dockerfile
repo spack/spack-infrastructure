@@ -1,9 +1,11 @@
 FROM python:3.10
 
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
+
 WORKDIR /scripts/
-COPY requirements.txt ./
-RUN pip install --upgrade uv
-RUN uv pip install --system --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
+RUN uv sync --frozen --no-dev --no-cache
 COPY SpackCIBridge.py ./
 
 ENTRYPOINT [ "python", "./SpackCIBridge.py"]

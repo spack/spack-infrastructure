@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+      with:
+        version: "0.13.5"
     - name: dependencies
       run: |
         sudo apt-get update
@@ -17,9 +20,9 @@ jobs:
           build-essential                                                      \
           cmake                                                                \
           git                                                                  \
-          openssh-client                                                       \
-          python3-pip
-        sudo pip3 install -r images/gh-gl-sync/requirements.txt
+          openssh-client
+        uv sync --project images/gh-gl-sync --frozen
+        echo "$PWD/images/gh-gl-sync/.venv/bin" >> $GITHUB_PATH
     - name: test
       run: |
         ctest -VV -S .github/spack_ci_bridge.cmake

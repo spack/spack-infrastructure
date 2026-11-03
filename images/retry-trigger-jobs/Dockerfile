@@ -6,12 +6,14 @@ RUN apt-get update && apt-get install -y \
     apt-get autoremove --purge -y && \
     apt-get clean
 
-COPY requirements.txt /srcs/requirements.txt
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
 
-RUN pip install --upgrade uv
-RUN uv pip install --system --no-cache-dir -r /srcs/requirements.txt
+WORKDIR /srcs
+COPY pyproject.toml uv.lock ./
+
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
+RUN uv sync --frozen --no-dev --no-cache
 
 COPY retry_trigger_jobs.py /srcs/retry_trigger_jobs.py
 
-WORKDIR /srcs
 ENTRYPOINT ["python", "retry_trigger_jobs.py"]

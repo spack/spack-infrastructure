@@ -1,7 +1,62 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "analytics"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "Kitware, Inc.", email = "kitware@kitware.com" }]
+keywords = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python",
+]
+requires-python = ">=3.13"
+dependencies = [
+    "cachetools",
+    "celery[redis]",
+    "dj-database-url",
+    "dj-email-url",
+    "django-click",
+    "django-configurations[database,email]",
+    "django-cors-headers",
+    "django-extensions",
+    "django-girder-utils",
+    "django-ninja",
+    "django-s3-file-field[minio]",
+    "django~=5.1",
+    "gunicorn",
+    "kubernetes",
+    "sentry-sdk[django,pure_eval]",
+    "rich",
+    "psycopg2-binary",
+    "python-gitlab>=5.2.0",
+    "pyyaml",
+    "requests",
+    "tqdm",
+    "whitenoise[brotli]",
+]
+
+[project.optional-dependencies]
+dev = ["types-cachetools", "django-debug-toolbar", "ipython", "tox"]
+
+[tool.setuptools.packages.find]
+include = ["analytics*"]
+
 [tool.black]
 line-length = 100
 target-version = ["py313"]
-exclude='\.eggs|\.git|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist'
+exclude = '\.eggs|\.git|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist'
 
 [tool.isort]
 profile = "black"
