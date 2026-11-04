@@ -23,6 +23,12 @@
   // Keep the Renovate branches from colliding with the repo's own naming.
   branchPrefix: "renovate/",
 
+  // The "Bump Custom Image Versions" workflow commits image tag bumps onto
+  // Renovate PRs. Without this, Renovate would treat those PRs as edited and
+  // stop rebasing them; with it, a rebase drops the bump and the workflow
+  // re-applies it.
+  gitIgnoredAuthors: ["41898282+github-actions[bot]@users.noreply.github.com"],
+
   lockFileMaintenance: {
     enabled: true,
     schedule: ["before 9am on the first day of the month"],

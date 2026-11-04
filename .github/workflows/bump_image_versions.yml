@@ -1,0 +1,47 @@
+name: Bump Custom Image Versions
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - analytics/**
+      - images/**
+
+concurrency:
+  group: bump-image-versions-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  bump:
+    # Only Renovate PRs. Renovate edits image dependencies without knowing their
+    # tags live in .github/images.yml, so do that part for it.
+    if: github.event.pull_request.user.login == 'renovate[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          # Commits pushed with GITHUB_TOKEN don't trigger other workflows, so
+          # the image checks and builds wouldn't re-run on the bump commit.
+          # Push with a PAT instead.
+          token: ${{ secrets.IMAGE_BUMP_TOKEN }}
+
+      - name: Bump image versions
+        run: ./scripts/bump_image_versions.sh origin/main
+
+      - name: Commit and push
+        run: |
+          if git diff --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+
+          # Renovate's gitIgnoredAuthors includes this author, so Renovate keeps
+          # rebasing the PR rather than treating it as edited by a human.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Bump custom image versions"
+          git push
