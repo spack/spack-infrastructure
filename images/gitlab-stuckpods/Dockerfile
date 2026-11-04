@@ -4,9 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -yqq update \
  && apt-get -yqq install --no-install-recommends \
-    git \
     locales \
-    openssh-client \
     curl \
     jq \
  && apt-get clean \
