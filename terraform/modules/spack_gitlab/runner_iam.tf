@@ -90,7 +90,7 @@ data "aws_iam_policy_document" "gitlab_runner" {
 
   statement {
     effect  = "Allow"
-    actions = ["s3:PutObject", "s3:DeleteObject"]
+    actions = ["s3:PutObject", "s3:DeleteObject", "s3:List*"]
 
     resources = [
       each.key == "protected_binary_mirror" ? "${data.aws_s3_bucket.protected_mirror.arn}/*" : "${data.aws_s3_bucket.pr_mirror.arn}/*",
