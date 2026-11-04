@@ -5,8 +5,13 @@ WORKDIR /app/
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
-    jq \
     && rm -rf /var/lib/apt/lists/*
+
+# Install the AWS CLI (used by entrypoint.sh). v2 is self-contained, so unlike the
+# awscli PyPI package it doesn't pin the boto3/botocore versions used by the scripts.
+COPY --from=amazon/aws-cli:2.39.3 /usr/local/aws-cli /usr/local/aws-cli
+RUN ln -s /usr/local/aws-cli/v2/current/bin/aws /usr/local/bin/aws
+ENV AWS_PAGER=""
 
 # Install dependencies into the image's system prefix rather than a project .venv
 ENV UV_PROJECT_ENVIRONMENT=/usr/local
