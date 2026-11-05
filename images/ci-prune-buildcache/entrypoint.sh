@@ -49,6 +49,8 @@ fi
 
 # Calculate date range
 now=$(date --iso-8601)
+# update_views.py only carries over view entries CI pushed after this point
+run_started=$(date +%s)
 since_date=$(date --iso-8601 -d "${since_days} days ago")
 echo "Pruning binaries older than: ${since_date}"
 
@@ -63,34 +65,37 @@ python3 ${SCRIPT_DIR}/fetch_keeplists.py \
   --snapshots-since "2 months ago" # Keep safely below the 90-day GitLab artifact expiry (default_artifacts_expire_in)
 echo "Keep lists created with $(wc -l < ${keeplist_file}) total hashes"
 
-update_view_index() {
-  # Pruning a stack with views is effectively generating a new index for the view.
-  # Use the concatenated environment created by fetch_keeplists.py to update the view index.
-  local env_dir=$1
-  local stack
-  stack=$(basename "${env_dir}")
-  echo "Updating view index for $stack..."
-  maybe spack buildcache update-index --force --name "${stack}" "${buildcache_url}" "${env_dir}"
-  echo "Updating view index for $stack... done!"
-  echo ""
-}
-
-# Regenerate each stack's view index before pruning, so that no view index still
-# references specs that are about to be deleted from the mirror.
-for env_dir in stacks/*/; do
-  [[ -d "$env_dir" ]] || continue
-  update_view_index "${env_dir%/}"
-done
-
-echo "Start pruning process for buildcache"
-# Store keeplist in S3 for potential future debugging
-aws s3 cp ${keeplist_file} s3://spack-logs/pruning/${now}/${keeplist_file}
-
 # Add the top-level mirror
 mirror="develop"
 echo "Adding mirror ${mirror}..."
 spack mirror add "${mirror}" "${buildcache_url}"
 echo "Adding mirror ${mirror}... done!"
+
+# Regenerate each stack's view index before pruning, so that no view index still
+# references specs that are about to be deleted from the mirror. update_views.py
+# lists the mirror once and reuses that listing for every view.
+stack_files=()
+for stack_file in stacks/*.txt; do
+  [[ -f "$stack_file" ]] || continue
+  stack_files+=("$stack_file")
+done
+
+# No stacks means no successful generate jobs in the window; pruning with that
+# keeplist would delete nearly everything, so stop here instead.
+if (( ${#stack_files[@]} == 0 )); then
+  echo "No stacks found in the last ${since_days} days; aborting to avoid over-pruning" >&2
+  exit 1
+fi
+
+echo "Updating view indices for ${#stack_files[@]} stacks..."
+spack --debug python update_views.py --mirror "${mirror}" --keeplist "${keeplist_file}" --run-started "${run_started}" \
+  "${dry_run_args[@]}" "${stack_files[@]}"
+echo "Updating view indices for ${#stack_files[@]} stacks... done!"
+echo ""
+
+echo "Start pruning process for buildcache"
+# Store keeplist in S3 for potential future debugging
+aws s3 cp ${keeplist_file} s3://spack-logs/pruning/${now}/${keeplist_file}
 
 # Run pruning with keeplist (prune.py handles --dry-run itself)
 echo "Running buildcache prune for ${mirror}..."

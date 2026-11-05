@@ -6,13 +6,14 @@ import github
 import gitlab
 import json
 import os
+import shutil
 import sys
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from gitlab.v4.objects import Project, ProjectPipeline
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
 try:
     import sentry_sdk
@@ -206,32 +207,36 @@ def main() -> int:
     # Find every successful generate job, then fetch their lockfiles. Each step uses a
     # single pool, so at most --max-workers requests go to GitLab at a time.
     all_pipelines = pipelines + snapshot_pipelines
-    generate_jobs = []  # (pipeline id, job id, job name, cat_env)
+    # in_views: whether the pipeline's specs go into the stack view indices (only
+    # rolling-window pipelines; snapshot-only pipelines just add to the keep list)
+    generate_jobs = []  # (pipeline id, job id, job name, in_views)
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
         future_to_pipeline = {
-            executor.submit(list_generate_jobs, pipeline): (pipeline, cat_env)
-            for pipeline, cat_env in all_pipelines
+            executor.submit(list_generate_jobs, pipeline): (pipeline, in_views)
+            for pipeline, in_views in all_pipelines
         }
         for future in as_completed(future_to_pipeline):
-            pipeline, cat_env = future_to_pipeline[future]
+            pipeline, in_views = future_to_pipeline[future]
             jobs = future.result()
             print(f"Pipeline {pipeline.id}: {len(jobs)} generate jobs")
-            generate_jobs.extend((pipeline.id, job_id, job_name, cat_env) for job_id, job_name in jobs)
+            generate_jobs.extend((pipeline.id, job_id, job_name, in_views) for job_id, job_name in jobs)
 
     print(f"Fetching lockfiles for {len(generate_jobs)} generate jobs...")
     all_keep_hashes = set()
     hash_counts: Dict[int, int] = {pipeline.id: 0 for pipeline, _ in all_pipelines}
-    combined_stack_envs: dict[str, dict] = {}
+    # Each stack's hashes from the rolling window, for its view index. Only the hashes
+    # are kept, so lockfiles in different formats never need to be merged.
+    stack_hashes: Dict[str, Set[str]] = {}
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
         future_to_job = {
             executor.submit(
                 fetch_and_cache_job, project, job_id, job_name, output_dir / ".tmp"
-            ): (pipeline_id, cat_env)
-            for pipeline_id, job_id, job_name, cat_env in generate_jobs
+            ): (pipeline_id, in_views)
+            for pipeline_id, job_id, job_name, in_views in generate_jobs
         }
 
         for future in as_completed(future_to_job):
-            pipeline_id, cat_env = future_to_job[future]
+            pipeline_id, in_views = future_to_job[future]
             stack_name, env = future.result()
             if not env or not env["concrete_specs"]:
                 continue
@@ -239,25 +244,8 @@ def main() -> int:
             hash_counts[pipeline_id] += len(env["concrete_specs"])
             all_keep_hashes.update(env["concrete_specs"])
 
-            if not cat_env:
-                continue
-
-            cur_env = combined_stack_envs.get(stack_name)
-            if cur_env:
-                # Update concrete specs
-                cur_env["concrete_specs"].update(
-                    env["concrete_specs"]
-                )
-                # Add new roots
-                all_roots = set(r["hash"] for r in cur_env["roots"])
-                roots = [r for r in env["roots"] if r["hash"] not in all_roots]
-                cur_env["roots"].extend(
-                    roots
-                )
-            else:
-                cur_env = env
-
-            combined_stack_envs[stack_name] = cur_env
+            if in_views:
+                stack_hashes.setdefault(stack_name, set()).update(env["concrete_specs"])
 
     for sha, ids in snapshot_pipeline_ids.items():
         if not any(hash_counts.get(i) for i in ids):
@@ -267,14 +255,16 @@ def main() -> int:
                 "aborting to avoid pruning its specs"
             )
 
-    for stack_name in combined_stack_envs:
-        # Concatenate all of the environments for pipelines into a single common environment
-        all_env_dir = (output_dir / f"stacks/{stack_name}/").resolve()
-        all_env_dir.mkdir(parents=True, exist_ok=True)
-
-        (all_env_dir / "spack.yaml").write_text("spack: {}")
-        with (all_env_dir / "spack.lock").open("w") as fd:
-            json.dump(combined_stack_envs[stack_name], fd)
+    # Start from an empty directory: entrypoint.sh treats every file in it as an
+    # active stack, so a file left by an earlier run would keep a retired stack alive
+    stacks_dir = output_dir / "stacks"
+    shutil.rmtree(stacks_dir, ignore_errors=True)
+    stacks_dir.mkdir(parents=True)
+    for stack_name, hashes in stack_hashes.items():
+        with (stacks_dir / f"{stack_name}.txt").open("w") as fd:
+            for hash_val in sorted(hashes):
+                fd.write(f"{hash_val}\n")
+    print(f"Hashes for {len(stack_hashes)} stack views written to {stacks_dir.as_posix()}")
 
     print(
         f"\nProcessed {len(all_pipelines)} pipelines",
