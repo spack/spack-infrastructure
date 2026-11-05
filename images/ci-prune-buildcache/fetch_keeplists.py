@@ -9,7 +9,7 @@ import os
 import sys
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from gitlab.v4.objects import Project, ProjectPipeline
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
@@ -27,15 +27,17 @@ except ImportError:
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 
-def fetch_and_cache_job(project: Project, job_id: int, job_name: str, tmpdir: Path) -> Tuple[str, List[str]]:
+def fetch_and_cache_job(
+    project: Project, job_id: int, job_name: str, tmpdir: Path
+) -> Tuple[str, List[str], Path | None]:
     """Fetch hashes from a generate job's spack.lock artifact."""
-    job = project.jobs.get(job_id, lazy=True)
     stack_name = job_name.replace("-generate", "")
-    stack_env_dir = (tmpdir / f"{stack_name}/{job.id}/").resolve()
-
     if not stack_name:
         print(f"Skipping: {job_id}: {job_name}")
         return "", [], None
+
+    job = project.jobs.get(job_id, lazy=True)
+    stack_env_dir = (tmpdir / f"{stack_name}/{job.id}/").resolve()
 
     if not (stack_env_dir / "spack.lock").exists():
         artifact_path = f"jobs_scratch_dir/{stack_name}/concrete_environment/spack.lock"
@@ -59,7 +61,7 @@ def fetch_and_cache_job(project: Project, job_id: int, job_name: str, tmpdir: Pa
 
 def process_pipeline(
     project: Project, pipeline: ProjectPipeline, output_dir: Path, max_workers: int = 10, cat_env: bool = True
-) -> set[str]:
+) -> Tuple[Set[str], Dict[str, dict]]:
     """Process all generate jobs in a pipeline in parallel."""
     print(
         f"\nProcessing pipeline {pipeline.id}...",
@@ -73,8 +75,8 @@ def process_pipeline(
 
     # Fetch artifacts in parallel
     keep_hashes = set()
+    stack_envs: dict[str, dict] = {}
     if generate_jobs:
-        stack_envs: dict[str, dict] = {}
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_job = {
                 executor.submit(fetch_and_cache_job, project, job_id, job_name, output_dir / ".tmp"): (
@@ -171,8 +173,8 @@ def main() -> int:
         )
     )]
 
+    # Collect snapshot pipelines (these are not included in the rolling window)
     snapshot_shas = []
-    # TODO: Collect snapshot pipelines (these are not included in the rolling window)
     gh = github.Github(auth=github.Auth.Token(GITHUB_TOKEN))
     gh_project = gh.get_repo(args.project)
     refs = gh_project.get_git_matching_refs("snapshots")
@@ -182,7 +184,7 @@ def main() -> int:
         date = parts[-1].split("-", 1)[-1]
         if date == "latest":
             continue
-        snapshot_date = datetime.strptime(date, "%Y-%M-%d")
+        snapshot_date = datetime.strptime(date, "%Y-%m-%d")
         snapshot_date = snapshot_date.replace(tzinfo = timezone.utc)
         if snapshot_date >= snapshots_since:
             snapshot_shas.append(ref.object.sha)
@@ -196,7 +198,7 @@ def main() -> int:
     ) if p.sha in snapshot_shas]
 
     print(
-        f"Found {len(pipelines)} pipelines to process",
+        f"Found {len(pipelines)} pipelines and {len(snapshot_pipelines)} snapshot pipelines to process",
     )
 
     # Process pipelines in parallel
@@ -241,7 +243,7 @@ def main() -> int:
             json.dump(combined_stack_envs[stack_name], fd)
 
     print(
-        f"\nProcessed {len(pipelines)} pipelines",
+        f"\nProcessed {len(pipelines) + len(snapshot_pipelines)} pipelines",
     )
     print(
         f"Total unique hashes to keep: {len(all_keep_hashes)}",
@@ -249,7 +251,8 @@ def main() -> int:
 
     keep_list_f = output_dir / "keeplist.txt"
     with keep_list_f.open("w") as fd:
-        fd.write("\n".join(sorted(all_keep_hashes)))
+        for hash_val in sorted(all_keep_hashes):
+            fd.write(f"{hash_val}\n")
     print(f"Keep list written to {keep_list_f.as_posix()}")
 
     return 0

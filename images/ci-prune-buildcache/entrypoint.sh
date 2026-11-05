@@ -60,37 +60,52 @@ python3 ${SCRIPT_DIR}/fetch_keeplists.py \
   --project "${gitlab_project}" \
   --ref "${ref}" \
   --pipelines-since "${since_days} days ago" \
-  --snapshots-since "2 months ago" # This is the max age of artifacts, make this shorted if needed
+  --snapshots-since "2 months ago" # Keep safely below the 90-day GitLab artifact expiry (default_artifacts_expire_in)
 echo "Keep lists created with $(wc -l < ${keeplist_file}) total hashes"
 
-prune_stack() {
+update_view_index() {
   # Pruning a stack with views is effectively generating a new index for the view.
-  # Use the concatenated environment created by fetch_keeplists.txt to update the view index.
-  env_dir=$1
-  stack=$(basename ${env_dir})
-  # Update the mirror index (nothing was deleted on a dry run, so leave the index alone)
-  echo "Updating mirror index for $stack..."
-  maybe spack buildcache update-index --force --view "${stack}" "${buildcache_url}" "${env_dir}"
-  echo "Updating mirror index for $stack... done!"
+  # Use the concatenated environment created by fetch_keeplists.py to update the view index.
+  local env_dir=$1
+  local stack
+  stack=$(basename "${env_dir}")
+  echo "Updating view index for $stack..."
+  maybe spack buildcache update-index --force --name "${stack}" "${buildcache_url}" "${env_dir}"
+  echo "Updating view index for $stack... done!"
   echo ""
 }
 
-# Prune each stack-specific buildcache.
-for env_dir in stacks/*; do
-  prune_stack "$env_dir"
+# Regenerate each stack's view index before pruning, so that no view index still
+# references specs that are about to be deleted from the mirror.
+for env_dir in stacks/*/; do
+  [[ -d "$env_dir" ]] || continue
+  update_view_index "${env_dir%/}"
 done
 
 echo "Start pruning process for buildcache"
 # Store keeplist in S3 for potential future debugging
 aws s3 cp ${keeplist_file} s3://spack-logs/pruning/${now}/${keeplist_file}
-# Run pruning with keeplist
-echo "Running buildcache prune for $stack..."
-maybe spack --debug python prune.py --mirror "${stack}" --keeplist "${keeplist_file}" "${dry_run_args[@]}"
-echo "Running buildcache prune for $stack... done!"
+
+# Add the top-level mirror
+mirror="develop"
+echo "Adding mirror ${mirror}..."
+spack mirror add "${mirror}" "${buildcache_url}"
+echo "Adding mirror ${mirror}... done!"
+
+# Run pruning with keeplist (prune.py handles --dry-run itself)
+echo "Running buildcache prune for ${mirror}..."
+spack --debug python prune.py --mirror "${mirror}" --keeplist "${keeplist_file}" "${dry_run_args[@]}"
+echo "Running buildcache prune for ${mirror}... done!"
+
+# Update the mirror index (nothing was deleted on a dry run, so leave the index alone)
+echo "Updating mirror index for ${mirror}..."
+maybe spack buildcache update-index "${mirror}"
+echo "Updating mirror index for ${mirror}... done!"
+echo ""
 
 echo "Pruning PR Mirrors"
 
-maybe python3 ${SCRIPT_DIR}/prune_pr_mirrors.py "${dry_run_args[@]}" \
+python3 ${SCRIPT_DIR}/prune_pr_mirrors.py "${dry_run_args[@]}" \
   -r "spack/spack" \
   -r "spack/spack-packages" \
   -b "${PR_BUILDCACHE_BUCKET}"
