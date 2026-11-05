@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from gitlab.v4.objects import Project, ProjectPipeline
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 
 try:
     import sentry_sdk
@@ -27,14 +27,46 @@ except ImportError:
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 
+class SnapshotError(Exception):
+    """An unexpired snapshot's specs could not be determined."""
+
+
+def past_date(value: str) -> datetime:
+    """Parse a --*-since value (e.g. '14 days ago' or '2026-10-01') as a UTC datetime.
+
+    Dates in the future are rejected: a future --snapshots-since would treat every
+    snapshot as expired and let their specs be pruned.
+    """
+    parsed = dateparser.parse(
+        value, settings={"TIMEZONE": "UTC", "RETURN_AS_TIMEZONE_AWARE": True}
+    )
+    if parsed is None:
+        raise argparse.ArgumentTypeError(f"cannot parse {value!r} as a date")
+    if parsed > datetime.now(timezone.utc):
+        raise argparse.ArgumentTypeError(f"{value!r} ({parsed.isoformat()}) is in the future")
+    return parsed
+
+
+def list_generate_jobs(pipeline: ProjectPipeline) -> List[Tuple[int, str]]:
+    """Return (job id, job name) for each successful generate job in a pipeline."""
+    return [
+        (job.id, job.name)
+        for job in pipeline.jobs.list(iterator=True, scope="success")
+        if job.stage == "generate"
+    ]
+
+
 def fetch_and_cache_job(
     project: Project, job_id: int, job_name: str, tmpdir: Path
-) -> Tuple[str, List[str], Path | None]:
-    """Fetch hashes from a generate job's spack.lock artifact."""
+) -> Tuple[str, dict | None]:
+    """Fetch a generate job's spack.lock artifact, or reuse the copy cached in tmpdir.
+
+    Returns the stack name and the parsed lockfile (None if the job has no stack name).
+    """
     stack_name = job_name.replace("-generate", "")
     if not stack_name:
         print(f"Skipping: {job_id}: {job_name}")
-        return "", [], None
+        return "", None
 
     job = project.jobs.get(job_id, lazy=True)
     stack_env_dir = (tmpdir / f"{stack_name}/{job.id}/").resolve()
@@ -42,66 +74,15 @@ def fetch_and_cache_job(
     if not (stack_env_dir / "spack.lock").exists():
         artifact_path = f"jobs_scratch_dir/{stack_name}/concrete_environment/spack.lock"
         artifact = job.artifact(artifact_path)
-        # Save the concrete lockfile to a env_dir
-        # This will be used later to create a new index for the stack
-        # Make parents as needed
-        # Each stack should be unique for a job
-        stack_env_dir.mkdir(parents=True, exist_ok=False)
+        # Cache the concrete lockfile; each job has its own directory
+        stack_env_dir.mkdir(parents=True, exist_ok=True)
         (stack_env_dir / "spack.lock").write_bytes(artifact)
         lock = json.loads(artifact)
     else:
         with (stack_env_dir / "spack.lock").open("r") as fd:
             lock = json.load(fd)
 
-    # Always write this, doesn't hurt and avoid odd errors
-    (stack_env_dir / "spack.yaml").write_text("spack: {}")
-    hashes = list(lock["concrete_specs"].keys())
-    return stack_name, hashes, stack_env_dir
-
-
-def process_pipeline(
-    project: Project, pipeline: ProjectPipeline, output_dir: Path, max_workers: int = 10, cat_env: bool = True
-) -> Tuple[Set[str], Dict[str, dict]]:
-    """Process all generate jobs in a pipeline in parallel."""
-    print(
-        f"\nProcessing pipeline {pipeline.id}...",
-    )
-
-    # Collect all generate jobs
-    generate_jobs: List[Tuple[int, str]] = []
-    for job in pipeline.jobs.list(iterator=True, scope="success"):
-        if job.stage == "generate":
-            generate_jobs.append((job.id, job.name))
-
-    # Fetch artifacts in parallel
-    keep_hashes = set()
-    stack_envs: dict[str, dict] = {}
-    if generate_jobs:
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_job = {
-                executor.submit(fetch_and_cache_job, project, job_id, job_name, output_dir / ".tmp"): (
-                    job_id,
-                    job_name,
-                )
-                for job_id, job_name in generate_jobs
-            }
-
-            for future in as_completed(future_to_job):
-                stack_name, hashes, env_dir = future.result()
-                if not hashes:
-                    continue
-
-                keep_hashes.update(hashes)
-
-                if not cat_env:
-                    continue
-
-                with (env_dir / "spack.lock").open("r") as fd:
-                    env = json.load(fd)
-
-                stack_envs[stack_name] = env
-
-    return keep_hashes, stack_envs
+    return stack_name, lock
 
 
 def main() -> int:
@@ -125,19 +106,23 @@ def main() -> int:
     )
     parser.add_argument(
         "--pipelines-since",
+        type=past_date,
         default="14 days ago",
-        help="Number of days to look back for pipelines",
+        help="How far back to look for pipelines, as a dateparser phrase or date "
+        "(e.g. '14 days ago', '2026-10-01'; default: %(default)s)",
     )
     parser.add_argument(
         "--snapshots-since",
-        default="1 month ago",
-        help="Number of days to look back for pipelines",
+        type=past_date,
+        default="2 months ago",
+        help="How far back to look for snapshot pipelines, as a dateparser phrase or date "
+        "(e.g. '2 months ago'; default: %(default)s)",
     )
     parser.add_argument(
         "--max-workers",
         type=int,
-        default=os.cpu_count(),
-        help="Maximum number of parallel workers for fetching artifacts",
+        default=8,
+        help="Maximum number of concurrent GitLab requests (default: %(default)s)",
     )
     parser.add_argument(
         "-o",
@@ -159,8 +144,8 @@ def main() -> int:
 
     # Calculate date range
     now = datetime.now(timezone.utc)
-    pipelines_since = dateparser.parse(args.pipelines_since + " UTC")
-    snapshots_since = dateparser.parse(args.snapshots_since + " UTC")
+    pipelines_since = args.pipelines_since
+    snapshots_since = args.snapshots_since
 
     print(
         f"Fetching pipelines from {args.ref} between {pipelines_since.isoformat()} and {now.isoformat()}...",
@@ -173,65 +158,114 @@ def main() -> int:
         )
     )]
 
-    # Collect snapshot pipelines (these are not included in the rolling window)
-    snapshot_shas = []
-    gh = github.Github(auth=github.Auth.Token(GITHUB_TOKEN))
+    # Collect snapshots that have not yet expired. Each snapshot ref points at the commit
+    # of a successful develop pipeline (see images/snapshot-release-tags), which may have
+    # finished days before the snapshot was taken, so look pipelines up by sha.
+    # Snapshot views are named after their ref, e.g. snapshots/develop-YYYY-MM-DD.
+    snapshot_views: Dict[str, List[str]] = {}  # sha -> view names
+    if GITHUB_TOKEN:
+        gh = github.Github(auth=github.Auth.Token(GITHUB_TOKEN))
+    else:
+        # Snapshot refs are public; anonymous access only has a lower rate limit
+        print("GITHUB_TOKEN is not set; reading snapshot refs from GitHub anonymously")
+        gh = github.Github()
     gh_project = gh.get_repo(args.project)
     refs = gh_project.get_git_matching_refs("snapshots")
     for ref in refs:
-        # Snapshot format is snapshots/develop-YYYY-MM-DD
-        parts = ref.ref.split("/")
-        date = parts[-1].split("-", 1)[-1]
+        view = ref.ref.removeprefix("refs/")
+        date = view.split("/")[-1].split("-", 1)[-1]
         if date == "latest":
+            # develop-latest always points at the newest dated snapshot
             continue
         snapshot_date = datetime.strptime(date, "%Y-%m-%d")
         snapshot_date = snapshot_date.replace(tzinfo = timezone.utc)
         if snapshot_date >= snapshots_since:
-            snapshot_shas.append(ref.object.sha)
+            snapshot_views.setdefault(ref.object.sha, []).append(view)
 
-    # Grab pipelines that are older than the window and newer than the snapshot cut-off
-    # All of the snapshot hashes in the window will arleady be accounted for.
-    snapshot_pipelines = [(p, False) for p in list(
-        project.pipelines.list(
-            iterator=True, updated_before=pipelines_since, updated_after=snapshots_since, ref=args.ref
-        )
-    ) if p.sha in snapshot_shas]
+    window_ids = {p.id for p, _ in pipelines}
+    snapshot_pipeline_ids: Dict[str, List[int]] = {}  # sha -> pipeline ids
+    snapshot_pipelines = []
+    for sha, views in snapshot_views.items():
+        found = list(project.pipelines.list(iterator=True, sha=sha, ref=args.ref))
+        if not found:
+            # Without a pipeline nothing protects this snapshot's specs, so stop here
+            # rather than over-prune.
+            raise SnapshotError(
+                f"No {args.ref} pipeline found for snapshot {', '.join(views)} (sha {sha}); "
+                "aborting to avoid pruning its specs"
+            )
+        snapshot_pipeline_ids[sha] = [p.id for p in found]
+        # Pipelines already in the rolling window are processed there
+        snapshot_pipelines.extend((p, False) for p in found if p.id not in window_ids)
 
     print(
-        f"Found {len(pipelines)} pipelines and {len(snapshot_pipelines)} snapshot pipelines to process",
+        f"Found {len(pipelines)} pipelines and {len(snapshot_pipelines)} additional "
+        f"snapshot pipelines to process ({len(snapshot_views)} unexpired snapshots)",
     )
 
-    # Process pipelines in parallel
-    all_keep_hashes = set()
-    combined_stack_envs: dict[str, dict] = {}
+    # Find every successful generate job, then fetch their lockfiles. Each step uses a
+    # single pool, so at most --max-workers requests go to GitLab at a time.
+    all_pipelines = pipelines + snapshot_pipelines
+    generate_jobs = []  # (pipeline id, job id, job name, cat_env)
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
         future_to_pipeline = {
+            executor.submit(list_generate_jobs, pipeline): (pipeline, cat_env)
+            for pipeline, cat_env in all_pipelines
+        }
+        for future in as_completed(future_to_pipeline):
+            pipeline, cat_env = future_to_pipeline[future]
+            jobs = future.result()
+            print(f"Pipeline {pipeline.id}: {len(jobs)} generate jobs")
+            generate_jobs.extend((pipeline.id, job_id, job_name, cat_env) for job_id, job_name in jobs)
+
+    print(f"Fetching lockfiles for {len(generate_jobs)} generate jobs...")
+    all_keep_hashes = set()
+    hash_counts: Dict[int, int] = {pipeline.id: 0 for pipeline, _ in all_pipelines}
+    combined_stack_envs: dict[str, dict] = {}
+    with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
+        future_to_job = {
             executor.submit(
-                process_pipeline, project, pipeline, output_dir, args.max_workers, cat_stack
-            ): pipeline.id
-            for pipeline, cat_stack in pipelines + snapshot_pipelines
+                fetch_and_cache_job, project, job_id, job_name, output_dir / ".tmp"
+            ): (pipeline_id, cat_env)
+            for pipeline_id, job_id, job_name, cat_env in generate_jobs
         }
 
-        for future in as_completed(future_to_pipeline):
-            pipeline_hashes, stack_envs  = future.result()
-            all_keep_hashes.update(pipeline_hashes)
-            for stack_name, env in stack_envs.items():
-                cur_env = combined_stack_envs.get(stack_name)
-                if cur_env:
-                    # Update concrete specs
-                    cur_env["concrete_specs"].update(
-                        env["concrete_specs"]
-                    )
-                    # Add new roots
-                    all_roots = set(r["hash"] for r in combined_stack_envs[stack_name]["roots"])
-                    roots = [r for r in env["roots"] if r["hash"] not in all_roots]
-                    cur_env["roots"].extend(
-                        roots
-                    )
-                else:
-                    cur_env = env
+        for future in as_completed(future_to_job):
+            pipeline_id, cat_env = future_to_job[future]
+            stack_name, env = future.result()
+            if not env or not env["concrete_specs"]:
+                continue
 
-                combined_stack_envs[stack_name] = cur_env
+            hash_counts[pipeline_id] += len(env["concrete_specs"])
+            all_keep_hashes.update(env["concrete_specs"])
+
+            if not cat_env:
+                continue
+
+            cur_env = combined_stack_envs.get(stack_name)
+            if cur_env:
+                # Update concrete specs
+                cur_env["concrete_specs"].update(
+                    env["concrete_specs"]
+                )
+                # Add new roots
+                all_roots = set(r["hash"] for r in cur_env["roots"])
+                roots = [r for r in env["roots"] if r["hash"] not in all_roots]
+                cur_env["roots"].extend(
+                    roots
+                )
+            else:
+                cur_env = env
+
+            combined_stack_envs[stack_name] = cur_env
+
+    for sha, ids in snapshot_pipeline_ids.items():
+        if not any(hash_counts.get(i) for i in ids):
+            raise SnapshotError(
+                f"No specs found in pipelines {ids} for snapshot "
+                f"{', '.join(snapshot_views[sha])} (sha {sha}); "
+                "aborting to avoid pruning its specs"
+            )
 
     for stack_name in combined_stack_envs:
         # Concatenate all of the environments for pipelines into a single common environment
@@ -243,7 +277,7 @@ def main() -> int:
             json.dump(combined_stack_envs[stack_name], fd)
 
     print(
-        f"\nProcessed {len(pipelines) + len(snapshot_pipelines)} pipelines",
+        f"\nProcessed {len(all_pipelines)} pipelines",
     )
     print(
         f"Total unique hashes to keep: {len(all_keep_hashes)}",
