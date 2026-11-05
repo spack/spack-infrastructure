@@ -164,6 +164,7 @@ def main() -> int:
     # finished days before the snapshot was taken, so look pipelines up by sha.
     # Snapshot views are named after their ref, e.g. snapshots/develop-YYYY-MM-DD.
     snapshot_views: Dict[str, List[str]] = {}  # sha -> view names
+    unexpired_views = []
     if GITHUB_TOKEN:
         gh = github.Github(auth=github.Auth.Token(GITHUB_TOKEN))
     else:
@@ -176,11 +177,12 @@ def main() -> int:
         view = ref.ref.removeprefix("refs/")
         date = view.split("/")[-1].split("-", 1)[-1]
         if date == "latest":
-            # develop-latest always points at the newest dated snapshot
+            # update_views.py decides on develop-latest from the specs its view lists
             continue
         snapshot_date = datetime.strptime(date, "%Y-%m-%d")
         snapshot_date = snapshot_date.replace(tzinfo = timezone.utc)
         if snapshot_date >= snapshots_since:
+            unexpired_views.append(view)
             snapshot_views.setdefault(ref.object.sha, []).append(view)
 
     window_ids = {p.id for p, _ in pipelines}
@@ -278,6 +280,12 @@ def main() -> int:
         for hash_val in sorted(all_keep_hashes):
             fd.write(f"{hash_val}\n")
     print(f"Keep list written to {keep_list_f.as_posix()}")
+
+    # Unexpired snapshot views; update_views.py empties any other snapshot view
+    snapshot_views_f = output_dir / "snapshot_views.json"
+    with snapshot_views_f.open("w") as fd:
+        json.dump({"unexpired": sorted(unexpired_views)}, fd, indent=2)
+    print(f"Snapshot views written to {snapshot_views_f.as_posix()}")
 
     return 0
 

@@ -73,7 +73,8 @@ echo "Adding mirror ${mirror}... done!"
 
 # Regenerate each stack's view index before pruning, so that no view index still
 # references specs that are about to be deleted from the mirror. update_views.py
-# lists the mirror once and reuses that listing for every view.
+# lists the mirror once and reuses that listing for every view. It also empties
+# the view indices of expired snapshots and of stacks no longer built in CI.
 stack_files=()
 for stack_file in stacks/*.txt; do
   [[ -f "$stack_file" ]] || continue
@@ -89,7 +90,8 @@ fi
 
 echo "Updating view indices for ${#stack_files[@]} stacks..."
 spack --debug python update_views.py --mirror "${mirror}" --keeplist "${keeplist_file}" --run-started "${run_started}" \
-  "${dry_run_args[@]}" "${stack_files[@]}"
+  --snapshot-views snapshot_views.json \
+  --retire-after-days "${since_days}" "${dry_run_args[@]}" "${stack_files[@]}"
 echo "Updating view indices for ${#stack_files[@]} stacks... done!"
 echo ""
 

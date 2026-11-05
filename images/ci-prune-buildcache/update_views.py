@@ -12,25 +12,39 @@ stack's specs plus the entries of the view's current index that CI pushed after
 this run started and that the prune won't delete (see carry_over_view_entries),
 read just before the write.
 
+It also empties the view index of every view that should no longer reference
+specs in the mirror, so that pruning cannot leave it pointing at deleted
+binaries (views that are already empty are left alone).
+
 Before writing anything, it stops if any index in the mirror is in a format newer
 than this spack writes (see check_index_formats).
 
+Views it updates or empties:
+  - snapshot views (snapshots/...) that --snapshot-views does not list as
+    unexpired; snapshots/develop-latest is kept only while every spec it lists
+    survives the prune (see latest_snapshot_status)
+  - any other view with no stack in this run that has not been updated
+    for --retire-after-days (e.g. a stack removed from CI)
+
 This script is meant to be run using:
-    `spack python update_views.py --mirror <mirror> --keeplist <file> --run-started <time> <stack_file> [...]`
+    `spack python update_views.py --mirror <mirror> --keeplist <file> --run-started <time> --snapshot-views <file> <stack_file> [...]`
 """
 
 import argparse
 import contextlib
+import hashlib
 import json
+import os
 import pathlib
 import tempfile
 import time
-from typing import Callable, Dict, Iterator, List, Set
+from typing import Callable, Dict, Iterator, List, Optional, Set, Tuple
 
 import sentry_sdk
 
 import spack.binary_distribution as bindist
 import spack.config
+import spack.database
 import spack.spec
 import spack.stage
 import spack.util.url as url_util
@@ -38,6 +52,9 @@ import spack.util.web as web_util
 from spack.enums import InstallRecordStatus
 from spack.mirrors.utils import require_mirror_name
 from spack.util import tty
+
+LATEST_SNAPSHOT_VIEW = "snapshots/develop-latest"
+
 
 class IndexFormatError(Exception):
     """An index in the mirror is in a format this spack can't write."""
@@ -184,6 +201,17 @@ def index_records(url: str, view: str) -> List[dict]:
     return manifest["data"]
 
 
+def is_empty_index(url: str, view: str, empty_checksum: str) -> bool:
+    """Whether a view's index, in the format this spack writes, is empty.
+
+    Indices in other formats are ignored: writing an index never changes them (see
+    check_index_formats), so they can't be emptied by this script anyway.
+    """
+    written = buildcache_class().component_to_media_types(bindist.BuildcacheComponent.INDEX)[0]
+    checksums = [r["checksum"] for r in index_records(url, view) if r["mediaType"] == written]
+    return checksums == [empty_checksum]
+
+
 def check_index_formats(url: str, views: Dict[str, float]) -> None:
     """Stop if any index in the mirror is in a format this spack doesn't know.
 
@@ -207,6 +235,39 @@ def check_index_formats(url: str, views: Dict[str, float]) -> None:
             f"{details}. Update the spack commit in images/ci-prune-buildcache/Dockerfile "
             "to one that writes the newest format; aborting before writing any index."
         )
+
+
+def empty_index_checksum() -> str:
+    """The checksum of the index blob _push_index writes for an empty database."""
+    with temporary_database() as db:
+        index_json_path = os.path.join(str(db.database_directory), spack.database.INDEX_JSON_FILE)
+        with open(index_json_path, "w", encoding="utf-8") as f:
+            db._write_to_file(f)
+        with open(index_json_path, "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+
+
+def latest_snapshot_status(
+    url: str, survives_prune: Callable[[spack.spec.Spec], bool]
+) -> Tuple[bool, str]:
+    """Decide whether to keep the develop-latest view.
+
+    The develop-latest view is only rewritten when snapshot views are created, so it
+    can lag behind the develop-latest ref (it was frozen at develop-2026-10-19 while
+    newer snapshots were taken). Rather than work out which snapshot it describes,
+    check what matters: that every spec it lists survives the prune.
+
+    Returns whether to keep the view, and why.
+    """
+    with temporary_database() as db:
+        if not read_view_index(db, url, LATEST_SNAPSHOT_VIEW):
+            return True, "it has no index"
+        stale: Optional[spack.spec.Spec] = next(
+            (spec for spec in listed_specs(db) if not survives_prune(spec)), None
+        )
+    if stale is not None:
+        return False, f"it lists {stale.name}/{stale.dag_hash()[:7]}, which the prune will delete"
+    return True, "every spec it lists survives the prune"
 
 
 @contextlib.contextmanager
@@ -242,6 +303,18 @@ if __name__ == "__main__":
         required=True,
         help="when this run started, in seconds since the epoch; only view entries "
         "pushed after it are carried over",
+    )
+    parser.add_argument(
+        "--snapshot-views",
+        required=True,
+        help="JSON file listing the unexpired snapshot views (written by fetch_keeplists.py)",
+    )
+    parser.add_argument(
+        "--retire-after-days",
+        type=int,
+        default=14,
+        help="empty a non-snapshot view with no stack in this run once it has not "
+        "been updated for this many days (default: %(default)s)",
     )
     parser.add_argument(
         "stack_files",
@@ -337,3 +410,43 @@ if __name__ == "__main__":
                     carried = carry_over_view_entries(db, url, view, pushed_during_run_and_kept)
                     bindist._push_index(db, str(db.database_directory), url, view)
                 tty.info(f"Updating view index {view}... done! ({carried} entries carried over)")
+
+    # Empty the view indices that should no longer reference specs in the mirror
+    active = set(view_hashes)
+    snapshots = json.loads(pathlib.Path(args.snapshot_views).read_text())
+    unexpired = set(snapshots["unexpired"])
+    retire_before = time.time() - args.retire_after_days * 24 * 60 * 60
+    empty_checksum = empty_index_checksum()
+
+    for view, mtime in sorted(views.items()):
+        if not view or view in active or view in unexpired:
+            continue
+
+        if view == LATEST_SNAPSHOT_VIEW:
+            keep_latest, reason = latest_snapshot_status(url, survives_prune)
+            if keep_latest:
+                tty.info(f"Leaving view index {view}: {reason}")
+                continue
+        elif view.startswith("snapshots/"):
+            reason = "expired snapshot"
+        elif mtime < retire_before:
+            reason = f"no stack in this run, not updated for {args.retire_after_days} days"
+        else:
+            tty.info(
+                f"Leaving view index {view}: no stack in this run, "
+                f"but updated in the last {args.retire_after_days} days"
+            )
+            continue
+
+        if is_empty_index(url, view, empty_checksum):
+            tty.debug(f"View index {view} is already empty ({reason})")
+            continue
+
+        if args.dry_run:
+            tty.info(f"Would empty view index {view} ({reason})")
+            continue
+
+        tty.info(f"Emptying view index {view} ({reason})...")
+        with temporary_database() as db:
+            bindist._push_index(db, str(db.database_directory), url, view)
+        tty.info(f"Emptying view index {view} ({reason})... done!")
