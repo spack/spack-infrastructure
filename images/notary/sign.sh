@@ -32,6 +32,8 @@ KMS_KEY_ARN=arn:aws:kms:us-east-1:588562868276:key/bc739d17-8569-4741-9385-92647
 SIGNING_KEY=/mnt/keys/signing/signing_key.encrypted.gpg
 SIGNING_PUBLIC_KEY=/mnt/keys/signing/signing_key_public.gpg
 SIGNING_KEY_ID=2C8DD3224EF3573A42BD221FA8E0CA3C1C2ADA2F
+# The primary key is kept offline; manifests are signed by this subkey
+SIGNING_SUBKEY_ID=D2C7EB3F2B05FA86590D293C04001B2E3DB0C723
 
 INTERMEDIATE_CI_PUBLIC_KEY=/mnt/keys/signing/intermediate_ci_public_key.gpg
 INTERMEDIATE_CI_PUBLIC_KEY_ID=78F3726939CA1B94893B66E8BC86F6FB94429164
@@ -58,28 +60,238 @@ gpg --no-tty --import $SIGNING_PUBLIC_KEY
 gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${UO_INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${SIGNING_KEY_ID}:6:")
 
 
-# Check downloaded spec files,  die if not signed/verified
+# Reads gpg's machine-readable status output from the file $1 (written with
+# --status-file, which only gpg writes to, so the signed content can't add
+# lines to it) in one pass, without starting any processes, and sets:
+#   messages    number of signed messages (PLAINTEXT)
+#   signatures  number of signatures (NEWSIG starts each one)
+#   good        number of good signatures (GOODSIG: valid, and the key is
+#               neither expired nor revoked)
+#   signers     fingerprints of the keys that made the signatures (VALIDSIG)
+#   primaries   fingerprints of those keys' primary keys, in the same order
+#   untrusted   fingerprints of those keys that are revoked or expired,
+#               other than the reputational key's older subkeys
+#   retired     fingerprints of those keys that are older subkeys of the
+#               reputational key (not SIGNING_SUBKEY_ID) and are revoked or
+#               expired
+# gpg --verify still succeeds for revoked and expired keys. It reports
+# EXPKEYSIG rather than REVKEYSIG for a key that is both, so KEYREVOKED is
+# checked too.
+parse_status() {
+    messages=0 signatures=0 good=0 signers=() primaries=() untrusted=() retired=()
+    local tag keyword fpr rest signer="" primary="" is_revoked=0 is_expired=0
+    while read -r tag keyword fpr rest; do
+        [[ $tag == "[GNUPG:]" ]] || continue
+        case $keyword in
+            PLAINTEXT) messages=$((messages + 1)) ;;
+            NEWSIG)
+                classify_signature "${signer}" "${primary}" ${is_revoked} ${is_expired}
+                signer="" primary="" is_revoked=0 is_expired=0
+                signatures=$((signatures + 1)) ;;
+            GOODSIG) good=$((good + 1)) ;;
+            # [GNUPG:] VALIDSIG <signing key fpr> ... <primary key fpr>
+            VALIDSIG) signer=$fpr primary=${rest##* }; signers+=("$fpr"); primaries+=("${primary}") ;;
+            REVKEYSIG|KEYREVOKED) is_revoked=1 ;;
+            EXPKEYSIG) is_expired=1 ;;
+        esac
+    done < "$1"
+    classify_signature "${signer}" "${primary}" ${is_revoked} ${is_expired}
+}
+
+
+# Adds the signature parse_status just read to untrusted or retired: $1 is the
+# key that made it, $2 that key's primary key, and $3 and $4 are 1 if the key
+# is revoked or expired. The current subkey being revoked or expired means
+# its signatures can't be trusted either, and the reputational primary key's
+# own signatures are handled separately.
+classify_signature() {
+    local signer=${1:-unknown} primary=$2 is_revoked=$3 is_expired=$4
+    (( is_revoked || is_expired )) || return 0
+    if [[ $primary == "${SIGNING_KEY_ID}" && $signer != "${SIGNING_SUBKEY_ID}" ]]; then
+        retired+=("${signer}")
+    else
+        untrusted+=("${signer}")
+    fi
+}
+
+
+# Succeeds if the file $1 is exactly one clearsigned message, with nothing
+# before or after it that the signature doesn't cover. gpg ignores such text,
+# but older Spack clients read the raw file.
+single_clearsigned_block() {
+    local header="-----BEGIN PGP SIGNED MESSAGE-----"
+    local footer="-----END PGP SIGNATURE-----"
+    local content inner
+    # read stops early, and succeeds, only when the file contains a NUL byte,
+    # which would hide everything after it from the checks below
+    if IFS= read -r -d '' content < "$1"; then return 1; fi
+    [[ $content == "${header}"$'\n'*$'\n'"${footer}"$'\n' ]] || return 1
+    inner=${content#"${header}"$'\n'}
+    inner=${inner%$'\n'"${footer}"$'\n'}
+    [[ $inner != *"${header}"* && $inner != *"${footer}"* ]]
+}
+
+
+# Print "<label>: <count>/<total>" every PROGRESS_INTERVAL files and after the
+# last one, so long jobs show how far along they are without a line per file
+PROGRESS_INTERVAL=1000
+progress() {
+    local label=$1 count=$2 total=$3
+    if (( count % PROGRESS_INTERVAL == 0 || count == total )); then
+        echo "${label}: ${count}/${total} ($(( count * 100 / total ))%), ${SECONDS}s elapsed"
+    fi
+}
+
+
+# Report a manifest that failed a check and leave it unsigned: $1 is its
+# verified copy, which is removed so it isn't signed or uploaded, $2 is the
+# error message, and $3 is an optional file of gpg output to show with it.
+# Only the first MAX_REPORTED are logged, so a mirror full of bad manifests
+# (after a key is revoked, say) can't push the job log past the runner's
+# output limit.
+MAX_REPORTED=100
+rejected=0
+reject() {
+    local output=$1 message=$2 details=${3:-}
+    rm -f "${output}"
+    rejected=$((rejected + 1))
+    if (( rejected <= MAX_REPORTED )); then
+        if [[ -n ${details} ]]; then cat "${details}" >&2; fi
+        echo "ERROR: ${message}" >&2
+    fi
+}
+
+
+# Check downloaded spec files. A manifest that fails a check is reported
+# and not signed, the rest are still signed, and the script fails at the
+# end if any were rejected.
+#
+# Only problems are logged per file: lines for each of the ~100k manifests a
+# job can download would push the job log past the runner's output limit and
+# hide the errors.
+to_verify=$(( $(find $INPUTDIR -type f | wc -l) ))
+echo "Verifying ${to_verify} manifests"
+checked=0
+already_signed=0
+left_retired=0
 for FILE in $( find $INPUTDIR -type f ); do
+    checked=$((checked + 1))
+    progress "Verifying" ${checked} ${to_verify}
     # preserve path structure within /tmp/input/ when writing output to /tmp/verified/
     output="${VERIFYDIR}/${FILE#$INPUTDIR}"
-    echo "VERIFY: ${FILE} -> ${output}"
     mkdir -p $(dirname -- $output)
-    gpg --verify --no-tty --quiet --output ${output} ${FILE}
+    # gpg prints a few lines per file to stderr even with --quiet, so keep them
+    # and only show them when verification fails
+    #
+    # Remove the previous file's status first, so the checks below can only
+    # ever see the status gpg wrote for this file
+    rm -f ${WORKINGDIR}/verify.status
+    if ! gpg --verify --no-tty --quiet --status-file ${WORKINGDIR}/verify.status --output ${output} ${FILE} 2> ${WORKINGDIR}/verify.err; then
+        reject ${output} "failed to verify the signature on ${FILE}" ${WORKINGDIR}/verify.err
+        continue
+    fi
+    if [[ ! -f ${WORKINGDIR}/verify.status ]]; then
+        echo "ERROR: gpg wrote no status output for ${FILE}" >&2
+        exit 1
+    fi
+    parse_status ${WORKINGDIR}/verify.status
+    if (( signatures == 0 )); then
+        echo "ERROR: gpg reported no signature on ${FILE}" >&2
+        exit 1
+    fi
+    single_block=0
+    if single_clearsigned_block ${FILE}; then single_block=1; fi
     rm ${FILE}
+
+    # The primary key is kept offline and never used for signing here, so a
+    # signature from it means the key may be compromised. Don't sign it, so
+    # the copy in the mirror is left as it is, as evidence.
+    if [[ " ${signers[*]} " == *" ${SIGNING_KEY_ID} "* ]]; then
+        reject ${output} "${FILE} is signed by the reputational primary key ${SIGNING_KEY_ID} (not a subkey)"
+        continue
+    fi
+
+    # A revoked key may have been compromised and signed anything, and
+    # signing the manifest again would give that a valid signature from the
+    # reputational key. Don't sign it, for the same reason as above. This
+    # holds whatever the revocation's reason, and for an expired key too,
+    # since a signature's date is chosen by whoever holds the key and can't
+    # show it was made before the key was retired. So when rotating an
+    # intermediate CI key, revoke it or let it expire only once everything
+    # it signed has been signed here.
+    if (( ${#untrusted[@]} > 0 )); then
+        reject ${output} "${FILE} is signed by revoked or expired key ${untrusted[*]}"
+        continue
+    fi
+
+    # Signed by an older subkey of the reputational key that has since been
+    # revoked or has expired: leave it as it is. Signing it again with the current
+    # subkey would vouch for it anew, and manifests signed by retired
+    # reputational subkeys are dealt with outside this job, so the first
+    # MAX_REPORTED are listed for that. A file with anything besides the one
+    # signed message can't be left as it is, since older clients read the
+    # raw file, nor cleaned up by signing it again, so it's rejected.
+    if (( ${#retired[@]} > 0 )); then
+        if ! (( single_block && messages == 1 && signatures == 1 )); then
+            reject ${output} "${FILE} is signed by revoked or expired reputational subkey ${retired[*]} and has content outside its signed message"
+            continue
+        fi
+        left_retired=$((left_retired + 1))
+        if (( left_retired <= MAX_REPORTED )); then
+            echo "Leaving ${FILE} as it is: signed by revoked or expired reputational subkey ${retired[*]}"
+        fi
+        rm ${output}
+        continue
+    fi
+
+    # Already signed by the reputational key, so don't sign it again. Leaving
+    # it out of /tmp/output/ keeps the upload from rewriting it in the mirror.
+    # Only a file that is one signed message with one good signature by one
+    # of the reputational key's subkeys counts: the current one, or an older
+    # one that is neither revoked nor expired, which clients trust just the
+    # same since the exported public key includes it. Anything else is signed
+    # again, from the text gpg verified, which also drops any text outside
+    # the signed message.
+    if (( single_block && messages == 1 && signatures == 1 && good == 1 )) \
+        && [[ ${primaries[0]:-} == "${SIGNING_KEY_ID}" ]]; then
+        already_signed=$((already_signed + 1))
+        rm ${output}
+    elif [[ " ${primaries[*]} " == *" ${SIGNING_KEY_ID} "* ]]; then
+        # Signed by the reputational key, but with something besides its one
+        # signed message and one signature. The reputational key never makes
+        # such a file, so it was changed after signing. Signing it again would
+        # hide that, so leave it in the mirror as evidence.
+        reject ${output} "${FILE} is signed by the reputational key but has content outside its signed message or another signature"
+    fi
 done
+echo "Checked ${checked} manifests: ${already_signed} already signed by the reputational key," \
+    "${left_retired} signed by a revoked or expired reputational subkey and left as they are, ${rejected} rejected"
 
 
-# Import the private key for signing
-gpg --no-tty --import <(aws-encryption-cli --decrypt -S -w "key=${KMS_KEY_ARN}" -i ${SIGNING_KEY} -o -)
+to_sign=$(( $(find $VERIFYDIR -type f | wc -l) ))
+echo "Signing ${to_sign} manifests"
+
+# Import the private key for signing, but don't decrypt it when there's
+# nothing to sign
+if (( to_sign > 0 )); then
+    gpg --no-tty --import <(aws-encryption-cli --decrypt -S -w "key=${KMS_KEY_ARN}" -i ${SIGNING_KEY} -o -)
+fi
 
 
 # Sign Keys with reputational key
+attempted=0
 for FILE in $( find $VERIFYDIR -type f ); do
+    attempted=$((attempted + 1))
+    progress "Signing" ${attempted} ${to_sign}
     # preserve path structure within /tmp/verified when writing output to /tmp/output/
     output="${OUTPUTDIR}/${FILE#$VERIFYDIR}"
-    echo "SIGN: ${FILE} -> ${output}"
     mkdir -p $(dirname -- $output)
-    gpg --no-tty --output ${output} --clearsign ${FILE}
+    # Sign with the current subkey explicitly ("!" disables gpg's own key
+    # selection), so new signatures never come from an older subkey
+    if ! gpg --no-tty --local-user "${SIGNING_SUBKEY_ID}!" --output ${output} --clearsign ${FILE} 2> ${WORKINGDIR}/sign.err; then
+        reject ${output} "failed to sign ${FILE}" ${WORKINGDIR}/sign.err
+        continue
+    fi
     rm ${FILE}
 done
 
@@ -87,3 +299,11 @@ done
 # Armor/export public key into expected location
 mkdir -p /tmp/public_keys
 gpg --export --armor ${SIGNING_KEY_ID} > "/tmp/public_keys/${SIGNING_KEY_ID}.pub"
+
+
+# Fail the job if any manifest was rejected. This comes last so the rest are
+# still signed and the public key exported, and the job can upload them.
+if (( rejected > 0 )); then
+    echo "ERROR: ${rejected} manifests failed a check and were not signed (up to ${MAX_REPORTED} are listed above)" >&2
+    exit 1
+fi
