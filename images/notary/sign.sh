@@ -69,30 +69,50 @@ progress() {
 }
 
 
-# Check downloaded spec files,  die if not signed/verified
+# Report a manifest that failed a check and leave it unsigned: $1 is its
+# verified copy, which is removed so it isn't signed or uploaded, $2 is the
+# error message, and $3 is an optional file of gpg output to show with it.
+# Only the first MAX_REPORTED are logged, so a mirror full of bad manifests
+# (after a key is revoked, say) can't push the job log past the runner's
+# output limit.
+MAX_REPORTED=100
+rejected=0
+reject() {
+    local output=$1 message=$2 details=${3:-}
+    rm -f "${output}"
+    rejected=$((rejected + 1))
+    if (( rejected <= MAX_REPORTED )); then
+        if [[ -n ${details} ]]; then cat "${details}" >&2; fi
+        echo "ERROR: ${message}" >&2
+    fi
+}
+
+
+# Check downloaded spec files. A manifest that fails a check is reported
+# and not signed, the rest are still signed, and the script fails at the
+# end if any were rejected.
 #
 # Only problems are logged per file: lines for each of the ~100k manifests a
 # job can download would push the job log past the runner's output limit and
-# hide the error that stops it.
+# hide the errors.
 to_verify=$(( $(find $INPUTDIR -type f | wc -l) ))
 echo "Verifying ${to_verify} manifests"
-verified=0
+checked=0
 for FILE in $( find $INPUTDIR -type f ); do
+    checked=$((checked + 1))
+    progress "Verifying" ${checked} ${to_verify}
     # preserve path structure within /tmp/input/ when writing output to /tmp/verified/
     output="${VERIFYDIR}/${FILE#$INPUTDIR}"
     mkdir -p $(dirname -- $output)
     # gpg prints a few lines per file to stderr even with --quiet, so keep them
     # and only show them when verification fails
     if ! gpg --verify --no-tty --quiet --output ${output} ${FILE} 2> ${WORKINGDIR}/verify.err; then
-        cat ${WORKINGDIR}/verify.err >&2
-        echo "ERROR: failed to verify the signature on ${FILE}" >&2
-        exit 1
+        reject ${output} "failed to verify the signature on ${FILE}" ${WORKINGDIR}/verify.err
+        continue
     fi
     rm ${FILE}
-    verified=$((verified + 1))
-    progress "Verified" ${verified} ${to_verify}
 done
-echo "Verified ${verified} manifests"
+echo "Checked ${checked} manifests: ${rejected} rejected"
 
 
 # Import the private key for signing
@@ -102,21 +122,29 @@ gpg --no-tty --import <(aws-encryption-cli --decrypt -S -w "key=${KMS_KEY_ARN}" 
 # Sign Keys with reputational key
 to_sign=$(( $(find $VERIFYDIR -type f | wc -l) ))
 echo "Signing ${to_sign} manifests"
-signed=0
+attempted=0
 for FILE in $( find $VERIFYDIR -type f ); do
+    attempted=$((attempted + 1))
+    progress "Signing" ${attempted} ${to_sign}
     # preserve path structure within /tmp/verified when writing output to /tmp/output/
     output="${OUTPUTDIR}/${FILE#$VERIFYDIR}"
     mkdir -p $(dirname -- $output)
-    if ! gpg --no-tty --output ${output} --clearsign ${FILE}; then
-        echo "ERROR: failed to sign ${FILE}" >&2
-        exit 1
+    if ! gpg --no-tty --output ${output} --clearsign ${FILE} 2> ${WORKINGDIR}/sign.err; then
+        reject ${output} "failed to sign ${FILE}" ${WORKINGDIR}/sign.err
+        continue
     fi
     rm ${FILE}
-    signed=$((signed + 1))
-    progress "Signed" ${signed} ${to_sign}
 done
 
 
 # Armor/export public key into expected location
 mkdir -p /tmp/public_keys
 gpg --export --armor ${SIGNING_KEY_ID} > "/tmp/public_keys/${SIGNING_KEY_ID}.pub"
+
+
+# Fail the job if any manifest was rejected. This comes last so the rest are
+# still signed and the public key exported, and the job can upload them.
+if (( rejected > 0 )); then
+    echo "ERROR: ${rejected} manifests failed a check and were not signed (up to ${MAX_REPORTED} are listed above)" >&2
+    exit 1
+fi
