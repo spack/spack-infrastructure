@@ -251,7 +251,7 @@ for FILE in $( find $INPUTDIR -type f ); do
     # again, from the text gpg verified, which also drops any text outside
     # the signed message.
     if (( single_block && messages == 1 && signatures == 1 && good == 1 )) \
-        && [[ ${primaries[0]:-} == "${SIGNING_KEY_ID}" && ${signers[0]:-} != "${SIGNING_KEY_ID}" ]]; then
+        && [[ ${primaries[0]:-} == "${SIGNING_KEY_ID}" ]]; then
         already_signed=$((already_signed + 1))
         rm ${output}
     fi
