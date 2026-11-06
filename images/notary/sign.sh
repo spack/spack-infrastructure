@@ -70,9 +70,10 @@ gpg --import-ownertrust <(echo -e "${INTERMEDIATE_CI_PUBLIC_KEY_ID}:6:\n${UO_INT
 #   signers     fingerprints of the keys that made the signatures (VALIDSIG)
 #   primaries   fingerprints of those keys' primary keys, in the same order
 #   untrusted   fingerprints of those keys that are revoked or expired,
-#               other than the reputational key's subkeys
-#   retired     fingerprints of those keys that are subkeys of the
-#               reputational key and are revoked or expired
+#               other than the reputational key's older subkeys
+#   retired     fingerprints of those keys that are older subkeys of the
+#               reputational key (not SIGNING_SUBKEY_ID) and are revoked or
+#               expired
 # gpg --verify still succeeds for revoked and expired keys. It reports
 # EXPKEYSIG rather than REVKEYSIG for a key that is both, so KEYREVOKED is
 # checked too.
@@ -100,8 +101,9 @@ parse_status() {
 
 # Adds the signature parse_status just read to untrusted or retired: $1 is the
 # key that made it, $2 that key's primary key, and $3 and $4 are 1 if the key
-# is revoked or expired. The reputational primary key's own signatures are
-# handled separately.
+# is revoked or expired. The current subkey being revoked or expired means
+# its signatures can't be trusted either, and the reputational primary key's
+# own signatures are handled separately.
 classify_signature() {
     local signer=${1:-unknown} primary=$2 is_revoked=$3 is_expired=$4
     (( is_revoked || is_expired )) || return 0
@@ -222,8 +224,8 @@ for FILE in $( find $INPUTDIR -type f ); do
         continue
     fi
 
-    # Signed by a subkey of the reputational key that has since been revoked
-    # or has expired: leave it as it is. Signing it again with the current
+    # Signed by an older subkey of the reputational key that has since been
+    # revoked or has expired: leave it as it is. Signing it again with the current
     # subkey would vouch for it anew, and manifests signed by retired
     # reputational subkeys are dealt with outside this job, so the first
     # MAX_REPORTED are listed for that. A file with anything besides the one
@@ -254,6 +256,12 @@ for FILE in $( find $INPUTDIR -type f ); do
         && [[ ${primaries[0]:-} == "${SIGNING_KEY_ID}" ]]; then
         already_signed=$((already_signed + 1))
         rm ${output}
+    elif [[ " ${primaries[*]} " == *" ${SIGNING_KEY_ID} "* ]]; then
+        # Signed by the reputational key, but with something besides its one
+        # signed message and one signature. The reputational key never makes
+        # such a file, so it was changed after signing. Signing it again would
+        # hide that, so leave it in the mirror as evidence.
+        reject ${output} "${FILE} is signed by the reputational key but has content outside its signed message or another signature"
     fi
 done
 echo "Checked ${checked} manifests: ${already_signed} already signed by the reputational key," \
