@@ -105,7 +105,7 @@ parse_status() {
 classify_signature() {
     local signer=${1:-unknown} primary=$2 is_revoked=$3 is_expired=$4
     (( is_revoked || is_expired )) || return 0
-    if [[ $primary == "${SIGNING_KEY_ID}" && $signer != "${SIGNING_KEY_ID}" ]]; then
+    if [[ $primary == "${SIGNING_KEY_ID}" && $signer != "${SIGNING_SUBKEY_ID}" ]]; then
         retired+=("${signer}")
     else
         untrusted+=("${signer}")
