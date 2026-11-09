@@ -104,7 +104,7 @@ def build_json(bucket_name, index_paths):
             if parts[1] != "v3":
                 continue
             ref_part = parts[0]
-            mirror_part = "/".join(parts[4:-2])
+            mirror_part = "/".join(parts[4:-1])
         else:
             ref_part = parts[0]
             mirror_part = parts[1]
