@@ -18,7 +18,6 @@ sentry_sdk.init(
 REF_REGEXES = [
     re.compile(r"^develop-[\d]+-[\d]+-[\d]+$"), # dev snapshot mirrors
     re.compile(r"^develop$"),                   # main develop mirror
-    re.compile(r"^v[\d]+\.[\d]+(\.[\d]+)?$"),   # mirrors for point releases
 ]
 
 # Stacks or other "subdirectories" to ignore under *any* ref
