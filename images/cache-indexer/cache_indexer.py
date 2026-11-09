@@ -92,11 +92,20 @@ def build_json(bucket_name, index_paths):
     for p in index_paths:
         parts = p.split("/")
         if parts[0] == "releases":
+            # Only look at newer stuff 
+            if parts[2] != "v3":
+                continue
+                
+            # Get the index view name and we only want the top level snapshot
+            # For the release this is the tag name
+            ref_part = "/".join(parts[5:-2])
             ref_part = parts[1]
             mirror_part = "/".join(parts[5:-1]) if parts[2] == "v3" else parts[2]
         elif parts[0] == "develop":
+            if parts[1] != "v3":
+                continue
             ref_part = parts[0]
-            mirror_part = "/".join(parts[4:-1]) if parts[1] == "v3" else parts[1]
+            mirror_part = "/".join(parts[4:-2])
         else:
             ref_part = parts[0]
             mirror_part = parts[1]
