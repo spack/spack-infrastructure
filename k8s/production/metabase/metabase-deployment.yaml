@@ -20,8 +20,11 @@ spec:
           imagePullPolicy: "IfNotPresent"
           resources:
             requests:
-              cpu: 350m
+              cpu: 500m  # observed 30-day peak ~370m
               memory: 3G
+            limits:
+              cpu: 2  # headroom for JVM startup/JIT bursts
+              memory: 3G  # observed 30-day peak ~2.0Gi
           ports:
             - containerPort: 3000
           envFrom:
@@ -31,6 +34,10 @@ spec:
             - configMapRef:
                 name: metabase-ses-config
           env:
+            # The JVM sizes its max heap from the container memory limit
+            # (25% by default), which would cap heap at ~750M under a 3G limit.
+            - name: JAVA_OPTS
+              value: "-XX:MaxRAMPercentage=65"
             - name: MB_DB_PASS
               valueFrom:
                 secretKeyRef:
