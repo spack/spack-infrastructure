@@ -17,7 +17,16 @@ resource "aws_s3_bucket_policy" "binary_mirror" {
         Effect    = "Allow"
         Principal = "*"
         Resource  = "${aws_s3_bucket.binary_mirror.arn}/*"
-      }
+      },
+      # TEMPORARY: Allow Public listing.
+      # TODO: Remove this statement when it's no longer needed.
+      {
+        Sid       = "TemporaryPublicList"
+        Action    = "s3:ListBucket"
+        Effect    = "Allow"
+        Principal = "*"
+        Resource  = aws_s3_bucket.binary_mirror.arn
+      },
     ]
     Version = "2012-10-17"
   })
