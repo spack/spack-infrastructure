@@ -20,7 +20,7 @@ spec:
         karpenter.sh/capacity-type: on-demand
       containers:
         - name: postgres
-          image: postgres:14.0
+          image: postgres:14.24
           imagePullPolicy: "IfNotPresent"
           resources:
             requests:
