@@ -23,7 +23,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: pruner
-            image: ghcr.io/spack/ci-prune-buildcache:0.0.15
+            image: ghcr.io/spack/ci-prune-buildcache:0.0.16
             imagePullPolicy: Always
             resources:
               requests:
