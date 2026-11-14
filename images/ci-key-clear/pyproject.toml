@@ -4,5 +4,5 @@ version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
     "boto3~=1.40.74",
-    "sentry-sdk~=2.44.0",
+    "sentry-sdk~=2.74.0",
 ]
