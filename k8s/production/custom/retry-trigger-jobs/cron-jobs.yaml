@@ -16,7 +16,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: retry-trigger-jobs
-            image: ghcr.io/spack/retry-trigger-jobs:0.0.7
+            image: ghcr.io/spack/retry-trigger-jobs:0.0.8
             imagePullPolicy: IfNotPresent
             resources:
               requests:
