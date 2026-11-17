@@ -2,7 +2,8 @@
 # Manual edits may be lost in future updates.
 
 provider "registry.terraform.io/alekc/kubectl" {
-  version = "2.1.3"
+  version     = "2.1.3"
+  constraints = "2.1.3"
   hashes = [
     "h1:AymCb0DCWzmyLqn1qEhVs2pcFUZGT/kxPK+I/BObFH8=",
     "zh:0e601ae36ebc32eb8c10aff4c48c1125e471fa09f5668465af7581c9057fa22c",
@@ -111,7 +112,8 @@ provider "registry.terraform.io/hashicorp/cloudinit" {
 }
 
 provider "registry.terraform.io/hashicorp/helm" {
-  version = "2.16.1"
+  version     = "2.16.1"
+  constraints = "2.16.1"
   hashes = [
     "h1:TerRBdq69SxIWg3ET2VE0bcP0BYRIWZOp1QxXj/14Fk=",
     "zh:0003f6719a32aee9afaeeb001687fc0cfc8c2d5f54861298cf1dc5711f3b4e65",
