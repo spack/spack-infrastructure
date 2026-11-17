@@ -36,6 +36,7 @@ RUN mkdir spack                                                        && \
 COPY entrypoint.sh ./
 COPY fetch_keeplists.py ./
 COPY prune.py ./
+COPY update_views.py ./
 COPY prune_pr_mirrors.py ./
 
 WORKDIR /app/
