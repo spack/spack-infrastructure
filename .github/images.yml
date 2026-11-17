@@ -30,7 +30,7 @@ images:
     image: ghcr.io/spack/cache-indexer:0.0.8
 
   - path: ./analytics
-    image: ghcr.io/spack/django:0.5.32
+    image: ghcr.io/spack/django:0.5.33
 
   - path: ./images/ci-prune-buildcache
     image: ghcr.io/spack/ci-prune-buildcache:0.0.15
@@ -42,4 +42,4 @@ images:
     image: ghcr.io/spack/retry-trigger-jobs:0.0.7
 
   - path: ./images/runner-node-certificate-controller
-    image: ghcr.io/spack/runner-node-certificate-controller:0.0.5
+    image: ghcr.io/spack/runner-node-certificate-controller:0.0.6
