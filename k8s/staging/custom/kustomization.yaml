@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - ../../production/custom/namespace.yaml
   - cache-indexer
-  - gitlab-setting-updater
   - prune-buildcache
   - webhook-handler
   - runner-node-certificate-controller
