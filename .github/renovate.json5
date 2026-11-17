@@ -111,9 +111,11 @@
     // Grouping: one PR per ecosystem per week.
     // -------------------------------------------------------------------------
     {
-      // `github-runners` covers the `runs-on:` labels (e.g. macos-12), which
-      // age out just like the actions themselves.
-      matchManagers: ["github-actions", "github-runners"],
+      // The `github-actions` manager also covers the `runs-on:` labels (e.g.
+      // macos-12), which age out just like the actions themselves. Those come
+      // from the `github-runners` *datasource*, which is not a manager and so
+      // must not be listed here.
+      matchManagers: ["github-actions"],
       groupName: "github actions",
       commitMessagePrefix: "[gh-actions]",
     },
@@ -165,7 +167,7 @@
     // These re-split the catch-all above per ecosystem. They must come *after*
     // it, since the last matching rule wins.
     {
-      matchManagers: ["github-actions", "github-runners"],
+      matchManagers: ["github-actions"],
       matchUpdateTypes: ["major"],
       groupName: "github actions major",
       commitMessagePrefix: "[gh-actions]",
