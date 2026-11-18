@@ -183,6 +183,15 @@
       rangeStrategy: "pin",
     },
     {
+      // Leave `requires-python` alone. The "pin" strategy above would rewrite
+      // it to the exact newest Python (e.g. `==3.15.2`), which no longer
+      // matches the Python in each image's base image and breaks the build.
+      // The Python version is set by the base image tag instead.
+      matchManagers: ["pep621"],
+      matchDepTypes: ["requires-python"],
+      enabled: false,
+    },
+    {
       // secrets/ is a pip-installable CLI with no lock file, so it keeps
       // version ranges. Pinning it would also have nearly every weekly PR
       // touch secrets/ and trigger its test workflow.
