@@ -135,7 +135,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "requests" }]
+requires-dist = [{ name = "requests", specifier = "==2.34.2" }]
 
 [[package]]
 name = "idna"

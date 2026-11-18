@@ -193,8 +193,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "requests", specifier = "~=2.33.0" },
-    { name = "sentry-sdk", specifier = "~=1.45.1" },
+    { name = "requests", specifier = "==2.33.1" },
+    { name = "sentry-sdk", specifier = "==1.45.1" },
 ]
 
 [[package]]

@@ -839,12 +839,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "kubernetes", specifier = ">=33.1.0" },
-    { name = "sentry-sdk", specifier = ">=2.38.0" },
+    { name = "kubernetes", specifier = "==37.0.1" },
+    { name = "sentry-sdk", specifier = "==2.73.0" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "kubernetes-stubs", specifier = ">=22.6.0.post1" }]
+dev = [{ name = "kubernetes-stubs", specifier = "==22.6.0.post1" }]
 
 [[package]]
 name = "sentry-sdk"

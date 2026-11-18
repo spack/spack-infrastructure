@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 
 [[package]]
@@ -50,8 +50,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boto3" },
-    { name = "botocore" },
+    { name = "boto3", specifier = "==1.43.118" },
+    { name = "botocore", specifier = "==1.43.118" },
 ]
 
 [[package]]

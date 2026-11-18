@@ -3,6 +3,6 @@ name = "gitlab-delete-stale-branches"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "requests",
-    "sentry-sdk",
+    "requests==2.34.2",
+    "sentry-sdk==2.73.0",
 ]
