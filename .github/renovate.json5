@@ -190,6 +190,14 @@
       matchFileNames: ["secrets/**"],
       rangeStrategy: "auto",
     },
+    {
+      // celery 5.7.0 requires exactly python-dateutil 2.9.0.post0, which
+      // conflicts with the version pinned in analytics/. The requirement was
+      // relaxed in https://github.com/celery/celery/pull/11031 but is not yet
+      // released, so skip just this version.
+      matchPackageNames: ["celery"],
+      allowedVersions: "!=5.7.0",
+    },
 
     // -------------------------------------------------------------------------
     // Update-type specific handling
