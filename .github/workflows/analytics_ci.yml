@@ -22,7 +22,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install requirements
-        run: uv sync --frozen --extra dev
+        run: uv sync --locked --extra dev
 
       - name: Lint code
         run: uv run tox -e lint
@@ -65,7 +65,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install requirements
-        run: uv sync --frozen --extra dev
+        run: uv sync --locked --extra dev
 
       - name: Provide default env vars for django
         run: cat ./dev/.env.docker-compose >> $GITHUB_ENV

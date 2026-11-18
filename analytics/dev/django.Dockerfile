@@ -24,7 +24,7 @@ ENV PYTHONUNBUFFERED=1
 ENV UV_PROJECT_ENVIRONMENT=/usr/local
 COPY ./pyproject.toml ./uv.lock /opt/django-project/
 COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
-RUN uv sync --project /opt/django-project --frozen --no-install-project --extra dev --no-cache
+RUN uv sync --project /opt/django-project --locked --no-install-project --extra dev --no-cache
 
 
 # Install spack

@@ -21,7 +21,7 @@ jobs:
           cmake                                                                \
           git                                                                  \
           openssh-client
-        uv sync --project images/gh-gl-sync --frozen
+        uv sync --project images/gh-gl-sync --locked
         echo "$PWD/images/gh-gl-sync/.venv/bin" >> $GITHUB_PATH
     - name: test
       run: |
