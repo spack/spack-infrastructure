@@ -1,14 +1,15 @@
-from dataclasses import dataclass
-from datetime import datetime, timedelta
 import math
 import statistics
-from urllib.parse import urlencode
 import uuid
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
+import requests
 from dateutil.parser import isoparse
 from gitlab.v4.objects import ProjectJob
-from kubernetes.utils.quantity import parse_quantity
-import requests
+
+from analytics.job_processor.quantity import parse_quantity_k8s
 
 PROM_MAX_RESOLUTION = 10_000
 
@@ -412,7 +413,9 @@ class PrometheusClient:
         cpu = int(node_labels["label_karpenter_k8s_aws_instance_cpu"])
 
         # It seems these values are in Megabytes (base 1000)
-        memory = int(parse_quantity(f"{node_labels['label_karpenter_k8s_aws_instance_memory']}M"))
+        memory = int(
+            parse_quantity_k8s(f"{node_labels['label_karpenter_k8s_aws_instance_memory']}M")
+        )
         capacity_type = node_labels["label_karpenter_sh_capacity_type"]
         instance_type = node_labels["label_node_kubernetes_io_instance_type"]
 
