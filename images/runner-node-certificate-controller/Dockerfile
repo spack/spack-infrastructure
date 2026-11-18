@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:debian
+FROM ghcr.io/astral-sh/uv:0.13.5-debian
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
