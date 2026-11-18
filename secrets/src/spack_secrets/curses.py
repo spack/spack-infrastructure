@@ -3,7 +3,7 @@ import typing
 
 import click
 
-from .utils import ensure_document_kind
+from spack_secrets.utils import ensure_document_kind
 
 if typing.TYPE_CHECKING:
     from curses import _CursesWindow
