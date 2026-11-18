@@ -39,6 +39,7 @@ dependencies = [
     "sentry-sdk[django,pure_eval]==2.73.0",
     "rich==15.0.0",
     "psycopg2-binary==2.9.13",
+    "python-dateutil==3.0.0",
     "python-gitlab==8.6.0",
     "pyyaml==6.0.3",
     "requests==2.34.2",
