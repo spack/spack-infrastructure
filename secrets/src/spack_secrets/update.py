@@ -9,9 +9,14 @@ import click
 import kubernetes.config
 from kubernetes.client import CoreV1Api
 
-from .curses import select_secret_and_key
-from .sealed import decrypt_sealed_secret, get_kubeseal_path, seal_raw_secret_value, seal_secret
-from .utils import exit_prompt, get_yaml_reader, populated_tempfile
+from spack_secrets.curses import select_secret_and_key
+from spack_secrets.sealed import (
+    decrypt_sealed_secret,
+    get_kubeseal_path,
+    seal_raw_secret_value,
+    seal_secret,
+)
+from spack_secrets.utils import exit_prompt, get_yaml_reader, populated_tempfile
 
 if typing.TYPE_CHECKING:
     from kubernetes.client.models.v1_config_map import V1ConfigMap

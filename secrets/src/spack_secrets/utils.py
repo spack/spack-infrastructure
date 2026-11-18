@@ -21,7 +21,7 @@ class InvalidSealedSecretError(click.ClickException):
 
 def ensure_document_kind(doc: dict):
     """Ensure the doc has a `kind` of `SealedSecret`, raising an exception otherwise."""
-    kind = doc.get("kind", None)
+    kind = doc.get("kind")
     if kind != "SealedSecret":
         raise InvalidSealedSecretError(kind)
 

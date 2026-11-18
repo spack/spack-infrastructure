@@ -7,7 +7,7 @@ from subprocess import PIPE, Popen
 import click
 from click.exceptions import ClickException
 
-from .utils import (
+from spack_secrets.utils import (
     ensure_document_kind,
     fetch_key_pairs,
     latest_key_pair,
