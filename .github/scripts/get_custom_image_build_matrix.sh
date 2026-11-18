@@ -31,8 +31,8 @@ GIT_DIFF="git diff ${BEFORE_SHA:-origin/main} ${AFTER_SHA:-HEAD}"
 touch $MATRIX_FILE
 
 # What gets fed into the $image var is defined at the end of the loop
-while read image; do
-    DOCKER_IMAGE_DIR=$(echo $image | jq -r '.path' | sed 's/^\.\///')
+while read -r image; do
+    DOCKER_IMAGE_DIR=$(echo "$image" | jq -r '.path' | sed 's/^\.\///')
     DOCKER_IMAGE_DIR_PATTERN=$(echo $DOCKER_IMAGE_DIR | escapestr)
 
     # Skip if the directory was not modified at all
@@ -47,9 +47,11 @@ while read image; do
     fi
 
     # Directory modified, add to list of images to include in matrix
-    export IMAGE_TAGS=$(echo $image | jq -r '.image')
-    export IMAGE_PATH=$(echo $image | jq -r '.path')
-    yq '.include += {"docker-image": env(IMAGE_PATH), "image-tags": env(IMAGE_TAGS)}' -o json -i $MATRIX_FILE -I 0
+    export IMAGE_TAGS=$(echo "$image" | jq -r '.image')
+    export IMAGE_PATH=$(echo "$image" | jq -r '.path')
+    # The smoke test is a script, so it's passed as a string (strenv) rather than parsed as YAML (env)
+    export IMAGE_TEST=$(echo "$image" | jq -r '.test // ""')
+    yq '.include += {"docker-image": env(IMAGE_PATH), "image-tags": env(IMAGE_TAGS), "smoke-test": strenv(IMAGE_TEST)}' -o json -i $MATRIX_FILE -I 0
 
 # This is where the input to the while loop variable $image comes in. This is called a "here string" and
 # circumvents the issue with subshells setting global variables.

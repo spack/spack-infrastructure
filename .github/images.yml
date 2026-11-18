@@ -1,45 +1,129 @@
+# The custom images built by .github/workflows/custom_docker_builds.yml.
+#
+#   path:  Directory containing the Dockerfile (also used as the build context).
+#   image: Tag the image is published under.
+#   test:  Smoke test that's run against the freshly built image, before it's published.
+#          It only needs to show that the image starts and that its entrypoint can load
+#          everything it depends on, without credentials or access to any other service.
+#          It's a bash script (run with `set -euo pipefail`) that's executed from `path`,
+#          with $IMAGE set to the tag of the image under test.
 images:
   - path: ./images/gh-gl-sync
     image: ghcr.io/spack/ci-bridge:0.0.58
+    test: docker run --rm "$IMAGE" --help
 
   - path: ./images/ci-key-clear
     image: ghcr.io/spack/ci-key-clear:0.0.9
+    # The script has no arguments and goes straight to AWS, so only import it
+    test: docker run --rm --entrypoint python "$IMAGE" -c 'import delete_aws_admin_access_keys'
 
   - path: ./images/gitlab-stuckpods
     image: ghcr.io/spack/stuckpods:0.0.3
+    # The entrypoint loops forever, so check for the tools that it needs instead
+    test: |
+      docker run --rm --entrypoint bash "$IMAGE" -c '
+        set -e
+        test -x /entrypoint.sh
+        bash -n /entrypoint.sh
+        curl --version
+        jq --version
+        kubectl version --client
+      '
 
   - path: ./images/gitlab-clear-pipelines
     image: ghcr.io/spack/gitlab-clear-pipelines:0.0.4
+    test: docker run --rm -e GITLAB_TOKEN=smoke-test "$IMAGE" --help
 
   - path: ./images/gitlab-delete-stale-branches
     image: ghcr.io/spack/gitlab-delete-stale-branches:0.0.5
+    test: docker run --rm -e GITLAB_TOKEN=smoke-test "$IMAGE" --help
 
   - path: ./images/gitlab-skipped-pipelines
     image: ghcr.io/spack/gitlab-skipped-pipelines:0.0.6
+    test: docker run --rm -e GITLAB_TOKEN=smoke-test "$IMAGE" --help
 
   - path: ./images/notary
     image: ghcr.io/spack/notary:0.0.5
+    # No entrypoint: GitLab runs /sign.sh in this image, which needs the signing keys
+    test: |
+      docker run --rm "$IMAGE" bash -c '
+        set -e
+        test -x /sign.sh
+        bash -n /sign.sh
+        gpg --version
+        aws-encryption-cli --version
+      '
 
   - path: ./images/python-aws-bash
     image: ghcr.io/spack/python-aws-bash:0.0.6
+    test: docker run --rm "$IMAGE" -c 'aws --version && python -c "import boto3"'
 
   - path: ./images/snapshot-release-tags
     image: ghcr.io/spack/snapshot-release-tags:0.0.10
+    # The script has no arguments and goes straight to GitLab, so only import it
+    test: docker run --rm "$IMAGE" python -c 'import snapshot_release_tags'
 
   - path: ./images/cache-indexer
     image: ghcr.io/spack/cache-indexer:0.0.9
+    # The script has no arguments and goes straight to AWS, so only import it
+    test: docker run --rm --entrypoint python "$IMAGE" -c 'import cache_indexer'
 
   - path: ./analytics
     image: ghcr.io/spack/django:0.5.35
+    # The entrypoint runs the migrations, which needs a database. Bypass it, and instead
+    # load the production settings, and every app, model and URL, for both the web server
+    # and the celery worker.
+    test: |
+      docker run --rm --entrypoint bash \
+        --env-file dev/.env.docker-compose \
+        -e DJANGO_SETTINGS_MODULE=analytics.settings.production \
+        -e ALLOWED_HOSTS=localhost \
+        "$IMAGE" -c '
+          set -e
+          python manage.py check
+          python -c "import analytics.wsgi"
+          # Loads the celery app. The settings that it then prints are of no interest.
+          celery -A analytics.celery report > /dev/null
+          gunicorn --version
+        '
 
   - path: ./images/ci-prune-buildcache
     image: ghcr.io/spack/ci-prune-buildcache:0.0.16
+    # The entrypoint needs GitLab and AWS, so check each of the commands that it runs
+    test: |
+      docker run --rm --entrypoint bash "$IMAGE" -c '
+        set -e
+        bash -n entrypoint.sh
+        . /app/spack/share/spack/setup-env.sh
+        spack python prune.py --help
+        python3 fetch_keeplists.py --help
+        python3 prune_pr_mirrors.py --help
+        aws --version
+      '
 
   - path: ./images/protected-publish
     image: ghcr.io/spack/protected-publish:0.0.15
+    test: |
+      docker run --rm "$IMAGE" --help
+      # migrate.sh is run from this image too (see migrate_job.yaml)
+      docker run --rm --entrypoint bash "$IMAGE" -c '
+        set -e
+        test -x /srcs/migrate.sh
+        bash -n /srcs/migrate.sh
+        python -m pkg.migrate --help
+        python -m pkg.validate_index --help
+        aws --version
+        aws-encryption-cli --version
+        gpg --version
+        git --version
+      '
 
   - path: ./images/retry-trigger-jobs
     image: ghcr.io/spack/retry-trigger-jobs:0.0.8
+    test: docker run --rm -e GITLAB_TOKEN=smoke-test "$IMAGE" --help
 
   - path: ./images/runner-node-certificate-controller
     image: ghcr.io/spack/runner-node-certificate-controller:0.0.7
+    # The script has no arguments and goes straight to the Kubernetes API, so only import
+    # it. No network, since the dependencies are meant to already be in the image.
+    test: docker run --rm --network none --entrypoint uv "$IMAGE" run python -c 'import main'
