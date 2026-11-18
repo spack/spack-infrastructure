@@ -447,8 +447,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "pygithub", specifier = "~=2.8.1" },
-    { name = "sentry-sdk" },
+    { name = "pygithub", specifier = "==2.8.1" },
+    { name = "sentry-sdk", specifier = "==2.73.0" },
 ]
 
 [[package]]

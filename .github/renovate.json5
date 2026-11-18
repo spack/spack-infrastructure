@@ -175,6 +175,20 @@
       ],
       groupName: "python dependencies",
       commitMessagePrefix: "[python]",
+      // Everything Python here is an application, not a library, so pin exact
+      // versions. With a range (e.g. `boto3~=1.44.3`) the lock file resolves
+      // to the newest release in that range, which for fast-moving packages
+      // like boto3 is always younger than `minimumReleaseAge` and makes
+      // Renovate report an artifact update failure.
+      rangeStrategy: "pin",
+    },
+    {
+      // secrets/ is a pip-installable CLI with no lock file, so it keeps
+      // version ranges. Pinning it would also have nearly every weekly PR
+      // touch secrets/ and trigger its test workflow.
+      matchManagers: ["pep621"],
+      matchFileNames: ["secrets/**"],
+      rangeStrategy: "auto",
     },
 
     // -------------------------------------------------------------------------
