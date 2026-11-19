@@ -31,40 +31,59 @@ def get_spec_json(job: ProjectJob) -> list[dict]:
     return spec
 
 
+class JobSpecLoadFailed(Exception):
+    """
+    Raised in place of any spack error hit while loading a job's spec.
+
+    An exception raised by a task is pickled and sent to the main celery process. When un-pickled,
+    the exception can import specific spack modules directly, resulting in a circular import.
+    Catch spack exceptions directly, so that they never leave the task.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 def create_packages_and_specs(job: ProjectJob):
+    import spack.error
     import spack.spec
     import spack.traverse
 
     spec = get_spec_json(job=job)
-    root_spec = spack.spec.Spec.from_dict(spec)
 
     # Construct a list of specs to create by going through each node and pulling out the relevant info
     package_names = set()
     specs = []
-    for node in spack.traverse.traverse_nodes([root_spec], depth=False):  # type: ignore
-        node: spack.spec.Spec
-        package_names.add(node.name)
+    try:
+        root_spec = spack.spec.Spec.from_dict(spec)
+        for node in spack.traverse.traverse_nodes([root_spec], depth=False):  # type: ignore
+            node: spack.spec.Spec
+            package_names.add(node.name)
 
-        compiler_name = node.format("{compiler.name}")
-        compiler_version = node.format("{compiler.version}")
+            compiler_name = node.format("{compiler.name}")
+            compiler_version = node.format("{compiler.version}")
 
-        # Any jobs built on this PR will not have these attributes
-        # on the node, but are instead nodes themselves.
-        # https://github.com/spack/spack/pull/45189
-        if not compiler_name or not compiler_version:
-            continue
+            # Any jobs built on this PR will not have these attributes
+            # on the node, but are instead nodes themselves.
+            # https://github.com/spack/spack/pull/45189
+            if not compiler_name or not compiler_version:
+                continue
 
-        specs.append(
-            PackageSpecDimension(
-                name=node.name,
-                hash=node.dag_hash(),
-                version=node.version.string,
-                compiler_name=node.format("{compiler.name}"),
-                compiler_version=node.format("{compiler.version}"),
-                arch=node.format("{arch}"),
-                variants=node.format("{variants}"),
+            specs.append(
+                PackageSpecDimension(
+                    name=node.name,
+                    hash=node.dag_hash(),
+                    version=node.version.string,
+                    compiler_name=node.format("{compiler.name}"),
+                    compiler_version=node.format("{compiler.version}"),
+                    arch=node.format("{arch}"),
+                    variants=node.format("{variants}"),
+                )
             )
-        )
+    except spack.error.SpackError as e:
+        raise JobSpecLoadFailed(
+            f"Job {job.id} spec could not be loaded: {type(e).__name__}: {e}"
+        ) from e
 
     # Bulk create
     PackageSpecDimension.objects.bulk_create(specs, ignore_conflicts=True)
