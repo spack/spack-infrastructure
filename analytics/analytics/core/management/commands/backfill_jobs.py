@@ -197,6 +197,46 @@ def dict_fetchall(cursor):
     return [dict(zip([col[0] for col in desc], row)) for row in cursor.fetchall()]
 
 
+def fetch_webhook_payloads(cursor, job_ids: tuple[int, ...]) -> list[dict]:
+    """Build the webhook payload of each job, in the shape GitLab would have sent it."""
+    # Make query that formulates the webhook shape using the relevant database tables
+    cursor.execute(WEBHOOK_QUERY, {"job_ids": job_ids})
+    results = dict_fetchall(cursor)
+
+    for result in results:
+        # If the "build_started_at" field is None, set it to the created_at value. This seems
+        # to occurs when a job was queued for too long and marked as "failed", before it ever
+        # actually started. This means that technically, we shouldn't overwrite this field in
+        # this way, since we are misrepresenting the job info. However, at the moment, we rely
+        # solely on the "started_at" field. Once this changes, this behavior can be removed.
+        # https://github.com/spack/spack-infrastructure/issues/1284
+        if result.get("build_started_at") is None:
+            result["build_started_at"] = result["build_created_at"]
+
+        # The Gitlab DB returns a nullable integer, but the webhooks we
+        # receive use a string from the enum.
+        result["build_failure_reason"] = FAILURE_REASON_MAP[
+            result["build_failure_reason"]
+        ]
+
+        # Convert integer into string from enum. If the runner no longer exists,
+        # the join will fail, and this value will be None
+        if result["runner"]["runner_type"] is not None:
+            result["runner"]["runner_type"] = RUNNER_TYPE_MAP[
+                result["runner"]["runner_type"]
+            ]
+
+        # Format the datetime fields into strings for the webhook payload
+        for field in [
+            "build_created_at",
+            "build_started_at",
+            "build_finished_at",
+        ]:
+            result[field] = result[field].strftime("%Y-%m-%d %H:%M:%S ") + "UTC"
+
+    return results
+
+
 @click.command()
 @click.option("--start", type=click.DateTime(), help="The datetime to start at")
 @click.option(
@@ -240,45 +280,7 @@ def backfill_jobs(start: datetime, end: datetime, dry_run: bool) -> None:
                 f"Querying jobs {i * BATCH_SIZE} - {i * BATCH_SIZE + len(ids_chunk)}..."
             )
 
-            # Make query that formulates the webhook shape using the relevant database tables
-            cursor.execute(WEBHOOK_QUERY, {"job_ids": ids_chunk})
-            results = dict_fetchall(cursor)
-
-            # Process each result
-            for result in results:
-                # If the "build_started_at" field is None, set it to the created_at value. This seems
-                # to occurs when a job was queued for too long and marked as "failed", before it ever
-                # actually started. This means that technically, we shouldn't overwrite this field in
-                # this way, since we are misrepresenting the job info. However, at the moment, we rely
-                # solely on the "started_at" field. Once this changes, this behavior can be removed.
-                # https://github.com/spack/spack-infrastructure/issues/1284
-                if result.get("build_started_at") is None:
-                    result["build_started_at"] = result["build_created_at"]
-
-                pbar.set_description(
-                    f"Processing records for {result['build_started_at'].replace(second=0, microsecond=0)}"
-                )
-
-                # The Gitlab DB returns a nullable integer, but the webhooks we
-                # receive use a string from the enum.
-                result["build_failure_reason"] = FAILURE_REASON_MAP[
-                    result["build_failure_reason"]
-                ]
-
-                # Convert integer into string from enum. If the runner no longer exists,
-                # the join will fail, and this value will be None
-                if result["runner"]["runner_type"] is not None:
-                    result["runner"]["runner_type"] = RUNNER_TYPE_MAP[
-                        result["runner"]["runner_type"]
-                    ]
-
-                # Format the datetime fields into strings for the webhook payload
-                for field in [
-                    "build_created_at",
-                    "build_started_at",
-                    "build_finished_at",
-                ]:
-                    result[field] = result[field].strftime("%Y-%m-%d %H:%M:%S ") + "UTC"
+            results = fetch_webhook_payloads(cursor, ids_chunk)
 
             if dry_run:
                 click.echo(
@@ -288,6 +290,9 @@ def backfill_jobs(start: datetime, end: datetime, dry_run: bool) -> None:
                 continue
 
             for webhook_dict in results:
+                pbar.set_description(
+                    f"Processing records for {webhook_dict['build_started_at']}"
+                )
                 process_job(json.dumps(webhook_dict))
                 pbar.update(1)
 
