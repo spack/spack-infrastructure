@@ -30,7 +30,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 0
 
     action {
-      count {}
+      allow {}
     }
 
     statement {
@@ -52,7 +52,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 1
 
     action {
-      count {}
+      allow {}
     }
 
     statement {
@@ -68,10 +68,61 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
+  # AWS STS fetches the OIDC discovery document and JWKS from gitlab's well-known
+  # endpoints directly (not from a whitelisted IP) in order to validate ID tokens
+  # for AssumeRoleWithWebIdentity. These endpoints are meant to be public and
+  # unauthenticated per the OIDC spec, so allow them regardless of source IP.
+  rule {
+    name     = "AllowGitlabOidcDiscovery"
+    priority = 2
+
+    action {
+      allow {}
+    }
+
+    statement {
+      or_statement {
+        statement {
+          byte_match_statement {
+            search_string = "/.well-known/openid-configuration"
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+            positional_constraint = "EXACTLY"
+          }
+        }
+
+        statement {
+          byte_match_statement {
+            search_string = "/oauth/discovery/keys"
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+            positional_constraint = "EXACTLY"
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      sampled_requests_enabled   = true
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AllowGitlabOidcDiscovery"
+    }
+  }
+
   # Block requests with this specific user agent string
   rule {
     name     = "BlockBotNet"
-    priority = 2
+    priority = 3
 
     action {
       block {}
@@ -127,39 +178,19 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
+
   rule {
     name     = "AWS-AWSManagedRulesAmazonIpReputationList"
-    priority = 3
+    priority = 4
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
       managed_rule_group_statement {
         vendor_name = "AWS"
         name        = "AWSManagedRulesAmazonIpReputationList"
-
-        rule_action_override {
-          name = "AWSManagedIPReputationList"
-          action_to_use {
-            count {}
-          }
-        }
-
-        rule_action_override {
-          name = "AWSManagedReconnaissanceList"
-          action_to_use {
-            count {}
-          }
-        }
-
-        rule_action_override {
-          name = "AWSManagedIPDDoSList"
-          action_to_use {
-            count {}
-          }
-        }
       }
     }
 
@@ -172,10 +203,10 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesCommonRuleSet"
-    priority = 4
+    priority = 5
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
@@ -194,10 +225,10 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 5
+    priority = 6
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
@@ -216,10 +247,10 @@ resource "aws_wafv2_web_acl" "gateway" {
 
   rule {
     name     = "AWS-AWSManagedRulesAnonymousIpList"
-    priority = 6
+    priority = 7
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
@@ -242,10 +273,10 @@ resource "aws_wafv2_web_acl" "gateway" {
   # static asset requests that don't need bot inspection.
   rule {
     name     = "AWS-AWSManagedRulesBotControlRuleSet"
-    priority = 7
+    priority = 8
 
     override_action {
-      count {}
+      none {}
     }
 
     statement {
@@ -271,10 +302,10 @@ resource "aws_wafv2_web_acl" "gateway" {
   # Issue a javascript-based challenge to any remaining requests
   rule {
     name     = "gitlab-challenge"
-    priority = 8
+    priority = 9
 
     action {
-      count {}
+      challenge {}
     }
 
     statement {
