@@ -509,7 +509,8 @@ class SpackCIBridge(object):
         try:
             tested_commit_info = response.json()
         except json.decoder.JSONDecodeError:
-            print('Failed to parse response as json ({0})'.format(response.text()))
+            print('Failed to parse response as json (HTTP {0}): {1}'.format(
+                response.status_code, response.text[:500]))
             return None
 
         if 'title' not in tested_commit_info:

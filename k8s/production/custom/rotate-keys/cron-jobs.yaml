@@ -13,7 +13,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: clear-admin-keys
-            image: ghcr.io/spack/ci-key-clear:0.0.8
+            image: ghcr.io/spack/ci-key-clear:0.0.9
             imagePullPolicy: IfNotPresent
             resources:
               requests:

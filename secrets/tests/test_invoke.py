@@ -1,5 +1,6 @@
 import pytest
 from click.testing import CliRunner
+
 from spack_secrets import update
 from spack_secrets.update import update as main
 

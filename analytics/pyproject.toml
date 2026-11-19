@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools==84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -23,32 +23,37 @@ classifiers = [
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "cachetools",
-    "celery[redis]",
-    "dj-database-url",
-    "dj-email-url",
-    "django-click",
-    "django-configurations[database,email]",
-    "django-cors-headers",
-    "django-extensions",
-    "django-girder-utils",
-    "django-ninja",
-    "django-s3-file-field[minio]",
-    "django~=5.1",
-    "gunicorn",
-    "kubernetes",
-    "sentry-sdk[django,pure_eval]",
-    "rich",
-    "psycopg2-binary",
-    "python-gitlab>=5.2.0",
-    "pyyaml",
-    "requests",
-    "tqdm",
-    "whitenoise[brotli]",
+    "cachetools==7.2.4",
+    "celery[redis]==5.6.3",
+    "dj-database-url==3.1.2",
+    "dj-email-url==1.0.6",
+    "django-click==2.5.0",
+    "django-configurations[database,email]==2.5.1",
+    "django-cors-headers==4.9.0",
+    "django-extensions==4.1",
+    "django-girder-utils==0.13.1",
+    "django-ninja==1.7.1",
+    "django-s3-file-field[minio]==1.1.0",
+    "django==5.2.18",
+    "gunicorn==26.2.0",
+    "sentry-sdk[django,pure_eval]==2.73.0",
+    "rich==15.0.0",
+    "psycopg2-binary==2.9.13",
+    "python-dateutil==3.0.0",
+    "python-gitlab==8.6.0",
+    "pyyaml==6.0.3",
+    "requests==2.34.2",
+    "tqdm==4.70.1",
+    "whitenoise[brotli]==6.12.0",
 ]
 
 [project.optional-dependencies]
-dev = ["types-cachetools", "django-debug-toolbar", "ipython", "tox"]
+dev = [
+    "types-cachetools==7.0.0.20260713",
+    "django-debug-toolbar==8.0.0",
+    "ipython==9.17.1",
+    "tox==4.67.1",
+]
 
 [tool.setuptools.packages.find]
 include = ["analytics*"]

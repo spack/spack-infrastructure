@@ -18,7 +18,7 @@ WORKDIR /srcs
 COPY pyproject.toml uv.lock ./
 
 COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
-RUN uv sync --frozen --no-dev --no-cache
+RUN uv sync --locked --no-dev --no-cache
 
 # aws-encryption-cli (used by migrate.sh) gets its own isolated environment, for the
 # same reason as the AWS CLI above. It imports pkg_resources, which setuptools 82 removed.
