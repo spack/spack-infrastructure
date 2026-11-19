@@ -142,6 +142,7 @@ class JobType(models.TextChoices):
     UNSUPPORTED_COPY = "unsupported-copy", "Unsupported Copy"
     SIGN_PKGS = "sign-pkgs", "Sign Packages"
     PROTECTED_PUBLISH = "protected-publish", "Protected Publish"
+    WAIT_FOR_BUILD_JOBS = "wait-for-build-jobs", "Wait for Build Jobs"
 
 
 class SpackJobDataDimension(models.Model):

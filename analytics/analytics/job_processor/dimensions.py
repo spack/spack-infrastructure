@@ -106,6 +106,8 @@ def determine_job_type(job_input_data: dict):
         return JobType.PROTECTED_PUBLISH
     if name == "dotenv":
         return JobType.DOTENV
+    if name == "wait-for-build-jobs":
+        return JobType.WAIT_FOR_BUILD_JOBS
 
     if re.match(BUILD_STAGE_REGEX, job_input_data["build_stage"]) is not None:
         return JobType.BUILD
