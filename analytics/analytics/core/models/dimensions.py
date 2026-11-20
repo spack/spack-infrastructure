@@ -143,6 +143,7 @@ class JobType(models.TextChoices):
     SIGN_PKGS = "sign-pkgs", "Sign Packages"
     PROTECTED_PUBLISH = "protected-publish", "Protected Publish"
     WAIT_FOR_BUILD_JOBS = "wait-for-build-jobs", "Wait for Build Jobs"
+    FORCE_PIPELINE_STATUS = "force_pipeline_status", "Force Pipeline Status"
 
 
 class SpackJobDataDimension(models.Model):
