@@ -268,7 +268,7 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
-  # Issue a javascript-based challenge to any remaining requests
+  # Challenge GETs of expensive repository HTML pages, which crawlers hammer
   rule {
     name     = "gitlab-challenge"
     priority = 8
@@ -278,18 +278,87 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
 
     statement {
-      byte_match_statement {
-        search_string = "gitlab.${local.domain_suffix}spack.io"
-        field_to_match {
-          single_header {
-            name = "host"
+      and_statement {
+        # STARTS_WITH also matches "host:443" and a trailing-dot host
+        statement {
+          byte_match_statement {
+            search_string = "gitlab.${local.domain_suffix}spack.io"
+            field_to_match {
+              single_header {
+                name = "host"
+              }
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+            positional_constraint = "STARTS_WITH"
           }
         }
-        text_transformation {
-          priority = 0
-          type     = "NONE"
+        # Exempt trusted sources here so this rule is safe whatever the Allow* rules do
+        statement {
+          not_statement {
+            statement {
+              or_statement {
+                statement {
+                  ip_set_reference_statement {
+                    arn = aws_wafv2_ip_set.vpc_nat_ips.arn
+                  }
+                }
+                statement {
+                  ip_set_reference_statement {
+                    arn = aws_wafv2_ip_set.allowed_ips.arn
+                  }
+                }
+              }
+            }
+          }
         }
-        positional_constraint = "EXACTLY"
+        # Challenges only work on GET requests
+        statement {
+          byte_match_statement {
+            search_string = "GET"
+            field_to_match {
+              method {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+            positional_constraint = "EXACTLY"
+          }
+        }
+        # HTML pages only: raw and archive downloads go to curl and scripts,
+        # which would silently save the 202 challenge page
+        statement {
+          regex_match_statement {
+            regex_string = "/-/(commits?|compare|blob|tree|blame|network|graphs)(/|$)"
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "URL_DECODE"
+            }
+          }
+        }
+        # Same for .patch/.diff downloads and .atom feeds under those paths
+        statement {
+          not_statement {
+            statement {
+              regex_match_statement {
+                regex_string = "\\.(patch|diff|atom)$"
+                field_to_match {
+                  uri_path {}
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "URL_DECODE"
+                }
+              }
+            }
+          }
+        }
       }
     }
 
