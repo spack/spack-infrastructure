@@ -236,42 +236,10 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
-  # BotControl is a paid rule group (charged per request inspected). It runs last among the
-  # managed rule groups so that cheaper rules (IP reputation, common, anonymous IP) can block
-  # requests before they reach it. The scope-down statement further excludes health-check and
-  # static asset requests that don't need bot inspection.
-  rule {
-    name     = "AWS-AWSManagedRulesBotControlRuleSet"
-    priority = 7
-
-    override_action {
-      count {}
-    }
-
-    statement {
-      managed_rule_group_statement {
-        vendor_name = "AWS"
-        name        = "AWSManagedRulesBotControlRuleSet"
-
-        managed_rule_group_configs {
-          aws_managed_rules_bot_control_rule_set {
-            inspection_level = "COMMON"
-          }
-        }
-      }
-    }
-
-    visibility_config {
-      sampled_requests_enabled   = true
-      cloudwatch_metrics_enabled = true
-      metric_name                = "AWS-AWSManagedRulesBotControlRuleSet"
-    }
-  }
-
   # Challenge GETs of expensive repository HTML pages, which crawlers hammer
   rule {
     name     = "gitlab-challenge"
-    priority = 8
+    priority = 7
 
     action {
       challenge {}
