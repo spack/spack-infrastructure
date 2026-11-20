@@ -274,7 +274,14 @@ resource "aws_wafv2_web_acl" "gateway" {
     priority = 8
 
     action {
-      count {}
+      challenge {}
+    }
+
+    # Default 5 min token expiry breaks in-page XHRs on these paths
+    challenge_config {
+      immunity_time_property {
+        immunity_time = 3600
+      }
     }
 
     statement {
@@ -354,6 +361,23 @@ resource "aws_wafv2_web_acl" "gateway" {
                 text_transformation {
                   priority = 0
                   type     = "URL_DECODE"
+                }
+              }
+            }
+          }
+        }
+        # Same for ?raw= and ?inline= downloads of blobs
+        statement {
+          not_statement {
+            statement {
+              regex_match_statement {
+                regex_string = "(^|&)(raw|inline)="
+                field_to_match {
+                  query_string {}
+                }
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
                 }
               }
             }
