@@ -239,7 +239,7 @@ resource "aws_wafv2_web_acl" "gateway" {
   # Challenge GETs of expensive repository HTML pages, which crawlers hammer
   rule {
     name     = "gitlab-challenge"
-    priority = 8
+    priority = 7
 
     action {
       challenge {}
