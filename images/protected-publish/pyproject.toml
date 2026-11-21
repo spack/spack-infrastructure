@@ -3,8 +3,8 @@ name = "protected-publish"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "boto3==1.34.117",
-    "python-gitlab==4.4.0",
-    "requests==2.33.1",
+    "boto3==1.44.5",
+    "python-gitlab==4.13.0",
+    "requests==2.34.2",
     "sentry-sdk==1.45.1",
 ]

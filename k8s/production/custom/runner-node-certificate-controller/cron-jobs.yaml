@@ -27,7 +27,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: runner-node-certificate-controller
-            image: ghcr.io/spack/runner-node-certificate-controller:0.0.7
+            image: ghcr.io/spack/runner-node-certificate-controller:0.0.8
             imagePullPolicy: IfNotPresent
             resources:
               requests:
