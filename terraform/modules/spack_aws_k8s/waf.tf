@@ -236,19 +236,17 @@ resource "aws_wafv2_web_acl" "gateway" {
     }
   }
 
-  # Challenge GETs of expensive repository HTML pages, which crawlers hammer
+  # Block anonymous repo page views; a crawler solves challenges at scale
   rule {
-    name     = "gitlab-challenge"
+    name     = "gitlab-block-repo-browsing"
     priority = 7
 
     action {
-      challenge {}
-    }
-
-    # Default 5 min token expiry breaks in-page XHRs on these paths
-    challenge_config {
-      immunity_time_property {
-        immunity_time = 3600
+      block {
+        custom_response {
+          response_code            = 403
+          custom_response_body_key = "gitlab-repo-browsing"
+        }
       }
     }
 
@@ -285,14 +283,33 @@ resource "aws_wafv2_web_acl" "gateway" {
                     arn = aws_wafv2_ip_set.allowed_ips.arn
                   }
                 }
+                # Presence-only cookie check (spoofable); known_sign_in is only set if "Notify on unknown sign-in" is enabled
+                statement {
+                  regex_match_statement {
+                    regex_string = "known_sign_in|remember_user_token"
+                    field_to_match {
+                      cookies {
+                        match_pattern {
+                          all {}
+                        }
+                        match_scope       = "KEY"
+                        oversize_handling = "CONTINUE"
+                      }
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "NONE"
+                    }
+                  }
+                }
               }
             }
           }
         }
-        # Challenges only work on GET requests
+        # Rails runs the full GET action for HEAD
         statement {
-          byte_match_statement {
-            search_string = "GET"
+          regex_match_statement {
+            regex_string = "^(GET|HEAD)$"
             field_to_match {
               method {}
             }
@@ -300,14 +317,13 @@ resource "aws_wafv2_web_acl" "gateway" {
               priority = 0
               type     = "NONE"
             }
-            positional_constraint = "EXACTLY"
           }
         }
-        # HTML pages only: raw and archive downloads go to curl and scripts,
-        # which would silently save the 202 challenge page
+        # Repo pages/downloads with or without /-/; "-"-led segments can't precede (skips /-/jobs/)
         statement {
           regex_match_statement {
-            regex_string = "/-/(commits?|compare|blob|tree|blame|network|graphs)(/|$)"
+            # GitLab's refs route serves JSON for any extension (refs.xml, refs.JSON)
+            regex_string = "^(/[^/-][^/]*)+/(-/)?((commits?|compare|blob|tree|blame|network|graphs|find_file|files|raw|archive)(/|\\.json$|$)|refs(/|\\.[^/]*$|$))"
             field_to_match {
               uri_path {}
             }
@@ -315,37 +331,68 @@ resource "aws_wafv2_web_acl" "gateway" {
               priority = 0
               type     = "URL_DECODE"
             }
-          }
-        }
-        # Same for .patch/.diff downloads and .atom feeds under those paths
-        statement {
-          not_statement {
-            statement {
-              regex_match_statement {
-                regex_string = "\\.(patch|diff|atom)$"
-                field_to_match {
-                  uri_path {}
-                }
-                text_transformation {
-                  priority = 0
-                  type     = "URL_DECODE"
-                }
-              }
+            # Rails squeezes repeated slashes, so /-//blob/ must match too
+            text_transformation {
+              priority = 1
+              type     = "NORMALIZE_PATH"
             }
           }
         }
-        # Same for ?raw= and ?inline= downloads of blobs
+        # Skip the REST API, help docs and git clones, which share these path words
         statement {
           not_statement {
             statement {
-              regex_match_statement {
-                regex_string = "(^|&)(raw|inline)="
-                field_to_match {
-                  query_string {}
+              or_statement {
+                statement {
+                  byte_match_statement {
+                    search_string = "/help/"
+                    field_to_match {
+                      uri_path {}
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "URL_DECODE"
+                    }
+                    text_transformation {
+                      priority = 1
+                      type     = "NORMALIZE_PATH"
+                    }
+                    positional_constraint = "STARTS_WITH"
+                  }
                 }
-                text_transformation {
-                  priority = 0
-                  type     = "LOWERCASE"
+                statement {
+                  byte_match_statement {
+                    search_string = "/api/"
+                    field_to_match {
+                      uri_path {}
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "URL_DECODE"
+                    }
+                    text_transformation {
+                      priority = 1
+                      type     = "NORMALIZE_PATH"
+                    }
+                    positional_constraint = "STARTS_WITH"
+                  }
+                }
+                statement {
+                  byte_match_statement {
+                    search_string = "/info/refs"
+                    field_to_match {
+                      uri_path {}
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "URL_DECODE"
+                    }
+                    text_transformation {
+                      priority = 1
+                      type     = "NORMALIZE_PATH"
+                    }
+                    positional_constraint = "ENDS_WITH"
+                  }
                 }
               }
             }
@@ -357,8 +404,14 @@ resource "aws_wafv2_web_acl" "gateway" {
     visibility_config {
       sampled_requests_enabled   = true
       cloudwatch_metrics_enabled = true
-      metric_name                = "gitlab-challenge"
+      metric_name                = "gitlab-block-repo-browsing"
     }
+  }
+
+  custom_response_body {
+    key          = "gitlab-repo-browsing"
+    content_type = "TEXT_PLAIN"
+    content      = "Anonymous repository browsing is disabled on this CI mirror. Pipelines and jobs are still available. Sign in to browse code here (if already signed in, sign out and back in), or browse it on the upstream project.\n"
   }
 
   visibility_config {
