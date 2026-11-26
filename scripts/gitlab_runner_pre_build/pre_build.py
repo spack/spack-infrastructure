@@ -10,6 +10,21 @@ import os, sys, json, base64, time
 import urllib.request, urllib.parse, urllib.error
 
 TEMPORARY_CREDENTIALS_DURATION = 3600 * 12  # 12 hours, max allowed by AWS
+MIN_CREDENTIALS_DURATION = 900  # min allowed by AWS
+
+
+def _credentials_duration():
+    # an empty variable means unset
+    duration = int(
+        os.environ.get("SPACK_CI_CREDENTIALS_DURATION") or TEMPORARY_CREDENTIALS_DURATION
+    )
+    # STS answers a bad duration with HTTP 400, which would be retried; fail fast instead
+    if not MIN_CREDENTIALS_DURATION <= duration <= TEMPORARY_CREDENTIALS_DURATION:
+        raise ValueError(
+            f"SPACK_CI_CREDENTIALS_DURATION must be between {MIN_CREDENTIALS_DURATION} "
+            f"and {TEMPORARY_CREDENTIALS_DURATION} seconds, got {duration}"
+        )
+    return duration
 
 
 def _token_to_sts_request(raw_jwt, decoded_jwt):
@@ -26,7 +41,7 @@ def _token_to_sts_request(raw_jwt, decoded_jwt):
             f'GitLabRunner-{os.environ["CI_JOB_ID"]}-{os.environ["CI_COMMIT_SHORT_SHA"]}'
         ),
         "WebIdentityToken": raw_jwt,
-        "DurationSeconds": TEMPORARY_CREDENTIALS_DURATION,
+        "DurationSeconds": _credentials_duration(),
     }
 
     # if this is a PR build, narrow down the permissions to only allow access to the PR build prefix
@@ -104,7 +119,13 @@ def _durable_assume_role_request(assume_role_kwargs):
 def _gitlab_token_to_credentials(gitlab_token):
     token = gitlab_token.split(".")[1]
     token += "=" * ((4 - len(token) % 4) % 4)
-    token = json.loads(base64.b64decode(token))
+    token = json.loads(base64.urlsafe_b64decode(token))
+
+    # STS rejects an expired token with HTTP 400, which would be retried; fail fast instead
+    if "exp" in token and token["exp"] <= time.time():
+        raise ValueError(
+            f"GITLAB_OIDC_TOKEN expired at {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime(token['exp']))}"
+        )
 
     assume_role_kwargs = _token_to_sts_request(gitlab_token, token)
 

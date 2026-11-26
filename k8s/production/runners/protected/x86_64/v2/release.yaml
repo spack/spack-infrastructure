@@ -68,12 +68,40 @@ spec:
             exit 1
           fi
 
-          $PY3 -c "import urllib.request;urllib.request.urlretrieve('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', 'pre_build.py')"
-          $PY3 pre_build.py > envvars
+          if [ -n "${SPACK_CI_POST_BUILD_PUSH:-}" ]; then
+            # Defer the exchange to post_build_script. Unexported, so builds never see it.
+            _spack_oidc_token="${GITLAB_OIDC_TOKEN:-}"
+          else
+            $PY3 -c "import urllib.request;urllib.request.urlretrieve('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', 'pre_build.py')"
+            $PY3 pre_build.py > envvars
 
-          . ./envvars
-          rm -f envvars
+            . ./envvars
+            rm -f envvars
+          fi
           unset GITLAB_OIDC_TOKEN
+          """
+
+          post_build_script = """
+          if [ -n "${SPACK_CI_POST_BUILD_PUSH:-}" ]; then
+            { set +x; } 2>/dev/null
+            echo 'Executing Spack post-build push'
+
+            if [ -n "${_spack_oidc_token:-}" ]; then
+              _spack_tmp="$(mktemp -d)"
+              $PY3 -c "import urllib.request;urllib.request.urlretrieve('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', '$_spack_tmp/pre_build.py')"
+              GITLAB_OIDC_TOKEN="$_spack_oidc_token" SPACK_CI_CREDENTIALS_DURATION="${SPACK_CI_CREDENTIALS_DURATION:-3600}" \\
+                $PY3 "$_spack_tmp/pre_build.py" > "$_spack_tmp/envvars"
+
+              . "$_spack_tmp/envvars"
+              rm -rf "$_spack_tmp"
+            else
+              echo 'SPACK_CI_POST_BUILD_PUSH is set but pre_build_script saved no GITLAB_OIDC_TOKEN (check id_tokens and CI_OIDC_REQUIRED)'
+              exit 1
+            fi
+            unset _spack_oidc_token _spack_tmp
+
+            eval "$SPACK_CI_POST_BUILD_PUSH"
+          fi
           """
 
           output_limit = 20480

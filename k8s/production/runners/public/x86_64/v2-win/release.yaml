@@ -64,26 +64,73 @@ spec:
 
           $py=(get-command -ErrorAction SilentlyContinue python)
           if ( -not $py ) {
-            Write-Output 'Python not found on the system. Add it to the PATH or install.'
+            Write-Output 'Python was not found on the system. Add it to the PATH or install.'
             exit 1
           }
 
-          $scriptPath = Join-Path $HOME 'pre_build.py'
+          if ($env:SPACK_CI_POST_BUILD_PUSH) {
+            # Defer the exchange to post_build_script. Not in the environment, so builds never see it.
+            $spackOidcToken = $env:GITLAB_OIDC_TOKEN
+          } else {
+            $scriptPath = Join-Path $HOME 'pre_build.py'
 
-          $wc = New-Object System.Net.WebClient
-          $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
+            $wc = New-Object System.Net.WebClient
+            $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
 
-          & python $scriptPath | Out-File -FilePath 'envvars.ps1' -Encoding utf8
-          if ($LASTEXITCODE -ne 0) {
-            Write-Output "Prebuild script pre_build.py failed with exit code $LASTEXITCODE. See error above for more info"
-            exit 1
+            & python $scriptPath | Out-File -FilePath 'envvars.ps1' -Encoding utf8
+            if ($LASTEXITCODE -ne 0) {
+              Write-Output "Prebuild script pre_build.py failed with exit code $LASTEXITCODE. See error above for more info"
+              exit 1
+            }
+
+            ./envvars.ps1
+
+            Remove-Item $scriptPath -Force
+            Remove-Item 'envvars.ps1' -Force
           }
-          ./envvars.ps1
-
-          Remove-Item $scriptPath -Force
-          Remove-Item 'envvars.ps1' -Force
 
           $env:GITLAB_OIDC_TOKEN = $null
+          """
+
+          post_build_script = """
+          if ($env:SPACK_CI_POST_BUILD_PUSH) {
+            Write-Output 'Executing Spack post-build push'
+
+            if ($spackOidcToken) {
+              $scriptPath = Join-Path $HOME 'pre_build.py'
+              $envPath = Join-Path $HOME 'envvars.ps1'
+
+              $wc = New-Object System.Net.WebClient
+              $wc.DownloadFile('https://raw.githubusercontent.com/spack/spack-infrastructure/main/scripts/gitlab_runner_pre_build/pre_build.py', $scriptPath)
+
+              if (-not $env:SPACK_CI_CREDENTIALS_DURATION) {
+                $env:SPACK_CI_CREDENTIALS_DURATION = '3600'
+              }
+              $env:GITLAB_OIDC_TOKEN = $spackOidcToken
+              & python $scriptPath | Out-File -FilePath $envPath -Encoding utf8
+              $exchangeStatus = $LASTEXITCODE
+              $env:GITLAB_OIDC_TOKEN = $null
+              if ($exchangeStatus -ne 0) {
+                Write-Output "Post-build script pre_build.py failed with exit code $exchangeStatus. See error above for more info"
+                exit 1
+              }
+
+              & $envPath
+
+              Remove-Item $scriptPath -Force
+              Remove-Item $envPath -Force
+            } else {
+              Write-Output 'SPACK_CI_POST_BUILD_PUSH is set but pre_build_script saved no GITLAB_OIDC_TOKEN (check id_tokens and CI_OIDC_REQUIRED)'
+              exit 1
+            }
+            Remove-Variable spackOidcToken -ErrorAction SilentlyContinue
+
+            $global:LASTEXITCODE = 0
+            Invoke-Expression $env:SPACK_CI_POST_BUILD_PUSH
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+          }
           """
 
           shell = "powershell"
