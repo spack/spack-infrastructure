@@ -9,6 +9,7 @@ resource "aws_s3_bucket" "binary_mirror" {
 resource "aws_s3_bucket_policy" "binary_mirror" {
   bucket = aws_s3_bucket.binary_mirror.id
 
+  # Deferred-credential CI builds rely on PublicRead (see runners README).
   policy = jsonencode({
     Statement = [
       {
