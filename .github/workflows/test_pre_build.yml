@@ -1,0 +1,36 @@
+name: Test pre_build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/gitlab_runner_pre_build/**'
+      - 'k8s/production/runners/**'
+      - '.github/workflows/test_pre_build.yml'
+  pull_request:
+    paths:
+      - 'scripts/gitlab_runner_pre_build/**'
+      - 'k8s/production/runners/**'
+      - '.github/workflows/test_pre_build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.5"
+
+      - name: Run tests
+        working-directory: scripts
+        run: >-
+          uv run --no-project --python 3.12
+          --with-requirements gitlab_runner_pre_build/requirements-test.txt
+          python -m pytest -v gitlab_runner_pre_build
