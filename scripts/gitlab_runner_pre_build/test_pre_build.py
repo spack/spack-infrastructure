@@ -1,9 +1,15 @@
+import base64
+import json
 import time
 import urllib.parse, urllib.error
 import pytest
 from pytest_lazyfixture import lazy_fixture
 
-from .pre_build import _gitlab_token_to_credentials, _durable_assume_role_request
+from .pre_build import (
+    _gitlab_token_to_credentials,
+    _durable_assume_role_request,
+    _token_to_sts_request,
+)
 
 
 class MockResponse:
@@ -62,6 +68,57 @@ def invalid_audience_jwt():
     return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwcm9qZWN0X3BhdGg6c3BhY2svc3BhY2s6cmVmX3R5cGU6YnJhbmNoOnJlZjpkZXZlbG9wIiwiYXVkIjoidW5rbm93bl9hdWRpZW5jZSIsImlhdCI6MTUxNjIzOTAyMiwiaXNzIjoiaHR0cHM6Ly9naXRsYWIuc3BhY2suaW8ifQ.HBlbJhNbEqOmiBWwcelFDElcSy_--ioxttS9HjufL58"
 
 
+@pytest.mark.parametrize(
+    "duration, expected",
+    [(None, 43200), ("", 43200), ("3600", 3600), ("900", 900), ("43200", 43200)],
+)
+def test_credentials_duration(duration, expected, monkeypatch):
+    monkeypatch.setenv("PROTECTED_BINARY_MIRROR_ROLE_ARN", "arn:aws:iam::123456789012:role/R")
+    monkeypatch.setenv("CI_JOB_ID", "11274")
+    monkeypatch.setenv("CI_COMMIT_SHORT_SHA", "486b4e605")
+    if duration is None:
+        monkeypatch.delenv("SPACK_CI_CREDENTIALS_DURATION", raising=False)
+    else:
+        monkeypatch.setenv("SPACK_CI_CREDENTIALS_DURATION", duration)
+
+    request = _token_to_sts_request("jwt", {"aud": "protected_binary_mirror"})
+
+    assert request["DurationSeconds"] == expected
+
+
+@pytest.mark.parametrize("duration", ["899", "43201", "one hour"])
+def test_credentials_duration_invalid(duration, monkeypatch):
+    monkeypatch.setenv("PROTECTED_BINARY_MIRROR_ROLE_ARN", "arn:aws:iam::123456789012:role/R")
+    monkeypatch.setenv("CI_JOB_ID", "11274")
+    monkeypatch.setenv("CI_COMMIT_SHORT_SHA", "486b4e605")
+    monkeypatch.setenv("SPACK_CI_CREDENTIALS_DURATION", duration)
+
+    with pytest.raises(ValueError):
+        _token_to_sts_request("jwt", {"aud": "protected_binary_mirror"})
+
+
+def _make_jwt(payload):
+    # JWTs use unpadded URL-safe base64; the signature isn't checked here
+    encoded = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    return f"header.{encoded}.signature"
+
+
+def test_gitlab_token_expired():
+    jwt = _make_jwt({"aud": "protected_binary_mirror", "exp": int(time.time()) - 60})
+
+    with pytest.raises(ValueError, match="expired"):
+        _gitlab_token_to_credentials(jwt)
+
+
+def test_gitlab_token_urlsafe_payload():
+    jwt = _make_jwt({"sub": "project_path:spack/spack:ref_type:branch:ref:pr-1>?", "aud": "x"})
+    assert "-" in jwt or "_" in jwt
+
+    # decoding succeeds, so the audience check is what rejects it
+    with pytest.raises(ValueError, match="Unknown audience"):
+        _gitlab_token_to_credentials(jwt)
+
+
 def test_gitlab_token_requires_valid_audience(invalid_audience_jwt):
     with pytest.raises(ValueError):
         _gitlab_token_to_credentials(invalid_audience_jwt)
@@ -94,6 +151,7 @@ def test_gitlab_token_to_credentials(jwt, access_type, expected_role_arn, mocker
             "PR_BINARY_MIRROR_BUCKET_ARN": "arn:aws:s3:::pr-binary-mirror",
             "CI_JOB_ID": "11274",
             "CI_COMMIT_SHORT_SHA": "486b4e605",
+            "CI_PROJECT_NAME": "spack",
             "CI_COMMIT_REF_NAME": "refs/heads/feature",
         },
     )
