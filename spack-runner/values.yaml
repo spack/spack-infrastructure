@@ -1,0 +1,9 @@
+# gitlabUrl: "https://gitlab.spack.io/"
+
+# helperImage:
+# helperImage: gitlab/gitlab-runner-helper:arm-latest
+
+# additionalRunnerConfig:
+
+# tags: ""
+# secret: ""
