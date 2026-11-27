@@ -1,0 +1,106 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: builds-spack-io
+  namespace: spack
+  labels:
+    app: builds-spack-io
+    svc: web
+spec:
+  selector:
+    matchLabels:
+      app: builds-spack-io
+      svc: web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: builds-spack-io
+        svc: web
+    spec:
+      containers:
+
+      - name: web
+
+        # https://github.com/spack/spack-monitor/pkgs/container/spack-monitor
+        image: "ghcr.io/spack/spack-monitor:5968b7fe"
+        args: ["/code/script/k8s/run_uwsgi.sh"]
+        volumeMounts:
+          - name: builds-spack-io-cache
+            mountPath: /code/data          
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3031
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: DEBUG
+          value: "false"
+        - name: SPACKMON_ENABLE_GITHUB_AUTH
+          value: "true"
+        - name: SPACKMON_CACHE_DIR
+          value: /code/data/cache
+        - name: SPACKMON_DOMAIN_NAME
+          value: https://builds.spack.io
+        - name: SPACKMON_PORT
+          value: null
+        - name: SPACKMON_DOMAIN_PORT
+          value: null
+
+        # Database
+        - name: DATABASE_ENGINE
+          value: django.db.backends.postgresql_psycopg2
+        - name: DATABASE_PORT
+          value: "5432"
+
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: database_password
+        - name: DATABASE_NAME
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: database_name
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: database_user
+        - name: DATABASE_HOST
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: database_host
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: secret_key
+        - name: JWT_SERVER_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: jwt_secret
+
+        # GitHub Social Auth
+        - name: SOCIAL_AUTH_GITHUB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: social_auth_github_secret
+        - name: SOCIAL_AUTH_GITHUB_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spack-build-credentials
+              key: social_auth_github_key
+      nodeSelector:
+        spack.io/node-pool: base
+        
+      volumes:
+        - name: builds-spack-io-cache
+          persistentVolumeClaim:
+            claimName: builds-spack-io-cache
