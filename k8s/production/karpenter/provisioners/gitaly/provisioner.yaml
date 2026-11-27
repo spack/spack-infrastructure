@@ -15,7 +15,8 @@ spec:
       requirements:
         - key: "node.kubernetes.io/instance-type"
           operator: In
-          values: ["m5.4xlarge"]
+          # Same 8 vCPU / 32 GiB size; fallbacks if one is out of capacity
+          values: ["m5.2xlarge", "m6i.2xlarge", "m7i.2xlarge"]
 
         # Never use spot; an interruption takes down all of GitLab
         - key: "karpenter.sh/capacity-type"
@@ -55,5 +56,6 @@ spec:
         nodes: "0"
         reasons: ["Drifted"]
 
+  # Room for a new node while the old one is cordoned during a move
   limits:
-    cpu: 16
+    cpu: 24

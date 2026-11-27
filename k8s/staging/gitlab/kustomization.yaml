@@ -3,6 +3,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../production/gitlab/namespace.yaml
+  - ../../production/gitlab/priorityclass.yaml
   - ../../production/gitlab/release.yaml
   - ../../production/gitlab/pod-cleanup.yaml
   - ../../production/gitlab/httproutes.yaml

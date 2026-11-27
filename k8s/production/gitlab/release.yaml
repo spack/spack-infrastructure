@@ -232,10 +232,19 @@ spec:
             app: "gitaly"
 
       gitaly:
+        # Memory limit only, so runaway git OOMs in-container instead of evicting gitaly
         resources:
           requests:
-            cpu: 15000m
-            memory: 20Gi
+            cpu: 4000m
+            memory: 26Gi
+          limits:
+            memory: 26Gi
+        # Priority class and fsGroupChangePolicy per https://docs.gitlab.com/administration/gitaly/kubernetes/
+        priorityClassName: gitlab-gitaly
+        securityContext:
+          fsGroupChangePolicy: OnRootMismatch
+        # Shorter than the default 25s, but long enough for most in-flight clones
+        gracefulRestartTimeout: 10
         nodeSelector:
           spack.io/node-pool: gitaly
         tolerations:
