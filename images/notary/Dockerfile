@@ -1,4 +1,4 @@
-FROM alpine:3.15
+FROM alpine:3.24
 MAINTAINER Chris Kotfila <chris.kotfila@kitware.com>
 
 RUN apk add --no-cache \
