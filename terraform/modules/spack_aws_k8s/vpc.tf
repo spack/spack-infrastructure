@@ -13,7 +13,7 @@ data "aws_availability_zones" "available" {
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "6.5.0"
+  version = "6.9.0"
 
   name = "spack${local.suffix}"
   cidr = local.vpc_cidr
