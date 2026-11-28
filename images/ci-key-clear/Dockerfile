@@ -1,4 +1,4 @@
-FROM python:3.14
+FROM python:3.15
 
 ENV UV_PROJECT_ENVIRONMENT=/usr/local
 
