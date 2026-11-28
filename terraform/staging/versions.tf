@@ -1,10 +1,10 @@
 terraform {
-  required_version = "~> 1.11.3"
+  required_version = "~> 1.17.0"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "6.17.0"
+      version = "6.74.0"
     }
     kubectl = {
       source  = "alekc/kubectl"
@@ -16,11 +16,11 @@ terraform {
     }
     flux = {
       source  = "fluxcd/flux"
-      version = "1.7.3"
+      version = "1.10.1"
     }
     gitlab = {
       source  = "gitlabhq/gitlab"
-      version = "19.3.0"
+      version = "19.6.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"

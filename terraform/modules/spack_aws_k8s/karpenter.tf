@@ -4,7 +4,7 @@ locals {
 
 module "karpenter" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "21.8.0"
+  version = "21.30.2"
 
   cluster_name = module.eks.cluster_name
 
@@ -220,7 +220,7 @@ resource "kubectl_manifest" "karpenter_windows_runner_node_class" {
 
 module "karpenter_windows" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "21.8.0"
+  version = "21.30.2"
 
   cluster_name = module.eks.cluster_name
 

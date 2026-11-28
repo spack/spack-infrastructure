@@ -20,7 +20,7 @@ resource "random_password" "cdash_db_password" {
 
 module "cdash_db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "6.10.0"
+  version = "6.13.1"
 
   identifier = "spack-cdash-postgres${local.suffix}"
 
