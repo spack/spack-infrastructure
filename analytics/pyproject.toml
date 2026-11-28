@@ -23,7 +23,7 @@ classifiers = [
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "cachetools==7.2.4",
+    "cachetools==7.3.3",
     "celery[redis]==5.6.3",
     "dj-database-url==3.1.2",
     "dj-email-url==1.0.6",
@@ -32,16 +32,16 @@ dependencies = [
     "django-cors-headers==4.9.0",
     "django-extensions==4.1",
     "django-girder-utils==0.13.1",
-    "django-ninja==1.7.1",
+    "django-ninja==1.8.0",
     "django-s3-file-field[minio]==1.1.0",
-    "django==5.2.18",
+    "django==5.2.19",
     "gunicorn==26.2.0",
-    "sentry-sdk[django,pure_eval]==2.73.0",
+    "sentry-sdk[django,pure_eval]==2.77.0",
     "rich==15.0.0",
     "psycopg2-binary==2.9.13",
     "python-dateutil==3.0.0",
     "python-gitlab==8.6.0",
-    "pyyaml==6.0.3",
+    "pyyaml==6.0.4",
     "requests==2.34.2",
     "tqdm==4.70.1",
     "whitenoise[brotli]==6.12.0",
@@ -51,8 +51,8 @@ dependencies = [
 dev = [
     "types-cachetools==7.0.0.20260713",
     "django-debug-toolbar==8.0.0",
-    "ipython==9.17.1",
-    "tox==4.67.1",
+    "ipython==9.19.1",
+    "tox==4.67.16",
 ]
 
 [tool.setuptools.packages.find]
